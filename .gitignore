@@ -47,14 +47,14 @@ Temp/
 tmp_*.js
 debug_*.txt
 
-# User data (ignore everything)
-User/**
+# User data (ignore everything under User, but allow directories so we can unignore specific files)
+User/*
+!User/*/
 
-# ...but keep Settings YAML tracked
+# Keep Settings YAML tracked
 !User/Settings/
-User/Settings/**
+User/Settings/*
 !User/Settings/*.yml
 
 # Keep empty item directories via .gitkeep
-!User/**/*.gitkeep
-
+!User/**/.gitkeep
