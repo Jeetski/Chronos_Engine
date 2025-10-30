@@ -292,6 +292,32 @@ See `LICENSE` (AGPLâ€‘3.0â€‘orâ€‘later) for the core, `Docs/COMME
 
 Website: https://chronosengine.online
 
+## Themes, Console, and Welcome Message
+
+Chronos supports console themes via the `theme` command and `User/Settings/theme_settings.yml` presets. `User/profile.yml` can set `theme` and explicit `background`/`text` overrides. On Windows, colors apply via the `color` command.
+
+Customize the console's welcome banner with either `User/welcome_message.yml` or a block in `User/profile.yml`. Three lines are supported and variables like `@nickname` are expanded (defaults to `Pilot` if not set).
+
+Examples:
+
+User/welcome_message.yml
+
+```
+line1: "⌛ Chronos Engine v1"
+line2: "🚀 Welcome, @nickname"
+line3: "🌌 You are the navigator of your reality."
+```
+
+User/profile.yml
+
+```
+nickname: "Pilot"
+welcome:
+  line1: "⌛ Chronos Engine v1"
+  line2: "🚀 Welcome, @nickname"
+  line3: "🌌 You are the navigator of your reality."
+```
+
 ## Trademark
 
 â€œChronos Engineâ€, â€œChronosâ€, and â€œChronos Certifiedâ€ are trademarks. See `Docs/TRADEMARK_POLICY.md`. Donâ€™t imply official status for forks or thirdâ€‘party products.
