@@ -1,4 +1,4 @@
-# Chronos Engine
+﻿# Chronos Engine
 
 An intelligent life management system.
 
@@ -19,9 +19,9 @@ Conditionals
 
 - Single-line: `if <left> <op> <right> then <command> [args...] [else <command> ...]`
 - Block (.chs):
-  - `if <left> <op> <right> then` � `[elseif <left> <op> <right> then �]` `[else �]` `end`
+  - `if <left> <op> <right> then` … `[elseif <left> <op> <right> then …]` `[else …]` `end`
 - Operators: `= != > < >= <= eq ne gt lt ge le matches` (regex)
-- Logic: `and or xor nor not !` with parentheses `( � )`
+- Logic: `and or xor nor not !` with parentheses `( … )`
 - Sources:
   - Status: `status:<key>` from `User/current_status.yml`
   - Items: `<type>:<name>:<property>` (e.g., `task:"Deep Work":priority`)
@@ -236,16 +236,16 @@ The Chronos Engine has a modular architecture that is designed to be easily exte
 
 The CLI supports the following commands (case-insensitive). See inline help with `help` or `help <command>`:
 
-- add: Adds an item to a template’s sub-items (respects hierarchy).
+- add: Adds an item to a templateâ€™s sub-items (respects hierarchy).
 - append: Appends text to the content of an item.
-- change: Changes an item’s start time in today’s schedule.
+- change: Changes an itemâ€™s start time in todayâ€™s schedule.
 - cls: Clears the terminal screen.
 - cmd: Executes a system command.
 - complete: Marks or completes items based on context (when enabled).
 - copy: Duplicates an existing item.
 - count: Counts items, optionally filtered by properties.
 - create | new: Creates a new item with properties.
-- cut: Removes an item from today’s schedule.
+- cut: Removes an item from todayâ€™s schedule.
 - dashboard: Opens the web dashboard utility.
 - delete: Deletes an item (supports --force).
 - dismiss | skip | snooze: Manages alarms for the current day.
@@ -258,7 +258,7 @@ The CLI supports the following commands (case-insensitive). See inline help with
 - help: Shows general or command-specific help.
 - import: Imports data/items when configured.
 - list: Lists items with sorting options.
-- mark: Marks an item in today’s schedule with a status.
+- mark: Marks an item in todayâ€™s schedule with a status.
 - mark_norm: Normalizes marks/status for items where supported.
 - miss: Records or lists missed alarms/slots (when available).
 - move: Moves/renames an item and/or changes its type.
@@ -269,10 +269,10 @@ The CLI supports the following commands (case-insensitive). See inline help with
 - unset: Unsets a script variable.
 - settings: Modifies a setting in a settings file.
 - status: Views or sets user status variables.
-- today [reschedule]: Displays or regenerates today’s schedule.
+- today [reschedule]: Displays or regenerates todayâ€™s schedule.
 - track: Starts/stops tracking utilities where available.
-- trim: Reduces an item’s duration in today’s schedule.
-- view: Displays an item’s content and properties.
+- trim: Reduces an itemâ€™s duration in todayâ€™s schedule.
+- view: Displays an itemâ€™s content and properties.
 
 ## The Vision
 
@@ -283,18 +283,18 @@ The Chronos Engine is more than just a productivity tool; it's a "life operating
 - Feast if you build in the open. If you profit while keeping changes closed, you need a Commercial License.
 
 What this means:
-- Core: AGPL‑3.0‑or‑later. You can use, modify, sell, or host Chronos under AGPL compliance. If you modify or embed the Core and distribute/host it, publish your changes.
-- Hobbyists/Students/Researchers/Open‑source devs: Feast. No cost.
-- Commercial/Closed use: If you embed the Core in closed software, build in‑process closed plugins, or run Chronos‑based SaaS without publishing source, get a Commercial License (see `COMMERCIAL_LICENSE.md`).
+- Core: AGPLâ€‘3.0â€‘orâ€‘later. You can use, modify, sell, or host Chronos under AGPL compliance. If you modify or embed the Core and distribute/host it, publish your changes.
+- Hobbyists/Students/Researchers/Openâ€‘source devs: Feast. No cost.
+- Commercial/Closed use: If you embed the Core in closed software, build inâ€‘process closed plugins, or run Chronosâ€‘based SaaS without publishing source, get a Commercial License (see `COMMERCIAL_LICENSE.md`).
 - Marketplace: Paid extensions sold via the official Chronos Marketplace follow `MARKETPLACE_TERMS.md`.
 
-See `LICENSE` (AGPL‑3.0‑or‑later) for the core, `Docs/COMMERCIAL_LICENSE.md` for closed/paid use, `Docs/MARKETPLACE_TERMS.md` for paid listings, and `Docs/TRADEMARK_POLICY.md` for brand usage.
+See `LICENSE` (AGPLâ€‘3.0â€‘orâ€‘later) for the core, `Docs/COMMERCIAL_LICENSE.md` for closed/paid use, `Docs/MARKETPLACE_TERMS.md` for paid listings, and `Docs/TRADEMARK_POLICY.md` for brand usage.
 
 Website: https://chronosengine.online
 
 ## Trademark
 
-“Chronos Engine”, “Chronos”, and “Chronos Certified” are trademarks. See `Docs/TRADEMARK_POLICY.md`. Don’t imply official status for forks or third‑party products.
+â€œChronos Engineâ€, â€œChronosâ€, and â€œChronos Certifiedâ€ are trademarks. See `Docs/TRADEMARK_POLICY.md`. Donâ€™t imply official status for forks or thirdâ€‘party products.
 
 
 ### Scripting and Variables
@@ -312,9 +312,9 @@ Conditionals
 
 - Single-line: `if <left> <op> <right> then <command> [args...] [else <command> ...]`
 - Block (.chs):
-  - `if <left> <op> <right> then` � `[elseif <left> <op> <right> then �]` `[else �]` `end`
+  - `if <left> <op> <right> then` … `[elseif <left> <op> <right> then …]` `[else …]` `end`
 - Operators: `= != > < >= <= eq ne gt lt ge le matches` (regex)
-- Logic: `and or xor nor not !` with parentheses `( � )`
+- Logic: `and or xor nor not !` with parentheses `( … )`
 - Sources:
   - Status: `status:<key>` from `User/current_status.yml`
   - Items: `<type>:<name>:<property>` (e.g., `task:"Deep Work":priority`)
