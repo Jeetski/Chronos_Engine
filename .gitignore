@@ -56,5 +56,8 @@ User/*
 User/Settings/*
 !User/Settings/*.yml
 
+# Track default profile.yml
+!User/profile.yml
+
 # Keep empty item directories via .gitkeep
 !User/**/.gitkeep
