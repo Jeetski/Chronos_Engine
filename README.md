@@ -296,17 +296,9 @@ Website: https://chronosengine.online
 
 Chronos supports console themes via the `theme` command and `User/Settings/theme_settings.yml` presets. `User/profile.yml` can set `theme` and explicit `background`/`text` overrides. On Windows, colors apply via the `color` command.
 
-Customize the console's welcome banner with either `User/welcome_message.yml` or a block in `User/profile.yml`. Three lines are supported and variables like `@nickname` are expanded (defaults to `Pilot` if not set).
+Customize the console's welcome banner via `User/profile.yml`. Define a `welcome` (or `welcome_message`) block with `line1`/`line2`/`line3`. Variables like `@nickname` are expanded (defaults to `Pilot` if not set).
 
 Examples:
-
-User/welcome_message.yml
-
-```
-line1: "⌛ Chronos Engine v1"
-line2: "🚀 Welcome, @nickname"
-line3: "🌌 You are the navigator of your reality."
-```
 
 User/profile.yml
 

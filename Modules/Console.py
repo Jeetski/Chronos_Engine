@@ -119,6 +119,60 @@ def color_print(message: str, text: str = 'white', background: str = 'dark_blue'
             pass
     print(message)
 
+
+# --- Profile + Welcome Message ---
+def _load_profile_and_seed_vars():
+    try:
+        # Default nickname fallback
+        try:
+            Variables.set_var('nickname', 'Pilot')
+        except Exception:
+            pass
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml')) or {}
+        if isinstance(prof, dict):
+            nick = prof.get('nickname') or (isinstance(prof.get('profile'), dict) and prof['profile'].get('nickname'))
+            if isinstance(nick, str) and nick:
+                try:
+                    Variables.set_var('nickname', nick)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
+def _load_welcome_lines():
+    """
+    Load welcome lines exclusively from User/profile.yml.
+    Supports either 'welcome' or 'welcome_message' block, each with line1/line2/line3.
+    Expands @nickname and other variables via Variables.
+    """
+    defaults = [
+        "⌛ Chronos Engine v1",
+        "🚀 Welcome, @nickname",
+        "🌌 You are the navigator of your reality.",
+    ]
+    try:
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml')) or {}
+        block = None
+        if isinstance(prof, dict):
+            block = prof.get('welcome') or prof.get('welcome_message')
+        if isinstance(block, dict):
+            lines = [block.get('line1'), block.get('line2'), block.get('line3')]
+        else:
+            lines = [None, None, None]
+        out = []
+        for i in range(3):
+            raw = lines[i] if i < len(lines) else None
+            txt = raw if isinstance(raw, str) and raw.strip() else defaults[i]
+            try:
+                txt = Variables.expand_token(txt)
+            except Exception:
+                pass
+            out.append(txt)
+        return out
+    except Exception:
+        return defaults
+
 # --- Module Management ---
 # Dictionary to store loaded modules to avoid re-importing
 LOADED_MODULES = {}
@@ -224,6 +278,11 @@ def parse_input(input_parts):
 
 # --- Main Execution Block ---
 if __name__ == "__main__":
+    # Seed variables (e.g., @nickname from profile)
+    try:
+        _load_profile_and_seed_vars()
+    except Exception:
+        pass
     # Apply console theme via Windows 'color' command when available
     try:
         _tc = _resolve_theme_colors()
@@ -295,9 +354,17 @@ if __name__ == "__main__":
     print("|   --|     |    -|  |  | | | |  |  |__   |")
     print("|_____|__|__|__|__|_____|_|___|_____|_____|")
     print()
-    print("⌛ Chronos Engine v1")
-    print("🚀 Welcome, Pilot")
-    print("🌌 You are the navigator of your reality.\n")
+    try:
+        _wl = _load_welcome_lines()
+    except Exception:
+        _wl = [
+            "⌛ Chronos Engine v1",
+            "🚀 Welcome, @nickname",
+            "🌌 You are the navigator of your reality.",
+        ]
+    for _ln in _wl:
+        print(_ln)
+    print("")
 
     # Check if a .chs script file is provided
     if len(sys.argv) > 1 and sys.argv[1].endswith('.chs'):
