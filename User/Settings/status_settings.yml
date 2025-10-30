@@ -1,0 +1,22 @@
+Status_Settings:
+  - Name: Health
+    Rank: 1
+    Description: Overall physical and mental well-being.
+  - Name: Place
+    Rank: 2
+    Description: Current physical location relative to task requirements.
+  - Name: Energy
+    Rank: 3
+    Description: Physical and mental energy levels.
+  - Name: Mind State
+    Rank: 4
+    Description: Clarity, focus, and emotional state.
+  - Name: Focus
+    Rank: 5
+    Description: Ability to concentrate on tasks.
+  - Name: Emotion
+    Rank: 6
+    Description: Current emotional state.
+  - Name: Vibe
+    Rank: 7
+    Description: General feeling or atmosphere.

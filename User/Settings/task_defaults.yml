@@ -1,0 +1,7 @@
+Name: New Task
+Description: A new task.
+Status: pending
+Priority: medium
+Due_Date: "{{tomorrow}}"
+Content: ""
+Type: task

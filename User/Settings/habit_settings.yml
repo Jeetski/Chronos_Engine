@@ -1,0 +1,18 @@
+
+default_properties:
+  creation_date: null
+  last_completed: null
+  current_streak: 0
+  longest_streak: 0
+  completion_dates: []
+  frequency: daily
+  status: active
+  # Polarity of habit behavior: 'good' (do it) or 'bad' (avoid it)
+  polarity: good
+  # For bad habits, we also track incident dates (when the habit occurred)
+  incident_dates: []
+  # Last date when a bad habit incident was recorded (YYYY-MM-DD)
+  last_incident: null
+  # Clean streaks for bad habits (days without incident)
+  clean_current_streak: 0
+  clean_longest_streak: 0

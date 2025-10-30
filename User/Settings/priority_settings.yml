@@ -1,0 +1,16 @@
+Priority_Settings:
+  Urgent:
+    value: 1
+    Description: Must be done today.
+  High:
+    value: 2
+    Description: Important, should be done soon.
+  Medium:
+    value: 3
+    Description: Can be done when time permits.
+  Low:
+    value: 4
+    Description: Not critical, can be deferred.
+  Optional:
+    value: 5
+    Description: Nice to have, but not necessary.

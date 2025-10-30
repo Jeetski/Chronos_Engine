@@ -1,0 +1,16 @@
+Category_Settings:
+  Health:
+    value: 1
+    Description: Categories related to physical and mental well-being.
+  Friends and Family:
+    value: 2
+    Description: Categories related to social connections and relationships.
+  Work:
+    value: 3
+    Description: Categories related to professional tasks and responsibilities.
+  Personal Development:
+    value: 4
+    Description: Categories related to learning, growth, and self-improvement.
+  Hobbies:
+    value: 5
+    Description: Categories related to leisure activities and personal interests.

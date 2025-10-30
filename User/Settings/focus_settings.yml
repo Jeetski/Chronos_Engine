@@ -1,0 +1,13 @@
+Focus_Settings:
+    Laser:
+        value: 1
+        description: Highly concentrated, minimal distractions.
+    Good:
+        value: 2
+        description: Able to maintain focus.
+    Scattered:
+        value: 3
+        description: Easily distracted.
+    Absent:
+        value: 4
+        description: Unable to focus.

@@ -1,0 +1,19 @@
+Scheduling_Priorities:
+  - Name: Environment
+    Rank: 1
+    Description: Considers current place, available tools, and inventory items.
+  - Name: Category
+    Rank: 1.5
+    Description: Ranks the importance of user-defined categories.
+  - Name: Due Date
+    Rank: 2
+    Description: Prioritizes items with approaching deadlines.
+  - Name: Status Alignment
+    Rank: 3
+    Description: Matches items to the user's current emotional, energy, and focus states.
+  - Name: Priority Property
+    Rank: 4
+    Description: Uses the item's explicit 'Priority' property (e.g., high, medium, low).
+  - Name: Template Membership
+    Rank: 5
+    Description: Considers the item's position within microroutines, subroutines, and routines.

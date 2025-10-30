@@ -1,0 +1,5 @@
+Name: New Dream Diary Entry
+Description: A new dream diary entry.
+Date: "{{timestamp}}"
+Content: ""
+Type: dream_diary_entry

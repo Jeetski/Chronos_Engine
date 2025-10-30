@@ -1,0 +1,5 @@
+Name: New Journal Entry
+Description: A new journal entry.
+Date: "{{timestamp}}"
+Content: ""
+Type: journal_entry

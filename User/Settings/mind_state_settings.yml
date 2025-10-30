@@ -1,0 +1,13 @@
+Mind_State_Settings:
+    Clear:
+        value: 1
+        description: Focused and mentally sharp.
+    Neutral:
+        value: 2
+        description: Normal mental state.
+    Distracted:
+        value: 3
+        description: Difficulty concentrating.
+    Overwhelmed:
+        value: 4
+        description: Mentally overloaded, stressed.

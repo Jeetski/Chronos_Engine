@@ -1,0 +1,5 @@
+Name: New Goal
+Description: A new goal.
+Status: active
+Target_Date: "{{end_of_year}}"
+Type: goal

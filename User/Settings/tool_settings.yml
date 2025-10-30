@@ -1,0 +1,10 @@
+# Default settings for Tool status
+Tool:
+  - Name: Laptop
+    Description: Portable computer.
+  - Name: Phone
+    Description: Mobile communication device.
+  - Name: Car
+    Description: Personal vehicle.
+  - Name: Pen
+    Description: Writing instrument.

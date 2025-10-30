@@ -1,0 +1,10 @@
+Emotion_Settings:
+    Positive:
+        value: 1
+        description: Happy, motivated, optimistic.
+    Neutral:
+        value: 2
+        description: Calm, stable.
+    Negative:
+        value: 3
+        description: Sad, frustrated, anxious.

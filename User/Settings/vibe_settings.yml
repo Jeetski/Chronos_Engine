@@ -1,0 +1,10 @@
+Vibe_Settings:
+    Great:
+        value: 1
+        description: Feeling positive and enthusiastic.
+    Okay:
+        value: 2
+        description: Neutral or indifferent.
+    Bad:
+        value: 3
+        description: Feeling negative or unmotivated.

@@ -1,0 +1,5 @@
+Name: New Commitment
+Description: A new commitment.
+Status: active
+Due_Date: "{{end_of_year}}"
+Type: commitment

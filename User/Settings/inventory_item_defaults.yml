@@ -1,0 +1,5 @@
+Name: New Inventory Item
+Description: A new item for inventory.
+Quantity: 1
+Location: ""
+Type: inventory_item

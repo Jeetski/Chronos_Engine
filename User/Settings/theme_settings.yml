@@ -1,0 +1,37 @@
+# Theme presets for console. Values can be named colors (from Utilities/colorprint/colors.yml)
+# or hex like #RRGGBB. TODO(colorhex): When a C# colorhex.exe exists, we can apply
+# exact hex colors globally instead of approximating to 16-color console values.
+themes:
+  default:
+    background: dark_blue
+    text: white
+  hacker:
+    background: black
+    text: neon_green
+  ocean:
+    background: diamond_blue
+    text: off_white
+  solarized_dark:
+    background: #002b36
+    text: #93a1a1
+  solarized_light:
+    background: #fdf6e3
+    text: #657b83
+  midnight:
+    background: jet_black
+    text: light_blue
+  sunset:
+    background: dark_orange
+    text: off_white
+  lavender:
+    background: light_purple
+    text: charcoal
+  forest:
+    background: dark_green
+    text: off_white
+  mono_dark:
+    background: charcoal
+    text: chalk
+  mono_light:
+    background: off_white
+    text: charcoal

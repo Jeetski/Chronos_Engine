@@ -1,0 +1,7 @@
+Place_Settings:
+    Optimal:
+        value: 1
+        description: Currently in the required location.
+    Suboptimal:
+        value: 5
+        description: Not in the required location, requires travel.

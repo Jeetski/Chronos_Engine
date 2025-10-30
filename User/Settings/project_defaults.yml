@@ -1,0 +1,10 @@
+description: "New project"
+priority: "medium"
+category: "work"
+tags:
+  - "project"
+state: "planning"
+milestones: []
+children: []
+notes: ""
+Type: project

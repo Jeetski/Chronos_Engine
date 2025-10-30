@@ -1,0 +1,60 @@
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+build/
+dist/
+.cache/
+.mypy_cache/
+.pytype/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Editors/OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Root debug files (exclude from repo)
+debug_*
+
+# Local website and release artifacts (engine repo shouldn't include these)
+Website/
+_site/
+Releases/
+*.zip
+
+# Dashboard generated bundles
+Utilities/Dashboard/generated/*
+
+# colorprint build outputs (ship exe via Releases instead)
+Utilities/colorprint/bin/
+Utilities/colorprint/obj/
+Utilities/colorprint/*.exe
+Utilities/colorprint/*.pdb
+
+# Temp/debug artifacts
+Temp/
+tmp_*.js
+debug_*.txt
+
+# User data (ignore everything)
+User/**
+
+# ...but keep Settings YAML tracked
+!User/Settings/
+User/Settings/**
+!User/Settings/*.yml
+
+# Keep empty item directories via .gitkeep
+!User/**/*.gitkeep
+

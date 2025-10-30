@@ -1,0 +1,16 @@
+Health_Settings:
+    Excellent:
+        value: 1
+        description: Feeling great, full of vitality.
+    Good:
+        value: 2
+        description: Healthy and functional.
+    Fair:
+        value: 3
+        description: Minor ailments, slightly under the weather.
+    Poor:
+        value: 4
+        description: Significant health issues, limited capacity.
+    Critical:
+        value: 5
+        description: Severely ill, unable to perform most tasks.

@@ -1,0 +1,5 @@
+default_enabled: true
+default_recurrence: ["daily"]
+default_label: "A friendly reminder from Chronos."
+default_sound: "notification.mp3"
+Type: reminder
