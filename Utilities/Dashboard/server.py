@@ -83,6 +83,61 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data.encode("utf-8"))
             return
+        if parsed.path == "/api/habits":
+            # Enumerate habits with basic fields and today status
+            try:
+                user_dir = os.path.join(ROOT_DIR, 'User')
+                habits_dir = os.path.join(user_dir, 'Habits')
+                items = []
+                today = None
+                try:
+                    from datetime import datetime
+                    today = datetime.now().strftime('%Y-%m-%d')
+                except Exception:
+                    pass
+                if os.path.isdir(habits_dir):
+                    for fn in os.listdir(habits_dir):
+                        if not fn.lower().endswith('.yml'):
+                            continue
+                        fpath = os.path.join(habits_dir, fn)
+                        try:
+                            with open(fpath, 'r', encoding='utf-8') as f:
+                                d = yaml.safe_load(f) or {}
+                            def g(key, alt=None):
+                                return d.get(key) if key in d else d.get(alt) if alt else None
+                            name = g('name') or os.path.splitext(fn)[0]
+                            category = g('category')
+                            priority = g('priority')
+                            polarity = str(g('polarity', 'polarity') or 'good').lower()
+                            curr = int(g('current_streak', 'current_streak') or 0)
+                            longest = int(g('longest_streak', 'longest_streak') or 0)
+                            clean_curr = int(g('clean_current_streak', 'clean_current_streak') or 0)
+                            clean_long = int(g('clean_longest_streak', 'clean_longest_streak') or 0)
+                            comp = g('completion_dates', 'completion_dates') or []
+                            inc = g('incident_dates', 'incident_dates') or []
+                            today_status = None
+                            if today:
+                                if polarity == 'bad' and isinstance(inc, list) and today in inc:
+                                    today_status = 'incident'
+                                elif polarity != 'bad' and isinstance(comp, list) and today in comp:
+                                    today_status = 'done'
+                            items.append({
+                                'name': str(name),
+                                'polarity': polarity,
+                                'category': category,
+                                'priority': priority,
+                                'streak_current': curr,
+                                'streak_longest': longest,
+                                'clean_current': clean_curr,
+                                'clean_longest': clean_long,
+                                'today_status': today_status,
+                            })
+                        except Exception:
+                            continue
+                self._write_yaml(200, { 'ok': True, 'habits': items })
+            except Exception as e:
+                self._write_yaml(500, { 'ok': False, 'error': f'Habits error: {e}' })
+            return
         if parsed.path == "/api/today":
             # Return simplified blocks for today's schedule as YAML { ok, blocks }
             user_dir = os.path.join(ROOT_DIR, 'User')
@@ -233,6 +288,40 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
             return
         return super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        try:
+            length = int(self.headers.get('Content-Length', '0') or '0')
+        except Exception:
+            length = 0
+        raw = None
+        if length > 0:
+            try:
+                raw = self.rfile.read(length)
+            except Exception:
+                raw = None
+        payload = {}
+        if raw:
+            try:
+                import json
+                payload = json.loads(raw.decode('utf-8')) if raw else {}
+            except Exception:
+                payload = {}
+        name = (payload.get('name') if isinstance(payload, dict) else None)
+        # Endpoints: /api/habits/complete and /api/habits/incident both trigger a 'complete habit <name>'
+        if parsed.path in ("/api/habits/complete", "/api/habits/incident"):
+            if not name or not isinstance(name, str):
+                self._write_yaml(400, { 'ok': False, 'error': 'name required' })
+                return
+            ok, out, err = run_console_command('complete', ['habit', name])
+            status = 200 if ok else 500
+            self._write_yaml(status, { 'ok': bool(ok), 'stdout': out, 'stderr': err })
+            return
+        # Default
+        self.send_response(404)
+        self._set_cors()
+        self.end_headers()
 
     def do_POST(self):
         parsed = urlparse(self.path)
