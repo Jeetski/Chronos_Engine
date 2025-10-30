@@ -94,6 +94,22 @@ def run(args, properties):
             if k in properties:
                 wb[k] = str(properties.get(k))
                 changed = True
+        # If shell broke quoted value into separate args (e.g., line2:"🚀 Welcome, @nickname" -> line2:🚀 Welcome, @nickname),
+        # append any trailing non-property tokens to the last specified line key.
+        try:
+            tail_tokens = []
+            for t in (args[1:] if len(args) > 1 else []):
+                if isinstance(t, str) and (':' not in t):
+                    tail_tokens.append(t)
+            if tail_tokens:
+                # Determine which line key to append to (prefer the highest-numbered line present)
+                for key in ('line3','line2','line1'):
+                    if key in wb and key in properties:
+                        wb[key] = (wb.get(key) or '') + (' ' if wb.get(key) else '') + ' '.join(tail_tokens)
+                        changed = True
+                        break
+        except Exception:
+            pass
         if not changed:
             print("Nothing to set. Provide nickname:<value> and/or line1/line2/line3:")
             print("  profile set nickname:Alice line2:\"Welcome, @nickname\"")
@@ -101,6 +117,24 @@ def run(args, properties):
         ok = _save_profile(prof)
         if ok:
             print("Profile updated.")
+        else:
+            print("Failed to write profile.yml.")
+        return
+
+    if sub in {'set-line','setline'}:
+        if len(args) < 3:
+            print("Usage: profile set-line <1|2|3> <text...>")
+            return
+        idx = str(args[1]).strip()
+        if idx not in {'1','2','3'}:
+            print("Line index must be 1, 2, or 3.")
+            return
+        text = ' '.join(args[2:])
+        wb = _ensure_welcome_block(prof)
+        key = f'line{idx}'
+        wb[key] = text
+        if _save_profile(prof):
+            print(f"Set {key}.")
         else:
             print("Failed to write profile.yml.")
         return
@@ -113,6 +147,7 @@ def get_help_message():
 Usage: profile show
        profile get <nickname|line1|line2|line3>
        profile set [nickname:<value>] [line1:"..."] [line2:"..."] [line3:"..."]
+       profile set-line <1|2|3> <text...>
 
 Description:
   Views or updates profile details stored in User/profile.yml. Supports a welcome block with line1/line2/line3.
@@ -122,5 +157,5 @@ Examples:
   profile show
   profile set nickname:Alice
   profile set line2:"🚀 Welcome, @nickname" line3:"🌌 Navigate your reality"
+  profile set-line 2 🚀 Welcome, @nickname
 """
-
