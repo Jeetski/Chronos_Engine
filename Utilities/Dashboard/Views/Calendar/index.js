@@ -124,6 +124,21 @@
       ctx.fillStyle = '#e6e8ef';
       ctx.font = '600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
       const padX = 8;
+      const ell = '…';
+      function fitTextToWidth(text, maxW){
+        try{
+          if (maxW <= 0) return ell;
+          if (ctx.measureText(text).width <= maxW) return text;
+          let lo = 1, hi = Math.max(1, text.length);
+          while (lo < hi){
+            const mid = (lo + hi) >> 1;
+            const s = text.slice(0, mid) + ell;
+            if (ctx.measureText(s).width <= maxW) lo = mid + 1; else hi = mid;
+          }
+          const cut = Math.max(1, lo - 1);
+          return text.slice(0, cut) + ell;
+        }catch{return text;}
+      }
       // Type-based hierarchy filter:
       // 0 => routines only, 1 => subroutines only, 2 => microroutines only, 3 => leaf items (non-templates)
       const containerTypes = new Set(['routine','subroutine','microroutine']);
@@ -152,19 +167,19 @@
           const items = groups.get(startMin) || [];
           const y0 = gridTop + (startMin*pxPerMinute); const lineY = y0 + 12;
         const pieces = items.map(it => String(it.text||''));
-        let text = minToHM(startMin) + '  ' + pieces.join('; ');
-          while (ctx.measureText(text).width > colW - padX*2 && text.length > 3){ text = text.slice(0, -4) + 'ï¿½?ï¿½'; }
-          ctx.fillText(text, colX + padX, lineY);
+        const full = minToHM(startMin) + '  ' + pieces.join('; ');
+        const clipped = fitTextToWidth(full, colW - padX*2);
+        ctx.fillText(clipped, colX + padX, lineY);
         });
         return;
       } catch {}
       filtered.sort((a,b)=> (a.start-b.start) || ((a.order??0)-(b.order??0)) || String(a.text||'').localeCompare(String(b.text||'')) );
       filtered.forEach(b=>{
         const y0=gridTop + (b.start*pxPerMinute); const lineY = y0 + 12;
-        const prefix = b.is_parallel ? 'âˆ¥ ' : '';
-        let text = minToHM(b.start) + '  ' + prefix + String(b.text||'');
-        while (ctx.measureText(text).width > colW - padX*2 && text.length > 3){ text = text.slice(0, -4) + 'â€¦'; }
-        ctx.fillText(text, colX + padX, lineY);
+        const prefix = b.is_parallel ? '∥ ' : '';
+        const full = minToHM(b.start) + '  ' + prefix + String(b.text||'');
+        const clipped = fitTextToWidth(full, colW - padX*2);
+        ctx.fillText(clipped, colX + padX, lineY);
       });
     };
     if (!todayBlocks) {
