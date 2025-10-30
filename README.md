@@ -75,13 +75,13 @@ By tracking your status, the Chronos Engine can adapt your schedule to your curr
 
 The `today` command is the primary interface for generating and interacting with your daily schedule. It now supports a persistent schedule and manual modifications.
 
-*   **`today` (display only):** If a schedule for today has already been generated and saved (to `User/today_schedule.yml`), this command will simply load and display that schedule. It will not re-calculate or re-resolve conflicts.
+*   **`today` (display only):** If a schedule for today has already been generated and saved (to `User/Schedules/today_schedule.yml`), this command will simply load and display that schedule. It will not re-calculate or re-resolve conflicts.
 *   **`today reschedule` (generate and resolve):** This command triggers the full schedule generation and conflict resolution process. It will:
     1.  Load your day template (e.g., `User/Days/Monday.yml`).
     2.  Load any pending manual modifications (from `User/manual_modifications.yml`).
     3.  Apply these manual modifications to the in-memory schedule.
     4.  Run the iterative conflict resolution algorithm (shifting, trimming, cutting based on importance).
-    5.  Save the fully resolved schedule to `User/today_schedule.yml`.
+    5.  Save the fully resolved schedule to `User/Schedules/today_schedule.yml`.
     6.  Clear the `User/manual_modifications.yml` file.
     7.  Display the final, resolved schedule.
 
