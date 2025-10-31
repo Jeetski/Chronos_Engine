@@ -123,8 +123,13 @@
 
   function drawDayGrid(day=dateAtMidnight(new Date()), previewDrag=false){
     selectedDayDate=new Date(day);
-    // Preload completions, then repaint if new
-    try{ loadCompletions(selectedDayDate).then(()=>{ try{ redrawCurrentView(); }catch{} }); }catch{}
+    // Preload completions for this day only if not cached; then repaint once
+    try{
+      const k = dayKey(selectedDayDate);
+      if (!completionsCache.has(k)){
+        loadCompletions(selectedDayDate).then(()=>{ try{ if (dayKey(selectedDayDate)===k) redrawCurrentView(); }catch{} });
+      }
+    }catch{}
     // Refresh blocks from window/localStorage to reflect Today widget updates
     try { if (window.dayBlocksStore) dayBlocksStore = window.dayBlocksStore; else dayBlocksStore = load('pm_day_blocks', dayBlocksStore||{}); } catch { dayBlocksStore = load('pm_day_blocks', dayBlocksStore||{}); }
     const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h);
