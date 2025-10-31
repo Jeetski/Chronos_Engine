@@ -4,7 +4,7 @@ import sys
 import yaml
 import threading
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 # Paths
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -137,6 +137,35 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_yaml(200, { 'ok': True, 'habits': items })
             except Exception as e:
                 self._write_yaml(500, { 'ok': False, 'error': f'Habits error: {e}' })
+            return
+        if parsed.path == "/api/completions":
+            try:
+                qs = parse_qs(parsed.query or '')
+                date_str = None
+                if qs:
+                    arr = qs.get('date') or []
+                    if arr:
+                        date_str = str(arr[0])
+                # Default to today
+                if not date_str:
+                    from datetime import datetime
+                    date_str = datetime.now().strftime('%Y-%m-%d')
+                comp_dir = os.path.join(ROOT_DIR, 'User', 'Schedules', 'completions')
+                comp_path = os.path.join(comp_dir, f"{date_str}.yml")
+                completed = []
+                if os.path.exists(comp_path):
+                    try:
+                        with open(comp_path, 'r', encoding='utf-8') as f:
+                            d = yaml.safe_load(f) or {}
+                        if isinstance(d, dict):
+                            for k, v in d.items():
+                                if str(v).strip().lower() == 'completed':
+                                    completed.append(str(k))
+                    except Exception:
+                        pass
+                self._write_yaml(200, { 'ok': True, 'date': date_str, 'completed': completed })
+            except Exception as e:
+                self._write_yaml(500, { 'ok': False, 'error': f'Completions error: {e}' })
             return
         if parsed.path == "/api/today":
             # Return simplified blocks for today's schedule as YAML { ok, blocks }

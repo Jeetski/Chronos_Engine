@@ -52,6 +52,7 @@
     return blocks;
   }
   let todayBlocks = null; let todayLoadedAt = 0;
+  const completionsCache = new Map(); // key: 'YYYY-MM-DD' -> Set(names)
   async function loadTodayBlocks(force=false){
     if (!force && todayBlocks && (Date.now()-todayLoadedAt) < 3000) return todayBlocks;
     try{
@@ -74,6 +75,21 @@
     return todayBlocks;
   }
   try { window.calendarLoadToday = ()=>loadTodayBlocks(true); } catch {}
+  async function loadCompletions(day){
+    try{
+      const key = dayKey(day);
+      if (completionsCache.has(key)) return completionsCache.get(key);
+      const resp = await fetch(apiBase()+`/api/completions?date=${key}`);
+      const text = await resp.text();
+      // Parse minimal YAML: completed: [ - name ]
+      const lines = String(text||'').replace(/\r\n?/g,'\n').split('\n');
+      let inList=false; const names=new Set();
+      for (let raw of lines){ const line = raw.replace(/#.*$/,''); if (!line.trim()) continue; if (!inList) { if (/^\s*completed\s*:/i.test(line)) inList=true; continue; }
+        const m = line.match(/^\s*-\s*(.+)$/); if (m) names.add(m[1].trim());
+      }
+      completionsCache.set(key, names); return names;
+    }catch{ return new Set(); }
+  }
   // (removed duplicate helpers)
 
   function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
@@ -107,6 +123,8 @@
 
   function drawDayGrid(day=dateAtMidnight(new Date()), previewDrag=false){
     selectedDayDate=new Date(day);
+    // Preload completions, then repaint if new
+    try{ loadCompletions(selectedDayDate).then(()=>{ try{ redrawCurrentView(); }catch{} }); }catch{}
     // Refresh blocks from window/localStorage to reflect Today widget updates
     try { if (window.dayBlocksStore) dayBlocksStore = window.dayBlocksStore; else dayBlocksStore = load('pm_day_blocks', dayBlocksStore||{}); } catch { dayBlocksStore = load('pm_day_blocks', dayBlocksStore||{}); }
     const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h);
@@ -154,6 +172,11 @@
         return !containerTypes.has(t);
       });
       // Render groups of entries that share the same start time on a single line, separated by semicolons
+      // Visible window culling to avoid drawing offscreen content when many items
+      const viewTop = container.scrollTop|0;
+      const viewH = container.clientHeight|0;
+      const visStart = Math.max(0, Math.floor(((viewTop - gridTop) - 120) / pxPerMinute));
+      const visEnd = Math.min(24*60, Math.ceil(((viewTop + viewH - gridTop) + 120) / pxPerMinute));
       try {
         const sorted = [...filtered].sort((a,b)=> (a.start-b.start) || ((a.order??0)-(b.order??0)) || String(a.text||'').localeCompare(String(b.text||'')) );
         const groups = new Map();
@@ -164,10 +187,14 @@
         }
         const starts = Array.from(groups.keys()).sort((a,b)=>a-b);
         starts.forEach(startMin => {
+          if (startMin < visStart || startMin > visEnd) return;
           const items = groups.get(startMin) || [];
           const y0 = gridTop + (startMin*pxPerMinute); const lineY = y0 + 12;
         const pieces = items.map(it => String(it.text||''));
         const full = minToHM(startMin) + '  ' + pieces.join('; ');
+        // Group color: all completed -> ok; else -> danger
+        const allDone = items.every(it => completeSet.has(String(it.text||'')));
+        ctx.fillStyle = allDone ? getCss('--ok','#5bdc82') : getCss('--danger','#ef6a6a');
         const clipped = fitTextToWidth(full, colW - padX*2);
         ctx.fillText(clipped, colX + padX, lineY);
         });
@@ -175,8 +202,11 @@
       } catch {}
       filtered.sort((a,b)=> (a.start-b.start) || ((a.order??0)-(b.order??0)) || String(a.text||'').localeCompare(String(b.text||'')) );
       filtered.forEach(b=>{
+        if (b.start < visStart || b.start > visEnd) return;
         const y0=gridTop + (b.start*pxPerMinute); const lineY = y0 + 12;
         const prefix = b.is_parallel ? '∥ ' : '';
+        // Per-item color
+        ctx.fillStyle = completeSet.has(String(b.text||'')) ? getCss('--ok','#5bdc82') : getCss('--danger','#ef6a6a');
         const full = minToHM(b.start) + '  ' + prefix + String(b.text||'');
         const clipped = fitTextToWidth(full, colW - padX*2);
         ctx.fillText(clipped, colX + padX, lineY);
@@ -388,6 +418,7 @@ try {
     toolPicker.addEventListener('click', ()=> setTool('picker'));
     toolEraser.addEventListener('click', ()=> setTool('eraser'));
     setTool(window.__calendarTool ?? 'cursor');
+      const completeSet = completionsCache.get(dayKey(day)) || new Set();
     panel.append(timeMinus, timePlus, levelMinus, levelPlus, levelLabel, toolCursor, toolSelect, toolPicker, toolEraser);
     root.appendChild(panel);
   })();
