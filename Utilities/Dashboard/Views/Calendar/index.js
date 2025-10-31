@@ -162,6 +162,8 @@
           return text.slice(0, cut) + ell;
         }catch{return text;}
       }
+      // Resolve completions for this day (if any)
+      const completeSet = completionsCache.get(dayKey(day)) || new Set();
       // Type-based hierarchy filter:
       // 0 => routines only, 1 => subroutines only, 2 => microroutines only, 3 => leaf items (non-templates)
       const containerTypes = new Set(['routine','subroutine','microroutine']);
