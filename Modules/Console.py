@@ -42,7 +42,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 # Define paths for commands and modules directories
-COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
+COMMANDS_DIR = os.path.join(ROOT_DIR, "Commands")
 MODULES_DIR = os.path.join(ROOT_DIR, "Modules")
 
 # Ensure both COMMANDS_DIR and MODULES_DIR are in sys.path

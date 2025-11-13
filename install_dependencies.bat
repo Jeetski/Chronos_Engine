@@ -28,12 +28,28 @@ if not defined PYTHON_CMD (
 
 echo Using Python: %PYTHON_CMD%
 
+REM Create and use a local virtual environment (.venv)
+if not exist ".venv\Scripts\python.exe" (
+  echo Creating virtual environment in .venv ...
+  "%PYTHON_CMD%" -m venv .venv || (
+    echo Failed to create virtual environment.
+    goto :end_fail
+  )
+)
+set "PYTHON_CMD=.venv\Scripts\python.exe"
+echo Using venv Python: %PYTHON_CMD%
+
 REM Ensure pip is present and up to date
 "%PYTHON_CMD%" -m ensurepip --upgrade >nul 2>&1
 "%PYTHON_CMD%" -m pip install --upgrade pip
 
-echo Installing Python dependencies...
-"%PYTHON_CMD%" -m pip install PyYAML colorama playsound pygame
+echo Installing Python dependencies from requirements.txt...
+if not exist requirements.txt (
+  echo requirements.txt not found in the project root.
+  echo Please ensure it exists and re-run this script.
+  goto :end_fail
+)
+"%PYTHON_CMD%" -m pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 goto :end_fail
 
 echo.

@@ -163,8 +163,20 @@ def generic_handle_new(item_type, item_name, properties):
     """
     default_properties = {}
     settings_dir = get_item_dir('setting')
-    default_file_path = os.path.join(settings_dir, f"{item_type.capitalize()}_Defaults.yml")
-    if os.path.exists(default_file_path):
+    # Resolve defaults file with flexible naming (lowercase preferred)
+    def _candidates():
+        # lowercase preferred
+        yield os.path.join(settings_dir, f"{item_type}_defaults.yml")
+        yield os.path.join(settings_dir, f"{item_type}_Defaults.yml")
+        # TitleCase variants
+        yield os.path.join(settings_dir, f"{item_type.capitalize()}_Defaults.yml")
+        yield os.path.join(settings_dir, f"{'_'.join(w.capitalize() for w in item_type.split('_'))}_Defaults.yml")
+    default_file_path = None
+    for p in _candidates():
+        if os.path.exists(p):
+            default_file_path = p
+            break
+    if default_file_path:
         with open(default_file_path, 'r', encoding='utf-8') as f:
             default_properties = yaml.safe_load(f) or {}
 

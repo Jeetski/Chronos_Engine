@@ -17,8 +17,8 @@ export function mount(el, context) {
       </div>
       <div class="row" id="actionsRow" style="display:none; gap:8px; align-items:center; margin-top:8px; flex-wrap: wrap;">
         <div class="row" style="gap:8px; align-items:center;">
-          <button class="btn" id="trim5" title="Trim 5 minutes">Trim −5</button>
-          <button class="btn" id="trim10" title="Trim 10 minutes">Trim −10</button>
+          <button class="btn" id="trim5" title="Trim 5 minutes">Trim -5</button>
+          <button class="btn" id="trim10" title="Trim 10 minutes">Trim -10</button>
           <input class="input" id="trimCustom" placeholder="min" style="width:72px;" />
           <button class="btn" id="trimGo">Trim</button>
         </div>
@@ -71,7 +71,7 @@ export function mount(el, context) {
       try{ window.dayBlocksStore = store; }catch{}
       try{ if (typeof window.redraw==='function') window.redraw(); }catch{}
       console.log('[Chronos][Today] Loaded blocks:', blocks.length);
-      alert('Loaded today\'s schedule.');
+      alert("Loaded today's schedule.");
     } catch (e) { console.error('[Chronos][Today] fetch error:', e); alert('Failed to load schedule.'); }
   }
 
@@ -155,3 +155,4 @@ export function mount(el, context) {
   console.log('[Chronos][Today] Widget ready');
   return {};
 }
+

@@ -16,19 +16,97 @@ if ROOT_DIR not in sys.path:
 from Modules.Alarm.main import load_alarms, check_alarms, trigger_alarm, update_alarm_yaml
 # Import the Reminder module functions
 from Modules.Reminder.main import load_reminders, check_reminders, trigger_reminder
+from Modules.Timer import main as Timer
 
 # --- Constants ---
 LISTENER_LOG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'User', 'Logs', 'listener.log'))
 
 def log_message(message):
     """
-    Logs messages to a file for debugging and monitoring, and prints to console.
+    Lightweight logger: print to console only. Do not write to disk to
+    avoid unbounded log growth for long‑running background processes.
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = f"[{timestamp}] {message}"
     print(log_entry)
-    with open(LISTENER_LOG_PATH, 'a') as f:
-        f.write(log_entry + '\n')
+
+
+def _quote_arg(s: str) -> str:
+    try:
+        # Simple Windows-safe quoting for item names with spaces
+        return f'"{str(s)}"'
+    except Exception:
+        return f'"{s}"'
+
+
+def _run_cli_command(args_str: str):
+    """
+    Invoke the Chronos Console launcher with a one-line command string.
+    Keeps quoting simple and consistent with existing script execution.
+    """
+    try:
+        batch_path = os.path.join(ROOT_DIR, 'console_launcher.bat')
+        if not os.path.exists(batch_path):
+            # Fallback to capitalized name used historically
+            batch_path = os.path.join(ROOT_DIR, 'Console_Launcher.bat')
+        command = f'"{batch_path}" {args_str}'
+        subprocess.Popen(command, shell=True)
+    except Exception as e:
+        log_message(f"Warning: failed to run CLI command '{args_str}': {e}")
+
+
+def _execute_target_action(entity: dict):
+    """
+    Execute a linked target action when an alarm/reminder triggers.
+    Expected schema on the entity (alarm/reminder) YAML:
+      target:
+        type: <item_type>
+        name: <item_name>
+        action: complete | open | set_status
+        status: <value>              # required if action == set_status
+        properties: {k:v, ...}       # optional extra properties passed as key:value
+    """
+    try:
+        target = entity.get('target')
+        if not isinstance(target, dict):
+            return
+
+        item_type = target.get('type')
+        item_name = target.get('name')
+        action = (target.get('action') or 'complete').lower()
+        extra_props = target.get('properties') if isinstance(target.get('properties'), dict) else {}
+
+        if not item_type or not item_name:
+            log_message("DEBUG: target specified but missing 'type' or 'name'. Skipping target action.")
+            return
+
+        # Build CLI arguments
+        args_str = None
+        if action == 'complete':
+            # e.g., complete task "Deep Work" minutes:50
+            prop_parts = [f"{k}:{v}" for k, v in extra_props.items()]
+            args_str = f"complete {item_type} {_quote_arg(item_name)}" + (" " + " ".join(prop_parts) if prop_parts else "")
+        elif action == 'open':
+            # e.g., edit task "Deep Work"
+            prop_parts = [f"{k}:{v}" for k, v in extra_props.items()]
+            args_str = f"edit {item_type} {_quote_arg(item_name)}" + (" " + " ".join(prop_parts) if prop_parts else "")
+        elif action == 'set_status':
+            status_val = target.get('status')
+            if not status_val:
+                log_message("DEBUG: target.action 'set_status' missing 'status' value. Skipping.")
+                return
+            # e.g., set task "Deep Work" status:completed
+            prop_parts = [f"{k}:{v}" for k, v in extra_props.items()]
+            args_str = f"set {item_type} {_quote_arg(item_name)} status:{status_val}" + (" " + " ".join(prop_parts) if prop_parts else "")
+        else:
+            log_message(f"DEBUG: Unknown target.action '{action}'. Skipping.")
+            return
+
+        if args_str:
+            log_message(f"DEBUG: Executing target action via CLI: {args_str}")
+            _run_cli_command(args_str)
+    except Exception as e:
+        log_message(f"Warning: Exception while executing target action: {e}")
 
 def reset_alarm_status(alarm_data, filepath):
     """
@@ -101,10 +179,16 @@ def run_listener():
                 script_path = os.path.join(ROOT_DIR, alarm['script'])
                 if os.path.exists(script_path):
                     log_message(f"Executing script for alarm '{alarm_name}': {script_path}")
-                    command = f'"C:\\Users\\david\\Desktop\\Hivemind Studio\\Chronos Engine\\Console_Launcher.bat" "{script_path}"'
-                    subprocess.Popen(command, shell=True)
+                    # Use the existing CLI runner to execute the script path
+                    try:
+                        _run_cli_command(_quote_arg(script_path))
+                    except Exception as e:
+                        log_message(f"Warning: failed to execute script for alarm '{alarm_name}': {e}")
                 else:
                     log_message(f"Script not found for alarm '{alarm_name}': {script_path}")
+
+            # Execute linked target action if present
+            _execute_target_action(alarm)
 
         # --- Process Alarms for Status Changes (Snooze/Dismiss from CLI) ---
         # This loop checks if any alarm's status has been updated by a CLI command
@@ -140,10 +224,15 @@ def run_listener():
                 script_path = os.path.join(ROOT_DIR, reminder['script'])
                 if os.path.exists(script_path):
                     log_message(f"Executing script for reminder '{reminder.get('name')}': {script_path}")
-                    command = f'"C:\\Users\\david\\Desktop\\Hivemind Studio\\Chronos Engine\\Console_Launcher.bat" "{script_path}"'
-                    subprocess.Popen(command, shell=True)
+                    try:
+                        _run_cli_command(_quote_arg(script_path))
+                    except Exception as e:
+                        log_message(f"Warning: failed to execute script for reminder '{reminder.get('name')}': {e}")
                 else:
                     log_message(f"Script not found for reminder '{reminder.get('name')}': {script_path}")
+
+            # Execute linked target action if present
+            _execute_target_action(reminder)
 
         # --- Process Reminders for Status Changes (Snooze/Dismiss from CLI) ---
         for reminder_data, filepath in loaded_reminders_with_paths:
@@ -156,6 +245,12 @@ def run_listener():
                         log_message(f"DEBUG: Reminder '{reminder_data.get('name')}' status changed to '{latest_reminder_data.get('status')}'. Stopping sound.")
                         reminder_data['status'] = latest_reminder_data.get('status')
 
+
+        # Tick Timer Manager (pomodoro/interval timers)
+        try:
+            Timer.tick()
+        except Exception:
+            pass
 
         time.sleep(1) # Check every second
 

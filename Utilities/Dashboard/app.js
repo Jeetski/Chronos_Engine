@@ -44,8 +44,8 @@ ready(async () => {
         function updateLevel(){ const map=['Routines','Subroutines','Microroutines','Items']; lbl.textContent = map[Math.max(0, Math.min(3, (window.__calendarLevel??0)))] || 'Items'; }
         const zoomMinus = mkIconBtn('➖', 'Zoom out');
         const zoomPlus = mkIconBtn('➕', 'Zoom in');
-        const levelMinus = mkIconBtn('◀', 'Level up');
-        const levelPlus = mkIconBtn('▶', 'Level down');
+        const levelMinus = mkIconBtn('▲', 'Level up');
+        const levelPlus = mkIconBtn('▼', 'Level down');
         zoomMinus.addEventListener('click', ()=>{ window.__calendarPxPerMin = Math.max(0.25, (window.__calendarPxPerMin??1) - 0.25); window.redraw?.(); });
         zoomPlus.addEventListener('click', ()=>{ window.__calendarPxPerMin = Math.min(4, (window.__calendarPxPerMin??1) + 0.25); window.redraw?.(); });
         levelMinus.addEventListener('click', ()=>{ window.__calendarLevel = Math.max(0, (window.__calendarLevel??0) - 1); updateLevel(); window.redraw?.(); });
@@ -53,9 +53,9 @@ ready(async () => {
         updateLevel();
         // Toolstrip
         const toolCursor = mkIconBtn('🖱️', 'Cursor');
-        const toolSelect = mkIconBtn('🔲', 'Select');
-        const toolPicker = mkIconBtn('🔍', 'Picker');
-        const toolEraser = mkIconBtn('🧽', 'Eraser');
+        const toolSelect = mkIconBtn('🔳', 'Select');
+        const toolPicker = mkIconBtn('🎯', 'Picker');
+        const toolEraser = mkIconBtn('🧹', 'Eraser');
         function setTool(t){
           window.__calendarTool = t;
           [toolCursor, toolSelect, toolPicker, toolEraser].forEach(b=> b.classList.remove('btn-primary'));
@@ -112,14 +112,15 @@ ready(async () => {
       item.className = 'item';
       const check = document.createElement('span');
       check.className = 'check';
-      check.textContent = (el.style.display === 'none') ? '' : '✓';
+      check.textContent = (el.style.display === 'none') ? '' : '✅';
       const span = document.createElement('span');
       span.textContent = label;
       item.append(check, span);
       item.addEventListener('click', () => {
         el.style.display = (el.style.display === 'none' ? '' : 'none');
-        check.textContent = el.style.display === 'none' ? '' : '✓';
+        check.textContent = el.style.display === 'none' ? '' : '✅';
         closeMenus();
+        try { if (el.style.display !== 'none') window.ensureWidgetInView?.(el); } catch {}
       });
       widgetsMenu.appendChild(item);
     }
@@ -141,13 +142,13 @@ ready(async () => {
     widgetEls.forEach(el => mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));
   } catch {}
 
-  // View menu – currently only Calendar
+  // View menu — currently only Calendar
   const viewMenu = document.getElementById('menu-view');
   if (viewMenu) {
     viewMenu.innerHTML = '';
     const item = document.createElement('div');
     item.className = 'item';
-    const check = document.createElement('span'); check.className = 'check'; check.textContent = '✓';
+    const check = document.createElement('span'); check.className = 'check'; check.textContent = '✅';
     const span = document.createElement('span'); span.textContent = 'Calendar';
     item.append(check, span);
     item.addEventListener('click', () => { closeMenus(); /* single view for now */ });
@@ -158,3 +159,4 @@ ready(async () => {
 });
 
 export {};
+

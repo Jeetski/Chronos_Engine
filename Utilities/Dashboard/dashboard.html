@@ -59,6 +59,13 @@
       .btn-primary { background: linear-gradient(180deg, #2a5cff, #2048d6); border-color: #2a55e0; }
       .btn-primary:hover { background: linear-gradient(180deg, #3466ff, #2850e6); border-color: #355eef; }
       .btn-secondary { background: linear-gradient(180deg, #1a2130, #151b28); }
+      /* Resizer handles for all widgets */
+      .widget { position: fixed; }
+      .widget .resizer { position: absolute; z-index: 3; }
+      .widget .resizer.e { right: -4px; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
+      .widget .resizer.s { left: 0; right: 0; bottom: -4px; height: 8px; cursor: ns-resize; }
+      .widget .resizer.se { right: -6px; bottom: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+      .widget .resizer:hover { background: rgba(255,255,255,0.03); border-radius: 6px; }
     </style>
     <script src="./generated/settings_bundle.js"></script>
     <!-- Optional user temp script: served from project Temp/ if present. Use defer so DOM is ready. -->
@@ -86,7 +93,11 @@
     <aside class="widget" id="statusWidget" style="display: none; right: 396px; top: 60px; width: 360px;" data-widget="Status" data-label="Status"></aside>
     <aside class="widget" id="todayWidget" style="display: none; right: 20px; top: 440px; width: 420px;" data-widget="Today" data-label="Today"></aside>
     <aside class="widget" id="clockWidget" style="display: none; right: 20px; top: 60px; width: 420px;" data-widget="Clock" data-label="Clock"></aside>
-    <aside class="widget" id="habitsWidget" style="display: none; right: 20px; top: 900px; width: 520px;" data-widget="HabitTracker" data-label="Habits"></aside>
+    <aside class="widget" id="habitsWidget" style="display: none; right: 460px; top: 440px; width: 520px;" data-widget="HabitTracker" data-label="Habits"></aside>
     <aside class="widget" id="debugWidget" style="display: none; right: 460px; top: 60px; width: 520px;" data-widget="DebugConsole" data-label="Debug"></aside>
+    <aside class="widget" id="itemManagerWidget" style="display: none; right: 900px; top: 60px; width: 760px;" data-widget="ItemManager" data-label="Items"></aside>
+    <aside class="widget" id="timerWidget" style="display: none; right: 20px; top: 540px; width: 420px;" data-widget="Timer" data-label="Timer"></aside>
+    <aside class="widget" id="goalTrackerWidget" style="display: none; right: 460px; top: 540px; width: 520px;" data-widget="GoalTracker" data-label="Goals"></aside>
+    <aside class="widget" id="settingsWidget" style="display: none; right: 900px; top: 440px; width: 520px;" data-widget="Settings" data-label="Settings"></aside>
   </body>
   </html>

@@ -21,7 +21,7 @@ def run(args, properties):
         item_type = item_type_raw
     item_name = args[1]
     property_key = args[2]
-    variable_name = properties.get('variable_name') # Check for variable_name property
+    variable_name = properties.get('variable_name')  # Check for variable_name property
 
     # Read item data
     data = read_item_data(item_type, item_name)
@@ -35,16 +35,16 @@ def run(args, properties):
     # If a variable name is provided, store the value and exit early
     if value is not None and variable_name:
         Variables.set_var(variable_name, value)
-        print(f"�o. Stored '{property_key}' of {item_type} '{item_name}' to @{variable_name} = '{value}'.")
+        print(f"✨ Stored '{property_key}' of {item_type} '{item_name}' to @{variable_name} = '{value}'.")
         return
 
     # Display or store the value
     if value is not None:
         if variable_name:
             # In a real scenario, this would interact with a global variable store in Console.py
-            print(f"✅ Property '{property_key}' of {item_type} '{item_name}' retrieved. Value: '{value}'. (Would be stored in variable '{variable_name}')")
+            print(f"✨ Property '{property_key}' of {item_type} '{item_name}' retrieved. Value: '{value}'. (Would be stored in variable '{variable_name}')")
         else:
-            print(f"✅ Property '{property_key}' of {item_type} '{item_name}': {value}")
+            print(f"✨ Property '{property_key}' of {item_type} '{item_name}': {value}")
     else:
         print(f"❌ Property '{property_key}' not found in {item_type} '{item_name}'.")
 
@@ -54,3 +54,4 @@ Usage: get <item_type> <item_name> <property_key> [variable_name:<var_name>] [pr
 Description: Retrieves the value of a specific property from an item.
 Example: get note MyMeetingNotes category variable_name:my_category
 """
+

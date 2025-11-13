@@ -24,8 +24,8 @@ def run(args, properties):
             cmd_command,
             shell=True,
             capture_output=True,
-            text=True, # Decode stdout/stderr as text
-            encoding='utf-8', # Explicitly set encoding for subprocess communication
+            text=True,  # Decode stdout/stderr as text
+            encoding='utf-8',  # Explicitly set encoding for subprocess communication
             env=env
         )
 
@@ -46,3 +46,4 @@ Description: Executes the provided command-line (CMD) command.
 Example: cmd dir
 Example: cmd echo Hello from CMD!
 """
+
