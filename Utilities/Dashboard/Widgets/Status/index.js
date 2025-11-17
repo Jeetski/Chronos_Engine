@@ -25,6 +25,10 @@ export function mount(el) {
   const btnClose = el.querySelector('#statusClose');
   const fieldsRoot = el.querySelector('#statusFields');
   const btnUpdate = el.querySelector('#statusUpdate');
+  // fx toggle for expanded display of labels (does not affect saves)
+  const fxWrap = document.createElement('label'); fxWrap.className='hint'; fxWrap.style.display='flex'; fxWrap.style.alignItems='center'; fxWrap.style.gap='6px'; fxWrap.style.margin='6px 0';
+  const fx = document.createElement('input'); fx.type='checkbox'; fx.id='statusFxToggle'; fx.checked = true; fxWrap.append(fx, document.createTextNode('fx'));
+  try { fieldsRoot.parentElement.insertBefore(fxWrap, fieldsRoot); } catch {}
 
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -35,6 +39,10 @@ export function mount(el) {
 
   // Render fields
   const fieldRefs = {};
+  function expandText(s){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
+  let fxEnabled = true;
+  fx?.addEventListener('change', ()=>{ fxEnabled = !!fx.checked; try { fieldsRoot.querySelectorAll('label.hint').forEach(l=>{ const raw=l.getAttribute('data-raw')||l.textContent||''; l.textContent = fxEnabled ? expandText(raw) : raw; }); } catch{} });
+
   types.forEach(type => {
     const typeKey = String(type);
     const id = 'status_'+typeKey.toLowerCase().replace(/\s+/g,'_');
@@ -45,7 +53,8 @@ export function mount(el) {
     const label = document.createElement('label');
     label.className = 'hint';
     label.style.minWidth = '90px';
-    label.textContent = typeKey;
+    label.setAttribute('data-raw', typeKey);
+    label.textContent = expandText(typeKey);
     wrap.appendChild(label);
 
     const select = document.createElement('select');
@@ -53,7 +62,7 @@ export function mount(el) {
     select.id = id;
 
     const list = Array.isArray(optionsMap[typeKey]) && optionsMap[typeKey].length ? optionsMap[typeKey] : [ 'Excellent','Good','Fair','Poor' ];
-    list.forEach(val => { const opt = document.createElement('option'); opt.value = String(val); opt.textContent = String(val); select.appendChild(opt); });
+    list.forEach(val => { const opt = document.createElement('option'); opt.value = String(val); opt.textContent = fxEnabled ? expandText(String(val)) : String(val); opt.setAttribute('data-raw', String(val)); select.appendChild(opt); });
 
     // Set current value if present
     const curKey = typeKey.toLowerCase();
@@ -69,6 +78,8 @@ export function mount(el) {
     fieldsRoot.appendChild(wrap);
     fieldRefs[curKey] = select;
   });
+  // Re-expand options when vars change
+  try { window?.ChronosVars && context?.bus?.on('vars:changed', ()=>{ try { fieldsRoot.querySelectorAll('label.hint').forEach(l=>{ const raw=l.getAttribute('data-raw')||l.textContent||''; l.textContent = fxEnabled ? expandText(raw) : raw; }); fieldsRoot.querySelectorAll('select option').forEach(o=>{ const raw=o.getAttribute('data-raw')||o.textContent||''; o.textContent = fxEnabled ? expandText(raw) : raw; }); } catch{} }); } catch{}
 
   // Dragging
   header.addEventListener('pointerdown', (ev)=>{
@@ -107,4 +118,3 @@ export function mount(el) {
   console.log('[Chronos][Status] Widget ready');
   return {};
 }
-

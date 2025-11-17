@@ -96,6 +96,7 @@
   function load(key, fallback){ try{ const v = localStorage.getItem(key); return v? JSON.parse(v): fallback; }catch{ return fallback; } }
 
   function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+  function expandText(s){ try { if (window.__calendarFxExpand === false) return String(s||''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
   function dateAtMidnight(d){ const n=new Date(d); n.setHours(0,0,0,0); return n; }
   function weekMonday(d){ const n=dateAtMidnight(d); const off=(n.getDay()+6)%7; n.setDate(n.getDate()-off); return n; }
   function sameDay(a,b){ return dateAtMidnight(a).getTime()===dateAtMidnight(b).getTime(); }
@@ -197,7 +198,7 @@
           if (startMin < visStart || startMin > visEnd) return;
           const items = groups.get(startMin) || [];
           const y0 = gridTop + (startMin*pxPerMinute); const lineY = y0 + 12;
-        const pieces = items.map(it => String(it.text||''));
+        const pieces = items.map(it => expandText(String(it.text||'')));
         const full = minToHM(startMin) + '  ' + pieces.join('; ');
         // Group color: all completed -> ok; else -> danger
         const allDone = items.every(it => completeSet.has(String(it.text||'')));

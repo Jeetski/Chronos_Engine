@@ -79,7 +79,7 @@ def _find_colorprint_exe():
 def _resolve_theme_colors():
     colors = {'background': 'dark_blue', 'text': 'white'}
     try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
         theme_cfg = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml')) or {}
         themes = (theme_cfg.get('themes') if isinstance(theme_cfg, dict) else None) or {}
 
@@ -128,7 +128,7 @@ def _load_profile_and_seed_vars():
             Variables.set_var('nickname', 'Pilot')
         except Exception:
             pass
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
         if isinstance(prof, dict):
             nick = prof.get('nickname') or (isinstance(prof.get('profile'), dict) and prof['profile'].get('nickname'))
             if isinstance(nick, str) and nick:
@@ -142,7 +142,7 @@ def _load_profile_and_seed_vars():
 
 def _load_welcome_lines():
     """
-    Load welcome lines exclusively from User/profile.yml.
+    Load welcome lines exclusively from User/Profile/profile.yml.
     Supports either 'welcome' or 'welcome_message' block, each with line1/line2/line3.
     Expands @nickname and other variables via Variables.
     """
@@ -152,7 +152,7 @@ def _load_welcome_lines():
         "🌌 You are the navigator of your reality.",
     ]
     try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
         block = None
         if isinstance(prof, dict):
             block = prof.get('welcome') or prof.get('welcome_message')
@@ -173,9 +173,71 @@ def _load_welcome_lines():
     except Exception:
         return defaults
 
+
+def _load_exit_lines():
+    """
+    Load exit lines from User/Profile/profile.yml.
+    Supports 'exit_message' or 'goodbye_message', each with line1/line2.
+    Expands @nickname and other variables.
+    """
+    defaults = [
+        "👋 Safe travels, @nickname.",
+        "🌌 Returning you to baseline reality...",
+    ]
+    try:
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
+        block = None
+        if isinstance(prof, dict):
+            block = prof.get('exit_message') or prof.get('goodbye_message')
+        if isinstance(block, dict):
+            lines = [block.get('line1'), block.get('line2')]
+        else:
+            lines = [None, None]
+        out = []
+        for i in range(2):
+            raw = lines[i] if i < len(lines) else None
+            txt = raw if isinstance(raw, str) and raw.strip() else defaults[i]
+            try:
+                txt = Variables.expand_token(txt)
+            except Exception:
+                pass
+            out.append(txt)
+        return out
+    except Exception:
+        return defaults
+
 # --- Module Management ---
 # Dictionary to store loaded modules to avoid re-importing
 LOADED_MODULES = {}
+
+def invoke_command(command_name, args, properties):
+    """
+    Run a command while triggering MacroEngine hooks before/after when enabled.
+    Suppress by setting env CHRONOS_SUPPRESS_MACROS or passing property no_macros:true.
+    """
+    suppress = False
+    try:
+        if os.environ.get("CHRONOS_SUPPRESS_MACROS"):
+            suppress = True
+        if str((properties or {}).get("no_macros")).lower() in ("1", "true", "yes"):
+            suppress = True
+    except Exception:
+        pass
+    if not suppress:
+        try:
+            from Modules import MacroEngine
+            MacroEngine.run_before(command_name, args, properties)
+        except Exception:
+            pass
+    try:
+        run_command(command_name, args, properties)
+    finally:
+        if not suppress:
+            try:
+                from Modules import MacroEngine
+                MacroEngine.run_after(command_name, args, properties, {"ok": True})
+            except Exception:
+                pass
 
 def load_module(module_name):
     """
@@ -277,6 +339,38 @@ def parse_input(input_parts):
     return command, args, properties
 
 # --- Main Execution Block ---
+# Rebind core runner with macro hooks for external callers (Dashboard, etc.)
+try:
+    run_command_core  # type: ignore[name-defined]
+except NameError:
+    # Define alias only if not already rebound elsewhere
+    run_command_core = run_command  # type: ignore[assignment]
+
+def run_command(command_name, args, properties):
+    try:
+        suppress = False
+        try:
+            if os.environ.get("CHRONOS_SUPPRESS_MACROS"):
+                suppress = True
+            if str((properties or {}).get("no_macros")).lower() in ("1", "true", "yes"):
+                suppress = True
+        except Exception:
+            pass
+        if not suppress:
+            try:
+                from Modules import MacroEngine
+                MacroEngine.run_before(command_name, args, properties)
+            except Exception:
+                pass
+        run_command_core(command_name, args, properties)
+    finally:
+        try:
+            if not suppress:
+                from Modules import MacroEngine
+                MacroEngine.run_after(command_name, args, properties, {"ok": True})
+        except Exception:
+            pass
+
 if __name__ == "__main__":
     # Seed variables (e.g., @nickname from profile)
     try:
@@ -387,7 +481,7 @@ if __name__ == "__main__":
                             Conditions.set_context_line(line_no)
                         except Exception:
                             pass
-                    run_command(command, args, properties.copy())
+                    invoke_command(command, args, properties.copy())
                     if command.lower() == 'if' and line_no is not None:
                         try:
                             import Modules.Conditions as Conditions
@@ -538,7 +632,7 @@ if __name__ == "__main__":
                     Conditions.set_context_line(1)
                 except Exception:
                     pass
-            run_command(command, args, properties.copy())
+            invoke_command(command, args, properties.copy())
             if command.lower() == 'if':
                 try:
                     import Modules.Conditions as Conditions
@@ -555,10 +649,10 @@ if __name__ == "__main__":
                 if not user_input:
                     continue
                 if user_input.lower() in {"exit", "quit"}:
-                    print("👋 Safe travels, Pilot.")
-                    time.sleep(1)
-                    print("🌌 Returning you to baseline reality...")
-                    time.sleep(1)
+                    exit_lines = _load_exit_lines()
+                    for line in exit_lines:
+                        print(line)
+                        time.sleep(1)
                     break
 
                 # Use shlex.split for interactive input to handle quotes
@@ -566,10 +660,14 @@ if __name__ == "__main__":
                 command, args, properties = parse_input(parts)
                 
                 if command:
-                    run_command(command, args, properties.copy())
+                    invoke_command(command, args, properties.copy())
                 else:
                     print("❌ No command parsed from input.")
 
             except KeyboardInterrupt:
-                print("\n👋 Exiting Chronos Engine. Goodbye.")
+                print() # Add a newline for cleaner exit
+                exit_lines = _load_exit_lines()
+                for line in exit_lines:
+                    print(line)
+                    time.sleep(1)
                 break

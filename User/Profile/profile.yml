@@ -1,0 +1,12 @@
+nickname: Pilot
+avatar: User\Profile\avatar.jpg
+welcome:
+  line1: ⌛ Chronos Engine v1
+  line2: 🚀 Welcome, @nickname
+  line3: 🌌 You are the navigator of your reality.
+goodbye_message:
+  line1: 👋 Safe travels, @nickname.
+  line2: 🌌 Returning you to baseline reality...
+exit_message:
+  line1: 👋 Safe travels, @nickname.
+  line2: 🌌 Returning you to baseline reality...

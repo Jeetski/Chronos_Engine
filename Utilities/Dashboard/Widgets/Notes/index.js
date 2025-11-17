@@ -24,7 +24,12 @@ export function mount(el) {
         <label class="hint" style="min-width:70px;">Tags</label>
         <input id="noteTags" class="input" placeholder="tag1, tag2" />
       </div>
+      <div class="row" style="gap:8px; align-items:center;">
+        <label class="hint" style="min-width:70px;">Preview</label>
+        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="notesPreviewToggle" /> Expanded view</label>
+      </div>
       <textarea class="textarea" id="noteContent" placeholder="Write note content..."></textarea>
+      <div id="notePreview" class="textarea" style="display:none; opacity:.9; background:#0f141d; border:1px dashed #2b3343; min-height:80px;" data-expand="text"></div>
       <div class="row">
         <span class="hint">Create saves to User/Notes via API. Load can open a YAML file.</span>
         <div class="spacer"></div>
@@ -47,6 +52,8 @@ export function mount(el) {
   const priorityEl = el.querySelector('#notePriority');
   const tagsEl = el.querySelector('#noteTags');
   const contentEl = el.querySelector('#noteContent');
+  const previewEl = el.querySelector('#notePreview');
+  const previewChk = el.querySelector('#notesPreviewToggle');
   const loadBtn = el.querySelector('#notesLoad');
   const createBtn = el.querySelector('#notesCreate');
   const fileInput = el.querySelector('#notesFile');
@@ -205,3 +212,22 @@ export function mount(el) {
   console.log('[Chronos][Notes] Widget ready');
   return { fillFromObj };
 }
+  function expandText(s){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
+  function updatePreview(){
+    try {
+      if (!previewChk || !previewEl) return;
+      if (!previewChk.checked){ previewEl.style.display='none'; return; }
+      previewEl.style.display = '';
+      // Show expanded content; optionally include expanded title on first line
+      const title = expandText(titleEl.value||'');
+      const body = expandText(contentEl.value||'');
+      previewEl.textContent = (title ? (title + '\n\n') : '') + body;
+      // Also mark for general expansion helper
+      try { previewEl.setAttribute('data-raw', (titleEl.value||'') + '\n\n' + (contentEl.value||'')); } catch {}
+    } catch {}
+  }
+  previewChk?.addEventListener('change', updatePreview);
+  contentEl?.addEventListener('input', updatePreview);
+  titleEl?.addEventListener('input', updatePreview);
+  // Re-expand on vars change
+  try { context?.bus?.on('vars:changed', ()=> updatePreview()); } catch {}

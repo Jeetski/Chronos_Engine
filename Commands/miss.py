@@ -54,6 +54,12 @@ def run(args, properties):
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
+        # Evaluate milestones as well (in case misses affect progress)
+        try:
+            from Modules.Milestone import main as MilestoneModule  # type: ignore
+            MilestoneModule.evaluate_and_update_milestones()
+        except Exception:
+            pass
     else:
         # Dispatch to module-specific handler if it exists
         dispatch_command("miss", item_type, item_name, None, properties)

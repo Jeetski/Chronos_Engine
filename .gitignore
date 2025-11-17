@@ -56,8 +56,13 @@ User/*
 User/Settings/*
 !User/Settings/*.yml
 
-# Track default profile.yml
-!User/profile.yml
+# Track profile and related files in User/Profile
+!User/Profile/
+User/Profile/*
+!User/Profile/profile.yml
+!User/Profile/preferences_settings.yml
+!User/Profile/preferences.md
+!User/Profile/avatar.jpg
 
 # Keep empty item directories via .gitkeep
 !User/**/.gitkeep

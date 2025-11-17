@@ -1,8 +1,6 @@
 # Chronos Engine Documentation
 
-Chronos is a YAML‑first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight local dashboard. This document is your map: install, run, extend.
-
-— For newcomers, start with Quickstart. For a deep dive, see Architecture and Dashboard.
+Chronos is a YAML-first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight local dashboard. This document is your map: install, run, extend.
 
 Links
 - License: ../LICENSE.md
@@ -13,37 +11,32 @@ Links
 - Agent Dev Guide: agents.dev.md
 - Common Workflows: common_workflows.md
 
-Scripting Docs
+Scripting & Automation Docs
 - CHS Scripting Guide: CHS_Scripting.md
 - Conditions Cookbook: Conditions_Cookbook.md
+- Macros (BEFORE/AFTER): Macros.md
 
 ## Quickstart
-
 1) Prerequisites
 - Windows 10/11, Python 3.10+ (installer can fetch via winget), Git optional.
-
 2) Install
-- Double‑click `install_dependencies.bat`. It will:
+- Double-click `install_dependencies.bat`. It will:
   - Locate Python (or install via winget if missing).
   - Create `.venv` and install requirements.
-
 3) Launch CLI
 - Run `console_launcher.bat` (or `python Modules/Console.py`).
 - Type `help` to see available commands.
-
 4) Start Background Listener
 - Run `listener_launcher.bat` to enable alarms, reminders, and timer ticks.
-
 5) Dashboard
-- Start server: `python Utilities/Dashboard/server.py`.
-- Open `Utilities/Dashboard/dashboard.html` in a browser.
-- If opened via `file://`, assets and APIs are served from `http://127.0.0.1:7357`.
+- Option A: double-click `dashboard_launcher.bat`.
+- Option B: from the Console, run: `dashboard`.
+  - Both start the server and open the dashboard automatically.
 
 Tips
-- Console uses UTF‑8 and supports emojis. If you see odd characters, ensure the terminal is UTF‑8.
+- Console uses UTF-8 and supports emojis. If you see odd characters, ensure the terminal is UTF-8.
 
-## What’s Inside
-
+## What's Inside
 High level
 - CLI runtime: `Modules/Console.py` dynamically loads commands (`Commands/*.py`) and item modules (`Modules/*/main.py`).
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
@@ -62,12 +55,11 @@ Key defaults and conventions
 - Points settings: `User/Settings/points_settings.yml` (backward compatible with `Points.yml`).
 
 ## Core Concepts
-
 Items and hierarchy
 - Everything is an item (task, routine, subroutine, microroutine, note, goal, milestone, habit, appointment, alarm, reminder, day, week, plan, etc.).
-- Items live as single YAML files. Many items can nest other items (the “fractal” structure).
+- Items live as single YAML files. Many items can nest other items (the "fractal" structure).
 
-Status‑aware scheduling
+Status-aware scheduling
 - `today reschedule` builds a schedule from templates and current status (energy, focus, emotion, etc.).
 - Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, and marking update the plan.
 
@@ -80,7 +72,6 @@ Listener services
 - Timer supports profiles and cycles, exposed via dashboard APIs.
 
 ## CLI Overview
-
 Entry points
 - Windows: run `console_launcher.bat` or `console_launcher.ps1`.
 - Direct: `python Modules/Console.py <command ...>`
@@ -102,35 +93,17 @@ Common commands
 - `points balance|add|subtract|history` — view or change points and history.
 
 Variables
-- The console seeds `@nickname` from `User/profile.yml`. Use in scripts/messages.
+- The console seeds `@nickname` from `User/Profile/profile.yml`. Use in scripts/messages.
 - Set/read variables programmatically via `Modules/Variables.py` or CLI patterns.
 
 ## Dashboard
-
 Server
 - Path: `Utilities/Dashboard/server.py` (ThreadingHTTPServer).
 - Serves assets and provides JSON/YAML endpoints (see Dashboard API guide).
 
 UI
 - `Utilities/Dashboard/dashboard.html` + `app.js` load views & widgets.
-- Current widgets: Clock, Notes, Status, Timer, Goals, Items, Today, Debug, Settings.
-- Settings widget (new): view/save `User/Settings/*.yml` with validation.
-
-Today workflow
-- Calendar view renders day blocks; select a block, then use Today widget actions:
-  - Trim (−5/−10/custom), Change time, Cut, Mark completed; then Reschedule.
-
-## Settings
-
-Files
-- Prefer lowercase names in `User/Settings/`: e.g., `points_settings.yml`, `achievement_defaults.yml`, `<item>_defaults.yml`.
-- Timer: `User/Settings/Timer_Settings.yml` (legacy titlecase preserved by server endpoints).
-
-Editing
-- Use the Settings widget, or edit files directly.
-- Settings API allows GET/POST of files (see API Reference).
-
-## API Reference (Dashboard)
+- Current widgets: Clock, Notes, Status, Timer, Goals, Item Manager, Journal, Profile, Review, Settings.
 
 Selected endpoints
 - `GET /health` — basic server health YAML.
@@ -145,19 +118,31 @@ Selected endpoints
 - `GET /api/habits` — habit snapshot with streaks and today status.
 - `GET /api/goals` / `GET /api/goal?name=...` — goal summaries and details.
 - Timer: `GET /api/timer/status|profiles|settings`, `POST /api/timer/start|pause|resume|stop`.
-- Settings (new):
-  - `GET /api/settings` → `{ ok, files: [] }` from `User/Settings/`.
-  - `GET /api/settings?file=Name.yml` → `{ ok, file, content }`.
-  - `POST /api/settings?file=Name.yml` (Content‑Type: text/yaml body) → writes file (validates YAML, preserves formatting).
+- Settings:
+  - `GET /api/settings` -> `{ ok, files: [] }` from `User/Settings/`.
+  - `GET /api/settings?file=Name.yml` -> `{ ok, file, content }`.
+  - `POST /api/settings?file=Name.yml` (Content-Type: text/yaml body) -> writes file (validates YAML, preserves formatting).
 
-Security
-- Server is for local development; CORS is permissive, no auth.
-- Do not expose publicly without adding auth and access controls.
+## Profile file path
+- Canonical path: `User/Profile/profile.yml`.
+
+## Listener target actions
+Alarms and reminders can execute linked actions when they trigger. In the item YAML:
+
+```
+target:
+  type: task
+  name: "Deep Work"
+  action: complete        # complete | open | set_status
+  status: completed       # required when action == set_status
+  properties: { minutes: 50 }
+```
+
+This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and runs it when the alarm/reminder triggers.
 
 ## Development Notes
-
 Coding style
-- Commands are small, single‑purpose modules providing `run(args, properties)` and optional `get_help_message()`.
+- Commands are small, single-purpose modules providing `run(args, properties)` and optional `get_help_message()`.
 - Item modules provide `handle_<verb>` or a generic `handle_command`.
 - Keep changes focused and prefer using ItemManager utilities.
 
@@ -166,44 +151,16 @@ Testing & validation
 - For dashboard interactions, confirm endpoints in the browser dev tools (Network tab).
 
 Emojis & encoding
-- The console sets UTF‑8 on launch and supports emojis in output.
+- The console sets UTF-8 on launch and supports emojis in output.
 - If you add glyphs in JS/HTML, prefer plain Unicode characters over custom font ligatures.
 
 ## Changelog Highlights
-
 Recent improvements
 - Virtualenv installer (`install_dependencies.bat`) to isolate dependencies.
 - Settings widget + API for editing `User/Settings/*.yml` from the dashboard.
 - Points config standardized to `points_settings.yml` (backward compatible).
 - Item defaults resolver supports lowercase `<item>_defaults.yml` first.
-- Listener uses project‑relative launcher; reduces hardcoded paths.
+- Listener uses project-relative launcher; reduces hardcoded paths.
 
 ---
-If you need a guided tour for a specific workflow (projects, habits, reviews), open an issue or check the cookbook sections in CHS_Scripting.md and Conditions_Cookbook.md.
-
-## Quickstart
-
-1) Prerequisites
-- Windows 10/11, Python 3.10+ (the installer can fetch it via winget), and Git optional.
-
-2) Install
-- Double‑click `install_dependencies.bat`. It will:
-  - Locate Python (or install via winget if missing).
-  - Create a local virtualenv in `.venv` and install requirements.
-
-3) Launch CLI
-- Run `console_launcher.bat` (or `python Modules/Console.py`).
-- Type `help` to see available commands.
-
-4) Start Background Listener (alarms/reminders/timer)
-- Run `listener_launcher.bat` to open a separate window that keeps time‑based events active.
-
-5) Dashboard (optional UI)
-- Start the server: `python Utilities/Dashboard/server.py`.
-- Open `Utilities/Dashboard/dashboard.html` in your browser. Assets and APIs are served from `http://127.0.0.1:7357`.
-
-6) Your Data
-- All items and settings live under `User/`. Edit YAML files directly or use CLI commands like `new`, `edit`, `list`, `today reschedule`.
-
-Tips
-- The console and UI support emojis on Windows when the console is UTF‑8 (the launcher sets this up). If you see odd characters, ensure your terminal is using UTF‑8.
+If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.

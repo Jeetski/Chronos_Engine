@@ -72,6 +72,20 @@ def run(args, properties):
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
+        # Evaluate milestones as well
+        try:
+            from Modules.Milestone import main as MilestoneModule  # type: ignore
+            MilestoneModule.evaluate_and_update_milestones()
+        except Exception:
+            pass
+        # Award points
+        try:
+            from Utilities import points as Points
+            pts = Points.award_on_complete(item_type, item_name, minutes=minutes if isinstance(minutes, int) else None)
+            if isinstance(pts, int) and pts > 0:
+                print(f"+{pts} points awarded.")
+        except Exception:
+            pass
     else:
         # Dispatch the command to the specific item module
         dispatch_command("complete", item_type, item_name, None, properties)
@@ -81,6 +95,20 @@ def run(args, properties):
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
+        # Evaluate milestones as well
+        try:
+            from Modules.Milestone import main as MilestoneModule  # type: ignore
+            MilestoneModule.evaluate_and_update_milestones()
+        except Exception:
+            pass
+        # Award points
+        try:
+            from Utilities import points as Points
+            pts = Points.award_on_complete(item_type, item_name, minutes=None)
+            if isinstance(pts, int) and pts > 0:
+                print(f"+{pts} points awarded.")
+        except Exception:
+            pass
 
     # Also record completion in per-day completion log for display integration
     try:

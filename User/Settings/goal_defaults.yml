@@ -1,5 +1,33 @@
 Name: New Goal
-Description: A new goal.
-Status: active
-Target_Date: "{{end_of_year}}"
+Description: A new goal template.
+Priority: normal
 Type: goal
+is_template: true
+
+# Example blueprint structure for milestones. Copy and customize per goal.
+milestones:
+  - id: example_count
+    name: Example Count Milestone
+    description: Complete the target item N times.
+    criteria:
+      count:
+        of: { type: task, name: "Example Task" }
+        times: 10
+        period: week   # day | week | month | all
+    weight: 1
+    on_complete:
+      - { type: achievement, name: "Milestone Reached" }
+
+  - id: example_checklist
+    name: Example Checklist Milestone
+    description: Finish required items from this checklist.
+    criteria:
+      checklist:
+        items:
+          - { type: task, name: "First Step" }
+          - { type: ritual, name: "Second Step" }
+        require: all   # 'all' or a number like 1
+    weight: 1
+    on_complete:
+      - { type: reward, name: "Treat Yourself" }
+

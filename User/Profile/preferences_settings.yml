@@ -1,0 +1,27 @@
+# This file contains structured preferences for the Chronos Engine AI agent.
+# These settings help the agent personalize its behavior and interactions.
+
+# verbosity: Controls the level of detail in the agent's responses.
+#   Options: concise, normal, detailed
+verbosity: normal
+
+# auto_reschedule: If true, the agent will automatically run 'today reschedule'
+#   after any changes to the day's plan.
+auto_reschedule: true
+
+# persona: Defines the agent's personality and tone.
+#   Options: default, jarvis, computer
+persona: default
+
+# celebrate_achievements: If true, the agent will celebrate your accomplishments.
+celebrate_achievements: true
+
+# suggestion_level: Controls how proactive the agent is in offering suggestions.
+#   Options: none, normal, high
+suggestion_level: normal
+
+# emoji_usage: If true, the agent will use emojis in its responses.
+emoji_usage: true
+
+# theme_suggestions: If true, the agent may suggest theme changes based on your status.
+theme_suggestions: true

@@ -7,7 +7,7 @@ Marks: “Chronos Engine”, “Chronos”, and “Chronos Certified” are trad
 - Link to the project and use the name to identify it fairly.
 
 ## What needs permission
-- Product names or domains that could confuse users (e.g., “Chronos Engine Pro”, chronos�?`engine�?`store.com).
+- Product names or domains that could confuse users (e.g., “Chronos Engine Pro”, chronos-engine-store.com).
 - Using logos, the “Chronos Certified” badge, or implying official status.
 - Marketing that suggests partnership, sponsorship, or endorsement.
 
@@ -16,5 +16,5 @@ Marks: “Chronos Engine”, “Chronos”, and “Chronos Certified” are trad
 - Don’t alter the project’s name or logos.
 - If in doubt, ask: trademarks@chronosengine.online
 
-This policy is about preventing confusion, not limiting community use. Build boldly—just keep the branding clear.
+This policy is about preventing confusion, not limiting community use. Build boldly — just keep the branding clear.
 

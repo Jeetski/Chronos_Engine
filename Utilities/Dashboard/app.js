@@ -30,14 +30,19 @@ ready(async () => {
         panel.id = 'calendarControls';
         panel.style.position = 'absolute';
         panel.style.top = '10px';
-        panel.style.right = '10px';
+        // Move to left side, floating
+        panel.style.left = '10px';
+        panel.style.right = '';
         panel.style.display = 'flex';
         panel.style.gap = '6px';
-        panel.style.zIndex = '10';
-        panel.style.background = 'rgba(21,25,35,0.85)';
+        panel.style.zIndex = '12';
+        panel.style.background = 'rgba(21,25,35,0.65)'; // semi-transparent
         panel.style.border = '1px solid #222835';
         panel.style.borderRadius = '8px';
         panel.style.padding = '6px';
+        panel.style.backdropFilter = 'blur(2px)';
+        panel.style.cursor = 'grab';
+        panel.style.userSelect = 'none';
         const mkBtn = (label)=>{ const b=document.createElement('button'); b.textContent=label; b.className='btn'; b.style.padding='4px 8px'; return b; };
         const mkIconBtn = (glyph, title)=>{ const b=document.createElement('button'); b.className='btn'; b.style.padding='4px 8px'; b.textContent = glyph; if(title) b.title = title; return b; };
         const lbl = document.createElement('span'); lbl.style.color='#a6adbb'; lbl.style.padding='4px 6px';
@@ -70,6 +75,56 @@ ready(async () => {
         toolEraser.addEventListener('click', ()=>{ setTool('eraser'); window.redraw?.(); });
         setTool(window.__calendarTool ?? 'cursor');
         panel.append(zoomMinus, zoomPlus, levelMinus, levelPlus, lbl, toolCursor, toolSelect, toolPicker, toolEraser);
+        // Hover feedback for transparency
+        panel.addEventListener('mouseenter', ()=>{ panel.style.background = 'rgba(21,25,35,0.85)'; });
+        panel.addEventListener('mouseleave', ()=>{ panel.style.background = 'rgba(21,25,35,0.65)'; });
+
+        // Make panel draggable
+        (function makeDraggable(box){
+          function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+          function loadPos(){ try { return JSON.parse(localStorage.getItem('calendarControlsPos')||'{}'); } catch { return {}; } }
+          function savePos(left, top){ try { localStorage.setItem('calendarControlsPos', JSON.stringify({left, top})); } catch {}
+          }
+          // Restore saved position if available
+          try {
+            const pos = loadPos();
+            if (typeof pos.left === 'number' && typeof pos.top === 'number'){
+              box.style.left = pos.left + 'px';
+              box.style.top = pos.top + 'px';
+            }
+          } catch {}
+          box.addEventListener('pointerdown', (ev)=>{
+            if (ev.button !== 0) return; // left only
+            ev.preventDefault(); ev.stopPropagation();
+            box.style.cursor = 'grabbing';
+            const rect = box.getBoundingClientRect();
+            const offX = ev.clientX - rect.left;
+            const offY = ev.clientY - rect.top;
+            function move(e){
+              const nx = clamp(e.clientX - offX, 4, window.innerWidth - rect.width - 4);
+              const ny = clamp(e.clientY - offY, 0, window.innerHeight - rect.height - 4);
+              box.style.left = Math.round(nx) + 'px';
+              box.style.top = Math.round(ny) + 'px';
+            }
+            function up(){
+              window.removeEventListener('pointermove', move);
+              window.removeEventListener('pointerup', up);
+              box.style.cursor = 'grab';
+              // Persist position
+              try { const l = parseInt(box.style.left||'10'); const t = parseInt(box.style.top||'10'); savePos(l, t); } catch {}
+            }
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+          });
+        })(panel);
+
+        // fx toggle for variable expansion in calendar labels
+        const fxWrap = document.createElement('label'); fxWrap.className='hint'; fxWrap.style.display='flex'; fxWrap.style.alignItems='center'; fxWrap.style.gap='6px';
+        const fx = document.createElement('input'); fx.type='checkbox'; fx.id='calendarFxToggle'; fx.checked = (window.__calendarFxExpand !== false);
+        fxWrap.append(fx, document.createTextNode('fx'));
+        panel.appendChild(fxWrap);
+        fx.addEventListener('change', ()=>{ window.__calendarFxExpand = fx.checked; try{ window.redraw?.(); }catch{} });
+
         viewEl.appendChild(panel);
       }
     } catch (e) { console.warn('[Chronos][app] Could not build calendar controls:', e); }
@@ -142,21 +197,40 @@ ready(async () => {
     widgetEls.forEach(el => mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));
   } catch {}
 
-  // View menu — currently only Calendar
+  // View menu — Calendar + Template Builder
   const viewMenu = document.getElementById('menu-view');
   if (viewMenu) {
     viewMenu.innerHTML = '';
-    const item = document.createElement('div');
-    item.className = 'item';
-    const check = document.createElement('span'); check.className = 'check'; check.textContent = '✅';
-    const span = document.createElement('span'); span.textContent = 'Calendar';
-    item.append(check, span);
-    item.addEventListener('click', () => { closeMenus(); /* single view for now */ });
-    viewMenu.appendChild(item);
+    function addView(name,label){
+      const it = document.createElement('div'); it.className='item';
+      const check = document.createElement('span'); check.className='check'; check.textContent = (window.__currentView===name)?'✅':'';
+      const span = document.createElement('span'); span.textContent = label;
+      it.append(check, span);
+      it.addEventListener('click', async () => {
+        closeMenus();
+        try { await mountView(viewEl, name); window.__currentView=name; } catch (e) { console.error('[Chronos][app] View switch error:', e); }
+        // Refresh menu checkmarks
+        viewMenu.querySelectorAll('.item .check').forEach(el=> el.textContent=''); check.textContent='✅';
+      });
+      viewMenu.appendChild(it);
+    }
+    addView('Calendar','Calendar');
+    addView('TemplateBuilder','Template Builder');
   }
 
   console.log('[Chronos][app] Dashboard app ready');
+  // Listen for widget:show to reveal/pulse a widget (e.g., ItemManager)
+  try {
+    (window.__chronosBus = context?.bus)?.on('widget:show', (name)=>{
+      const el = document.querySelector(`[data-widget="${name}"]`);
+      if (!el) return;
+      el.style.display='';
+      try { window.ensureWidgetInView?.(el); } catch {}
+      // Pulse
+      el.style.boxShadow='0 0 0 2px #7aa2f7, var(--shadow)';
+      setTimeout(()=>{ el.style.boxShadow='var(--shadow)'; }, 900);
+    });
+  } catch {}
 });
 
 export {};
-

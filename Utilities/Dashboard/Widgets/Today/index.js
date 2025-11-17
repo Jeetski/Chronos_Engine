@@ -1,4 +1,4 @@
-export function mount(el, context) {
+﻿export function mount(el, context) {
   console.log('[Chronos][Today] Mounting Today widget');
   el.innerHTML = `
     <div class="header" id="todayHeader">
@@ -9,8 +9,8 @@ export function mount(el, context) {
       </div>
     </div>
     <div class="content">
-      <div class="row" style="align-items: center; gap: 8px;">
-        <span class="hint" id="selSummary">Select an item on the calendar…</span>
+      <div class="row" style="align-items: center; gap: 8px;">        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="todayFxToggle" checked /> fx</label>
+        <span class="hint" id="selSummary">Select an item on the calendarâ€¦</span>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="todayRefresh">Refresh</button>
         <button class="btn btn-primary" id="todayReschedule">Reschedule</button>
@@ -105,7 +105,7 @@ export function mount(el, context) {
   try {
     context?.bus?.on('calendar:selected', (payload)=>{
       selected = payload || null;
-      if (!selected){ selSummary.textContent = 'Select an item on the calendar…'; actionsRow.style.display='none'; return; }
+      if (!selected){ selSummary.textContent = 'Select an item on the calendarâ€¦'; actionsRow.style.display='none'; return; }
       const hm = (m)=>{ const h=Math.floor((m||0)/60)%24, n=(m||0)%60; return String(h).padStart(2,'0')+':'+String(n).padStart(2,'0'); };
       selSummary.textContent = `${selected.text} (${hm(selected.start)}-${hm(selected.end||selected.start)})`;
       actionsRow.style.display='';
@@ -118,6 +118,20 @@ export function mount(el, context) {
     const body = `command: ${command}\nargs:\n${(args||[]).map(a=>'  - '+String(a)).join('\n')}\n${propLines? 'properties:\n'+propLines+'\n' : ''}`;
     const resp = await fetch(apiBase() + '/api/cli', { method:'POST', headers:{ 'Content-Type':'text/yaml' }, body });
     const text = await resp.text();
+  const fxChk = content.querySelector('#todayFxToggle');
+  let fxEnabled = (fxChk ? fxChk.checked : true);
+  fxChk?.addEventListener('change', ()=>{ fxEnabled = !!fxChk.checked; if (selected){ const hm=(m)=>{ const h=Math.floor((m||0)/60)%24, n=(m||0)%60; return String(h).padStart(2,'0')+':'+String(n).padStart(2,'0')}; const txt = fxEnabled && window.ChronosVars ? window.ChronosVars.expand(String(selected.text||'')) : String(selected.text||''); selSummary.textContent = `${txt} (${hm(selected.start)}-${hm(selected.end||selected.start)})`; } });
+  try {
+    context?.bus?.on('calendar:selected', (payload)=>{
+      selected = payload || null;
+      if (!selected){ selSummary.textContent = 'Select an item on the calendar…'; actionsRow.style.display='none'; return; }
+      const hm = (m)=>{ const h=Math.floor((m||0)/60)%24, n=(m||0)%60; return String(h).padStart(2,'0')+':'+String(n).padStart(2,'0'); };
+      const disp = (fxEnabled && window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(selected.text||'')) : String(selected.text||'');
+      selSummary.textContent = `${disp} (${hm(selected.start)}-${hm(selected.end||selected.start)})`;
+      actionsRow.style.display='';
+      try { inputChange.value = hm(selected.start); } catch{}
+    });
+  } catch {}
     return { ok: resp.ok, text };
   }
 

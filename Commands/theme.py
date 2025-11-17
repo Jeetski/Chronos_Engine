@@ -21,7 +21,7 @@ def get_help_message():
         "                       Set explicit console colors (overrides theme)\n"
         "Notes:\n"
         "- Themes come from User/Settings/theme_settings.yml (themes: { name: { background, text } }).\n"
-        "- Current selection is stored in User/profile.yml under 'theme' or 'console: { theme }'.\n"
+        "- Current selection is stored in User/Profile/profile.yml under 'theme' or 'console: { theme }'.\n"
         "- Explicit 'background'/'text' in profile override the theme.\n"
     )
 
@@ -56,12 +56,12 @@ def _read_themes() -> Dict[str, Dict[str, str]]:
 
 
 def _read_profile() -> Dict[str, Any]:
-    prof = _load_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml'))
+    prof = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml'))
     return prof if isinstance(prof, dict) else {}
 
 
 def _write_profile(prof: Dict[str, Any]) -> bool:
-    return _save_yaml(os.path.join(ROOT_DIR, 'User', 'profile.yml'), prof)
+    return _save_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml'), prof)
 
 
 def _resolve_profile_theme(prof: Dict[str, Any], themes: Dict[str, Dict[str, str]]) -> Tuple[str, str, str]:

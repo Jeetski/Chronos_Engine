@@ -1,12 +1,12 @@
 # Chronos Engine
 
-YAML‑first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight dashboard.
+YAML-first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight dashboard.
 
 Quickstart
 - Install: run `install_dependencies.bat` (creates `.venv`, installs deps)
-- CLI: `console_launcher.bat` → `help`
+- CLI: `console_launcher.bat` then `help`
 - Listener: `listener_launcher.bat`
-- Dashboard: `python Utilities/Dashboard/server.py`, then open `Utilities/Dashboard/dashboard.html`
+- Dashboard: run `dashboard_launcher.bat`, or in the Console run `dashboard`
 
 Docs
 - Overview & Quickstart: `Docs/README.md`
@@ -18,4 +18,3 @@ Docs
 
 License
 - See `LICENSE.md`. Commercial terms in `Docs/COMMERCIAL_LICENSE.md`.
-

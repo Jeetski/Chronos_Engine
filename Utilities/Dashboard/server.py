@@ -2,6 +2,8 @@ import io
 import os
 import sys
 import yaml
+import json
+import base64
 import threading
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -13,6 +15,105 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Utilities", "Dashboard"))
 
+# In-memory dashboard-scoped variables (exposed via /api/vars)
+_DASH_VARS = {}
+
+def _vars_all():
+    try:
+        from Modules import Variables as _V
+        try:
+            m = _V.all_vars()
+            if isinstance(m, dict):
+                return m
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return dict(_DASH_VARS)
+
+def _vars_set(k, v):
+    try:
+        from Modules import Variables as _V
+        try:
+            _V.set_var(str(k), v)
+        except Exception:
+            pass
+    except Exception:
+        pass
+    _DASH_VARS[str(k)] = str(v)
+
+def _vars_unset(k):
+    try:
+        from Modules import Variables as _V
+        try:
+            _V.unset_var(str(k))
+        except Exception:
+            pass
+    except Exception:
+        pass
+    _DASH_VARS.pop(str(k), None)
+
+def _expand_text(text):
+    try:
+        from Modules import Variables as _V
+        try:
+            return _V.expand_token(text)
+        except Exception:
+            return str(text)
+    except Exception:
+        # Simple fallback: replace @{var} and @var using _DASH_VARS
+        import re
+        m = _vars_all()
+        def braced(mo):
+            return str(m.get(mo.group(1), ''))
+        def simple(mo):
+            return str(m.get(mo.group(1), ''))
+        s = str(text).replace('@@', '\x00AT\x00')
+        s = re.sub(r"@\{([A-Za-z_][A-Za-z0-9_]*)\}", braced, s)
+        s = re.sub(r"(?<![A-Za-z0-9_])@([A-Za-z_][A-Za-z0-9_]*)", simple, s)
+        return s.replace('\x00AT\x00', '@')
+
+def _vars_seed_defaults():
+    try:
+        # Seed nickname from profile.yml
+        prof_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+        if os.path.exists(prof_path):
+            try:
+                with open(prof_path, 'r', encoding='utf-8') as f:
+                    y = yaml.safe_load(f) or {}
+                nick = None
+                if isinstance(y, dict):
+                    nick = y.get('nickname') or y.get('nick')
+                    # console-nested nickname fallback if present
+                    if not nick and isinstance(y.get('console'), dict):
+                        nick = y.get('console', {}).get('nickname')
+                if nick:
+                    _vars_set('nickname', nick)
+            except Exception:
+                pass
+        # Seed from optional User/Settings/vars.yml
+        vpath = os.path.join(ROOT_DIR, 'User', 'Settings', 'vars.yml')
+        if os.path.exists(vpath):
+            try:
+                with open(vpath, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f) or {}
+                if isinstance(data, dict):
+                    for k, v in data.items():
+                        try:
+                            if k is None: continue
+                            _vars_set(str(k), v)
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+# Seed vars at import time
+try:
+    _vars_seed_defaults()
+except Exception:
+    pass
 
 def run_console_command(command_name, args_list):
     """
@@ -73,6 +174,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        sys.stderr.write(f"DEBUG: GET request path: {parsed.path}\n") # DEBUG
+        sys.stderr.flush()
+        sys.stderr.write(f"DEBUG: Checking path for /api/profile: {parsed.path}\n") # TEMP DEBUG
+        sys.stderr.flush()
         # Lazy import ItemManager helpers when API endpoints are hit
         def im():
             from Modules.ItemManager import list_all_items, read_item_data, write_item_data, delete_item, get_item_path
@@ -86,6 +191,46 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(data.encode("utf-8"))))
             self.end_headers()
             self.wfile.write(data.encode("utf-8"))
+            return
+        if parsed.path == "/api/profile":
+            # Return profile as JSON map (nickname/theme/etc.)
+            try:
+                prof_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                data = {}
+                if os.path.exists(prof_path):
+                    with open(prof_path, 'r', encoding='utf-8') as f:
+                        y = yaml.safe_load(f) or {}
+                        if isinstance(y, dict):
+                            data = y
+                self._write_json(200, {"ok": True, "profile": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read profile: {e}"})
+            return
+        if parsed.path == "/api/theme":
+            # Lookup a theme by name in User/Settings/theme_settings.yml
+            try:
+                qs = parse_qs(parsed.query or '')
+                name = (qs.get('name') or [''])[0].strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing name"}); return
+                settings_path = os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml')
+                if not os.path.exists(settings_path):
+                    self._write_json(404, {"ok": False, "error": "theme_settings.yml not found"}); return
+                with open(settings_path, 'r', encoding='utf-8') as f:
+                    y = yaml.safe_load(f) or {}
+                themes = (y.get('themes') if isinstance(y, dict) else None) or {}
+                found = None
+                for key, val in (themes.items() if isinstance(themes, dict) else []):
+                    if str(key).strip().lower() == name.lower():
+                        found = val; break
+                if not isinstance(found, dict):
+                    self._write_json(404, {"ok": False, "error": "Theme not found"}); return
+                # Normalize colors
+                bg = found.get('background_hex') or found.get('background') or found.get('bg')
+                fg = found.get('text_hex') or found.get('text') or found.get('fg')
+                self._write_json(200, {"ok": True, "name": name, "background_hex": bg, "text_hex": fg, "theme": found})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read theme: {e}"})
             return
         if parsed.path == "/api/habits":
             # Enumerate habits with basic fields and today status
@@ -293,6 +438,115 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer settings error: {e}"})
             return
+        if parsed.path == "/api/profile":
+            try:
+                profile_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                profile_data = {}
+                nickname = None
+                avatar_rel = None
+                avatar_data_url = None
+                welcome_block = { 'line1': None, 'line2': None, 'line3': None }
+                exit_block = { 'line1': None, 'line2': None }
+                preferences_map = None
+
+                if os.path.exists(profile_path):
+                    with open(profile_path, 'r', encoding='utf-8') as f:
+                        profile_data = yaml.safe_load(f) or {}
+                    nickname = profile_data.get('nickname')
+                    avatar_rel = profile_data.get('avatar')
+                    # welcome: prefer 'welcome', fallback 'welcome_message'
+                    try:
+                        wb = profile_data.get('welcome') or profile_data.get('welcome_message') or {}
+                        if isinstance(wb, dict):
+                            welcome_block['line1'] = wb.get('line1')
+                            welcome_block['line2'] = wb.get('line2')
+                            welcome_block['line3'] = wb.get('line3')
+                    except Exception:
+                        pass
+                    # exit/goodbye: prefer 'exit_message', fallback 'goodbye_message'
+                    try:
+                        eb = profile_data.get('exit_message') or profile_data.get('goodbye_message') or {}
+                        if isinstance(eb, dict):
+                            exit_block['line1'] = eb.get('line1')
+                            exit_block['line2'] = eb.get('line2')
+                    except Exception:
+                        pass
+                    # preferences: support preferences.yml/.yaml and preferences_settings.yml
+                    try:
+                        pref_candidates = [
+                            os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences.yml'),
+                            os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences.yaml'),
+                            os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences_settings.yml'),
+                        ]
+                        for pp in pref_candidates:
+                            if os.path.exists(pp) and os.path.isfile(pp):
+                                with open(pp, 'r', encoding='utf-8') as pf:
+                                    loaded = yaml.safe_load(pf) or {}
+                                if isinstance(loaded, dict):
+                                    preferences_map = loaded
+                                    break
+                    except Exception:
+                        preferences_map = None
+
+                # Normalize avatar path and embed as data URL if available
+                if isinstance(avatar_rel, str) and avatar_rel.strip():
+                    # Allow either forward or back slashes in YAML
+                    norm_rel = avatar_rel.replace('\\', '/').lstrip('/')
+                    # If path is already under User/, respect as project-relative
+                    avatar_abs = os.path.join(ROOT_DIR, norm_rel) if not os.path.isabs(norm_rel) else norm_rel
+                    try:
+                        if os.path.exists(avatar_abs) and os.path.isfile(avatar_abs):
+                            ext = os.path.splitext(avatar_abs)[1].lower()
+                            mime = 'image/jpeg'
+                            if ext in ['.png']: mime = 'image/png'
+                            elif ext in ['.gif']: mime = 'image/gif'
+                            elif ext in ['.webp']: mime = 'image/webp'
+                            with open(avatar_abs, 'rb') as af:
+                                b64 = base64.b64encode(af.read()).decode('ascii')
+                            avatar_data_url = f"data:{mime};base64,{b64}"
+                    except Exception:
+                        avatar_data_url = None
+
+                response_data = {"ok": True, "profile": {"nickname": nickname, "avatar_path": avatar_rel, "avatar_data_url": avatar_data_url, "welcome": welcome_block, "exit": exit_block, "preferences": preferences_map}}
+                self._write_json(200, response_data)
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to load profile: {e}"})
+            return
+        if parsed.path == "/api/profile/avatar":
+            try:
+                profile_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                avatar_rel = None
+                if os.path.exists(profile_path):
+                    with open(profile_path, 'r', encoding='utf-8') as f:
+                        prof = yaml.safe_load(f) or {}
+                        avatar_rel = prof.get('avatar')
+                if not avatar_rel:
+                    self.send_response(404)
+                    self._set_cors()
+                    self.end_headers();
+                    return
+                norm_rel = str(avatar_rel).replace('\\', '/').lstrip('/')
+                avatar_abs = os.path.join(ROOT_DIR, norm_rel) if not os.path.isabs(norm_rel) else norm_rel
+                if not (os.path.exists(avatar_abs) and os.path.isfile(avatar_abs)):
+                    self.send_response(404); self._set_cors(); self.end_headers(); return
+                ext = os.path.splitext(avatar_abs)[1].lower()
+                mime = 'image/jpeg'
+                if ext in ['.png']: mime = 'image/png'
+                elif ext in ['.gif']: mime = 'image/gif'
+                elif ext in ['.webp']: mime = 'image/webp'
+                with open(avatar_abs, 'rb') as af:
+                    data = af.read()
+                self.send_response(200)
+                self._set_cors()
+                self.send_header('Content-Type', mime)
+                self.send_header('Content-Length', str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception as e:
+                self.send_response(500)
+                self._set_cors()
+                self.end_headers()
+            return
         if parsed.path == "/api/settings":
             # List or fetch user settings files under User/Settings
             try:
@@ -376,6 +630,109 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "items": out})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to list items: {e}"})
+            return
+        if parsed.path == "/api/vars":
+            try:
+                self._write_json(200, {"ok": True, "vars": _vars_all()})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to get vars: {e}"})
+            return
+        if parsed.path == "/api/template/list":
+            # List templates by type (routine|subroutine|microroutine|day|week)
+            try:
+                qs = parse_qs(parsed.query or '')
+                t = (qs.get('type') or [''])[0].strip().lower()
+                if not t:
+                    self._write_json(400, {"ok": False, "error": "Missing type"}); return
+                # Use ItemManager to locate dir
+                from Modules.ItemManager import get_item_dir
+                d = get_item_dir(t)
+                out = []
+                if os.path.isdir(d):
+                    for fn in os.listdir(d):
+                        if not fn.lower().endswith('.yml'): continue
+                        name = os.path.splitext(fn)[0]
+                        try:
+                            # Try reading YAML for explicit name
+                            with open(os.path.join(d, fn), 'r', encoding='utf-8') as f:
+                                y = yaml.safe_load(f) or {}
+                                n = y.get('name') or y.get('Name') or None
+                                if isinstance(n, str) and n.strip():
+                                    name = n.strip()
+                        except Exception:
+                            pass
+                        out.append(name)
+                out = sorted({str(x) for x in out}, key=lambda s: s.lower())
+                self._write_json(200, {"ok": True, "type": t, "templates": out})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Template list error: {e}"})
+            return
+        if parsed.path == "/api/template":
+            # GET: return template YAML (as JSON) with normalized children
+            try:
+                qs = parse_qs(parsed.query or '')
+                t = (qs.get('type') or [''])[0].strip().lower()
+                n = (qs.get('name') or [''])[0].strip()
+                if not t or not n:
+                    self._write_json(400, {"ok": False, "error": "Missing type or name"}); return
+                from Modules.ItemManager import read_item_data
+                data = read_item_data(t, n) or {}
+                # Normalize children
+                children = []
+                try:
+                    if isinstance(data.get('children'), list):
+                        children = data['children']
+                    elif isinstance(data.get('items'), list):
+                        children = data['items']
+                except Exception:
+                    children = []
+                self._write_json(200, {"ok": True, "type": t, "name": n, "template": data, "children": children})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Template read error: {e}"})
+            return
+        if parsed.path == "/api/review":
+            # Return review YAML as text for a given type and period
+            try:
+                qs = parse_qs(parsed.query or '')
+                t = (qs.get('type') or [''])[0].strip().lower()
+                period = (qs.get('period') or [''])[0].strip()
+                if t not in ("daily", "weekly", "monthly"):
+                    self._write_yaml(400, {"ok": False, "error": "Invalid type (daily|weekly|monthly)"}); return
+                base = os.path.join(ROOT_DIR, 'User', 'Reviews', t)
+                os.makedirs(base, exist_ok=True)
+                fname = None
+                if t == 'daily':
+                    import re
+                    if not re.match(r"^\d{4}-\d{2}-\d{2}$", period):
+                        self._write_yaml(400, {"ok": False, "error": "Invalid period for daily (YYYY-MM-DD)"}); return
+                    fname = f"{period}.yml"
+                elif t == 'monthly':
+                    import re
+                    if not re.match(r"^\d{4}-\d{2}$", period):
+                        self._write_yaml(400, {"ok": False, "error": "Invalid period for monthly (YYYY-MM)"}); return
+                    fname = f"{period}.yml"
+                else:
+                    import re
+                    m = re.match(r"^(\d{4})-(\d{2})$", period)
+                    if not m:
+                        self._write_yaml(400, {"ok": False, "error": "Invalid period for weekly (YYYY-WW)"}); return
+                    year = int(m.group(1)); week = int(m.group(2))
+                    fname = f"{year}-{week:02d}.yml"
+                fpath = os.path.join(base, fname)
+                if not fpath.startswith(os.path.abspath(base)):
+                    self._write_yaml(403, {"ok": False, "error": "Forbidden"}); return
+                if not os.path.exists(fpath):
+                    self._write_yaml(404, {"ok": False, "error": "Review not found. Generate it first."}); return
+                with open(fpath, 'r', encoding='utf-8') as fh:
+                    data = fh.read()
+                self.send_response(200)
+                self._set_cors()
+                self.send_header("Content-Type", "text/yaml; charset=utf-8")
+                self.send_header("Content-Length", str(len(data.encode('utf-8'))))
+                self.end_headers()
+                self.wfile.write(data.encode('utf-8'))
+            except Exception as e:
+                self._write_yaml(500, {"ok": False, "error": f"Failed to read review: {e}"})
             return
         if parsed.path == "/api/item":
             # Return full YAML for an item
@@ -618,6 +975,34 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._write_yaml(status, {"ok": ok, "stdout": out, "stderr": err})
             return
 
+        if parsed.path == "/api/vars":
+            # Payload YAML: { set: {k:v}, unset: [k1,k2] }
+            try:
+                to_set = payload.get('set') if isinstance(payload.get('set'), dict) else {}
+                to_unset = payload.get('unset') if isinstance(payload.get('unset'), (list, tuple)) else []
+                for k, v in to_set.items():
+                    _vars_set(k, v)
+                for k in to_unset:
+                    _vars_unset(k)
+                self._write_json(200, {"ok": True, "vars": _vars_all()})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Vars update failed: {e}"})
+            return
+
+        if parsed.path == "/api/vars/expand":
+            # Expand text or list using current vars
+            try:
+                if isinstance(payload.get('text'), str):
+                    out = _expand_text(payload.get('text'))
+                    self._write_json(200, {"ok": True, "text": out}); return
+                if isinstance(payload.get('list'), list):
+                    arr = [ _expand_text(x) for x in payload.get('list') ]
+                    self._write_json(200, {"ok": True, "list": arr}); return
+                self._write_json(400, {"ok": False, "error": "Provide 'text' or 'list'"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Expand failed: {e}"})
+            return
+
         if parsed.path == "/api/new/note":
             # Expected payload: {name, category?, priority?, tags? (list or csv), content?}
             name = (payload.get('name') or '').strip()
@@ -670,6 +1055,53 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/today/reschedule":
             ok, out, err = run_console_command("today", ["reschedule"])
             self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
+            return
+
+        if parsed.path == "/api/profile":
+            # Save nickname and welcome/exit message lines into User/Profile/profile.yml
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                prof_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                # Load existing to preserve other fields (e.g., avatar)
+                data = {}
+                if os.path.exists(prof_path):
+                    try:
+                        with open(prof_path, 'r', encoding='utf-8') as f:
+                            data = yaml.safe_load(f) or {}
+                    except Exception:
+                        data = {}
+                if not isinstance(data, dict):
+                    data = {}
+
+                nickname = payload.get('nickname')
+                if isinstance(nickname, str):
+                    data['nickname'] = nickname
+
+                # welcome lines
+                w = payload.get('welcome') or {}
+                if isinstance(w, dict):
+                    wb = data.get('welcome') if isinstance(data.get('welcome'), dict) else {}
+                    wb['line1'] = w.get('line1') if w.get('line1') is not None else wb.get('line1')
+                    wb['line2'] = w.get('line2') if w.get('line2') is not None else wb.get('line2')
+                    wb['line3'] = w.get('line3') if w.get('line3') is not None else wb.get('line3')
+                    data['welcome'] = wb
+
+                # exit/goodbye lines (write as exit_message)
+                e = payload.get('exit') or {}
+                if isinstance(e, dict):
+                    eb = data.get('exit_message') if isinstance(data.get('exit_message'), dict) else {}
+                    eb['line1'] = e.get('line1') if e.get('line1') is not None else eb.get('line1')
+                    eb['line2'] = e.get('line2') if e.get('line2') is not None else eb.get('line2')
+                    data['exit_message'] = eb
+
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(prof_path), exist_ok=True)
+                with open(prof_path, 'w', encoding='utf-8') as f:
+                    yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Profile save failed: {e}"})
             return
 
         if parsed.path == "/api/item":
@@ -736,6 +1168,37 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_yaml(500, {"ok": False, "error": f"Rename failed: {e}"})
             return
 
+        if parsed.path.startswith("/api/profile"):
+            try:
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to save profile: {e}"})
+            return
+
+        if parsed.path == "/api/open-in-editor":
+            try:
+                file_to_open = payload.get('file_path')
+                if not file_to_open:
+                    self._write_json(400, {"ok": False, "error": "Missing file_path"}); return
+
+                # Basic sanitization
+                if '..' in file_to_open or not file_to_open.startswith('User/Profile/'):
+                    self._write_json(400, {"ok": False, "error": "Invalid file path"}); return
+                
+                full_path = os.path.join(ROOT_DIR, file_to_open)
+
+                from Modules.ItemManager import get_editor_command
+                
+                editor_command = get_editor_command({}) # empty properties
+                
+                import subprocess
+                subprocess.run([editor_command, full_path], check=True)
+
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to open file in editor: {e}"})
+            return
+
         if parsed.path == "/api/settings":
             # Write a settings file. Options:
             # - POST /api/settings?file=Name.yml with raw YAML body
@@ -783,6 +1246,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_yaml(400, {"ok": False, "error": "Missing content (raw or data)"})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Settings write error: {e}"})
+            return
+
+        if parsed.path == "/api/template":
+            # Save a template's children to its YAML
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                t = (payload.get('type') or '').strip().lower()
+                n = (payload.get('name') or '').strip()
+                children = payload.get('children') if isinstance(payload.get('children'), list) else None
+                if not t or not n or children is None:
+                    self._write_json(400, {"ok": False, "error": "Missing type, name, or children[]"}); return
+                from Modules.ItemManager import read_item_data, write_item_data
+                data = read_item_data(t, n) or {}
+                data['children'] = children
+                write_item_data(t, n, data)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Template save error: {e}"})
             return
 
         if parsed.path == "/api/item/delete":

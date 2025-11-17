@@ -640,6 +640,12 @@ def run(args, properties):
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
+        # Evaluate milestones as well so progress reflects new state today
+        try:
+            from Modules.Milestone import main as MilestoneModule  # type: ignore
+            MilestoneModule.evaluate_and_update_milestones()
+        except Exception:
+            pass
 
         # 5. Calculate item importance (Phase 3b)
         def apply_importance_recursive(items):

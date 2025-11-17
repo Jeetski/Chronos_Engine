@@ -1,4 +1,4 @@
-# Settings Guide
+﻿# Settings Guide
 
 Chronos settings live under `User/Settings/`. They configure defaults, points, timer, themes, and more.
 
@@ -18,7 +18,7 @@ Chronos settings live under `User/Settings/`. They configure defaults, points, t
 
 ## Common Files
 
-- Points — `points_settings.yml`
+- Points â€” `points_settings.yml`
   - Example:
     ```yaml
     earn:
@@ -30,7 +30,7 @@ Chronos settings live under `User/Settings/`. They configure defaults, points, t
     ```
   - Used by `Utilities/points.py`. Older `Points.yml` is still read if present.
 
-- Defaults — `<item>_defaults.yml`
+- Defaults â€” `<item>_defaults.yml`
   - Applied when running `new <type> <name>`.
   - Example (`task_defaults.yml`):
     ```yaml
@@ -38,14 +38,13 @@ Chronos settings live under `User/Settings/`. They configure defaults, points, t
     default_status: pending
     ```
 
-- Timer — `Timer_Settings.yml` and profiles under `User/Settings/Timer_Profiles.yml`
+- Timer â€” `Timer_Settings.yml` and profiles under `User/Settings/Timer_Profiles.yml`
   - Queried by the dashboard via `/api/timer/settings` and Timer module.
 
-- Theme — `theme_settings.yml` and `User/profile.yml`
+- Theme — `theme_settings.yml` and `User/Profile/profile.yml`
   - Console reads profile/theme to set colors and greetings.
 
 ## Safety Tips
 
 - Keep YAML valid: use the Settings widget or lint in your editor.
 - When renaming files to lowercase, confirm corresponding modules or scripts don’t hardcode the old names (most core modules resolve both).
-

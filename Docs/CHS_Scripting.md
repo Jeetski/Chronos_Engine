@@ -17,6 +17,7 @@ Chronos executes `.chs` scripts with one command per line. Lines support quoted 
 
 - Any `key:value` tokens are parsed as properties and passed to commands (e.g., `priority:high`).
 - Quote values with spaces: `category:"deep work"`.
+- Detection rule: a token is treated as a property only if the key starts with a letter and the key contains letters, digits, or underscores. This avoids mis-parsing Windows paths like `C:\Work\file.txt` as properties.
 
 ## Conditionals: `if`
 

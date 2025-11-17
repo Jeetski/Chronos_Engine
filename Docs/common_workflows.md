@@ -223,7 +223,7 @@ Scripts (Automation)
   ```
 
 - Variables
-  - Use `@nickname` (from `User/profile.yml`) in messages.
+  - Use `@nickname` (from `User/Profile/profile.yml`) in messages.
   - Set inside scripts with `set var <name> <value>` or via specific command outputs.
 
 ----------------------------------------
@@ -271,4 +271,3 @@ Next Steps
 - Explore `Docs/Architecture.md` to extend commands and modules.
 - Review `Docs/Dashboard.md` for APIs and widget ideas.
 - Add your own templates and scripts to shape Chronos to your workflow.
-

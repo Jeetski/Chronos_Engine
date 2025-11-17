@@ -110,6 +110,7 @@ def bundle_settings_for_dashboard():
     appointment_defaults = read_yaml_first('appointment_defaults.yml', 'Appointment_Defaults.yml')
     alarm_defaults = read_yaml_first('alarm_defaults.yml', 'Alarm_Defaults.yml')
     status_cfg = read_yaml_first('status_settings.yml', 'Status_Settings.yml')
+    profile_cfg = read_yaml_first('profile.yml', 'Profile.yml') # Read profile.yml
 
     # Status option files (attempt common variants)
     status_files = {
@@ -169,6 +170,7 @@ def bundle_settings_for_dashboard():
                 'dashboard_views.yml',
                 'dashboard_widgets.yml',
                 'note_defaults.yml',
+                'profile.yml', # Add profile.yml to the list of source files
             ]
         },
         'priorities': priorities or ['low', 'medium', 'high'],
@@ -179,7 +181,8 @@ def bundle_settings_for_dashboard():
             'note': note_defaults or {},
             'appointment': appointment_defaults or {},
             'alarm': alarm_defaults or {},
-        }
+        },
+        'profile': profile_cfg or {}, # Include profile data in the bundle
     }
 
     # Build status payload

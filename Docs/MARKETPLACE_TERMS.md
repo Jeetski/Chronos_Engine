@@ -1,6 +1,6 @@
 # Chronos Marketplace Terms (Clean Summary)
 
-These terms apply when you sell paid Chronos�?`based extensions in the official Chronos Marketplace.
+These terms apply when you sell paid Chronos-based extensions in the official Chronos Marketplace.
 
 Owner/Operator: Hivemind Studio / David Cody
 
@@ -14,11 +14,11 @@ Owner/Operator: Hivemind Studio / David Cody
 
 ## Distribution and Certification
 - Approved paid listings receive the “Chronos Certified” badge.
-- You grant us a non�?`exclusive right to distribute, market, and deliver your extension via the Marketplace.
+- You grant us a non-exclusive right to distribute, market, and deliver your extension via the Marketplace.
 - You retain all IP to your extension.
 
 ## Quality and Support
-- Keep your listing accurate and up�?`to�?`date.
+- Keep your listing accurate and up-to-date.
 - Provide a basic support email or issue tracker link.
 - Fix critical security or stability issues promptly.
 
@@ -33,7 +33,7 @@ Owner/Operator: Hivemind Studio / David Cody
 - “Chronos Engine”, “Chronos”, and “Chronos Certified” are trademarks. Use the badge and brand only as permitted (see TRADEMARK_POLICY.md).
 
 ## Compliance
-- Extensions must comply with the Chronos Core license (AGPL�?`3.0�?`or�?`later) and any commercial license you hold for closed, in�?`process integrations.
+- Extensions must comply with the Chronos Core license (AGPL-3.0-or-later) and any commercial license you hold for closed, in-process integrations.
 
 Questions? marketplace@chronosengine.online
 

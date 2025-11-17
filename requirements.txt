@@ -1,0 +1,14 @@
+# Core dependencies for Chronos Engine
+
+# YAML parsing across modules and commands
+PyYAML>=6.0
+
+# Audio playback for alarms/reminders via pygame.mixer
+pygame>=2.5.0
+
+# Optional console color support (some commands may leverage it)
+colorama>=0.4.6
+
+# Optional simple audio utility; retained for compatibility
+playsound>=1.2.2
+
