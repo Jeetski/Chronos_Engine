@@ -1,6 +1,8 @@
 @echo off
 setlocal ENABLEDELAYEDEXPANSION
 
+set "ROOT_DIR=%~dp0"
+
 echo ==============================
 echo Chronos Engine Setup
 echo ==============================
@@ -57,6 +59,8 @@ echo Dependencies installed successfully.
 echo.
 echo Ensuring optional utilities are present...
 call :ensure_colorprint || echo Skipped colorprint setup.
+echo.
+call :offer_listener_startup
 goto :end_ok
 
 :find_python
@@ -160,3 +164,43 @@ goto :end_ok
 
 :colorprint_ok
   endlocal & exit /b 0
+
+:: ----------------------------------------------
+:: Helper: Offer Listener auto-start on login
+:: ----------------------------------------------
+:offer_listener_startup
+  echo The Chronos Listener runs alarms, reminders, and timer ticks in the background.
+  echo You can have it start automatically when you sign in to Windows.
+  echo This means scheduled alarms and reminders will fire even if you forget
+  echo to launch Chronos manually.
+  echo.
+  choice /C YN /N /M "Add 'Chronos Listener' to your Startup folder so it runs on sign-in? [Y/N]: "
+  if errorlevel 2 goto listener_startup_no
+  if errorlevel 1 goto listener_startup_yes
+  goto listener_startup_done
+
+:listener_startup_yes
+  echo Creating Startup shortcut for Chronos Listener...
+  powershell -NoProfile -Command ^
+    "$shell = New-Object -ComObject WScript.Shell; " ^
+    "$startup = [Environment]::GetFolderPath('Startup'); " ^
+    "$target = Join-Path -Path '%ROOT_DIR%' -ChildPath 'listener_launcher.bat'; " ^
+    "$shortcutPath = Join-Path -Path $startup -ChildPath 'Chronos Listener.lnk'; " ^
+    "$shortcut = $shell.CreateShortcut($shortcutPath); " ^
+    "$shortcut.TargetPath = $target; " ^
+    "$shortcut.WorkingDirectory = '%ROOT_DIR%'; " ^
+    "$shortcut.WindowStyle = 7; " ^
+    "$shortcut.Save()"
+  if %ERRORLEVEL% EQU 0 (
+    echo Added 'Chronos Listener' shortcut to your Startup folder.
+  ) else (
+    echo Warning: Failed to create Startup shortcut automatically.
+    echo You can still run the listener via listener_launcher.bat.
+  )
+  goto listener_startup_done
+
+:listener_startup_no
+  echo Skipping Startup shortcut. You can enable it later by rerunning this script.
+
+:listener_startup_done
+  exit /b 0
