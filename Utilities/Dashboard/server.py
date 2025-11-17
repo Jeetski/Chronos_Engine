@@ -1033,6 +1033,46 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             status = 200 if ok else 500
             self._write_yaml(status, {"ok": ok, "stdout": out, "stderr": err})
             return
+        if parsed.path == "/api/file/read":
+            try:
+                path = (payload.get('path') or '').strip() if isinstance(payload, dict) else ''
+                if not path and parsed.query:
+                    qs = parse_qs(parsed.query)
+                    path = (qs.get('path') or [''])[0].strip()
+                if not path:
+                    self._write_json(400, {"ok": False, "error": "Missing path"}); return
+                target = os.path.abspath(os.path.join(ROOT_DIR, path))
+                if not target.startswith(ROOT_DIR):
+                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
+                if not os.path.isfile(target):
+                    self._write_json(404, {"ok": False, "error": "File not found"}); return
+                with open(target, 'r', encoding='utf-8') as fh:
+                    data = fh.read()
+                self._write_json(200, {"ok": True, "path": path, "content": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Read failed: {e}"})
+            return
+        if parsed.path == "/api/file/write":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map with path/content"}); return
+                path = (payload.get('path') or '').strip()
+                content = payload.get('content') or ''
+                if not path:
+                    self._write_json(400, {"ok": False, "error": "Missing path"}); return
+                target = os.path.abspath(os.path.join(ROOT_DIR, path))
+                if not target.startswith(ROOT_DIR):
+                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
+                allowed_ext = ('.md', '.markdown', '.yml', '.yaml', '.txt')
+                if not target.lower().endswith(allowed_ext):
+                    self._write_json(400, {"ok": False, "error": "Extension not allowed"}); return
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                with open(target, 'w', encoding='utf-8') as fh:
+                    fh.write(str(content))
+                self._write_json(200, {"ok": True, "path": path})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Write failed: {e}"})
+            return
 
         if parsed.path == "/api/status/update":
             # Payload: map of indicator:value, e.g., { energy: high, focus: good }

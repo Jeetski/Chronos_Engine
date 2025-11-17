@@ -1,10 +1,5 @@
-﻿export function mount(el, context) {
+export function mount(el, context) {
   const tpl = `
-
-  const fxChk = header.querySelector('#habitFxToggle');
-  let fxEnabled = fxChk ? fxChk.checked : true;
-  function expandText(s){ try { return (fxEnabled && window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
-  fxChk?.addEventListener('change', ()=>{ fxEnabled = !!fxChk.checked; try{ refresh(); }catch{} });
     <div class="header" id="habitHeader">
       <div class="title">Habits</div>
       <div class="controls">
@@ -37,6 +32,19 @@
   const listEl = el.querySelector('#habitList');
   const summaryEl = el.querySelector('#habitSummary');
 
+  const fxChk = header.querySelector('#habitFxToggle');
+  let fxEnabled = fxChk ? fxChk.checked : true;
+  function expandText(s){
+    try { return (fxEnabled && window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); }
+    catch { return String(s||''); }
+  }
+  fxChk?.addEventListener('change', ()=>{
+    fxEnabled = !!fxChk.checked;
+    try{ refresh(); }catch{}
+  });
+  // Refresh when variables change so expanded text stays current
+  try { context?.bus?.on('vars:changed', ()=> refresh()); } catch {}
+
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   const save = (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} };
   const load = (k,f)=>{ try{ const v=localStorage.getItem(k); return v? JSON.parse(v): f; }catch{ return f; } };
@@ -61,7 +69,7 @@
       const bad = items.filter(h=>h.polarity==='bad');
       const goodDone = good.filter(h=>h.today_status==='done').length;
       const badInc = bad.filter(h=>h.today_status==='incident').length;
-      summaryEl.textContent = `Good: ${goodDone}/${good.length} done today â€¢ Bad: ${badInc}/${bad.length} incidents today`;
+      summaryEl.textContent = `Good: ${goodDone}/${good.length} done today �?� Bad: ${badInc}/${bad.length} incidents today`;
     }catch{ summaryEl.textContent=''; }
   }
 
@@ -70,7 +78,7 @@
     row.className='row'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.borderBottom='1px solid #222835'; row.style.padding='6px 0';
     const left = document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
     const name = document.createElement('div'); name.textContent = expandText(h.name); name.style.color='#e6e8ef';
-    const meta = document.createElement('div'); meta.className='hint'; meta.textContent = `${h.polarity==='bad'?'bad':'good'}${h.category? ' â€¢ '+h.category:''}${h.priority? ' â€¢ '+h.priority:''}`;
+    const meta = document.createElement('div'); meta.className='hint'; meta.textContent = `${h.polarity==='bad'?'bad':'good'}${h.category? ' �?� '+h.category:''}${h.priority? ' �?� '+h.priority:''}`;
     left.append(name, meta);
     const right = document.createElement('div'); right.style.display='flex'; right.style.gap='6px'; right.style.alignItems='center';
     const streak = document.createElement('span'); streak.className='hint';
@@ -130,5 +138,4 @@
     unmount(){ /* TODO: remove listeners if needed */ }
   };
 }
-
 

@@ -1,4 +1,4 @@
-export function mount(el) {
+export function mount(el, context) {
   const tpl = `
     <div class="header" id="notesHeader">
       <div class="title">Notes</div>
@@ -25,17 +25,26 @@ export function mount(el) {
         <input id="noteTags" class="input" placeholder="tag1, tag2" />
       </div>
       <div class="row" style="gap:8px; align-items:center;">
+        <label class="hint" style="min-width:70px;">Format</label>
+        <select id="noteFormat" class="input" style="width:160px;">
+          <option value="note">Note (.yml via CLI)</option>
+          <option value="markdown">Markdown (.md)</option>
+          <option value="yaml">Raw YAML (.yml)</option>
+        </select>
+        <div id="notePathHint" class="hint" style="flex:1; color:var(--text-dim);"></div>
+      </div>
+      <div class="row" style="gap:8px; align-items:center;">
         <label class="hint" style="min-width:70px;">Preview</label>
         <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="notesPreviewToggle" /> Expanded view</label>
       </div>
       <textarea class="textarea" id="noteContent" placeholder="Write note content..."></textarea>
       <div id="notePreview" class="textarea" style="display:none; opacity:.9; background:#0f141d; border:1px dashed #2b3343; min-height:80px;" data-expand="text"></div>
       <div class="row">
-        <span class="hint">Create saves to User/Notes via API. Load can open a YAML file.</span>
+        <span class="hint">Create saves to User/Notes (or provided path). Load can open YAML/Markdown files.</span>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="notesLoad">Load</button>
         <button class="btn btn-primary" id="notesCreate">Create</button>
-      <input type="file" id="notesFile" accept=".yml,.yaml" style="display:none;" />
+      <input type="file" id="notesFile" accept=".yml,.yaml,.md,.markdown" style="display:none;" />
       </div>
     </div>
     <div class="resizer e"></div>
@@ -54,12 +63,16 @@ export function mount(el) {
   const contentEl = el.querySelector('#noteContent');
   const previewEl = el.querySelector('#notePreview');
   const previewChk = el.querySelector('#notesPreviewToggle');
+  const formatEl = el.querySelector('#noteFormat');
+  const pathHint = el.querySelector('#notePathHint');
   const loadBtn = el.querySelector('#notesLoad');
   const createBtn = el.querySelector('#notesCreate');
   const fileInput = el.querySelector('#notesFile');
+  let currentPath = null;
 
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   function sanitizeNameForPath(name){ return String(name||'').toLowerCase().replace(/&/g,'and').replace(/:/g,'-').trim(); }
+  function setPathHint(path){ if(pathHint) pathHint.textContent = path ? `Path: ${path}` : ''; }
 
   // Minimal YAML parse (flat keys + tags list + content scalar)
   function parseYaml(yaml){
@@ -149,14 +162,43 @@ export function mount(el) {
       return lines.join('\n');
     }
 
-    const payloadYml = toYaml({ name, category, priority, tags, content });
+    const fmt = (formatEl?.value)||'note';
+
+    const asYaml = toYaml({ name, category, priority, tags, content });
+    // Build markdown with frontmatter for metadata
+    const asMarkdown = (()=> {
+      const fm = [];
+      fm.push('---');
+      fm.push(`name: ${name}`);
+      if (category) fm.push(`category: ${category}`);
+      if (priority) fm.push(`priority: ${priority}`);
+      if (tags.length) fm.push(`tags: [${tags.map(t=>`\"${t}\"`).join(', ')}]`);
+      fm.push('---');
+      return `${fm.join('\\n')}\\n\\n${content}`;
+    })();
+
     try {
-      const resp = await fetch(apiBase() + '/api/new/note', { method:'POST', headers:{ 'Content-Type':'text/yaml' }, body: payloadYml });
-      const text = await resp.text();
-      // Try to parse server YAML; fallback to status
-      let ok = resp.ok, msg = text;
-      try { const d = parseYaml(text)||{}; ok = !!d.ok; msg = d.stdout||d.error||text; } catch {}
-      alert((ok? 'Created note: ' : 'Failed: ') + msg);
+      if (fmt === 'note') {
+        const resp = await fetch(apiBase() + '/api/new/note', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ name, category, priority, tags, content }) });
+        const text = await resp.text();
+        let ok = resp.ok, msg = text;
+        try { const d = parseYaml(text)||{}; ok = !!d.ok; msg = d.stdout||d.error||text; } catch {}
+        alert((ok? 'Created note: ' : 'Failed: ') + msg);
+        currentPath = null; setPathHint('');
+      } else {
+        const ext = fmt === 'markdown' ? '.md' : '.yml';
+        const fname = sanitizeNameForPath(name) || 'untitled';
+        const target = currentPath || `User/notes/${fname}${ext}`;
+        const body = {
+          path: target,
+          content: fmt === 'markdown' ? asMarkdown : asYaml,
+        };
+        const resp = await fetch(apiBase() + '/api/file/write', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+        const ok = resp.ok;
+        const msg = await resp.text();
+        alert((ok? 'Saved: ' : 'Failed: ') + msg);
+        if (ok) { currentPath = target; setPathHint(target); }
+      }
     } catch (e) {
       alert('Failed to reach Chronos dashboard server. Run: dashboard');
     }
@@ -187,6 +229,7 @@ export function mount(el) {
     if(obj.priority) priorityEl.value=String(obj.priority).toLowerCase();
     if(Array.isArray(obj.tags)) tagsEl.value = obj.tags.join(', ');
     if(obj.content!=null) contentEl.value = String(obj.content);
+    updatePreview();
   }
 
   loadBtn.addEventListener('click', async ()=>{
@@ -199,7 +242,28 @@ export function mount(el) {
     }
   });
   fileInput.addEventListener('change', async ()=>{
-    const f=fileInput.files&&fileInput.files[0]; if(!f) return; const text=await f.text(); const data=parseYaml(text)||{}; fillFromObj(data); fileInput.value='';
+    const f=fileInput.files&&fileInput.files[0]; if(!f) return;
+    const text=await f.text();
+    if (/\.(md|markdown)$/i.test(f.name)){
+      // Try to strip frontmatter; otherwise just load content
+      const m = text.match(/^---\\s*\\n([\\s\\S]*?)\\n---\\s*\\n([\\s\\S]*)$/);
+      if (m){
+        try{
+          const meta = parseYaml(m[1])||{};
+          fillFromObj({ name: titleEl.value||meta.name||f.name.replace(/\\.(md|markdown)$/i,''), category: meta.category, priority: meta.priority, tags: meta.tags, content: m[2] });
+        }catch{ fillFromObj({ name: f.name.replace(/\\.(md|markdown)$/i,''), content: m[2] }); }
+      } else {
+        fillFromObj({ name: f.name.replace(/\\.(md|markdown)$/i,''), content:text });
+      }
+      formatEl.value = 'markdown';
+      currentPath = null; setPathHint('');
+    } else {
+      const data=parseYaml(text)||{};
+      fillFromObj(data);
+      formatEl.value = 'note';
+      currentPath = null; setPathHint('');
+    }
+    fileInput.value='';
   });
 
   // Resizers
@@ -209,10 +273,11 @@ export function mount(el) {
   if(rs) rs.addEventListener('pointerdown', (ev)=>{ const r=el.getBoundingClientRect(); edgeDrag(r, (e,sr)=>{ el.style.height=Math.max(160, e.clientY - sr.top)+'px'; })(ev); });
   if(rse) rse.addEventListener('pointerdown', (ev)=>{ const r=el.getBoundingClientRect(); edgeDrag(r, (e,sr)=>{ el.style.width=Math.max(260, e.clientX - sr.left)+'px'; el.style.height=Math.max(160, e.clientY - sr.top)+'px'; })(ev); });
 
-  console.log('[Chronos][Notes] Widget ready');
-  return { fillFromObj };
-}
-  function expandText(s){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
+  function expandText(s){
+    try {
+      return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||'');
+    } catch { return String(s||''); }
+  }
   function updatePreview(){
     try {
       if (!previewChk || !previewEl) return;
@@ -231,3 +296,58 @@ export function mount(el) {
   titleEl?.addEventListener('input', updatePreview);
   // Re-expand on vars change
   try { context?.bus?.on('vars:changed', ()=> updatePreview()); } catch {}
+  try {
+    context?.bus?.on('notes:openFile', async (payload)=>{
+      const path = payload?.path;
+      const fmt = (payload?.format)||'markdown';
+      const title = payload?.title;
+      if (!path) return;
+      try{
+        const resp = await fetch(apiBase() + '/api/file/read', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ path }) });
+        const txt = await resp.text();
+        contentEl.value = txt;
+        titleEl.value = title || path.split(/[\\/]/).pop().replace(/\\.[^.]+$/,'');
+        formatEl.value = fmt || 'markdown';
+        currentPath = path;
+        setPathHint(path);
+        updatePreview();
+      }catch{}
+    });
+  } catch {}
+  // Bus hookup to open files in Notes
+  try {
+    const onOpenFile = async (payload)=>{
+      const path = payload?.path;
+      const fmt = (payload?.format)||'markdown';
+      const title = payload?.title;
+      if (!path) return;
+      try{
+        const resp = await fetch(apiBase() + '/api/file/read', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ path }) });
+        let dataTxt = '';
+        try {
+          const obj = await resp.json();
+          if (obj && obj.content !== undefined) dataTxt = obj.content;
+        } catch {
+          dataTxt = await resp.text();
+        }
+        contentEl.value = dataTxt || '';
+        titleEl.value = title || path.split(/[\\/]/).pop().replace(/\.[^.]+$/,'');
+        formatEl.value = fmt || 'markdown';
+        currentPath = path;
+        setPathHint(path);
+        updatePreview();
+      }catch{}
+      // show the widget
+      try { context?.bus?.emit('widget:show','Notes'); } catch {}
+      try { window?.ChronosBus?.emit?.('widget:show','Notes'); } catch {}
+    };
+    context?.bus?.on('notes:openFile', onOpenFile);
+    window?.ChronosBus?.on?.('notes:openFile', onOpenFile);
+  } catch {}
+
+  // Ensure preview reflects initial state and any programmatic fills
+  updatePreview();
+
+  console.log('[Chronos][Notes] Widget ready');
+  return { fillFromObj };
+}
