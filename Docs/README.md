@@ -18,7 +18,8 @@ Scripting & Automation Docs
 
 ## Quickstart
 1) Prerequisites
-- Windows 10/11, Python 3.10+ (installer can fetch via winget), Git optional.
+- Windows 10/11 (primary development and test platform), Python 3.10+ (installer can fetch via winget), Git optional.
+- Linux/macOS: Python 3.10+, Git; support via `install_dependencies.sh` and the `.sh` launchers is currently experimental.
 2) Install
 - Double-click `install_dependencies.bat`. It will:
   - Locate Python (or install via winget if missing).
