@@ -49,7 +49,8 @@ Temp/
 tmp_*.js
 debug_*.txt
 
-# User data: ignore everything under User, but allow empty directory placeholders and Settings
+# User data: ignore everything under User, but allow empty directory placeholders, Settings, and Profile
 User/**
 !User/**/.gitkeep
 !User/Settings/**
+!User/Profile/**
