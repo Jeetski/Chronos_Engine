@@ -49,22 +49,7 @@ Temp/
 tmp_*.js
 debug_*.txt
 
-# User data (ignore everything under User, but allow directories so we can unignore specific files)
-User/*
-!User/*/
-
-# Keep Settings YAML tracked
-!User/Settings/
-User/Settings/*
-!User/Settings/*.yml
-
-# Track profile and related files in User/Profile
-!User/Profile/
-User/Profile/*
-!User/Profile/profile.yml
-!User/Profile/preferences_settings.yml
-!User/Profile/preferences.md
-!User/Profile/avatar.jpg
-
-# Keep empty item directories via .gitkeep
+# User data: ignore everything under User, but allow empty directory placeholders and Settings
+User/**
 !User/**/.gitkeep
+!User/Settings/**
