@@ -33,14 +33,8 @@ _site/
 Releases/
 *.zip
 
-# Dashboard generated bundles
-Utilities/Dashboard/generated/*
-
-# colorprint build outputs (ship exe via Releases instead)
-Utilities/colorprint/bin/
-Utilities/colorprint/obj/
-Utilities/colorprint/*.exe
-Utilities/colorprint/*.pdb
+# colorprint binary
+Utilities/colorprint/colorprint.exe
 
 # Temp/debug artifacts
 Temp/
