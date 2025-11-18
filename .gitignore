@@ -36,6 +36,14 @@ Releases/
 # colorprint binary
 Utilities/colorprint/colorprint.exe
 
+# colorprint build outputs
+Utilities/colorprint/bin/
+Utilities/colorprint/obj/
+Utilities/colorprint/*.pdb
+
+# Dashboard generated bundles
+Utilities/Dashboard/generated/*
+
 # Temp/debug artifacts
 Temp/
 tmp_*.js
