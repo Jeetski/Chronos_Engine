@@ -1,119 +1,111 @@
 # Dashboard Guide
 
-Chronos includes a lightweight local dashboard for planning, reviewing, and managing items. It complements the CLI and Listener by providing visual views, quick editing, and one-click actions.
+Chronos includes a lightweight local dashboard that complements the CLI and Listener. It provides visual planning, quick editing, and one-click actions powered by the same APIs used by automation agents.
 
-## Running
+---
 
-Option A (one-click)
-- Double-click `dashboard_launcher.bat`.
+## Running the Dashboard
 
-Option B (from the Console)
-- Open the Chronos Console and run: `dashboard`.
+| Method | Steps |
+| --- | --- |
+| Launcher | Double-click `dashboard_launcher.bat` (or `.sh` on Linux/macOS). |
+| From Console | Open the Chronos Console and run `dashboard`. |
 
-Notes
-- Both options start the local server and open the dashboard automatically.
+Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the UI in your default browser.
 
-## Views and Widgets
+---
 
-- Calendar (view)
-  - Year / Month / Week / Day. Select a block in Day view to target actions.
-  - Overlay controls: zoom in/out, level (Routines / Subroutines / Microroutines / Items), and tool selection (cursor / select / picker / eraser). The panel is draggable, semi-transparent, and its position persists.
+## Views & Widgets
 
-- Today (widget)
-  - Trim -5/-10/custom, change start time, cut, mark complete, reschedule. Optional "fx" toggle expands variables in labels.
+### Views
+- **Calendar** – Year/Month/Week/Day canvas with a draggable overlay panel for zoom, hierarchy level (Routines → Items), and tool selection (cursor / select / picker / eraser). Selecting a block in Day view targets Today widget actions.
+- **Template Builder** – Drag-and-drop editing for week/day/routine/subroutine/microroutine templates. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
+- **Cockpit** – A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. Panels spawn from the “Panels” dropdown, remember their size/position (`chronos_cockpit_panels_v1` in localStorage), and can be rearranged into a personal flight deck. Shipping panels include **Schedule** (`Utilities/Dashboard/Panels/Schedule/`, a live agenda tree) and **Matrix** (`Utilities/Dashboard/Panels/Matrix/`, a configurable pivot grid fed by Chronos data), with more on the way.
+  - The Matrix panel now ships with curated presets (Status × Type, Task Priority vs Status, Duration by Tag, Points by Category) so you can load a meaningful pivot immediately before saving your own variations.
+  - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 
-- Item Manager (widget)
-  - Browse/search by type; sort columns; multi-select with checkboxes. Create/update via a YAML editor. Copy, rename, delete. Bulk operations: delete, set property, copy, export (returns a temporary .zip link).
+### Widgets (mounted via `data-widget="Name"`)
+- **Today** – Trim (-5/-10/custom), change start time, cut, mark complete, reschedule. Optional `fx` toggle expands variables in labels.
+- **Item Manager** – Search/browse by type (defaults include every registered item type). YAML editor, copy/rename/delete, bulk delete/setprop/copy/export.
+- **Variables** – Inspect/edit runtime variables shared with the CLI, including `set`/`unset` rows and text expansion.
+- **Terminal** – Runs CLI commands via `/api/cli`, supports history, Ctrl+L clear, variable expansion, and theming based on profile preferences.
+- **Habit Tracker** – Snapshot of habits with polarity, streaks, and today’s status.
+- **Goal Tracker** – Goal list + detail view, milestone progress, “Start Focus” to bind the Timer, buttons to mark milestones complete.
+- **Commitments** – Shows frequency/never rules, progress counts, violation info, and an Evaluate button (calls `commitments check` via `/api/cli`).
+- **Rewards** – Displays point balance/history, lists rewards with cooldown/cost info, Redeem buttons call `/api/reward/redeem`.
+- **Achievements** – Alphabetical list with filters, mark awarded/archived actions via `/api/achievement/update`.
+- **Milestones** – Progress bars, filters (pending/in-progress/completed), Mark Complete / Reset buttons hitting `/api/milestone/update`.
+- **Notes, Journal, Profile, Review** – Quick editors/viewers for common flows. Review surfaces recent completions; Profile shows nickname/theme.
+- **Timer** – Start/pause/resume/stop, select profiles, show bound item state.
+- **Settings** – Lists `User/Settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
+- **Clock, Status, Debug Console** – Utility widgets for quick reference and event logging.
 
-- Variables (widget)
-  - Inspect and edit runtime variables shared with the CLI. Add/remove rows; save via the Variables API.
+All widgets live under `Utilities/Dashboard/Widgets/<Name>/index.js` and export `mount(el, context)`.
 
-- Terminal (widget)
-  - Run CLI commands via the API. History up/down; Ctrl+L clears; optional argument expansion using Variables. Greeting/goodbye lines pull from profile; theme colors can apply.
+---
 
-- Habit Tracker, Goal Tracker (widgets)
-  - Habits: snapshot with today’s good/bad counts. Goals: list/details; "Start Focus" binds the Timer to a goal/milestone; mark milestone complete.
+## Template Builder API
 
-- Notes, Journal, Profile, Review (widgets)
-  - Quick access UIs for common flows. Profile shows nickname/theme. Review surfaces recent completions and summaries.
+- `GET /api/template/list?type=TYPE` → template names.
+- `GET /api/template?type=TYPE&name=NAME` → `{ children }` tree.
+- `POST /api/template` with `{ type, name, children }` → writes the template’s `children:` section.
 
-- Timer (widget)
-  - Start/pause/resume/stop, profile selection, and status.
+---
 
-- Settings (widget)
-  - Lists `User/Settings/*.yml`, loads content, validates and saves. Posts raw YAML to preserve comments/formatting.
+## HTTP API Reference (selected)
 
-## Template Builder
+Base URL: `http://127.0.0.1:7357`. JSON responses unless stated.
 
-Design and edit reusable templates (week, day, routine, subroutine, microroutine) with drag-and-drop.
+### Health
+- `GET /health` – YAML `{ ok: true, service: 'chronos-dashboard' }`.
 
-- Open: Dashboard View menu -> Template Builder
-- Library:
-  - Dropdown includes: item (leaf types like task/note/etc.), microroutine, subroutine, routine, day, week.
-  - A subtype filter appears when "item" is selected to narrow by leaf type.
-- Editing:
-  - Select template type (routine/subroutine/microroutine/day/week) and name, then Load.
-  - Drag items to reorder. Drop into an item to make a child; drop before/after to reorder at the same level; drop near the left edge to outdent.
-  - Inspector lets you edit type, name, duration (number or "parallel"), ideal start/end time, and depends_on.
-  - Duration badges show the computed effective time for each node (Sigma for sequential, parallel for grouped items).
-- Nesting rules:
-  - Hierarchy: week > day > routine > subroutine > microroutine > item (task/note/etc.).
-  - Cannot nest a larger template under a smaller one (e.g., routine into subroutine is not allowed). Same-kind self-nesting is disallowed (e.g., routine in routine).
-- Save: writes `children:` to the template’s YAML via `POST /api/template`.
+### Today / Scheduling
+- `GET /api/today` – YAML blocks with start/end/text/type/depth/is_parallel/order.
+- `POST /api/today/reschedule` – runs `today reschedule` through the CLI pipeline.
 
-APIs used
-- `GET /api/template/list?type=TYPE` -> names
-- `GET /api/template?type=TYPE&name=NAME` -> `{ children }`
-- `POST /api/template` with YAML body `{ type, name, children }`
+### CLI Bridge
+- `POST /api/cli` – `{ command, args: [], properties: {} }`; runs commands in-process (falls back to subprocess).
 
-## API Endpoints (selected)
+### Profile, Theme, Variables
+- `GET /api/profile` / `GET /api/theme?name=THEME`.
+- `GET /api/vars`, `POST /api/vars`, `POST /api/vars/expand`.
 
-Base URL: `http://127.0.0.1:7357`
+### Item Management
+- `GET /api/items?type=<type>&q=<substr>&props=key:val,...`
+- `GET /api/item?type=<type>&name=<name>`
+- `POST /api/item` (accepts full map or `{ type, name, properties|content }`)
+- `POST /api/item/copy|rename|delete`
+- `POST /api/items/delete|setprop|copy|export`
+- `POST /api/open-in-editor`
 
-- Health
-  - `GET /health` -> YAML `{ ok: true, service: 'chronos-dashboard' }`.
+### Habits, Goals, Milestones, Commitments
+- `GET /api/habits`
+- `GET /api/goals`, `GET /api/goal?name=...`
+- `GET /api/commitments`
+- `GET /api/milestones`
+- `POST /api/milestone/update` (`{ name, action: 'complete'|'reset' }`)
 
-- Today
-  - `GET /api/today` -> YAML blocks: start/end (HH:MM), text, type, depth, is_parallel, order.
-  - `POST /api/today/reschedule` -> triggers `today reschedule`.
+### Rewards, Achievements, Points
+- `GET /api/points` – `{ balance, history }`
+- `GET /api/rewards`
+- `POST /api/reward/redeem`
+- `GET /api/achievements`
+- `POST /api/achievement/update`
 
-- CLI
-  - `POST /api/cli` (YAML) -> `{ command, args: [], properties: {} }` runs in-process (falls back to subprocess if needed).
+### Timer
+- `GET /api/timer/status|profiles|settings`
+- `POST /api/timer/start|pause|resume|stop`
 
-- Profile & Theme
-  - `GET /api/profile` -> `{ ok, profile }` (reads `User/Profile/profile.yml`; see note below).
-  - `GET /api/theme?name=THEME` -> `{ ok, background_hex, text_hex, theme }` from `User/Settings/theme_settings.yml`.
+### Settings
+- `GET /api/settings`
+- `GET /api/settings?file=Name.yml`
+- `POST /api/settings?file=Name.yml` – raw YAML body or `{ file, raw/data }`; validates before writing to preserve formatting.
 
-- Variables
-  - `GET /api/vars` -> `{ ok, vars }` (merged dashboard/console variable store).
-  - `POST /api/vars` (YAML) -> `{ set: {k:v}, unset: [k,...] }` updates variables.
-  - `POST /api/vars/expand` (YAML) -> `{ text: "Hello @nickname" }` returns `{ ok, text }` with expansion.
+---
 
-- Items
-  - `GET /api/items?type=<type>&q=<substr>&props=key:val,...`
-  - `GET /api/item?type=<type>&name=<name>`
-  - `POST /api/item` (map or `{ type, name, properties }`)
-  - `POST /api/item/copy|rename|delete`
-  - Bulk: `POST /api/items/delete|setprop|copy|export` (export returns `{ ok, zip: '/temp/exports_items_*.zip' }`).
-  - Editor (when supported locally): `POST /api/open-in-editor` opens a file in your configured editor.
+## Notes & Best Practices
 
-- Goals & Habits
-  - `GET /api/goals`, `GET /api/goal?name=<name>`
-  - `GET /api/habits`
-
-- Timer
-  - `GET /api/timer/status|profiles|settings`
-  - `POST /api/timer/start|pause|resume|stop`
-
-- Settings
-  - `GET /api/settings` -> `{ ok, files: [] }`
-  - `GET /api/settings?file=Name.yml` -> `{ ok, file, content }`
-  - `POST /api/settings?file=Name.yml` with raw YAML body
-    - Validates YAML and writes your original text (preserves comments)
-    - Alternatives: `{ file, raw }` or `{ file, data }`
-
-## Notes
-
-- Profile path: Canonical path is `User/Profile/profile.yml` for both CLI and Dashboard.
-- CORS is permissive for localhost development; do not expose publicly without adding auth.
-- Prefer JSON for machine-readable responses; YAML is used where human-readability helps.
+- **Profile path:** `User/Profile/profile.yml` is the canonical location for nickname/preferences (used across CLI and dashboard).
+- **CORS/security:** The server is permissive for localhost development only. Do not expose it publicly without adding auth and HTTPS.
+- **Response format:** Prefer JSON for machine parsing; YAML responses are used when human readability helps (e.g., `/health`, `/api/today`).
+- **State sharing:** The dashboard shares variables, templates, and item store with the CLI; running actions in the UI is equivalent to issuing CLI commands.

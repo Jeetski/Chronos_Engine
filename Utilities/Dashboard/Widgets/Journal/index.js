@@ -346,9 +346,9 @@ export function mount(el, context){
       if (props.tags && typeof props.tags === 'string') props.tags = props.tags.split(',').map(s=>s.trim()).filter(Boolean);
       if (type==='dream_diary_entry' && props.dream_signs && typeof props.dream_signs === 'string') props.dream_signs = props.dream_signs.split(',').map(s=>s.trim()).filter(Boolean);
       if (props.content == null) props.content = '';
-      await postYaml(apiBase()+`/api/item`, { type, name, properties: props });
-      await refreshList();
-      await loadItem(type, name);
+      current = { type, name };
+      fillEditor(props);
+      setStatus('Defaults applied - edit then Save');
     } catch { setStatus('Create failed'); }
   });
   btnSave.addEventListener('click', saveNow);

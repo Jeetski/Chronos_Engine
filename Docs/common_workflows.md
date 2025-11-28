@@ -74,6 +74,9 @@ Plan the Day
   - Change start time: `change "Read 10 min" 09:20`
   - Cut from today: `cut "Assemble rack"`
   - Mark completed: `mark "Have coffee":completed`
+- Log completions & actuals
+  - Capture what really happened: `did "Morning Meditation" start_time:07:30 end_time:07:55 status:completed note:"Felt great"`
+  - Today now shows `upcoming/in progress/missed/completed/skipped/partial` next to each block, and `today reschedule` re-queues missed-but-still-important work automatically.
 
 - Resolve conflicts & dependencies
   - Use exact item names and keep durations realistic.
@@ -82,6 +85,11 @@ Plan the Day
 Tips for agents
 - When a user says “move coffee earlier,” translate to: `change "Have coffee" 07:45` then `today reschedule`.
 - When a user says “shorten reading by five,” translate to: `trim "Read 10 min" 5` then `today`.
+
+Preview upcoming days
+- Peek at tomorrow: `tomorrow` (or `tomorrow days:3` to jump a few days out). Saves to `User/Schedules/tomorrow_schedule.yml` for quick reference.
+- Check the current week: `this friday` to see how the rest of the week unfolds without altering today.
+- Plan further out: `next tuesday` (or `next 12th of March`) to simulate the same scheduler logic for the next matching weekday/date.
 
 ----------------------------------------
 

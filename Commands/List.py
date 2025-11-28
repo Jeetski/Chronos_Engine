@@ -139,21 +139,24 @@ def run(args, properties):
                 print(f"  -> Warning: Could not parse sub-command from {full_sub_command_parts}")
         print("Command execution complete.")
     else:
-        # Otherwise, display items in a formatted table
+        # Otherwise, display items in a readable block format
         headers = list(filtered_items[0].keys())
-        
-        # Print headers
-        header_line = " | ".join(headers)
-        print(header_line)
-        
-        # Print separator
-        separator_line = "-|-".join(["-" * len(header) for header in headers])
-        print(separator_line)
-        
-        # Print rows
-        for item in filtered_items:
-            row = " | ".join([str(item.get(header, "")) for header in headers])
-            print(row)
+        for idx, item in enumerate(filtered_items, 1):
+            label = str(item.get('name') or item.get('Name') or f"{item_type.title()} {idx}")
+            print(label)
+            for header in headers:
+                if header.lower() == 'name':
+                    continue
+                value = item.get(header, "")
+                if value is None or value == '':
+                    continue
+                if isinstance(value, (dict, list)):
+                    value_repr = repr(value)
+                else:
+                    value_repr = str(value)
+                value_repr = value_repr.replace('\n', '\\n').replace('\r', '\\r')
+                print(f"     {header}:{value_repr}")
+            print()
 
 def get_help_message():
     return """

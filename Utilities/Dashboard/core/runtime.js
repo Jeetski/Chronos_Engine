@@ -79,8 +79,12 @@ const HELP_TEXT = {
   ItemManager: 'Item Manager: Browse, search, create, rename, delete, and edit items.',
   Timer: 'Timer: Start, pause, resume, stop timers; choose profiles; view status.',
   GoalTracker: 'Goals: View goal summaries and details.',
+  Commitments: 'Commitments: Monitor frequency goals, forbidden rules, and trigger status.',
+  Milestones: 'Milestones: Track milestone progress, mark completions, and review criteria.',
   HabitTracker: 'Habits: Snapshot of habits, streaks, and today\'s status.',
   DebugConsole: 'Debug: Inspect/debug data and actions.',
+  Achievements: 'Achievements: Review milestones you\'ve unlocked and mark awards/archives.',
+  Rewards: 'Rewards: Review point balance/history and redeem reward items.',
   Settings: 'Settings: View and edit YAML files under User/Settings via API.',
   Profile: 'Profile: View/Edit profile (nickname, theme, etc.).',
   Journal: 'Journal: Create/edit Journal or Dream entries. Autosaves; use Type/Date/Tags; Dream fields (lucid, signs, sleep) appear for dream type.',
@@ -92,19 +96,81 @@ const HELP_TEXT = {
   TemplateBuilder: 'Template Builder: Build templates via drag & drop. Indent/outdent to nest. Toggle Sequential/Parallel; Save to persist.'
 };
 
+// ---- Widget state persistence ----
+const WSTATE_KEY = 'chronos_widget_state_v1';
+function _readStateMap(){
+  try { const raw = localStorage.getItem(WSTATE_KEY); return raw ? JSON.parse(raw) : {}; } catch { return {}; }
+}
+function _writeStateMap(map){
+  try { localStorage.setItem(WSTATE_KEY, JSON.stringify(map)); } catch {}
+}
+function widgetKey(el){
+  return (el?.id) || el?.getAttribute?.('data-widget') || null;
+}
+function saveWidgetState(el){
+  const key = widgetKey(el); if (!key) return;
+  const map = _readStateMap();
+  map[key] = {
+    left: el.style?.left || null,
+    top: el.style?.top || null,
+    width: el.style?.width || null,
+    height: el.style?.height || null,
+    display: el.style?.display || '',
+    minimized: el.classList?.contains('minimized') || false,
+  };
+  _writeStateMap(map);
+}
+function restoreWidgetState(el){
+  const key = widgetKey(el); if (!key) return false;
+  const map = _readStateMap();
+  const st = map[key];
+  if (st){
+    if (st.left) el.style.left = st.left;
+    if (st.top) el.style.top = st.top;
+    if (st.width) el.style.width = st.width;
+    if (st.height) el.style.height = st.height;
+    if (st.display !== undefined) el.style.display = st.display;
+    if (st.minimized) el.classList.add('minimized'); else el.classList.remove('minimized');
+    return true;
+  }
+  return false;
+}
+function centerWidget(el){
+  try{
+    const r = el.getBoundingClientRect();
+    const left = Math.max(6, Math.round((window.innerWidth - r.width)/2));
+    const top = Math.max(48, Math.round((window.innerHeight - r.height)/2));
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+  }catch{}
+}
+function persistOnChanges(el){
+  try{
+    const mo = new MutationObserver(()=> saveWidgetState(el));
+    mo.observe(el, { attributes:true, attributeFilter:['style','class'] });
+    el.__stateObserver = mo;
+  }catch{}
+}
+window.addEventListener('beforeunload', ()=>{
+  try { document.querySelectorAll('.widget').forEach(saveWidgetState); } catch {}
+});
+
 function insertHelpIntoWidget(el, name){
   try {
     if (!el || !name) return;
     const header = el.querySelector('.header');
     const controls = header ? header.querySelector('.controls') : null;
-    if (!header || !controls) return;
+    if (!header) return;
     if (header.querySelector('.help-btn')) return; // avoid duplicates
     const btn = document.createElement('button');
     btn.className = 'icon-btn help-btn';
     btn.textContent = '?';
-    btn.title = HELP_TEXT[name] || `${name}: No help available.`;
-    // Insert to the left of controls (at its start)
-    controls.parentElement.insertBefore(btn, controls);
+    const tip = HELP_TEXT[name] || `${name}: No help available.`;
+    btn.title = tip;
+    btn.setAttribute('aria-label', tip);
+    // Prefer placing before controls; otherwise append to header
+    if (controls && controls.parentElement) controls.parentElement.insertBefore(btn, controls);
+    else header.appendChild(btn);
   } catch {}
 }
 
@@ -116,7 +182,9 @@ function insertHelpIntoView(el, name){
     const btn = document.createElement('button');
     btn.className = 'icon-btn view-help-btn';
     btn.textContent = '?';
-    btn.title = HELP_TEXT[name] || `${name}: No help available.`;
+    const tip = HELP_TEXT[name] || `${name}: No help available.`;
+    btn.title = tip;
+    btn.setAttribute('aria-label', tip);
     // Position top-right but leave space for any existing overlay controls
     btn.style.position = 'absolute';
     btn.style.top = '10px';
@@ -150,7 +218,14 @@ export async function mountWidget(el, name) {
     el.textContent = `Failed to load widget '${name}': ${e}`;
   }
   // Ensure resizers are available for this widget
-  try { installWidgetResizers(el); installWidgetDrag(el); ensureInViewport(el); } catch {}
+  try {
+    restoreWidgetState(el) || centerWidget(el);
+    installWidgetResizers(el);
+    installWidgetDrag(el);
+    ensureInViewport(el);
+    persistOnChanges(el);
+    saveWidgetState(el);
+  } catch {}
 }
 
 export async function mountView(el, name) {
@@ -179,6 +254,22 @@ export async function mountView(el, name) {
   }
 }
 
+export async function launchWizard(name, options = {}) {
+  console.log(`[Chronos][runtime] Launching wizard '${name}'`);
+  try {
+    const modUrl = new URL(`../Wizards/${name}/index.js`, import.meta.url);
+    const mod = await import(modUrl);
+    if (mod && typeof mod.launch === 'function') {
+      return await mod.launch({ ...context }, options);
+    }
+    console.warn(`[Chronos][runtime] Wizard '${name}' has no launch() export`);
+  } catch (e) {
+    console.error(`[Chronos][runtime] Failed to launch wizard '${name}':`, e);
+    throw e;
+  }
+  return null;
+}
+
 function ready(fn) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
   else fn();
@@ -201,7 +292,7 @@ ready(() => {
   if (collapseLeftBtn) collapseLeftBtn.addEventListener('click', () => document.getElementById('left')?.classList.toggle('collapsed'));
   if (collapseRightBtn) collapseRightBtn.addEventListener('click', () => document.getElementById('right')?.classList.toggle('collapsed'));
   // Install resizers on any existing widget
-  try { document.querySelectorAll('.widget').forEach(el => { installWidgetResizers(el); installWidgetDrag(el); ensureInViewport(el); }); } catch {}
+  try { document.querySelectorAll('.widget').forEach(el => { restoreWidgetState(el) || centerWidget(el); installWidgetResizers(el); installWidgetDrag(el); ensureInViewport(el); persistOnChanges(el); saveWidgetState(el); }); } catch {}
   try { window.addEventListener('resize', ()=> document.querySelectorAll('.widget').forEach(el => ensureInViewport(el))); } catch {}
   // Listen for vars changes to re-expand displayed text
   try { bus.on('vars:changed', ()=> { try { expandIn(document); } catch {} }); } catch {}
@@ -233,7 +324,7 @@ function installWidgetResizers(el){
     return (ev)=>{
       ev.preventDefault(); ev.stopPropagation();
       function move(e){ cb(e, startRect); }
-      function up(){ window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+      function up(){ window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); try{ ensureInViewport(el); saveWidgetState(el); }catch{} }
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
     };
   }
@@ -268,19 +359,30 @@ function ensureInViewport(el){
     const rect = el.getBoundingClientRect();
     const pad = 20;
     let top = rect.top;
+    let left = rect.left;
     if (rect.bottom > (window.innerHeight - pad)) {
       top = Math.max(48, window.innerHeight - rect.height - pad);
     }
     if (rect.top < 48) {
       top = 48;
     }
-    // Only adjust top to avoid conflicting with right-positioned widgets
+    if (rect.right > (window.innerWidth - pad)) {
+      left = Math.max(6, window.innerWidth - rect.width - pad);
+    }
+    if (rect.left < 6) {
+      left = 6;
+    }
     el.style.top = Math.round(top) + 'px';
+    el.style.left = Math.round(left) + 'px';
   } catch {}
 }
 
 // expose for other scripts
-try { window.installWidgetResizers = installWidgetResizers; window.ensureWidgetInView = ensureInViewport; } catch {}
+try {
+  window.installWidgetResizers = installWidgetResizers;
+  window.ensureWidgetInView = ensureInViewport;
+  window.ChronosLaunchWizard = launchWizard;
+} catch {}
 
 // ---- Generic widget header dragging ----
 function installWidgetDrag(el){
@@ -303,7 +405,7 @@ function installWidgetDrag(el){
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       // Clamp into view after drop
-      try { ensureInViewport(el); } catch {}
+      try { ensureInViewport(el); saveWidgetState(el); } catch {}
     }
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);

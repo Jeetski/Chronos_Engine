@@ -8,13 +8,315 @@ from Modules.Scheduler import (
     get_flattened_schedule, remove_item_from_schedule, update_parent_times,
     ROOT_DIR, USER_DIR, TODAY_SCHEDULE_PATH, MODULES_DIR, MANUAL_MODIFICATIONS_PATH,
     load_manual_modifications, save_manual_modifications, apply_manual_modifications,
-    find_item_in_schedule, save_schedule, display_schedule
+    find_item_in_schedule, save_schedule, display_schedule, list_day_template_paths,
+    build_block_key, normalize_completion_entries
 )
 
 
 
 from Utilities.duration_parser import parse_duration_string # Import parse_duration_string
-from Modules.ItemManager import read_item_data, get_item_path # Import read_item_data and get_item_path
+from Modules.ItemManager import read_item_data # Import read_item_data
+
+def _normalize_status_key(name):
+    if not name:
+        return ""
+    return str(name).strip().lower().replace(" ", "_")
+
+def _load_status_level_values(status_name):
+    """
+    Loads the optional <Status>_Settings.yml file and returns { level -> numeric value }.
+    """
+    filename = f"{status_name.replace(' ', '_')}_Settings.yml"
+    path = os.path.join(USER_DIR, "Settings", filename)
+    data = read_template(path)
+    if not isinstance(data, dict):
+        return {}
+
+    # Values are usually nested under Focus_Settings / Energy_Settings, etc.
+    if len(data) == 1:
+        inner_value = next(iter(data.values()))
+        if isinstance(inner_value, dict):
+            data = inner_value
+
+    level_map = {}
+    for level_name, level_info in data.items():
+        normalized_level = _normalize_status_key(level_name)
+        if isinstance(level_info, dict) and "value" in level_info:
+            level_map[normalized_level] = level_info.get("value")
+        elif isinstance(level_info, (int, float)):
+            level_map[normalized_level] = level_info
+    return level_map
+
+def build_status_context(status_settings_data, current_status_data):
+    """
+    Normalizes status settings plus the pilot's current values so downstream scoring
+    doesn't need to worry about file shapes.
+    """
+    context = {"types": {}, "current": {}}
+
+    # Current status can either be a flat dict or wrapped in current_status key.
+    if isinstance(current_status_data, dict):
+        if "current_status" in current_status_data and isinstance(current_status_data["current_status"], dict):
+            source = current_status_data["current_status"]
+        else:
+            source = current_status_data
+        context["current"] = {
+            _normalize_status_key(key): str(value).strip().lower()
+            for key, value in source.items()
+        }
+
+    status_defs = []
+    if isinstance(status_settings_data, dict):
+        status_defs = status_settings_data.get("Status_Settings", [])
+    elif isinstance(status_settings_data, list):
+        status_defs = status_settings_data
+
+    for entry in status_defs or []:
+        name = entry.get("Name")
+        if not name:
+            continue
+        slug = _normalize_status_key(name)
+        context["types"][slug] = {
+            "name": name,
+            "rank": entry.get("Rank", 1),
+            "values": _load_status_level_values(name),
+        }
+
+    return context
+
+def _collect_status_values(raw_value):
+    """
+    Normalizes status preference representations (scalar/list/dict) into a list of strings.
+    """
+    if raw_value is None:
+        return []
+    if isinstance(raw_value, str):
+        return [raw_value]
+    if isinstance(raw_value, list):
+        return [str(v) for v in raw_value]
+    if isinstance(raw_value, dict):
+        values = []
+        for key in ("required", "preferred", "values"):
+            if key in raw_value:
+                values.extend(_collect_status_values(raw_value[key]))
+        return values
+    return []
+
+def extract_status_requirements(source, status_context):
+    """
+    Returns { status_slug -> [allowed values] } based on status_requirements plus legacy keys.
+    """
+    if not isinstance(source, dict) or not status_context:
+        return {}
+
+    requirements = {}
+    raw_requirements = source.get("status_requirements")
+    if isinstance(raw_requirements, dict):
+        for raw_key, raw_value in raw_requirements.items():
+            slug = _normalize_status_key(raw_key)
+            values = [val.strip().lower() for val in _collect_status_values(raw_value)]
+            if values:
+                requirements[slug] = values
+
+    for status_slug, type_info in status_context.get("types", {}).items():
+        candidate_keys = {
+            status_slug,
+            status_slug.replace("_", " "),
+            type_info.get("name", ""),
+            type_info.get("name", "").lower(),
+            type_info.get("name", "").replace(" ", "_").lower(),
+        }
+        for key in candidate_keys:
+            if not key:
+                continue
+            if key in source:
+                values = [val.strip().lower() for val in _collect_status_values(source[key])]
+                if values:
+                    requirements.setdefault(status_slug, []).extend(values)
+
+    # Ensure values are unique per slug
+    return {slug: sorted(set(values)) for slug, values in requirements.items()}
+
+def score_status_alignment(requirements, status_context):
+    """
+    Scores how well the current status matches a requirement dict.
+    Positive scores mean closer alignment, negative scores penalize mismatches.
+    """
+    if not requirements or not status_context:
+        return 0
+
+    total = 0
+    current_values = status_context.get("current", {})
+    for status_slug, values in requirements.items():
+        type_info = status_context.get("types", {}).get(status_slug)
+        if not type_info:
+            continue
+        rank = type_info.get("rank", 1)
+        normalized_values = [val.strip().lower() for val in values]
+        current_value = current_values.get(status_slug)
+
+        if current_value and current_value in normalized_values:
+            total += rank
+            continue
+
+        level_map = type_info.get("values") or {}
+        if current_value and current_value in level_map and normalized_values:
+            target_diffs = []
+            for candidate in normalized_values:
+                if candidate in level_map:
+                    target_diffs.append(abs(level_map[current_value] - level_map[candidate]))
+            if target_diffs:
+                diff = min(target_diffs)
+                total -= rank * (0.25 + diff)
+                continue
+
+        # Unknown or outright mismatch yields a gentle penalty
+        total -= rank * 0.5
+
+    return total
+
+def select_template_for_day(day_of_week, status_context):
+    """
+    Returns a dict describing the best template for the day:
+    { 'path': ..., 'template': {...}, 'score': float }
+    """
+    candidate_paths = list_day_template_paths(day_of_week)
+    if not candidate_paths:
+        fallback_path = get_day_template_path(day_of_week)
+        return {"path": fallback_path, "template": read_template(fallback_path), "score": 0}
+
+    fallback_path = get_day_template_path(day_of_week)
+    candidates = []
+    for path in candidate_paths:
+        template = read_template(path)
+        if not template:
+            continue
+        requirements = extract_status_requirements(template, status_context)
+        score = score_status_alignment(requirements, status_context)
+        canonical = os.path.normpath(path) == os.path.normpath(fallback_path)
+        candidates.append((score, not canonical, path, template))
+
+    if not candidates:
+        fallback_path = candidate_paths[0]
+        return {"path": fallback_path, "template": read_template(fallback_path), "score": 0}
+
+    candidates.sort(reverse=True)
+    best_score, _, best_path, best_template = candidates[0]
+    return {"path": best_path, "template": best_template, "score": best_score}
+
+def load_completion_payload(date_str):
+    """
+    Loads (and if necessary migrates) the per-day completion data.
+    Returns (data_dict, file_path).
+    """
+    completions_dir = os.path.join(USER_DIR, "Schedules", "completions")
+    os.makedirs(completions_dir, exist_ok=True)
+    per_day_path = os.path.join(completions_dir, f"{date_str}.yml")
+    legacy_path = os.path.join(USER_DIR, "Schedules", "today_completion.yml")
+
+    if os.path.exists(legacy_path):
+        try:
+            with open(legacy_path, "r") as fh:
+                legacy_data = yaml.safe_load(fh) or {}
+        except Exception:
+            legacy_data = {}
+
+        existing_data = {}
+        if os.path.exists(per_day_path):
+            with open(per_day_path, "r") as fh:
+                existing_data = yaml.safe_load(fh) or {}
+
+        merged = {**legacy_data, **existing_data}
+        with open(per_day_path, "w") as fh:
+            yaml.dump(merged, fh, default_flow_style=False)
+        try:
+            os.remove(legacy_path)
+        except OSError:
+            pass
+
+    if os.path.exists(per_day_path):
+        with open(per_day_path, "r") as fh:
+            data = yaml.safe_load(fh) or {}
+    else:
+        data = {"entries": {}}
+
+    if "entries" not in data:
+        data = {"entries": data}
+
+    return data, per_day_path
+
+def _should_auto_reschedule(item):
+    policy = str(item.get("original_item_data", {}).get("reschedule_policy", "auto")).lower()
+    return policy != "manual"
+
+def promote_missed_items(schedule, completion_entries, now, summary_bucket, skipped_bucket, *,
+                         importance_ceiling=80, time_budget_minutes=None):
+    """
+    Moves unfinished leaf items that ended before 'now' to start just after the current time.
+    Their importance is boosted so Phase 3 handling favors them.
+    """
+    if not schedule:
+        return
+
+    flattened = [i for i in get_flattened_schedule(schedule) if not i.get("children")]
+    candidates = []
+    for item in flattened:
+        if item.get("is_buffer") or not _should_auto_reschedule(item):
+            continue
+        start, end = item.get("start_time"), item.get("end_time")
+        if not isinstance(start, datetime) or not isinstance(end, datetime):
+            continue
+        if end >= now:
+            continue
+
+        key = build_block_key(item.get("name"), start)
+        entry = completion_entries.get(key)
+        if entry and entry.get("status", "").lower() in {"completed", "skipped"}:
+            continue
+
+        candidates.append(item)
+
+    if not candidates:
+        return
+
+    candidates.sort(key=lambda item: item.get("importance_score", 999))
+
+    if time_budget_minutes is None:
+        day_end = now.replace(hour=23, minute=59, second=59, microsecond=0)
+        time_budget_minutes = max(0, int((day_end - now).total_seconds() / 60))
+
+    requeue_cursor = now
+    remaining_budget = max(0, time_budget_minutes)
+    for item in candidates:
+        importance = item.get("importance_score", 999)
+        duration = max(0, int(item.get("duration", 0)))
+        if importance > importance_ceiling:
+            skipped_bucket.append({
+                "name": item.get("name", "Unnamed Item"),
+                "reason": f"importance>{importance_ceiling}"
+            })
+            continue
+        if duration <= 0:
+            continue
+        if duration > remaining_budget:
+            skipped_bucket.append({
+                "name": item.get("name", "Unnamed Item"),
+                "reason": "insufficient time"
+            })
+            continue
+
+        # Requeue directly after the current cursor.
+        requeue_cursor = max(requeue_cursor, now)
+        item["start_time"] = requeue_cursor
+        item["end_time"] = requeue_cursor + timedelta(minutes=item.get("duration", 0))
+        update_parent_times(item)
+        item["importance_score"] = max(1, min(item.get("importance_score", 100), 5))
+        requeue_cursor = item["end_time"] + timedelta(minutes=1)
+        remaining_budget = max(0, remaining_budget - duration)
+        summary_bucket.append({
+            "name": item.get("name", "Unnamed Item"),
+            "new_start": format_time(item["start_time"]),
+        })
 def build_initial_schedule(template, current_start_time=None, parent=None):
     """
     Builds an 'impossible' ideal schedule from a template, recursively handling nested items.
@@ -114,112 +416,91 @@ def build_initial_schedule(template, current_start_time=None, parent=None):
 
     return schedule, conflicts
 
-def calculate_item_importance(item, scheduling_priorities, priority_settings, category_settings, status_settings, current_user_status):
+def _status_alignment_penalty(item, status_context, priority_rank):
+    if not status_context:
+        return 0
+    original = item.get("original_item_data", {})
+    requirements = extract_status_requirements(original, status_context)
+    if not requirements:
+        return 0
+
+    current_values = status_context.get("current", {})
+    penalty = 0
+    for status_slug, values in requirements.items():
+        type_info = status_context.get("types", {}).get(status_slug)
+        if not type_info:
+            continue
+        rank = type_info.get("rank", 1)
+        normalized_values = [val.strip().lower() for val in values]
+        current_value = current_values.get(status_slug)
+        level_map = type_info.get("values") or {}
+
+        if current_value and current_value in normalized_values:
+            penalty -= priority_rank * rank
+            continue
+
+        if current_value and current_value in level_map:
+            diffs = []
+            for value in normalized_values:
+                if value in level_map:
+                    diffs.append(abs(level_map[current_value] - level_map[value]))
+            if diffs:
+                penalty += priority_rank * rank * (0.5 + min(diffs))
+                continue
+        penalty += priority_rank * (rank / 2)
+
+    return penalty
+
+def calculate_item_importance(item, scheduling_priorities, priority_settings, category_settings, status_context):
     """
     Calculates an importance score for an item based on scheduling priorities, priority settings, category settings,
-    status settings, and the current user status. A lower score indicates higher importance.
+    and the current user status context. Lower score => higher priority.
     """
-    importance_score = 0
-    
-    # Default importance for items without specific properties
-    base_importance = 100 
+    base_importance = 100
+    importance_score = base_importance
 
-    # Apply importance based on scheduling priorities
     for priority_setting in scheduling_priorities.get("Scheduling_Priorities", []):
-        priority_name = priority_setting["Name"]
-        priority_rank = priority_setting["Rank"]
+        priority_name = priority_setting.get("Name")
+        priority_rank = priority_setting.get("Rank", 1)
 
-        # Example: Due Date
         if priority_name == "Due Date" and "due_date" in item:
             try:
-                due_date_str = item["due_date"]
-                # Assuming due_date is in YYYY-MM-DD format
-                due_date = datetime.strptime(due_date_str, "%Y-%m-%d")
-                time_until_due = (due_date - datetime.now()).days
-                
-                # Closer due dates mean higher importance (lower score)
-                # Scale by rank to give more weight to higher-ranked priorities
-                importance_score += (time_until_due * priority_rank) 
+                due_date = datetime.strptime(str(item["due_date"]), "%Y-%m-%d")
+                days_until_due = (due_date - datetime.now()).days
+                importance_score += max(days_until_due, -5) * priority_rank
             except ValueError:
-                pass # Ignore invalid date formats
+                pass
 
-        # Example: Priority Property (e.g., High, Medium, Low)
         elif priority_name == "Priority Property" and "priority" in item:
             item_priority_level = item["priority"].capitalize()
-            if item_priority_level in priority_settings.get("Priority_Settings", {}):
-                priority_value = priority_settings["Priority_Settings"][item_priority_level]["value"]
-                # Lower priority value means higher importance (lower score)
-                importance_score += (priority_value * priority_rank)
-        
-        # Example: Category Property
+            priority_value = (
+                priority_settings.get("Priority_Settings", {})
+                .get(item_priority_level, {})
+                .get("value")
+            )
+            if priority_value is not None:
+                importance_score += priority_value * priority_rank
+
         elif priority_name == "Category" and "category" in item:
             item_category = item["category"].capitalize()
-            if item_category in category_settings.get("Category_Settings", {}):
-                category_value = category_settings["Category_Settings"][item_category]["value"]
-                # Lower category value means higher importance (lower score)
-                importance_score += (category_value * priority_rank)
+            category_value = (
+                category_settings.get("Category_Settings", {})
+                .get(item_category, {})
+                .get("value")
+            )
+            if category_value is not None:
+                importance_score += category_value * priority_rank
 
-        # Example: Status Alignment
         elif priority_name == "Status Alignment":
-            # Iterate through each status type in Status_Settings
-            for status_type_setting in status_settings.get("Status_Settings", []):
-                status_type_name = status_type_setting["Name"]
-                status_type_rank = status_type_setting["Rank"] # Rank of the status type itself
+            importance_score += _status_alignment_penalty(item, status_context, priority_rank)
 
-                # Check if the item has a requirement for this status type
-                if status_type_name.lower() in item: # e.g., item has "energy: high"
-                    item_required_status = item[status_type_name.lower()].capitalize()
-                    
-                    # Get the current user status for this type
-                    user_current_status_level = current_user_status.get("current_status", {}).get(status_type_name.lower())
-
-                    if user_current_status_level:
-                        # Load the specific settings for this status type (e.g., Health_Settings.yml)
-                        status_type_settings_path = os.path.join(USER_DIR, "Settings", f"{status_type_name}_Settings.yml")
-                        specific_status_settings = read_template(status_type_settings_path)
-
-                        if specific_status_settings and status_type_name in specific_status_settings:
-                            # Find the value for the user's current status
-                            user_status_value = None
-                            for setting in specific_status_settings[status_type_name]:
-                                if setting["level"].capitalize() == user_current_status_level.capitalize():
-                                    user_status_value = setting["value"]
-                                    break
-                            
-                            # Find the value for the item's required status
-                            item_required_status_value = None
-                            for setting in specific_status_settings[status_type_name]:
-                                if setting["level"].capitalize() == item_required_status.capitalize():
-                                    item_required_status_value = setting["value"]
-                                    break
-
-                            if user_status_value is not None and item_required_status_value is not None:
-                                # If user's current status is better than or equal to required status, boost importance
-                                # If user's current status is worse, penalize importance
-                                status_difference = user_status_value - item_required_status_value
-                                # Lower difference (user status better/closer to required) means higher importance (lower score)
-                                importance_score += (status_difference * priority_rank * status_type_rank)
-                            else:
-                                # If status levels not found, add a neutral value
-                                importance_score += (0 * priority_rank * status_type_rank) # Neutral impact
-                        else:
-                            # If specific status settings not found, add a neutral value
-                            importance_score += (0 * priority_rank * status_type_rank) # Neutral impact
-                    else:
-                        # If user's current status not found, add a neutral value
-                        importance_score += (0 * priority_rank * status_type_rank) # Neutral impact
-                else:
-                    # If item doesn't have a requirement for this status type, add a neutral value
-                    importance_score += (0 * priority_rank * status_type_rank) # Neutral impact
-
-        # Add more logic for other priority types (Environment, Template Membership)
-        # For now, we'll just add a base importance if the property exists
         elif priority_name == "Environment" and "environment" in item:
-            importance_score += (1 * priority_rank) # Placeholder
-        elif priority_name == "Template Membership" and ("sub_items" in item or "microroutines" in item):
-            importance_score += (1 * priority_rank) # Placeholder
+            importance_score += 1 * priority_rank
 
-    item["importance_score"] = importance_score if importance_score > 0 else base_importance
+        elif priority_name == "Template Membership" and ("sub_items" in item or "microroutines" in item):
+            importance_score += 1 * priority_rank
+
+    item["importance_score"] = max(1, importance_score)
     return item
 
 def check_total_duration(schedule):
@@ -580,19 +861,16 @@ def run(args, properties):
     all_conflicts = []
     conflict_log = []
 
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_completion_data, _ = load_completion_payload(today_str)
+    completion_entries = normalize_completion_entries(today_completion_data)
+    rescheduled_items_summary = []
+    skipped_reschedule_summary = []
+
     if reschedule_requested or not os.path.exists(TODAY_SCHEDULE_PATH):
         # --- Full Generation and Resolution Process ---
         # 1. Get the current day of the week
         day_of_week = datetime.now().strftime("%A")
-
-        # 2. Get the path to the day template
-        template_path = get_day_template_path(day_of_week)
-
-        # 3. Read the template
-        template = read_template(template_path)
-        if not template:
-            print(f"No template found for {day_of_week}. Please create a '{day_of_week}.yml' file in the 'User/Days' directory.")
-            return
 
         # Load settings files
         scheduling_priorities_path = os.path.join(USER_DIR, "Settings", "Scheduling_Priorities.yml")
@@ -602,12 +880,13 @@ def run(args, properties):
         current_user_status_path = os.path.join(USER_DIR, "Current_Status.yml")
         buffer_settings_path = os.path.join(USER_DIR, "Settings", "Buffer_Settings.yml")
         
-        scheduling_priorities = read_template(scheduling_priorities_path)
-        priority_settings = read_template(priority_settings_path)
-        category_settings = read_template(category_settings_path)
-        status_settings = read_template(status_settings_path)
-        current_user_status = read_template(current_user_status_path)
+        scheduling_priorities = read_template(scheduling_priorities_path) or {}
+        priority_settings = read_template(priority_settings_path) or {}
+        category_settings = read_template(category_settings_path) or {}
+        status_settings = read_template(status_settings_path) or {}
+        current_user_status = read_template(current_user_status_path) or {}
         buffer_settings = read_template(buffer_settings_path)
+        status_context = build_status_context(status_settings, current_user_status)
 
         if not scheduling_priorities:
             print("Warning: Scheduling_Priorities.yml not found. Importance calculation may be inaccurate.")
@@ -619,7 +898,17 @@ def run(args, properties):
             print("Warning: Status_Settings.yml not found. Status-based importance calculation may be inaccurate.")
         if not current_user_status:
             print("Warning: Current_Status.yml not found. Status-based importance calculation may be inaccurate.")
-            current_user_status = {"current_status": {}} # Ensure it's a dict to avoid errors
+
+        # 2-3. Select the best template for the day
+        template_info = select_template_for_day(day_of_week, status_context)
+        template = template_info.get("template")
+        template_path = template_info.get("path")
+        if not template:
+            print(f"No template found for {day_of_week}. Please create a '{day_of_week}.yml' file in the 'User/Days' directory.")
+            return
+        canonical_path = get_day_template_path(day_of_week)
+        if template_info.get("score", 0) > 0 and os.path.normpath(template_path) != os.path.normpath(canonical_path):
+            print(f"Status-aware pick: using '{os.path.basename(template_path)}' (score {template_info['score']:.2f}).")
 
         # 4. Build the initial schedule (Phase 1: Impossible Ideal Schedule)
         schedule, initial_conflicts = build_initial_schedule(template)
@@ -652,10 +941,20 @@ def run(args, properties):
             if not items: # Handle empty or None items list
                 return
             for item in items:
-                calculate_item_importance(item, scheduling_priorities, priority_settings, category_settings, status_settings, current_user_status)
+                calculate_item_importance(item, scheduling_priorities, priority_settings, category_settings, status_context)
                 if "children" in item and item["children"] is not None:
                     apply_importance_recursive(item["children"])
         apply_importance_recursive(schedule)
+
+        if reschedule_requested:
+            promote_missed_items(
+                schedule,
+                completion_entries,
+                datetime.now(),
+                rescheduled_items_summary,
+                skipped_reschedule_summary,
+            )
+            schedule.sort(key=lambda i: i.get("start_time", datetime.now()))
 
         # 6. Perform high-level capacity check (Phase 3a)
         capacity_report = check_total_duration(schedule)
@@ -692,40 +991,6 @@ def run(args, properties):
             resolved_schedule = yaml.safe_load(f)
         all_conflicts = identify_conflicts(resolved_schedule) # Re-identify conflicts for display
 
-    # Load today's completion data (per-day file with migration from legacy today_completion.yml)
-    completions_dir = os.path.join(USER_DIR, "Schedules", "completions")
-    os.makedirs(completions_dir, exist_ok=True)
-
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    per_day_completion_path = os.path.join(completions_dir, f"{today_str}.yml")
-    legacy_completion_path = os.path.join(USER_DIR, "Schedules", "today_completion.yml")
-
-    # Migrate legacy file if present
-    if os.path.exists(legacy_completion_path):
-        try:
-            legacy_data = {}
-            with open(legacy_completion_path, 'r') as f:
-                legacy_data = yaml.safe_load(f) or {}
-            existing_today = {}
-            if os.path.exists(per_day_completion_path):
-                with open(per_day_completion_path, 'r') as f:
-                    existing_today = yaml.safe_load(f) or {}
-            # Merge (per-day overrides legacy on conflict)
-            merged = {**legacy_data, **existing_today}
-            with open(per_day_completion_path, 'w') as f:
-                yaml.dump(merged, f, default_flow_style=False)
-        finally:
-            try:
-                os.remove(legacy_completion_path)
-            except Exception:
-                pass
-
-    if os.path.exists(per_day_completion_path):
-        with open(per_day_completion_path, 'r') as f:
-            today_completion_data = yaml.safe_load(f) or {}
-    else:
-        today_completion_data = {}
-
     # 11. Display the schedule (even if conflicts remain, for visualization)
     display_level = float('inf')
     if "routines" in args:
@@ -736,6 +1001,15 @@ def run(args, properties):
         display_level = 2
 
     display_schedule(resolved_schedule, all_conflicts, indent=0, display_level=display_level, today_completion_data=today_completion_data)
+
+    if rescheduled_items_summary:
+        print("\nRescheduled the following missed blocks:")
+        for entry in rescheduled_items_summary:
+            print(f"- {entry['name']} (now starts at {entry['new_start']})")
+    if skipped_reschedule_summary:
+        print("\nCould not reschedule:")
+        for entry in skipped_reschedule_summary:
+            print(f"- {entry['name']} ({entry['reason']})")
 
 
 def phase4_final_buffer_insertion(schedule, buffer_settings):

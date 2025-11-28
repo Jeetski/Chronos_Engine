@@ -28,9 +28,9 @@ This guide explains how Chronos fits together so you can extend it confidently.
   - Can execute scripts and target actions (e.g., complete task on trigger).
 
 - Dashboard — `Utilities/Dashboard`
-  - Server (`server.py`) serves assets and JSON/YAML APIs.
-  - UI is plain ES modules + a small loader (`core/runtime.js`) to mount views/widgets.
-  - Widgets mount via attributes, e.g., `data-widget="Notes"`, and export `mount(el, context)`.
+  - Server (`server.py`) serves assets and JSON/YAML APIs (ThreadingHTTPServer over plain HTTP).
+  - UI is plain ES modules + a small loader (`core/runtime.js`) to mount views (`Calendar`, `TemplateBuilder`, `Cockpit`) and widgets (Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug).
+  - Widgets mount via attributes, e.g., `data-widget="Notes"`, and export `mount(el, context)`. Cockpit panels register via `window.__cockpitPanelRegister` and render inside the drag-and-drop canvas.
 
 ## Dashboard Architecture
 
@@ -39,23 +39,25 @@ This guide explains how Chronos fits together so you can extend it confidently.
   - Endpoints (selected):
     - Health: `GET /health`.
     - Today: `GET /api/today`, `POST /api/today/reschedule`.
-    - CLI bridge: `POST /api/cli` — invokes the console pipeline in-process by importing `Modules.Console.run_command` and capturing stdout/stderr; falls back to a subprocess if needed.
+    - CLI bridge: `POST /api/cli` — invokes the console pipeline in-process (falls back to subprocess if needed).
     - Profile & Theme: `GET /api/profile`, `GET /api/theme?name=...`.
-    - Variables: `GET/POST /api/vars`, `POST /api/vars/expand` — shares store with `Modules/Variables` when available.
-    - Items: `GET /api/items`, `GET /api/item`, `POST /api/item`, bulk `POST /api/items/delete|setprop|copy|export` (export returns a temp zip path).
+    - Variables: `GET/POST /api/vars`, `POST /api/vars/expand`.
+    - Items: `GET /api/items`, `GET /api/item`, `POST /api/item`, `POST /api/item/copy|rename|delete`, bulk `POST /api/items/delete|setprop|copy|export`, `POST /api/open-in-editor`.
     - Template Builder: `GET /api/template/list`, `GET /api/template`, `POST /api/template`.
+    - Habits & Goals: `GET /api/habits`, `GET /api/goals`, `GET /api/goal?name=...`.
+    - Commitments & Milestones: `GET /api/commitments`, `GET /api/milestones`, `POST /api/milestone/update`.
+    - Rewards & Points: `GET /api/points`, `GET /api/rewards`, `POST /api/reward/redeem`.
+    - Achievements: `GET /api/achievements`, `POST /api/achievement/update`.
     - Timer: `GET /api/timer/status|profiles|settings`, `POST /api/timer/start|pause|resume|stop`.
-    - Settings: `GET /api/settings`, `GET/POST /api/settings?file=Name.yml` (raw YAML post preserves comments).
+    - Settings: `GET /api/settings`, `GET /api/settings?file=Name.yml`, `POST /api/settings?file=Name.yml` (raw YAML preserved).
   - Security: permissive CORS for local dev; do not expose publicly without adding auth and controls.
 
 - UI runtime (`Utilities/Dashboard/app.js` + widgets/views)
-  - Views: Calendar and Template Builder.
-    - Calendar includes an overlay panel (zoom/level/tool) that is draggable with persisted position.
-    - Template Builder provides drag-and-drop editing with nesting rules and saves via `/api/template`.
-  - Widgets: Today, Item Manager, Variables, Terminal, Habit/Goal Tracker, Notes, Journal, Profile, Review, Timer, Settings.
-  - Event bus: `mount(el, context)` receives a `context.bus` used by widgets (e.g., emit `vars:changed`, `widget:show`).
-  - Terminal: runs CLI via `/api/cli`, supports history and variable expansion toggle.
-  - Item Manager: search/sort/multi-select, YAML editor, copy/rename/delete; bulk delete/setprop/copy/export.
+  - Views: Calendar, Template Builder, and the Cockpit canvas (panels under `Utilities/Dashboard/Panels/`).
+  - Widgets: Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console.
+  - Event bus: `mount(el, context)` receives a `context.bus` used by widgets (e.g., emit `vars:changed`, `widget:show`, `calendar:selected`).
+  - Terminal: runs CLI via `/api/cli`, supports history, Ctrl+L, optional variable expansion.
+  - Item Manager: search/sort/multi-select, YAML editor, copy/rename/delete; bulk delete/set property/copy/export (exports to `/temp/exports_items_*.zip`).
 
 ## Data Model
 
@@ -103,4 +105,3 @@ This guide explains how Chronos fits together so you can extend it confidently.
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
-

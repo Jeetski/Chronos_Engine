@@ -26,6 +26,7 @@
         <div class="row" style="gap:6px; margin:8px 0;">
           <select id="libType">
             <option value="item">item</option>
+            <option value="goal">goal template</option>
             <option value="microroutine">microroutine</option>
             <option value="subroutine">subroutine</option>
             <option value="routine">routine</option>
@@ -46,6 +47,7 @@
         <div class="row" style="gap:8px; align-items:center; margin-bottom:8px;">
           <strong>Template</strong>
           <select id="tplType">
+            <option value="goal">goal</option>
             <option value="routine">routine</option>
             <option value="subroutine">subroutine</option>
             <option value="microroutine">microroutine</option>
@@ -213,6 +215,7 @@
   // --- Nesting rules (A): cannot nest a bigger template under a smaller one ---
   function typeRank(t){
     const k = String(t||'').toLowerCase();
+    if (k==='goal') return 2; // goal templates sit above milestone items
     if (k==='week') return 5;
     if (k==='day') return 4;
     if (k==='routine') return 3;
@@ -232,6 +235,7 @@
   function allowedChildTypesFor(parentType){
     const k = String(parentType||'').toLowerCase();
     const leaves = ITEM_TYPES;
+    if (k==='goal') return ['milestone'];
     if (k==='week') return ['day','routine','subroutine','microroutine', ...leaves];
     if (k==='day') return ['routine','subroutine','microroutine', ...leaves];
     if (k==='routine') return ['subroutine','microroutine', ...leaves];
@@ -274,6 +278,19 @@
       div.addEventListener('click', async ()=>{
         const pt = String(tplType.value||'');
         const ct = String(type||'');
+        // If selecting a goal template, load it directly into the editor
+        if (ct === 'goal' && String(libType.value||'') === 'goal') {
+          tplType.value = 'goal';
+          // ensure tplName list includes this goal template
+          await loadNames();
+          try{
+            const exists = Array.from(tplName.options).some(o=> String(o.value)===String(name));
+            if (!exists){ const o=document.createElement('option'); o.value=o.textContent=name; tplName.appendChild(o); }
+          }catch{}
+          tplName.value = name;
+          await loadTemplate();
+          return;
+        }
         if (!canNest(pt, ct)) {
           const rp = typeRank(pt), rc = typeRank(ct);
           const reason = (rp===rc && rc>=1) ? 'same kind cannot be nested' : 'parent smaller than child';
@@ -382,7 +399,7 @@
   }
 
   const ITEM_TYPES = [
-    'task','note','goal','habit','appointment','commitment','dream_diary_entry','idea','inventory_item','journal_entry','list','milestone','person','place','plan','project','review','reward','ritual','tool','alarm','reminder'
+    'task','note','habit','appointment','commitment','dream_diary_entry','idea','inventory_item','journal_entry','list','milestone','person','place','plan','project','review','reward','ritual','tool','alarm','reminder'
   ];
   async function loadLib(){
     const sel = String(libType.value||'');
@@ -403,6 +420,12 @@
         types.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; libSubtype.appendChild(o); });
         libSubtype.style.display = '';
       }
+    } else if (sel === 'goal') {
+      // Load goal templates from template API
+      const j = await fetchJson(apiBase()+`/api/template/list?type=goal`);
+      const arr = Array.isArray(j?.templates) ? j.templates : [];
+      library = arr.map(n=> ({ name: n, type: 'goal' }));
+      if (libSubtype) libSubtype.style.display = 'none';
     } else {
       const j = await fetchJson(apiBase()+`/api/items?type=${encodeURIComponent(sel)}`);
       const arr = Array.isArray(j?.items) ? j.items : [];

@@ -1,13 +1,61 @@
 import os
 import subprocess
 from datetime import datetime, timedelta
-from Modules.ItemManager import generic_handle_new, list_all_items, read_item_data, write_item_data
+from Modules.ItemManager import (
+    generic_handle_new,
+    generic_handle_append,
+    generic_handle_delete,
+    list_all_items,
+    read_item_data,
+    write_item_data,
+    open_item_in_editor,
+)
 
 ITEM_TYPE = "commitment"
 
 def handle_new(name, properties):
     """Create a new commitment using generic handler."""
     generic_handle_new(ITEM_TYPE, name, properties)
+
+
+def handle_command(command, item_type, item_name, text_to_append, properties):
+    """
+    Provide the standard item lifecycle for commitments so CLI generic commands work.
+    """
+    normalized = (command or "").strip().lower()
+
+    if normalized in ("new", "create"):
+        generic_handle_new(item_type, item_name, properties)
+        return
+
+    if normalized == "append":
+        if not text_to_append:
+            print("Info: Nothing to append. Provide text after the commitment name.")
+            return
+        generic_handle_append(item_type, item_name, text_to_append, properties)
+        return
+
+    if normalized == "delete":
+        generic_handle_delete(item_type, item_name, properties)
+        return
+
+    if normalized in ("info", "view", "track"):
+        _print_commitment(item_name)
+        return
+
+    if normalized in ("set", "update", "edit"):
+        _update_properties(item_name, properties)
+        return
+
+    if normalized == "open":
+        open_item_in_editor(item_type, item_name, None)
+        return
+
+    if normalized == "check":
+        evaluate_and_trigger()
+        return
+
+    print(f"Unsupported command for commitment: {command}")
 
 
 def _count_in_period(dates: list[str], period: str) -> int:
@@ -164,3 +212,45 @@ def _perform_action(action: dict, commitment_name: str):
         nm = action.get('name') or f"{commitment_name} reward {datetime.now().strftime('%Y-%m-%d')}"
         props = action.get('properties') if isinstance(action.get('properties'), dict) else {}
         _create_item('reward', str(nm), props)
+
+
+def _print_commitment(name: str):
+    data = read_item_data(ITEM_TYPE, name)
+    if not data:
+        print(f"Commitment '{name}' not found.")
+        return
+    freq = data.get('frequency') if isinstance(data.get('frequency'), dict) else None
+    assoc = data.get('associated_items') if isinstance(data.get('associated_items'), list) else []
+    forb = data.get('forbidden_items') if isinstance(data.get('forbidden_items'), list) else []
+    print("--- Commitment ---")
+    print(f"  Name: {name}")
+    print(f"  Description: {data.get('description') or data.get('notes') or 'N/A'}")
+    if freq:
+        print(f"  Target: {freq.get('times')} per {freq.get('period')}")
+    if assoc:
+        items = ", ".join(f"{it.get('type','?')}:{it.get('name','')}" for it in assoc if isinstance(it, dict))
+        print(f"  Associated: {items}")
+    if data.get('never') and forb:
+        items = ", ".join(f"{it.get('type','?')}:{it.get('name','')}" for it in forb if isinstance(it, dict))
+        print(f"  Forbidden: {items}")
+    triggers = data.get('triggers')
+    if triggers:
+        print(f"  Triggers: {list(triggers.keys())}")
+    print(f"  Last met: {data.get('last_met') or 'never'}")
+    print(f"  Last violation: {data.get('last_violation') or 'none'}")
+
+
+def _update_properties(name: str, updates: dict):
+    if not updates:
+        print("No properties provided to update.")
+        return
+    data = read_item_data(ITEM_TYPE, name)
+    if not data:
+        print(f"Commitment '{name}' not found.")
+        return
+    for key, value in updates.items():
+        if key is None:
+            continue
+        data[str(key).lower()] = value
+    write_item_data(ITEM_TYPE, name, data)
+    print(f"Commitment '{name}' updated.")

@@ -14,6 +14,7 @@ export function mount(el) {
           <div class="row" style="gap:8px; margin-bottom:8px;">
             <button class="btn btn-secondary" id="btnSetAppointment">Set Appointment</button>
             <button class="btn btn-secondary" id="btnSetAlarm">Set Alarm</button>
+            <button class="btn btn-secondary" id="btnSetReminder">Set Reminder</button>
           </div>
           <div id="formArea"></div>
         </div>
@@ -35,8 +36,67 @@ export function mount(el) {
   const defaults = ((window.CHRONOS_SETTINGS||{}).defaults)||{};
   const apptDef = normalize(defaults.appointment||{});
   const alarmDef = normalize(defaults.alarm||{});
+  const remindDef = normalize(defaults.reminder||{});
+  const defaultsCache = {};
 
-  function normalize(obj){ const out={}; try{ Object.keys(obj).forEach(k=> out[String(k).toLowerCase()] = obj[k]); }catch{} return out; }
+  function normalize(obj){
+    const out={};
+    try{
+      Object.keys(obj).forEach(k=>{
+        const key = String(k).toLowerCase().replace(/^default_/, '');
+        out[key] = obj[k];
+      });
+    }catch{}
+    return out;
+  }
+  const fetchJson = async (url)=>{ const r = await fetch(url); return await r.json(); };
+  async function fetchSettingsFile(file){
+    try{
+      const j = await fetchJson(apiBase()+`/api/settings?file=${encodeURIComponent(file)}`);
+      return j && j.content ? String(j.content) : null;
+    }catch{return null;}
+  }
+  function parseYamlFlat(yaml){
+    const lines = String(yaml||'').replace(/\r\n?/g,'\n').split('\n');
+    const out = {}; let curKey=null; let inBlock=false;
+    for (let raw of lines){
+      const line = raw.replace(/#.*$/,''); if (!line.trim()) continue;
+      if (inBlock){
+        if (/^\s/.test(line)) { out[curKey] = (out[curKey]||'') + (out[curKey]? '\n':'') + line.trim(); continue; }
+        inBlock=false; curKey=null;
+      }
+      const m = line.match(/^\s*([\w\-]+)\s*:\s*(.*)$/);
+      if (m){
+        const k=m[1]; let v=m[2];
+        if (v==='|-' || v==='|') { curKey=k; inBlock=true; out[k]=''; continue; }
+        if (/^(true|false)$/i.test(v)) v = (/^true$/i.test(v));
+        else if (/^-?\d+$/.test(v)) v = parseInt(v,10);
+        out[String(k).toLowerCase().replace(/^default_/, '')]=v;
+      }
+    }
+    return normalize(out);
+  }
+  async function loadDefaultsFor(type){
+    const key = String(type||'').toLowerCase();
+    if (defaultsCache[key]) return defaultsCache[key];
+    const title = key.split('_').map(s=> s.charAt(0).toUpperCase()+s.slice(1)).join('_');
+    const candidates = [
+      `${key}_defaults.yml`,
+      `${title}_Defaults.yml`,
+      `${title}_defaults.yml`,
+    ];
+    for (const f of candidates){
+      const y = await fetchSettingsFile(f);
+      if (y){
+        try{ const parsed = parseYamlFlat(y) || {}; defaultsCache[key]=parsed; return parsed; }catch{ defaultsCache[key]={}; return {}; }
+      }
+    }
+    defaultsCache[key]={};
+    return {};
+  }
+  async function ensureListener(){
+    try{ await fetch(apiBase()+'/api/listener/start', { method:'POST' }); }catch{}
+  }
 
   // Analog clock drawing
   const ctx = canvas.getContext('2d');
@@ -89,19 +149,23 @@ export function mount(el) {
     row.appendChild(inner); return row;
   }
 
-  function showAppointmentForm(){
+  async function showAppointmentForm(){
     clearForm();
     const title = document.createElement('input'); title.className='input'; title.placeholder='Appointment title';
     const date = document.createElement('input'); date.className='input'; date.type='date';
     const time = document.createElement('input'); time.className='input'; time.type='time'; time.step='60';
     const duration = document.createElement('input'); duration.className='input'; duration.type='number'; duration.min='0'; duration.placeholder='minutes';
     const location = document.createElement('input'); location.className='input'; location.placeholder='Location (optional)';
-    // Prefill from defaults
-    try { if (apptDef.name) title.value = apptDef.name; } catch{}
-    try { if (apptDef.date) date.value = apptDef.date; else date.value = new Date().toISOString().slice(0,10); } catch{}
-    try { if (apptDef.time) time.value = apptDef.time; } catch{}
-    try { if (apptDef.duration) duration.value = String(apptDef.duration); } catch{}
-    try { if (apptDef.location) location.value = apptDef.location; } catch{}
+    // Prefill from defaults (settings override inline defaults)
+    try{
+      const def = await loadDefaultsFor('appointment');
+      const dft = Object.keys(def||{}).length ? def : apptDef;
+      if (dft.name || dft.title) title.value = dft.name || dft.title;
+      date.value = dft.date || new Date(Date.now()+86400000).toISOString().slice(0,10);
+      if (dft.time) time.value = dft.time;
+      if (dft.duration) duration.value = String(dft.duration);
+      if (dft.location) location.value = dft.location;
+    }catch{ try{ date.value = new Date(Date.now()+86400000).toISOString().slice(0,10); }catch{} }
     const create = document.createElement('button'); create.className='btn btn-primary'; create.textContent='Create Appointment';
     const wrap = document.createElement('div');
     wrap.append(
@@ -119,6 +183,7 @@ export function mount(el) {
       Object.keys(props).forEach(k=>{ if(props[k]===null||props[k]===undefined||props[k]==='') delete props[k]; });
       const payload = `command: new\nargs:\n  - appointment\n  - ${escapeY(name)}\nproperties:\n` + Object.entries(props).map(([k,v])=>`  ${k}: ${escapeY(v)}`).join('\n') + '\n';
       try{
+        await ensureListener();
         const resp = await fetch(apiBase()+ '/api/cli', { method:'POST', headers:{ 'Content-Type':'text/yaml' }, body: payload });
         const text = await resp.text();
         alert(resp.ok? 'Appointment created.' : ('Failed: '+text));
@@ -126,17 +191,21 @@ export function mount(el) {
     });
   }
 
-  function showAlarmForm(){
+  async function showAlarmForm(){
     clearForm();
     const title = document.createElement('input'); title.className='input'; title.placeholder='Alarm title';
     const time = document.createElement('input'); time.className='input'; time.type='time'; time.step='60';
     const message = document.createElement('input'); message.className='input'; message.placeholder='Message (optional)';
     const enabled = document.createElement('input'); enabled.type='checkbox'; enabled.checked=true;
-    // Prefill from defaults
-    try { if (alarmDef.name) title.value = alarmDef.name; } catch{}
-    try { if (alarmDef.time) time.value = alarmDef.time; } catch{}
-    try { if (alarmDef.message) message.value = alarmDef.message; } catch{}
-    try { if (typeof alarmDef.enabled === 'boolean') enabled.checked = !!alarmDef.enabled; } catch{}
+    // Prefill from defaults (settings override inline defaults)
+    try{
+      const def = await loadDefaultsFor('alarm');
+      const dft = Object.keys(def||{}).length ? def : alarmDef;
+      if (dft.name || dft.title) title.value = dft.name || dft.title;
+      if (dft.time) time.value = dft.time;
+      if (dft.message) message.value = dft.message;
+      if (typeof dft.enabled === 'boolean') enabled.checked = !!dft.enabled;
+    }catch{}
     const create = document.createElement('button'); create.className='btn btn-primary'; create.textContent='Create Alarm';
     const wrap = document.createElement('div');
     const chkWrap = document.createElement('div'); chkWrap.className='row'; chkWrap.style.gap='8px';
@@ -157,9 +226,54 @@ export function mount(el) {
       Object.keys(props).forEach(k=>{ if(props[k]===null||props[k]===undefined||props[k]==='') delete props[k]; });
       const payload = `command: new\nargs:\n  - alarm\n  - ${escapeY(name)}\nproperties:\n` + Object.entries(props).map(([k,v])=>`  ${k}: ${escapeY(v)}`).join('\n') + '\n';
       try{
+        await ensureListener();
         const resp = await fetch(apiBase()+ '/api/cli', { method:'POST', headers:{ 'Content-Type':'text/yaml' }, body: payload });
         const text = await resp.text();
         alert(resp.ok? 'Alarm created.' : ('Failed: '+text));
+      }catch(e){ alert('Failed to reach Chronos dashboard server. Run: dashboard'); }
+    });
+  }
+
+  async function showReminderForm(){
+    clearForm();
+    const title = document.createElement('input'); title.className='input'; title.placeholder='Reminder title';
+    const time = document.createElement('input'); time.className='input'; time.type='time'; time.step='60';
+    const date = document.createElement('input'); date.className='input'; date.type='date';
+    const message = document.createElement('input'); message.className='input'; message.placeholder='Message (optional)';
+    const recurrence = document.createElement('input'); recurrence.className='input'; recurrence.placeholder='Recurrence (e.g. daily, mon, tue)';
+    try{
+      const def = await loadDefaultsFor('reminder');
+      const dft = Object.keys(def||{}).length ? def : remindDef;
+      if (dft.name || dft.title) title.value = dft.name || dft.title;
+      if (dft.time) time.value = dft.time;
+      date.value = dft.date || new Date(Date.now()+86400000).toISOString().slice(0,10);
+      if (dft.message) message.value = dft.message;
+      if (dft.recurrence) recurrence.value = Array.isArray(dft.recurrence)? dft.recurrence.join(', '): String(dft.recurrence);
+    }catch{ try{ date.value = new Date(Date.now()+86400000).toISOString().slice(0,10); }catch{} }
+    const create = document.createElement('button'); create.className='btn btn-primary'; create.textContent='Create Reminder';
+    const wrap = document.createElement('div');
+    wrap.append(
+      makeInputRow('Title', title),
+      makeInputRow('Date', date),
+      makeInputRow('Time', time),
+      makeInputRow('Message', message),
+      makeInputRow('Recurrence', recurrence),
+      (function(){ const r=document.createElement('div'); r.className='row'; r.appendChild(create); r.style.justifyContent='flex-end'; return r; })()
+    );
+    formArea.appendChild(wrap);
+    create.addEventListener('click', async ()=>{
+      const name = (title.value||'').trim(); if (!name) { alert('Please enter a title'); return; }
+      if (!time.value) { alert('Please choose a time'); return; }
+      const props = { time: time.value, date: date.value||'', message: message.value||'' };
+      const rec = (recurrence.value||'').trim();
+      if (rec) props.recurrence = rec;
+      Object.keys(props).forEach(k=>{ if(props[k]===null||props[k]===undefined||props[k]==='') delete props[k]; });
+      const payload = `command: new\nargs:\n  - reminder\n  - ${escapeY(name)}\nproperties:\n` + Object.entries(props).map(([k,v])=>`  ${k}: ${escapeY(v)}`).join('\n') + '\n';
+      try{
+        await ensureListener();
+        const resp = await fetch(apiBase()+ '/api/cli', { method:'POST', headers:{ 'Content-Type':'text/yaml' }, body: payload });
+        const text = await resp.text();
+        alert(resp.ok? 'Reminder created.' : ('Failed: '+text));
       }catch(e){ alert('Failed to reach Chronos dashboard server. Run: dashboard'); }
     });
   }
@@ -179,6 +293,7 @@ export function mount(el) {
   // Buttons
   el.querySelector('#btnSetAppointment').addEventListener('click', showAppointmentForm);
   el.querySelector('#btnSetAlarm').addEventListener('click', showAlarmForm);
+  el.querySelector('#btnSetReminder').addEventListener('click', showReminderForm);
 
   // Resizers
   function edgeDrag(startRect, cb){ return (ev)=>{ ev.preventDefault(); function move(e){ cb(e, startRect); } function up(){ window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
@@ -189,4 +304,3 @@ export function mount(el) {
 
   return {};
 }
-

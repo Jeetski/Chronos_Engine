@@ -40,7 +40,13 @@
 
   function safeParseYaml(text){
     if (typeof window !== 'undefined' && typeof window.parseYaml === 'function') {
-      try { return window.parseYaml(text) || {}; } catch {}
+      try {
+        const parsed = window.parseYaml(text);
+        if (parsed && Array.isArray(parsed.blocks) && parsed.blocks.length){
+          return parsed;
+        }
+        // fall through to manual parsing if empty
+      } catch {}
     }
     const lines = String(text||'').replace(/\r\n?/g,'\n').split('\n');
     const res = { blocks: [] };

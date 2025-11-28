@@ -102,9 +102,75 @@ export function mount(el) {
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   const saveLocal = (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} };
   const loadLocal = (k,f)=>{ try{ const v=localStorage.getItem(k); return v? JSON.parse(v): f; }catch{ return f; } };
+  const defaultsCache = {};
+
+  const fetchJson = async (url)=>{ const r = await fetch(url); return await r.json(); };
+  const fetchSettingsFile = async (file)=>{
+    try {
+      const j = await fetchJson(apiBase()+`/api/settings?file=${encodeURIComponent(file)}`);
+      return j && j.content ? String(j.content) : null;
+    } catch { return null; }
+  };
+  function parseYamlFlat(yaml){
+    const lines = String(yaml||'').replace(/\r\n?/g,'\n').split('\n');
+    const out = {}; let curKey=null, inBlock=false;
+    for (let raw of lines){
+      const line = raw.replace(/#.*$/,''); if (!line.trim()) continue;
+      if (inBlock){
+        if (/^\s/.test(line)) { out[curKey] = (out[curKey]||'') + (out[curKey]? '\n':'') + line.trim(); continue; }
+        inBlock=false; curKey=null;
+      }
+      const m = line.match(/^\s*([\w\-]+)\s*:\s*(.*)$/);
+      if (m){
+        const k=m[1]; let v=m[2];
+        if (v==='|-' || v==='|') { curKey=k; inBlock=true; out[k]=''; continue; }
+        if (/^(true|false)$/i.test(v)) v = (/^true$/i.test(v));
+        else if (/^-?\d+$/.test(v)) v = parseInt(v,10);
+        out[k]=v;
+      }
+    }
+    return out;
+  }
+  async function fetchDefaultsFor(type){
+    const key = String(type||'task').toLowerCase();
+    if (defaultsCache[key]) return defaultsCache[key];
+    const lower = key;
+    const title = lower.split('_').map(s=> s.charAt(0).toUpperCase()+s.slice(1)).join('_');
+    const candidates = [
+      `${lower}_defaults.yml`,
+      `${title}_Defaults.yml`,
+      `${title}_defaults.yml`,
+    ];
+    for (const f of candidates){
+      const y = await fetchSettingsFile(f);
+      if (y){
+        try{
+          const raw = parseYamlFlat(y) || {};
+          const now = new Date();
+          const placeholders = {
+            '{{timestamp}}': `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`,
+            '{{tomorrow}}': (()=>{ const t=new Date(now.getTime()+86400000); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })(),
+          };
+          const norm = {};
+          Object.entries(raw).forEach(([k,v])=>{
+            let val = v;
+            if (typeof val === 'string'){
+              Object.entries(placeholders).forEach(([ph,repl])=>{ val = val.replaceAll(ph,repl); });
+            }
+            const kk = String(k||'').toLowerCase().replace(/^default_/, '');
+            norm[kk] = val;
+          });
+          defaultsCache[key] = norm;
+          return norm;
+        }catch{ return {}; }
+      }
+    }
+    defaultsCache[key] = {};
+    return {};
+  }
 
   // Types: prefer server; fall back to defaults
-  const DEFAULT_TYPES = ['task','note','habit','goal','project','routine','journal_entry','dream_diary_entry','appointment','alarm','reminder'];
+  const DEFAULT_TYPES = ['task','note','habit','project','routine','journal_entry','dream_diary_entry','appointment','alarm','reminder','reward','commitment'];
   function renderTypes(types){
     const uniq = Array.from(new Set(types.concat(DEFAULT_TYPES)));
     typeSel.innerHTML = '';
@@ -263,7 +329,9 @@ export function mount(el) {
     const name = nameEl.value.trim();
     if (!name){ alert('Name required'); return; }
     try{
-      await fetch(apiBase()+`/api/item`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type: typeSel.value||'task', name, content: yamlEl.value }) });
+      const type = typeSel.value||'task';
+      const payload = { type, name, content: yamlEl.value };
+      await fetch(apiBase()+`/api/item`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       refresh();
     }catch{ alert('Save failed'); }
   }
@@ -325,8 +393,20 @@ export function mount(el) {
     }catch{ alert('Export failed'); }
   }
 
+  async function prepNewWithDefaults(){
+    const type = typeSel.value || 'task';
+    const defs = await fetchDefaultsFor(type);
+    const base = Object.assign({ type, name: '', duration: 0 }, defs||{});
+    // Only include type if absent in defaults to avoid double-listing
+    if (!base.type) base.type = type;
+    if (base.name === undefined) base.name = '';
+    yamlEl.value = toYaml(base);
+    nameEl.value = '';
+    nameEl.focus();
+  }
+
   // Events
-  newBtn.addEventListener('click', ()=>{ nameEl.value=''; yamlEl.value=''; nameEl.focus(); });
+  newBtn.addEventListener('click', ()=>{ prepNewWithDefaults(); });
   saveBtn.addEventListener('click', saveItem);
   copyBtn.addEventListener('click', copyItem);
   renameBtn.addEventListener('click', renameItem);

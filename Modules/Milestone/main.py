@@ -2,25 +2,44 @@ import os
 import yaml
 from datetime import datetime, timedelta
 from Modules.ItemManager import (
-    generic_handle_new, read_item_data, write_item_data, list_all_items
+    generic_handle_new,
+    generic_handle_append,
+    generic_handle_delete,
+    read_item_data,
+    write_item_data,
+    list_all_items,
+    open_item_in_editor,
 )
 
 # Define the item type for this module
 ITEM_TYPE = "milestone"
 
 
-def handle_command(command, item_type, item_name, _text, properties):
+def handle_command(command, item_type, item_name, text_to_append, properties):
     """
-    Supports:
-      - new: create a milestone (delegates to generic)
-      - track: compute and show milestone progress
+    Supports standard lifecycle plus progress tracking.
     """
-    if command == 'new':
+    normalized = (command or '').strip().lower()
+    if normalized in ('new', 'create'):
         generic_handle_new(item_type, item_name, properties)
         return
-
-    if command == 'track':
+    if normalized == 'append':
+        if not text_to_append:
+            print("Info: Nothing to append. Provide text after the milestone name.")
+            return
+        generic_handle_append(item_type, item_name, text_to_append, properties)
+        return
+    if normalized == 'delete':
+        generic_handle_delete(item_type, item_name, properties)
+        return
+    if normalized in ('info', 'view', 'track'):
         _track_milestone(item_name)
+        return
+    if normalized in ('set', 'update', 'edit'):
+        _update_milestone(item_name, properties)
+        return
+    if normalized == 'open':
+        open_item_in_editor(item_type, item_name, None)
         return
 
     print(f"Unsupported command for milestone: {command}")
@@ -70,6 +89,22 @@ def _track_milestone(milestone_name: str):
     st = m.get('status', 'pending')
     crit_desc = res['criteria_desc']
     print(f"--- Milestone ---\n  Name: {milestone_name}\n  Goal: {m.get('goal','')}\n  Status: {st}\n  Criteria: {crit_desc}\n  Progress: {p['current']} / {p['target']}  ({p['percent']:.0f}%)")
+
+
+def _update_milestone(name: str, updates: dict):
+    if not updates:
+        print("No properties provided to update.")
+        return
+    data = read_item_data('milestone', name)
+    if not data:
+        print(f"Milestone '{name}' not found.")
+        return
+    for k, v in updates.items():
+        if k is None:
+            continue
+        data[str(k).lower()] = v
+    write_item_data('milestone', name, data)
+    print(f"Milestone '{name}' updated.")
 
 
 def _compute_progress(m: dict):

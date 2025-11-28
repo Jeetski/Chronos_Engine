@@ -24,6 +24,7 @@ export function mount(el){
         <button class="btn" id="twPause">Pause</button>
         <button class="btn" id="twResume">Resume</button>
         <button class="btn btn-secondary" id="twStop">Stop</button>
+        <button class="btn btn-secondary" id="twCancel">Cancel</button>
         <div class="spacer"></div>
         <button class="btn" id="twRefresh">Refresh</button>
       </div>
@@ -56,6 +57,7 @@ export function mount(el){
   const pauseBtn = el.querySelector('#twPause');
   const resumeBtn = el.querySelector('#twResume');
   const stopBtn = el.querySelector('#twStop');
+  const cancelBtn = el.querySelector('#twCancel');
   const refreshBtn = el.querySelector('#twRefresh');
   const phaseEl = el.querySelector('#twPhase');
   const cycleEl = el.querySelector('#twCycle');
@@ -63,16 +65,24 @@ export function mount(el){
   const clockEl = el.querySelector('#twClock');
   const barEl = el.querySelector('#twBar');
 
+  let profiles = {};
+
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
   function two(n){ return String(n).padStart(2,'0'); }
-  function fmt(sec){ sec = Math.max(0, parseInt(sec||0,10)); const m=Math.floor(sec/60), s=sec%60; return `${two(m)}:${two(s)}`; }
+  function fmt(sec){
+    const num = Number(sec);
+    const safe = Number.isFinite(num) ? Math.max(0, Math.floor(num)) : 0;
+    const m=Math.floor(safe/60), s=safe%60;
+    return `${two(m)}:${two(s)}`;
+  }
 
   async function loadProfiles(){
     try {
       const r = await fetch(apiBase()+'/api/timer/profiles'); const d = await r.json();
+      profiles = d.profiles || {};
       profSel.innerHTML='';
-      const profs = d.profiles||{}; const names = Object.keys(profs);
+      const names = Object.keys(profiles);
       names.forEach(n=>{ const opt=document.createElement('option'); opt.value=n; opt.textContent=n; profSel.appendChild(opt); });
       // Defer default selection to settings loader
     } catch {}
@@ -114,7 +124,12 @@ export function mount(el){
       else if (st.current_phase==='short_break') total=(prof.short_break_minutes||5)*60;
       else if (st.current_phase==='long_break') total=(prof.long_break_minutes||15)*60;
       const rem = parseInt(st.remaining_seconds||0,10); const pct = Math.max(0, Math.min(100, ((total-rem)/total)*100));
-      barEl.style.width = `${pct}%`;
+      barEl.style.width = `${Number.isFinite(pct)? pct : 0}%`;
+      if (String(st.status||'').toLowerCase()==='idle'){
+        // show default focus length for current profile
+        resetDisplayForSelected();
+      }
+      updateButtons(st.status);
     } catch {}
   }
 
@@ -127,7 +142,8 @@ export function mount(el){
       bind_name: (bindNameEl.value||undefined)
     };
     try {
-      await fetch(apiBase()+'/api/timer/start', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+      const r = await fetch(apiBase()+'/api/timer/start', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+      if (!r.ok) { alert('Timer start failed'); }
       await status();
     } catch (e) { alert('Timer start failed'); }
   }
@@ -135,15 +151,35 @@ export function mount(el){
   btnMin.addEventListener('click', ()=> el.classList.toggle('minimized'));
   btnClose.addEventListener('click', ()=> { el.style.display='none'; });
   startBtn.addEventListener('click', start);
-  pauseBtn.addEventListener('click', async ()=>{ await fetch(apiBase()+'/api/timer/pause', { method:'POST' }); await status(); });
-  resumeBtn.addEventListener('click', async ()=>{ await fetch(apiBase()+'/api/timer/resume', { method:'POST' }); await status(); });
-  stopBtn.addEventListener('click', async ()=>{ await fetch(apiBase()+'/api/timer/stop', { method:'POST' }); await status(); });
+  pauseBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/pause', { method:'POST' }); if(!r.ok) alert('Pause failed'); await status(); });
+  resumeBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/resume', { method:'POST' }); if(!r.ok) alert('Resume failed'); await status(); });
+  stopBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/stop', { method:'POST' }); if(!r.ok) alert('Stop failed'); await status(); });
+  cancelBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/cancel', { method:'POST' }); if(!r.ok) alert('Cancel failed'); await status(); resetDisplayForSelected(); });
   refreshBtn.addEventListener('click', status);
   profSel.addEventListener('change', ()=>{ try{localStorage.setItem('twProfile', profSel.value);}catch{} });
 
+  function updateButtons(stStatus){
+    const s = String(stStatus||'idle').toLowerCase();
+    const running = s === 'running';
+    const paused = s === 'paused';
+    pauseBtn.disabled = !running;
+    resumeBtn.disabled = !paused;
+    stopBtn.disabled = !(running || paused);
+    cancelBtn.disabled = !(running || paused);
+  }
+
+  function resetDisplayForSelected(){
+    const p = profiles[profSel.value] || {};
+    const sec = (p.focus_minutes ? Number(p.focus_minutes) : 25) * 60;
+    clockEl.textContent = fmt(sec);
+    phaseEl.textContent = 'Phase: -';
+    statusEl.textContent = 'Status: idle';
+    cycleEl.textContent = 'Cycle: 0';
+    barEl.style.width = '0%';
+  }
+
   // Bootstrap
-  loadProfiles().then(loadSettings);
-  status();
+  loadProfiles().then(loadSettings).then(()=> status());
   // Poll
   try { clearInterval(window.__twPoll); } catch {}
   window.__twPoll = setInterval(status, 1000);

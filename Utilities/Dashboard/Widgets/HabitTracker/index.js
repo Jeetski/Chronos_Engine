@@ -69,7 +69,7 @@ export function mount(el, context) {
       const bad = items.filter(h=>h.polarity==='bad');
       const goodDone = good.filter(h=>h.today_status==='done').length;
       const badInc = bad.filter(h=>h.today_status==='incident').length;
-      summaryEl.textContent = `Good: ${goodDone}/${good.length} done today �?� Bad: ${badInc}/${bad.length} incidents today`;
+      summaryEl.textContent = `Good: ${goodDone}/${good.length} done today | Bad: ${badInc}/${bad.length} incidents today`;
     }catch{ summaryEl.textContent=''; }
   }
 
@@ -78,7 +78,7 @@ export function mount(el, context) {
     row.className='row'; row.style.justifyContent='space-between'; row.style.alignItems='center'; row.style.borderBottom='1px solid #222835'; row.style.padding='6px 0';
     const left = document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
     const name = document.createElement('div'); name.textContent = expandText(h.name); name.style.color='#e6e8ef';
-    const meta = document.createElement('div'); meta.className='hint'; meta.textContent = `${h.polarity==='bad'?'bad':'good'}${h.category? ' �?� '+h.category:''}${h.priority? ' �?� '+h.priority:''}`;
+    const meta = document.createElement('div'); meta.className='hint'; meta.textContent = `${h.polarity==='bad'?'bad':'good'}${h.category? ' | '+h.category:''}${h.priority? ' | '+h.priority:''}`;
     left.append(name, meta);
     const right = document.createElement('div'); right.style.display='flex'; right.style.gap='6px'; right.style.alignItems='center';
     const streak = document.createElement('span'); streak.className='hint';
@@ -138,4 +138,3 @@ export function mount(el, context) {
     unmount(){ /* TODO: remove listeners if needed */ }
   };
 }
-

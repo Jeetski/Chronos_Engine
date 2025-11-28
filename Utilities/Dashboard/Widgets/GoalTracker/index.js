@@ -13,12 +13,13 @@ export function mount(el){
       </div>
     </div>
     <div class="content" style="gap:10px;">
-      <div class="row" style="gap:8px; align-items:center;">
-        <input id="gtSearch" class="input" placeholder="Search goals..." />
-        <button class="btn" id="gtSearchBtn">Search</button>
-        <div class="spacer"></div>
-        <button class="btn" id="gtRecalc">Recalc</button>
-      </div>
+          <div class="row" style="gap:8px; align-items:center;">
+            <input id="gtSearch" class="input" placeholder="Search goals..." />
+            <button class="btn" id="gtSearchBtn">Search</button>
+            <div class="spacer"></div>
+            <button class="btn" id="gtRecalc">Recalc</button>
+            <button class="btn" id="gtRefresh">Refresh</button>
+          </div>
       <div class="gt-body">
         <div class="gt-list">
           <ul id="gtList" style="list-style:none; padding:0; margin:0;"></ul>
@@ -31,7 +32,6 @@ export function mount(el){
           <div class="row" style="gap:8px; align-items:center;">
             <div class="hint" id="gtMeta"></div>
             <div class="spacer"></div>
-            <button class="btn" id="gtApply">Apply Template</button>
           </div>
           <div id="gtMilestones"></div>
         </div>
@@ -52,7 +52,7 @@ export function mount(el){
   const titleEl = el.querySelector('#gtTitle');
   const barEl = el.querySelector('#gtBar');
   const metaEl = el.querySelector('#gtMeta');
-  const applyBtn = el.querySelector('#gtApply');
+  const refreshBtn = el.querySelector('#gtRefresh');
   const msEl = el.querySelector('#gtMilestones');
   const fxChk = el.querySelector('#goalFxToggle');
 
@@ -67,6 +67,7 @@ export function mount(el){
   searchBtn.addEventListener('click', loadGoals);
   searchEl.addEventListener('keydown', (e)=>{ if (e.key==='Enter') loadGoals(); });
   recalcBtn.addEventListener('click', async ()=>{ await fetch(apiBase()+'/api/milestone/recalc', { method:'POST' }); await loadGoals(); if (titleEl.__goal) selectGoal(titleEl.__goal); });
+  refreshBtn.addEventListener('click', async ()=>{ await loadGoals(); if (titleEl.__goal) selectGoal(titleEl.__goal); });
 
   async function loadGoals(){
     const resp = await fetch(apiBase()+'/api/goals');
@@ -115,6 +116,7 @@ export function mount(el){
       row.append(nameEl,pct);
       const barWrap=document.createElement('div'); barWrap.style.height='8px'; barWrap.style.background='#0b0f16'; barWrap.style.border='1px solid var(--border)'; barWrap.style.borderRadius='6px'; barWrap.style.overflow='hidden'; barWrap.style.margin='6px 0';
       const bar=document.createElement('div'); bar.style.height='100%'; bar.style.width=`${Math.round((m.progress?.percent)||0)}%`; bar.style.background='linear-gradient(90deg,#228be6,#74c0fc)'; barWrap.appendChild(bar);
+      const status=document.createElement('div'); status.className='hint'; status.textContent = `Status: ${expandText(m.status || 'unknown')}`;
       const crit=document.createElement('div'); crit.className='hint'; crit.textContent = expandText(m.criteria || '');
       const actions=document.createElement('div'); actions.style.display='flex'; actions.style.gap='6px'; actions.style.marginTop='6px';
       const btnDone=document.createElement('button'); btnDone.className='btn'; btnDone.textContent='Mark Complete'; btnDone.addEventListener('click', async ()=>{ await fetch(apiBase()+'/api/milestone/complete', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ name: m.name }) }); await selectGoal(g.name); });
@@ -125,18 +127,18 @@ export function mount(el){
         alert('Timer started');
       });
       actions.append(btnDone, btnFocus);
-      box.append(row, barWrap, crit, actions);
+      box.append(row, barWrap, status, crit, actions);
       msEl.appendChild(box);
     });
+    if (!msEl.children.length){
+      const empty = document.createElement('div');
+      empty.className = 'hint';
+      empty.textContent = 'No milestones defined for this goal.';
+      msEl.appendChild(empty);
+    }
   }
 
-  applyBtn.addEventListener('click', async ()=>{
-    const name = titleEl.__goal; if (!name){ alert('Select a goal first'); return; }
-    const r = await fetch(apiBase()+'/api/goal/apply', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ name }) });
-    if (!r.ok){ alert('Apply failed'); return; }
-    await selectGoal(name);
-  });
+  // apply removed: refresh covers sync
 
   loadGoals();
 }
-

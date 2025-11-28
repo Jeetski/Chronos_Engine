@@ -1,4 +1,11 @@
-﻿export function mount(el, context) {
+﻿// Shared tool/selection state so the overlay controls and view logic stay in sync
+// (note leading BOM retained)
+let activeTool = window.__calendarTool ?? 'cursor';
+let selectRect = null;
+let navDepth = 0;
+
+export function mount(el, context) {
+  try { el.style.position = 'relative'; } catch {}
   const container = document.createElement('div');
   container.style.position = 'relative';
   container.style.minHeight = '0';
@@ -28,6 +35,7 @@
   let dayGroups = [];
   let selectedStartMin = null;
   let selectedItem = null; // { text, type, start, end }
+  const navStack = [];
   let dayBlocksStore = load('pm_day_blocks', {});
   try { window.dayBlocksStore = dayBlocksStore; } catch {}
   // Default zoom: three "-" clicks from 1.00 => 0.25
@@ -104,6 +112,38 @@
   function withAlpha(color,a){ if(/^#([0-9a-f]{6})$/i.test(color)){ const r=parseInt(color.slice(1,3),16), g=parseInt(color.slice(3,5),16), b=parseInt(color.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; } return color; }
   function roundRect(ctx,x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath(); }
   function colorForDay(dayDate,today){ if(dayDate<today) return getCss('--danger','#ef6a6a'); if(sameDay(dayDate,today)) return getCss('--accent','#7aa2f7'); return getCss('--ok','#5bdc82'); }
+  function syncGlobals(extra = {}){
+    try {
+      window.__calendarViewMode = viewMode;
+      window.__calendarSelectedMonth = selectedMonth;
+      window.__calendarSelectedYear = selectedYear;
+      window.__calendarSelectedDay = selectedDayDate ? new Date(selectedDayDate) : null;
+      window.__calendarNavDepth = navDepth = navStack.length;
+      if (typeof window.__calendarRefreshBack === 'function') window.__calendarRefreshBack(navDepth > 0);
+      Object.assign(window, extra);
+    } catch {}
+  }
+
+  function snapshotState(){
+    return {
+      mode: viewMode,
+      month: selectedMonth,
+      year: selectedYear,
+      weekStart: selectedWeekStart ? new Date(selectedWeekStart) : null,
+      day: selectedDayDate ? new Date(selectedDayDate) : null
+    };
+  }
+  function restoreState(s){
+    if (!s) return;
+    viewMode = s.mode;
+    selectedMonth = s.month;
+    selectedYear = s.year ?? selectedYear ?? (new Date()).getFullYear();
+    selectedWeekStart = s.weekStart ? new Date(s.weekStart) : null;
+    selectedDayDate = s.day ? new Date(s.day) : null;
+    syncGlobals();
+  }
+  function pushState(){ navStack.push(snapshotState()); updateBackBtn(); }
+  function popState(){ const v = navStack.pop(); updateBackBtn(); return v; }
 
   function resizeCanvas(){
     const dpr=Math.max(1, window.devicePixelRatio||1);
@@ -116,11 +156,11 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
-  function drawYearGrid(){ const now=new Date(); const year=selectedYear||now.getFullYear(); const currentMonth=now.getMonth(); const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,w,h); const cols=4,rows=3,pad=14; const cellW=(w-pad*(cols+1))/cols; const cellH=(h-pad*(rows+1))/rows; ctx.save(); ctx.lineWidth=2; ctx.textBaseline='middle'; ctx.textAlign='center'; ctx.font='600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; monthRects=[]; for(let i=0;i<12;i++){ const r=Math.floor(i/cols), c=i%cols; const x=pad+c*(cellW+pad), y=pad+r*(cellH+pad); let fill; if(year<now.getFullYear()||(year===now.getFullYear()&&i<currentMonth)) fill=getCss('--danger','#ef6a6a'); else if(year===now.getFullYear()&&i===currentMonth) fill=getCss('--accent','#7aa2f7'); else fill=getCss('--ok','#5bdc82'); ctx.fillStyle=withAlpha(fill,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(fill,0.55); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.fillStyle='#e6e8ef'; ctx.fillText(`${months[i]} ${year}`, x+cellW/2, y+cellH/2); monthRects.push({i,x,y,w:cellW,h:cellH}); } ctx.restore(); viewMode='year'; }
+  function drawYearGrid(){ const now=new Date(); const year=selectedYear||now.getFullYear(); const currentMonth=now.getMonth(); const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,w,h); const cols=4,rows=3,pad=14; const cellW=(w-pad*(cols+1))/cols; const cellH=(h-pad*(rows+1))/rows; ctx.save(); ctx.lineWidth=2; ctx.textBaseline='middle'; ctx.textAlign='center'; ctx.font='600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; monthRects=[]; for(let i=0;i<12;i++){ const r=Math.floor(i/cols), c=i%cols; const x=pad+c*(cellW+pad), y=pad+r*(cellH+pad); let fill; if(year<now.getFullYear()||(year===now.getFullYear()&&i<currentMonth)) fill=getCss('--danger','#ef6a6a'); else if(year===now.getFullYear()&&i===currentMonth) fill=getCss('--accent','#7aa2f7'); else fill=getCss('--ok','#5bdc82'); ctx.fillStyle=withAlpha(fill,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(fill,0.55); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.fillStyle='#e6e8ef'; ctx.fillText(`${months[i]} ${year}`, x+cellW/2, y+cellH/2); monthRects.push({i,x,y,w:cellW,h:cellH}); } ctx.restore(); viewMode='year'; syncGlobals(); }
 
-  function drawMonthGrid(month=(new Date()).getMonth(), year=(new Date()).getFullYear()){ selectedMonth=month; selectedYear=year; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const colW=(w-pad*8)/7; const rowH=(h-gridTop-pad*6)/6; ctx.save(); ctx.textBaseline='middle'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const title=`${monthsLong[month]} ${year}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; ctx.fillStyle='#a6adbb'; for(let i=0;i<7;i++){ ctx.fillText(dows[i], pad+i*(colW+pad)+colW/2, gridTop-10); } const first=new Date(year,month,1); const start=weekMonday(first); dayCellRects=[]; const today=dateAtMidnight(new Date()); for(let r=0;r<6;r++){ for(let c=0;c<7;c++){ const x=pad+c*(colW+pad); const y=gridTop+r*(rowH+pad); const d=new Date(start); d.setDate(start.getDate()+r*7+c); const inMonth=d.getMonth()===month; const dayColor=colorForDay(d,today); ctx.fillStyle=withAlpha(dayColor, inMonth?0.18:0.06); roundRect(ctx,x,y,colW,rowH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor, inMonth?0.45:0.2); roundRect(ctx,x,y,colW,rowH,10); ctx.stroke(); ctx.fillStyle=inMonth?'#e6e8ef':'#6b7382'; ctx.textAlign='right'; ctx.fillText(String(d.getDate()), x+colW-6, y+14); ctx.textAlign='left'; dayCellRects.push({ x,y,w:colW,h:rowH,date:dateAtMidnight(d) }); } } ctx.restore(); viewMode='month'; }
+  function drawMonthGrid(month=(new Date()).getMonth(), year=(new Date()).getFullYear()){ selectedMonth=month; selectedYear=year; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const colW=(w-pad*8)/7; const rowH=(h-gridTop-pad*6)/6; ctx.save(); ctx.textBaseline='middle'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const title=`${monthsLong[month]} ${year}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; ctx.fillStyle='#a6adbb'; for(let i=0;i<7;i++){ ctx.fillText(dows[i], pad+i*(colW+pad)+colW/2, gridTop-10); } const first=new Date(year,month,1); const start=weekMonday(first); dayCellRects=[]; const today=dateAtMidnight(new Date()); for(let r=0;r<6;r++){ for(let c=0;c<7;c++){ const x=pad+c*(colW+pad); const y=gridTop+r*(rowH+pad); const d=new Date(start); d.setDate(start.getDate()+r*7+c); const inMonth=d.getMonth()===month; const dayColor=colorForDay(d,today); ctx.fillStyle=withAlpha(dayColor, inMonth?0.18:0.06); roundRect(ctx,x,y,colW,rowH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor, inMonth?0.45:0.2); roundRect(ctx,x,y,colW,rowH,10); ctx.stroke(); ctx.fillStyle=inMonth?'#e6e8ef':'#6b7382'; ctx.textAlign='right'; ctx.fillText(String(d.getDate()), x+colW-6, y+14); ctx.textAlign='left'; dayCellRects.push({ x,y,w:colW,h:rowH,date:dateAtMidnight(d) }); } } ctx.restore(); viewMode='month'; syncGlobals(); }
 
-  function drawWeekGrid(weekStart=selectedWeekStart||weekMonday(new Date())){ selectedWeekStart=new Date(weekStart); const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const cols=7; const cellW=(w-pad*(cols+1))/cols; const cellH=h-gridTop-pad; ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const monday=weekMonday(weekStart); const title=`Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}, ${monday.getFullYear()}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; const today=dateAtMidnight(new Date()); dayRects=[]; for(let c=0;c<cols;c++){ const x=pad+c*(cellW+pad); const y=gridTop; const dayDate=new Date(monday); dayDate.setDate(monday.getDate()+c); const dayColor=colorForDay(dayDate,today); ctx.fillStyle=withAlpha(dayColor,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor,0.45); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.textAlign='center'; ctx.fillStyle='#a6adbb'; ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x+cellW/2, y+14); ctx.textAlign='left'; dayRects.push({ x,y,w:cellW,h:cellH,date:dateAtMidnight(dayDate) }); } ctx.restore(); viewMode='week'; }
+  function drawWeekGrid(weekStart=selectedWeekStart||weekMonday(new Date())){ selectedWeekStart=new Date(weekStart); const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const cols=7; const cellW=(w-pad*(cols+1))/cols; const cellH=h-gridTop-pad; ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const monday=weekMonday(weekStart); const title=`Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}, ${monday.getFullYear()}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; const today=dateAtMidnight(new Date()); dayRects=[]; for(let c=0;c<cols;c++){ const x=pad+c*(cellW+pad); const y=gridTop; const dayDate=new Date(monday); dayDate.setDate(monday.getDate()+c); const dayColor=colorForDay(dayDate,today); ctx.fillStyle=withAlpha(dayColor,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor,0.45); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.textAlign='center'; ctx.fillStyle='#a6adbb'; ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x+cellW/2, y+14); ctx.textAlign='left'; dayRects.push({ x,y,w:cellW,h:cellH,date:dateAtMidnight(dayDate) }); } ctx.restore(); viewMode='week'; syncGlobals(); }
 
   function drawDayGrid(day=dateAtMidnight(new Date()), previewDrag=false){
     selectedDayDate=new Date(day);
@@ -143,6 +183,33 @@
     const colX=pad+gutter; const colW=w-colX-pad; ctx.fillStyle=withAlpha(getCss('--accent','#7aa2f7'),0.08); roundRect(ctx,colX,gridTop,colW,heightAvail,10); ctx.fill(); ctx.strokeStyle=withAlpha(getCss('--accent','#7aa2f7'),0.25); roundRect(ctx,colX,gridTop,colW,heightAvail,10); ctx.stroke();
     // Text-only timeline from today's schedule (via API)
     const key=dayKey(day);
+    const now = new Date();
+    const todayMidnight = dateAtMidnight(now);
+    const dayMidnight = dateAtMidnight(day);
+    const isToday = dayMidnight.getTime() === todayMidnight.getTime();
+    const isPastDay = dayMidnight.getTime() < todayMidnight.getTime();
+    const nowMinutes = now.getHours()*60 + now.getMinutes();
+    const elapsedColor = getCss('--danger','#ef6a6a');
+    const currentColor = getCss('--accent','#7aa2f7');
+    const futureColor = getCss('--ok','#5bdc82');
+    function slotColor(startMin, endMin){
+      if (!isToday){
+        return isPastDay ? elapsedColor : futureColor;
+      }
+      const hasStart = typeof startMin === 'number';
+      const hasEnd = typeof endMin === 'number';
+      if (!hasStart && !hasEnd) return futureColor;
+      if (hasEnd && nowMinutes >= endMin) return elapsedColor;
+      if (hasStart && nowMinutes < startMin) return futureColor;
+      if (hasStart && hasEnd && nowMinutes >= startMin && nowMinutes < endMin) return currentColor;
+      if (!hasEnd && hasStart){
+        return nowMinutes >= startMin ? elapsedColor : futureColor;
+      }
+      if (hasEnd && !hasStart){
+        return nowMinutes < endMin ? currentColor : elapsedColor;
+      }
+      return currentColor;
+    }
     function minToHM(min){ const h=Math.floor(min/60)%24; const m=min%60; return String(h).padStart(2,'0')+":"+String(m).padStart(2,'0'); }
     const drawTextBlocks = (arr)=>{
       ctx.fillStyle = '#e6e8ef';
@@ -198,13 +265,19 @@
           if (startMin < visStart || startMin > visEnd) return;
           const items = groups.get(startMin) || [];
           const y0 = gridTop + (startMin*pxPerMinute); const lineY = y0 + 12;
-        const pieces = items.map(it => expandText(String(it.text||'')));
-        const full = minToHM(startMin) + '  ' + pieces.join('; ');
-        // Group color: all completed -> ok; else -> danger
-        const allDone = items.every(it => completeSet.has(String(it.text||'')));
-        ctx.fillStyle = allDone ? getCss('--ok','#5bdc82') : getCss('--danger','#ef6a6a');
-        const clipped = fitTextToWidth(full, colW - padX*2);
-        ctx.fillText(clipped, colX + padX, lineY);
+          const pieces = items.map(it => expandText(String(it.text||'')));
+          const full = minToHM(startMin) + '  ' + pieces.join('; ');
+          let groupEnd = null;
+          items.forEach(it => {
+            const blockEnd = typeof it.end === 'number' ? it.end : (typeof it.start === 'number' ? it.start : null);
+            if (blockEnd == null) return;
+            groupEnd = groupEnd == null ? blockEnd : Math.max(groupEnd, blockEnd);
+          });
+          const allDone = items.length && items.every(it => completeSet.has(String(it.text||'')));
+          const baseColor = slotColor(startMin, groupEnd);
+          ctx.fillStyle = allDone ? withAlpha(baseColor, 0.75) : baseColor;
+          const clipped = fitTextToWidth(full, colW - padX*2);
+          ctx.fillText(clipped, colX + padX, lineY);
         });
         return;
       } catch {}
@@ -213,8 +286,10 @@
         if (b.start < visStart || b.start > visEnd) return;
         const y0=gridTop + (b.start*pxPerMinute); const lineY = y0 + 12;
         const prefix = b.is_parallel ? '∥ ' : '';
-        // Per-item color
-        ctx.fillStyle = completeSet.has(String(b.text||'')) ? getCss('--ok','#5bdc82') : getCss('--danger','#ef6a6a');
+        // Per-item color follows time buckets; completed entries soften color slightly
+        const endMin = typeof b.end === 'number' ? b.end : b.start;
+        const baseColor = slotColor(b.start, endMin);
+        ctx.fillStyle = completeSet.has(String(b.text||'')) ? withAlpha(baseColor, 0.75) : baseColor;
         const full = minToHM(b.start) + '  ' + prefix + String(b.text||'');
         const clipped = fitTextToWidth(full, colW - padX*2);
         ctx.fillText(clipped, colX + padX, lineY);
@@ -257,7 +332,7 @@
       }
     } catch {}
     if(previewDrag&&dayDrag){ let y0=Math.min(dayDrag.y0,dayDrag.y1); let y1=Math.max(dayDrag.y0,dayDrag.y1); y0=Math.max(gridTop,y0); y1=Math.min(canvas.clientHeight- pad,y1); ctx.fillStyle=withAlpha(getCss('--accent','#7aa2f7'),0.25); roundRect(ctx,colX,y0,colW,Math.max(8,y1-y0),8); ctx.fill(); }
-    ctx.restore(); viewMode='day';
+    ctx.restore(); viewMode='day'; syncGlobals();
   }
 
   function dayKey(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
@@ -273,18 +348,85 @@
 
   function getPos(e){ const rect=canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
 
+  function goToYear(){ selectedMonth=null; selectedWeekStart=null; selectedDayDate=null; drawYearGrid(); navStack.length = 0; updateBackBtn(); }
+  function goToMonth(month, year){
+    pushState();
+    selectedMonth=month; selectedYear=year;
+    drawMonthGrid(month, year);
+    updateBackBtn();
+  }
+  function goToWeek(weekStart){
+    pushState();
+    selectedWeekStart=weekStart ? new Date(weekStart) : weekMonday(new Date());
+    drawWeekGrid(selectedWeekStart);
+    updateBackBtn();
+  }
+  function goToDay(day){
+    pushState();
+    selectedDayDate=day ? dateAtMidnight(day) : dateAtMidnight(new Date());
+    drawDayGrid(selectedDayDate);
+    updateBackBtn();
+  }
+  function goBack(){
+    const prev = popState();
+    if (!prev) return;
+    // Restore prior snapshot state and redraw
+    viewMode = prev.mode || viewMode;
+    selectedMonth = prev.month ?? selectedMonth;
+    selectedYear = prev.year ?? selectedYear;
+    selectedWeekStart = prev.weekStart ?? selectedWeekStart;
+    selectedDayDate = prev.day ?? selectedDayDate;
+    if(viewMode==='year') drawYearGrid();
+    else if(viewMode==='month') drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear ?? (new Date()).getFullYear());
+    else if(viewMode==='week') drawWeekGrid(selectedWeekStart || weekMonday(selectedDayDate || new Date()));
+    else if(viewMode==='day') drawDayGrid(selectedDayDate || new Date());
+    updateBackBtn();
+  }
+  try {
+    window.__calendarGoBack = goBack;
+    window.__calendarCanGoBack = ()=> navStack.length > 0;
+  } catch {}
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'pane-back';
+  backBtn.textContent = 'Back';
+  backBtn.title = 'Return to previous calendar level';
+  backBtn.style.padding = '0 10px';
+  backBtn.style.height = '28px';
+  backBtn.style.background = 'linear-gradient(180deg, #24324a, #1a2436)';
+  backBtn.style.border = '1px solid #2f3b56';
+  backBtn.style.color = '#e6e8ef';
+  backBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.04)';
+  backBtn.style.borderRadius = '7px';
+  backBtn.style.display = '';
+  backBtn.style.position = 'absolute';
+  backBtn.style.top = '10px';
+  backBtn.style.right = '52px'; // sit just left of the view help button (typically right:10px + ~32px)
+  backBtn.style.zIndex = '13';
+  backBtn.addEventListener('click', (e)=>{ e.stopPropagation(); goBack(); });
+  el.appendChild(backBtn);
+  function updateBackBtn(){
+    const hasHistory = navStack.length > 0;
+    backBtn.style.display = '';
+    // Keep always clickable; just soften when empty
+    backBtn.style.opacity = hasHistory ? '1' : '0.6';
+    backBtn.style.pointerEvents = 'auto';
+    backBtn.style.cursor = 'pointer';
+    try { window.__calendarHasHistory = hasHistory; window.__calendarRefreshBack?.(hasHistory); } catch {}
+  }
+
   function handleViewClick(x,y, ev){
     if(viewMode==='year'){
-      const hit=monthRects.find(r=> x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h); if(hit){ selectedMonth=hit.i; drawMonthGrid(selectedMonth, selectedYear);} 
+      const hit=monthRects.find(r=> x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h); if(hit){ goToMonth(hit.i, selectedYear);} 
       return;
     }
     if(viewMode==='month'){
-      const hitDay=dayCellRects.find(r=> x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h); if(hitDay){ selectedDayDate=hitDay.date; drawDayGrid(selectedDayDate); return; }
-      const hitW=weekRects.find(r=> x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h); if(hitW){ selectedWeekStart=hitW.monday; drawWeekGrid(selectedWeekStart); }
+      const hitDay=dayCellRects.find(r=> x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h); if(hitDay){ goToDay(hitDay.date); return; }
+      const hitW=weekRects.find(r=> x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h); if(hitW){ goToWeek(hitW.monday); }
       return;
     }
     if(viewMode==='week'){
-      const hitD=dayRects.find(r=> x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h); if(hitD){ selectedDayDate=hitD.date; drawDayGrid(selectedDayDate);} 
+      const hitD=dayRects.find(r=> x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h); if(hitD){ goToDay(hitD.date);} 
       return;
     }
     if(viewMode==='day'){
@@ -353,13 +495,22 @@
   function onPointerDown(e){ const pt=getPos(e); if(handleViewPointerDown(e, pt.x, pt.y)) return; handleViewClick(pt.x, pt.y, e); }
   function onPointerMove(e){ const pt=getPos(e); handleViewPointerMove(e, pt.x, pt.y); }
   function onPointerUp(e){ handleViewPointerUp(e); }
-  function onKeyDown(e){ if(e.key==='Escape'){ if(viewMode==='day'){ viewMode='week'; drawWeekGrid(selectedWeekStart || weekMonday(selectedDayDate || new Date())); } else if(viewMode==='week'){ viewMode='month'; drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear); } else if(viewMode==='month'){ viewMode='year'; selectedMonth=null; selectedWeekStart=null; drawYearGrid(); } } }
+  function onKeyDown(e){
+    if(e.key==='Escape'){
+      if (navStack.length){ goBack(); return; }
+      if(viewMode==='day'){ viewMode='week'; drawWeekGrid(selectedWeekStart || weekMonday(selectedDayDate || new Date())); }
+      else if(viewMode==='week'){ viewMode='month'; drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear); }
+      else if(viewMode==='month'){ viewMode='year'; selectedMonth=null; selectedWeekStart=null; drawYearGrid(); }
+      updateBackBtn();
+    }
+  }
 
   const debouncedResize = debounce(()=>{ resizeCanvas(); redrawCurrentView(); }, 120);
 
   // Init
   resizeCanvas();
   drawYearGrid();
+  updateBackBtn();
   canvas.addEventListener('pointerdown', onPointerDown);
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
@@ -374,6 +525,8 @@
       canvas.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', debouncedResize);
+      try { backBtn.remove(); } catch {}
+      try { delete window.__calendarGoBack; delete window.__calendarCanGoBack; } catch {}
     }
   };
 }
@@ -426,7 +579,6 @@ try {
     toolPicker.addEventListener('click', ()=> setTool('picker'));
     toolEraser.addEventListener('click', ()=> setTool('eraser'));
     setTool(window.__calendarTool ?? 'cursor');
-      const completeSet = completionsCache.get(dayKey(day)) || new Set();
     panel.append(timeMinus, timePlus, levelMinus, levelPlus, levelLabel, toolCursor, toolSelect, toolPicker, toolEraser);
     root.appendChild(panel);
   })();

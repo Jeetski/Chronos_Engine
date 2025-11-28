@@ -17,6 +17,30 @@ def get_day_template_path(day_of_week):
     """
     return os.path.join(USER_DIR, "Days", f"{day_of_week}.yml")
 
+def list_day_template_paths(day_of_week):
+    """
+    Returns every candidate template for the given weekday.
+    Allows variants like Monday_low_focus.yml to participate alongside Monday.yml.
+    """
+    days_dir = os.path.join(USER_DIR, "Days")
+    if not os.path.isdir(days_dir):
+        return []
+
+    normalized = day_of_week.lower()
+    candidates = []
+    for filename in os.listdir(days_dir):
+        if not filename.lower().endswith(".yml"):
+            continue
+        stem = os.path.splitext(filename)[0].lower()
+        if stem == normalized or stem.startswith(f"{normalized}_") or stem.startswith(f"{normalized}__"):
+            candidates.append(os.path.join(days_dir, filename))
+
+    primary = get_day_template_path(day_of_week)
+    if primary not in candidates and os.path.exists(primary):
+        candidates.insert(0, primary)
+
+    return candidates
+
 def read_template(template_path):
     """
     Reads a YAML template file.
@@ -31,6 +55,38 @@ def format_time(time_obj):
     Formats a datetime object into a string.
     """
     return time_obj.strftime("%H:%M")
+
+def build_block_key(item_name, start_time_obj_or_str):
+    """
+    Builds the composite key used to persist completion entries. Accepts datetime or preformatted HH:MM.
+    """
+    if isinstance(start_time_obj_or_str, datetime):
+        start_str = format_time(start_time_obj_or_str)
+    else:
+        start_str = start_time_obj_or_str or ""
+    safe_name = (item_name or "Unnamed").strip()
+    return f"{safe_name}@{start_str}"
+
+def normalize_completion_entries(today_completion_data):
+    """
+    Normalizes completion payloads so callers can always expect a dict of block key -> entry.
+    Accepts both the new { entries: {...} } shape and the legacy { name: status } map.
+    """
+    if not isinstance(today_completion_data, dict):
+        return {}
+
+    if "entries" in today_completion_data and isinstance(today_completion_data["entries"], dict):
+        return today_completion_data["entries"]
+
+    # Legacy fallback: treat the dict itself as entries map
+    entries = {}
+    for key, value in today_completion_data.items():
+        if isinstance(value, dict):
+            entries[key] = value
+        else:
+            # Legacy format stored just the status string
+            entries[key] = {"status": value}
+    return entries
 
 def is_ancestor(ancestor_item, descendant_item):
     """
@@ -237,7 +293,42 @@ import os
 # Define the path to the colorprint executable
 COLORPRINT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "Utilities", "colorprint", "colorprint.exe"))
 
-def display_schedule(schedule, conflicts, indent=0, display_level=float('inf'), current_level=0, today_completion_data=None):
+STATUS_COLOR_MAP = {
+    "completed": "green",
+    "skipped": "yellow",
+    "partial": "cyan",
+    "missed": "red",
+    "in_progress": "bright_cyan",
+    "upcoming": "white",
+}
+
+COMPLETION_DONE_STATUSES = {"completed", "skipped"}
+
+def _resolve_block_status(item, completion_entries):
+    """
+    Returns (status_key, completion_entry) for schedule display.
+    """
+    if item.get("is_buffer"):
+        return "buffer", None
+
+    key = build_block_key(item.get("name"), item.get("start_time"))
+    entry = completion_entries.get(key)
+    if entry and entry.get("status"):
+        return entry["status"].lower(), entry
+
+    now = datetime.now()
+    start_time = item.get("start_time")
+    end_time = item.get("end_time")
+    if not isinstance(start_time, datetime) or not isinstance(end_time, datetime):
+        return "upcoming", None
+
+    if now < start_time:
+        return "upcoming", None
+    if start_time <= now < end_time:
+        return "in_progress", None
+    return "missed", None
+
+def display_schedule(schedule, conflicts, indent=0, display_level=float('inf'), current_level=0, today_completion_data=None, color_override=None, title=None):
     """
     Displays the schedule to the user, recursively handling nested items up to a certain display level,
     with color coding based on completion status using the external colorprint.exe.
@@ -245,49 +336,38 @@ def display_schedule(schedule, conflicts, indent=0, display_level=float('inf'), 
     indent_str = "  " * indent
     if indent == 0:
         # Use colorprint for the header as well
-        subprocess.run([COLORPRINT_PATH, 'print:--- Today\'s Schedule ---', 'text:white', 'background:dark_blue'], capture_output=False)
+        header = title or "--- Today's Schedule ---"
+        subprocess.run([COLORPRINT_PATH, f'print:{header}', 'text:white', 'background:dark_blue'], capture_output=False)
+
+    completion_entries = normalize_completion_entries(today_completion_data or {})
 
     for item in schedule:
         if item.get("is_buffer"):
-            subprocess.run([COLORPRINT_PATH, f'print:{indent_str}--- Buffer ({item['duration']} minutes) ---', 'text:gray', 'background:dark_blue'], capture_output=False)
+            subprocess.run([COLORPRINT_PATH, f'print:{indent_str}--- Buffer ({item["duration"]} minutes) ---', 'text:gray', 'background:dark_blue'], capture_output=False)
         else:
             item_name = item.get('name', 'Unnamed Item')
-            item_type = item.get('type')
-            text_color = "red" # Default color
+            status_key, completion_entry = _resolve_block_status(item, completion_entries)
+            status_label = "" if status_key == "buffer" else f" [{status_key.replace('_', ' ').title()}]"
 
-            if item_type:
-                # Check if it's a repeating item by trying to read its full data
-                full_item_data = read_item_data(item_type, item_name)
-                # Consider both 'frequency' and 'Frequency' keys for compatibility
-                is_repeating = False
-                if full_item_data:
-                    if 'frequency' in full_item_data:
-                        is_repeating = True
-                    elif 'Frequency' in full_item_data:
-                        is_repeating = True
-                if is_repeating:
-                    # Repeating item: check today_completion_data
-                    if today_completion_data and item_name in today_completion_data:
-                        current_status = today_completion_data[item_name]
-                        if current_status == "completed":
-                            text_color = "green"
-                else:
-                    # Non-repeating item: check its own status
-                    if full_item_data and 'status' in full_item_data:
-                        current_status = full_item_data['status']
-                        if current_status == "completed":
-                            text_color = "green"
-            
-            message = ""
+            text_color = STATUS_COLOR_MAP.get(status_key, "red")
+            if color_override == "future":
+                text_color = "green"
+
             if item.get("is_parallel_item"):
-                message = f'{indent_str}{format_time(item['start_time'])} - {format_time(item['end_time'])}: {item_name} (parallel)'
+                message = f'{indent_str}{format_time(item["start_time"])} - {format_time(item["end_time"])}: {item_name} (parallel){status_label}'
             else:
-                message = f'{indent_str}{format_time(item['start_time'])} - {format_time(item['end_time'])}: {item_name} ({item['duration']} minutes)'
-            
+                message = f'{indent_str}{format_time(item["start_time"])} - {format_time(item["end_time"])}: {item_name} ({item["duration"]} minutes){status_label}'
+
+            if completion_entry and (completion_entry.get("actual_start") or completion_entry.get("actual_end")):
+                actual_start = completion_entry.get("actual_start") or completion_entry.get("actual_end")
+                actual_end = completion_entry.get("actual_end") or completion_entry.get("actual_start")
+                if actual_start or actual_end:
+                    message += f' -> did {actual_start or "??"}-{actual_end or "??"}'
+
             subprocess.run([COLORPRINT_PATH, f'print:{message}', f'text:{text_color}', 'background:dark_blue'], capture_output=False)
         
         if "children" in item and item["children"] and current_level < display_level:
-            display_schedule(item["children"], conflicts, indent + 1, display_level, current_level + 1, today_completion_data)
+            display_schedule(item["children"], conflicts, indent + 1, display_level, current_level + 1, today_completion_data, color_override, title)
 
     if indent == 0 and conflicts:
         subprocess.run([COLORPRINT_PATH, 'print:\n--- Conflicts ---', 'text:white', 'background:dark_blue'], capture_output=False)

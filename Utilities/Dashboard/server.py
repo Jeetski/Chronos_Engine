@@ -5,8 +5,11 @@ import yaml
 import json
 import base64
 import threading
+from datetime import datetime, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+
+import subprocess, shlex
 
 # Paths
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -15,8 +18,20 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Utilities", "Dashboard"))
 
+from Utilities.dashboard_matrix import (
+    compute_matrix,
+    get_metadata as matrix_metadata,
+    parse_filters as parse_matrix_filters,
+    parse_dimension_sequence as parse_matrix_dimensions,
+    list_matrix_presets,
+    load_matrix_preset,
+    save_matrix_preset,
+    delete_matrix_preset,
+)
+
 # In-memory dashboard-scoped variables (exposed via /api/vars)
 _DASH_VARS = {}
+_LISTENER_PROC = None
 
 def _vars_all():
     try:
@@ -232,6 +247,43 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read theme: {e}"})
             return
+        if parsed.path == "/api/cockpit/matrix":
+            try:
+                qs = parse_qs(parsed.query or "")
+                row_raw = (qs.get("row") or [None])[0]
+                col_raw = (qs.get("col") or [None])[0]
+                row = parse_matrix_dimensions(row_raw, ["item_type"])
+                col = parse_matrix_dimensions(col_raw, ["item_status"])
+                metric = (qs.get("metric") or ["count"])[0] or "count"
+                row_sort = (qs.get("row_sort") or ['label-asc'])[0] or 'label-asc'
+                col_sort = (qs.get("col_sort") or ['label-asc'])[0] or 'label-asc'
+                filters_raw = (qs.get("filters") or [None])[0]
+                filters = parse_matrix_filters(filters_raw) if filters_raw else {}
+                meta_only = ((qs.get("meta") or ["false"])[0] or "").lower() == "true"
+                if meta_only:
+                    payload = matrix_metadata()
+                else:
+                    payload = compute_matrix(row, col, metric, filters, row_sort=row_sort, col_sort=col_sort)
+                self._write_json(200, {"ok": True, **payload})
+            except ValueError as e:
+                self._write_json(400, {"ok": False, "error": str(e)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Matrix error: {e}"})
+            return
+        if parsed.path == "/api/cockpit/matrix/presets":
+            try:
+                qs = parse_qs(parsed.query or "")
+                name = (qs.get("name") or [""])[0].strip()
+                if name:
+                    preset = load_matrix_preset(name)
+                    self._write_json(200, {"ok": True, "preset": preset})
+                else:
+                    self._write_json(200, {"ok": True, "presets": list_matrix_presets()})
+            except FileNotFoundError:
+                self._write_json(404, {"ok": False, "error": "Preset not found"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Preset error: {e}"})
+            return
         if parsed.path == "/api/habits":
             # Enumerate habits with basic fields and today status
             try:
@@ -240,7 +292,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 items = []
                 today = None
                 try:
-                    from datetime import datetime
                     today = datetime.now().strftime('%Y-%m-%d')
                 except Exception:
                     pass
@@ -345,6 +396,287 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "goals": out})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Goals error: {e}"})
+            return
+        if parsed.path == "/api/points":
+            try:
+                from Utilities import points as Points
+                qs = parse_qs(parsed.query or '')
+                limit_raw = (qs.get('limit') or [''])[0].strip()
+                last = None
+                if limit_raw:
+                    try:
+                        last_val = int(limit_raw)
+                        if last_val > 0:
+                            last = last_val
+                    except Exception:
+                        last = None
+                history = Points.get_history(last) or []
+                balance = Points.get_balance()
+                self._write_json(200, {"ok": True, "balance": balance, "history": history})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Points error: {e}"})
+            return
+        if parsed.path == "/api/rewards":
+            try:
+                from Modules.ItemManager import list_all_items
+                rewards = list_all_items('reward') or []
+                now = datetime.now()
+                def parse_int(val, default=None):
+                    try:
+                        if val is None or (isinstance(val, str) and not val.strip()):
+                            return default
+                        return int(val)
+                    except Exception:
+                        return default
+                def parse_dt(val):
+                    if not val:
+                        return None
+                    text = str(val).strip()
+                    if not text:
+                        return None
+                    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+                        try:
+                            return datetime.strptime(text, fmt)
+                        except Exception:
+                            continue
+                    try:
+                        return datetime.fromisoformat(text)
+                    except Exception:
+                        return None
+                items = []
+                for raw in rewards:
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get('name') or raw.get('title') or '').strip()
+                    if not name:
+                        continue
+                    cost_map = raw.get('cost') if isinstance(raw.get('cost'), dict) else {}
+                    points_cost = parse_int(cost_map.get('points'), 0) or 0
+                    cooldown_min = parse_int(raw.get('cooldown_minutes'), 0) or 0
+                    last_dt = parse_dt(raw.get('last_redeemed'))
+                    ready_at = None
+                    cooldown_ready = True
+                    cooldown_remaining = 0
+                    if cooldown_min and last_dt:
+                        ready_at = last_dt + timedelta(minutes=cooldown_min)
+                        if ready_at > now:
+                            cooldown_ready = False
+                            cooldown_remaining = max(0, int((ready_at - now).total_seconds() // 60))
+                    redemptions = parse_int(raw.get('redemptions'), 0) or 0
+                    max_red = parse_int(raw.get('max_redemptions'))
+                    limit_ready = True
+                    if isinstance(max_red, int) and max_red > 0 and redemptions >= max_red:
+                        limit_ready = False
+                    available = cooldown_ready and limit_ready
+                    items.append({
+                        "name": name,
+                        "description": raw.get('description') or raw.get('notes') or raw.get('summary'),
+                        "category": raw.get('category'),
+                        "priority": raw.get('priority'),
+                        "cost_points": points_cost,
+                        "cooldown_minutes": cooldown_min,
+                        "cooldown_ready": cooldown_ready,
+                        "cooldown_remaining_minutes": cooldown_remaining,
+                        "cooldown_ready_at": ready_at.strftime('%Y-%m-%d %H:%M:%S') if ready_at else None,
+                        "redemptions": redemptions,
+                        "max_redemptions": max_red,
+                        "last_redeemed": raw.get('last_redeemed'),
+                        "target": raw.get('target'),
+                        "tags": raw.get('tags'),
+                        "available": available,
+                        "limit_ready": limit_ready,
+                    })
+                items.sort(key=lambda r: (not r.get('available', False), str(r.get('name','')).lower()))
+                self._write_json(200, {"ok": True, "rewards": items})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Rewards error: {e}"})
+            return
+        if parsed.path == "/api/achievements":
+            try:
+                from Modules.ItemManager import list_all_items
+                rows = list_all_items('achievement') or []
+                def parse_int(val):
+                    try:
+                        if val is None or val == '':
+                            return None
+                        return int(val)
+                    except Exception:
+                        return None
+                items = []
+                for raw in rows:
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get('name') or '').strip()
+                    if not name:
+                        continue
+                    status = str(raw.get('status') or '').strip().lower()
+                    awarded_at = raw.get('awarded_at') or raw.get('awarded_on') or raw.get('completed')
+                    awarded_flag = bool(raw.get('awarded')) or bool(awarded_at) or status in ('awarded','completed','done','celebrated')
+                    archived_flag = bool(raw.get('archived')) or status == 'archived'
+                    state = 'archived' if archived_flag else ('awarded' if awarded_flag else (status or 'pending'))
+                    tags = raw.get('tags')
+                    if isinstance(tags, str):
+                        tags = [t.strip() for t in tags.split(',') if t.strip()]
+                    elif not isinstance(tags, list):
+                        tags = []
+                    items.append({
+                        "name": name,
+                        "description": raw.get('description') or raw.get('notes'),
+                        "category": raw.get('category'),
+                        "priority": raw.get('priority'),
+                        "status": status or state,
+                        "state": state,
+                        "awarded": awarded_flag,
+                        "awarded_at": awarded_at,
+                        "points": parse_int(raw.get('points') or raw.get('value')) or 0,
+                        "tags": tags,
+                        "created": raw.get('created') or raw.get('date_created'),
+                        "updated": raw.get('updated') or raw.get('last_updated'),
+                    })
+                total = len(items)
+                awarded = sum(1 for r in items if r.get('state') == 'awarded')
+                archived = sum(1 for r in items if r.get('state') == 'archived')
+                pending = total - awarded - archived
+                counts = {
+                    "total": total,
+                    "awarded": awarded,
+                    "archived": archived,
+                    "pending": pending,
+                }
+                self._write_json(200, {"ok": True, "achievements": items, "counts": counts})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Achievements error: {e}"})
+            return
+        if parsed.path == "/api/commitments":
+            try:
+                from Modules.ItemManager import list_all_items
+                from Modules.Commitment import main as CommitmentModule  # type: ignore
+                commitments = list_all_items('commitment') or []
+                today_str = datetime.now().strftime('%Y-%m-%d')
+                out = []
+                met_count = 0
+                violation_count = 0
+                for raw in commitments:
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get('name') or 'Commitment')
+                    freq = raw.get('frequency') if isinstance(raw.get('frequency'), dict) else None
+                    assoc = raw.get('associated_items') if isinstance(raw.get('associated_items'), list) else []
+                    forb = raw.get('forbidden_items') if isinstance(raw.get('forbidden_items'), list) else []
+                    times = int(freq.get('times') or 0) if freq else 0
+                    period = str(freq.get('period') or 'week').lower() if freq else None
+                    progress = 0
+                    if freq and assoc:
+                        for it in assoc:
+                            if not isinstance(it, dict):
+                                continue
+                            t = str(it.get('type') or '').strip()
+                            n = str(it.get('name') or '').strip()
+                            if not t or not n:
+                                continue
+                            try:
+                                dates = CommitmentModule._get_completion_dates(t, n)
+                                progress += CommitmentModule._count_in_period(dates, period or 'week')
+                            except Exception:
+                                continue
+                    met = bool(freq and times > 0 and progress >= times)
+                    violation = False
+                    if raw.get('never') and forb:
+                        for it in forb:
+                            if not isinstance(it, dict):
+                                continue
+                            t = str(it.get('type') or '').strip()
+                            n = str(it.get('name') or '').strip()
+                            if not t or not n:
+                                continue
+                            try:
+                                dates = CommitmentModule._get_completion_dates(t, n)
+                                if today_str in (dates or []):
+                                    violation = True
+                                    break
+                            except Exception:
+                                continue
+                    state = 'violation' if violation else ('met' if met else 'pending')
+                    if state == 'met':
+                        met_count += 1
+                    elif state == 'violation':
+                        violation_count += 1
+                    out.append({
+                        "name": name,
+                        "description": raw.get('description') or raw.get('notes'),
+                        "frequency": freq,
+                        "period": period or 'week',
+                        "times_required": times,
+                        "progress": progress,
+                        "associated": assoc,
+                        "forbidden": forb,
+                        "never": bool(raw.get('never')),
+                        "triggers": raw.get('triggers'),
+                        "status": state,
+                        "met": met,
+                        "violation": violation,
+                        "last_met": raw.get('last_met'),
+                        "last_violation": raw.get('last_violation'),
+                    })
+                counts = {
+                    "total": len(out),
+                    "met": met_count,
+                    "violations": violation_count,
+                    "pending": len(out) - met_count - violation_count,
+                }
+                self._write_json(200, {"ok": True, "commitments": out, "counts": counts})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Commitments error: {e}"})
+            return
+        if parsed.path == "/api/milestones":
+            try:
+                from Modules.Milestone import main as MilestoneModule  # type: ignore
+                from Modules.ItemManager import list_all_items
+                try:
+                    MilestoneModule.evaluate_and_update_milestones()
+                except Exception:
+                    pass
+                rows = list_all_items('milestone') or []
+                items = []
+                status_counts = {'total':0,'completed':0,'in_progress':0,'pending':0}
+                for raw in rows:
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get('name') or '').strip()
+                    if not name:
+                        continue
+                    prog = raw.get('progress') if isinstance(raw.get('progress'), dict) else {}
+                    percent = float(prog.get('percent') or 0)
+                    current = prog.get('current')
+                    target = prog.get('target')
+                    status = (raw.get('status') or 'pending').lower()
+                    if status not in status_counts:
+                        status_counts[status] = 0
+                    status_counts['total'] += 1
+                    if status == 'completed':
+                        status_counts['completed'] += 1
+                    elif status == 'in-progress':
+                        status_counts['in_progress'] += 1
+                    else:
+                        status_counts['pending'] += 1
+                    items.append({
+                        "name": name,
+                        "goal": raw.get('goal'),
+                        "status": status,
+                        "priority": raw.get('priority'),
+                        "category": raw.get('category'),
+                        "due_date": raw.get('due_date') or raw.get('due'),
+                        "progress_percent": percent,
+                        "progress_current": current,
+                        "progress_target": target,
+                        "weight": raw.get('weight'),
+                        "completed_at": raw.get('completed'),
+                        "criteria": raw.get('criteria'),
+                        "triggers": raw.get('triggers'),
+                    })
+                self._write_json(200, {"ok": True, "milestones": items, "counts": status_counts})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Milestones error: {e}"})
             return
         if parsed.path == "/api/goal":
             try:
@@ -760,7 +1092,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         date_str = str(arr[0])
                 # Default to today
                 if not date_str:
-                    from datetime import datetime
                     date_str = datetime.now().strftime('%Y-%m-%d')
                 comp_dir = os.path.join(ROOT_DIR, 'User', 'Schedules', 'completions')
                 comp_path = os.path.join(comp_dir, f"{date_str}.yml")
@@ -782,9 +1113,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/today":
             # Return simplified blocks for today's schedule as YAML { ok, blocks }
             user_dir = os.path.join(ROOT_DIR, 'User')
-            sched_path = os.path.join(user_dir, 'Schedules', 'today_schedule.yml')
-            if not os.path.exists(sched_path):
-                self._write_yaml(404, {"ok": False, "error": "today_schedule.yml not found"})
+            candidate_paths = [
+                os.path.join(user_dir, 'Schedules', 'today_schedule.yml'),
+                os.path.join(user_dir, 'today_schedule.yml'),
+            ]
+            sched_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+            if not sched_path:
+                self._write_yaml(404, {"ok": False, "error": "today_schedule.yml not found", "paths_tried": candidate_paths})
                 return
             try:
                 with open(sched_path, 'r', encoding='utf-8') as f:
@@ -975,6 +1310,34 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._write_yaml(status, {"ok": ok, "stdout": out, "stderr": err})
             return
 
+        if parsed.path == "/api/cockpit/matrix/presets":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Preset payload must be a map"}); return
+                save_matrix_preset(payload)
+                self._write_json(200, {"ok": True})
+            except ValueError as e:
+                self._write_json(400, {"ok": False, "error": str(e)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Preset save failed: {e}"})
+            return
+
+        if parsed.path == "/api/cockpit/matrix/presets/delete":
+            try:
+                name = (payload.get('name') or '').strip() if isinstance(payload, dict) else ''
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing preset name"}); return
+                removed = delete_matrix_preset(name)
+                if not removed:
+                    self._write_json(404, {"ok": False, "error": "Preset not found"})
+                else:
+                    self._write_json(200, {"ok": True})
+            except ValueError as e:
+                self._write_json(400, {"ok": False, "error": str(e)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Preset delete failed: {e}"})
+            return
+
         if parsed.path == "/api/vars":
             # Payload YAML: { set: {k:v}, unset: [k1,k2] }
             try:
@@ -1032,6 +1395,106 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             ok, out, err = run_console_command("new", ["note", name, *prop_tokens])
             status = 200 if ok else 500
             self._write_yaml(status, {"ok": ok, "stdout": out, "stderr": err})
+            return
+        if parsed.path == "/api/reward/redeem":
+            name = (payload.get('name') or '').strip() if isinstance(payload, dict) else ''
+            if not name:
+                self._write_json(400, {"ok": False, "error": "Missing reward name"})
+                return
+            props = payload.get('properties') if isinstance(payload, dict) else None
+            args = ["reward", name]
+            if isinstance(props, dict):
+                for k, v in props.items():
+                    if v is None:
+                        continue
+                    if isinstance(v, bool):
+                        v_str = "true" if v else "false"
+                    elif isinstance(v, (list, tuple)):
+                        v_str = ", ".join(str(x) for x in v)
+                    else:
+                        v_str = str(v)
+                    args.append(f"{k}:{v_str}")
+            ok, out, err = run_console_command("redeem", args)
+            status = 200 if ok else 500
+            body = {"ok": ok, "stdout": out, "stderr": err}
+            try:
+                from Utilities import points as Points
+                body["balance"] = Points.get_balance()
+            except Exception:
+                pass
+            self._write_json(status, body)
+            return
+        if parsed.path == "/api/achievement/update":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                name = (payload.get('name') or '').strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing achievement name"}); return
+                fields = payload.get('fields') if isinstance(payload.get('fields'), dict) else {}
+                award_now = bool(payload.get('award_now'))
+                archive_now = bool(payload.get('archive') or payload.get('archive_now'))
+                if not fields and not award_now and not archive_now:
+                    self._write_json(400, {"ok": False, "error": "Nothing to update"}); return
+                from Modules.ItemManager import read_item_data, write_item_data
+                data = read_item_data('achievement', name)
+                if not data:
+                    self._write_json(404, {"ok": False, "error": "Achievement not found"}); return
+                updated = dict(data)
+                for k, v in fields.items():
+                    if k is None:
+                        continue
+                    updated[str(k).lower()] = v
+                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                if award_now:
+                    updated['awarded'] = True
+                    if not updated.get('awarded_at'):
+                        updated['awarded_at'] = now
+                    updated['status'] = 'awarded'
+                if archive_now:
+                    updated['status'] = 'archived'
+                    updated['archived'] = True
+                write_item_data('achievement', name, updated)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Achievement update failed: {e}"})
+            return
+        if parsed.path == "/api/milestone/update":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                name = (payload.get('name') or '').strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing milestone name"}); return
+                action = (payload.get('action') or '').strip().lower()
+                fields = payload.get('fields') if isinstance(payload.get('fields'), dict) else {}
+                from Modules.ItemManager import read_item_data, write_item_data
+                data = read_item_data('milestone', name)
+                if not data:
+                    self._write_json(404, {"ok": False, "error": "Milestone not found"}); return
+                updated = dict(data)
+                for k, v in fields.items():
+                    if k is None:
+                        continue
+                    updated[str(k).lower()] = v
+                if action == 'complete':
+                    updated['status'] = 'completed'
+                    updated['completed'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    prog = updated.get('progress') if isinstance(updated.get('progress'), dict) else {}
+                    prog['percent'] = 100
+                    if 'current' in prog and 'target' in prog:
+                        prog['current'] = prog['target']
+                    updated['progress'] = prog
+                elif action == 'reset':
+                    updated['status'] = 'pending'
+                    prog = updated.get('progress') if isinstance(updated.get('progress'), dict) else {}
+                    prog['percent'] = min(float(prog.get('percent') or 0), 99)
+                    updated['progress'] = prog
+                    updated.pop('completed', None)
+                write_item_data('milestone', name, updated)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Milestone update failed: {e}"})
             return
         if parsed.path == "/api/file/read":
             try:
@@ -1154,11 +1617,20 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not item_type or not name:
                     self._write_yaml(400, {"ok": False, "error": "Missing type or name"}); return
                 props = payload.get('properties') if isinstance(payload.get('properties'), dict) else None
-                if props is None:
+                content_yaml = payload.get('content') if isinstance(payload.get('content'), str) else None
+                if props is not None:
+                    data = {k: v for k, v in props.items()}
+                elif content_yaml is not None:
+                    try:
+                        parsed_yaml = yaml.safe_load(content_yaml) or {}
+                        data = parsed_yaml if isinstance(parsed_yaml, dict) else {"content": content_yaml}
+                    except Exception:
+                        data = {"content": content_yaml}
+                else:
                     # Treat payload itself as the item map
                     data = payload
-                else:
-                    data = {k: v for k, v in props.items()}
+                # Ensure canonical fields are present/updated
+                if isinstance(data, dict):
                     data['name'] = name
                     data['type'] = item_type
                 from Modules.ItemManager import write_item_data
@@ -1448,6 +1920,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "status": st})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer stop error: {e}"})
+            return
+        if parsed.path == "/api/timer/cancel":
+            try:
+                from Modules.Timer import main as Timer
+                st = Timer.cancel_timer()
+                self._write_json(200, {"ok": True, "status": st})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Timer cancel error: {e}"})
+            return
+        if parsed.path == "/api/listener/start":
+            try:
+                global _LISTENER_PROC
+                if _LISTENER_PROC and _LISTENER_PROC.poll() is None:
+                    self._write_json(200, {"ok": True, "status": "already running"}); return
+                py = sys.executable or "python"
+                listener_path = os.path.join(ROOT_DIR, 'Modules', 'Listener', 'Listener.py')
+                _LISTENER_PROC = subprocess.Popen([py, listener_path], cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self._write_json(200, {"ok": True, "status": "started"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Listener start error: {e}"})
             return
 
         self._write_yaml(404, {"ok": False, "error": "Unknown endpoint"})

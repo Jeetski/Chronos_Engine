@@ -1,0 +1,124 @@
+Tasks
+
+- Estimates: Planned vs actual minutes; auto-trim or slip rules.
+- States: start/pause/finish; auto-bump priority if overdue.
+- Dependencies: soft/hard predecessors; block scheduling until
+ready.
+- Effort profile: energy/focus requirements to drive
+status-aware ranking.
+- Work windows: preferred times (“creative mornings”, “admin
+afternoons”).
+
+Habits
+
+- Streak engine: grace days, streak‑freeze, skip vs fail
+semantics.
+- Targets: per-day counts (e.g., 3× hydrate) and weekly quotas.
+- Ramp rules: progressive overload (e.g., +5m/week), deload
+weeks.
+- Miss recovery: “bounce back” logic that tapers duration/
+priority post-failure.
+- Habit stacking: attach habit to routine anchors for sticky
+scheduling.
+
+Routines/Subroutines/Microroutines
+
+- Variants: “weekday”, “travel”, “low‑energy” profiles
+auto-selected by status.
+- Parallel semantics: explicit lanes (e.g., audio + chore) with
+cap limits.
+- Buffer policy: embed micro-buffers between microroutines,
+global buffers between blocks.
+- Rollup: parent duration = explicit vs span-of-children with
+safeguards.
+
+Projects
+
+- Rollups: aggregate progress from tasks; burn‑down/burn‑up
+metrics.
+- Scopes: milestones, risk flags, critical path awareness for
+scheduling.
+- Modes: deep-work intensity suggestion based on project type.
+
+Goals/Milestones
+
+- Alignment: goals influence priority score (OKRs/areas).
+- Deadline pressure: non-linear importance curve as due date
+approaches.
+- Review cadence: prompt weekly/monthly goal reviews via today
+reschedule.
+
+Appointments
+
+- Timezones: auto-shift for travel; daylight saving safe.
+- Travel time: pre/post buffers based on Place distance.
+- Prep/follow‑up: auto-insert prep tasks and debrief notes.
+
+Reminders/Alarms
+
+- Snooze strategies: fixed, exponential, or contextual (avoid
+meetings).
+- Smart mute: auto-silence in deep work or appointments.
+- Scripts: before/after hooks (run a .chs when firing/
+dismissed).
+
+Notes/Journal Entries
+
+- Meeting notes: link to appointment; auto-suggest action items
+as tasks.
+- Templates: standups, week reviews, project logs with rollup
+extraction.
+- Sentiment/tagging: feed status or priority signals.
+
+Plans/Lists
+
+- Checklists: weighted items and completion scoring.
+- Packing kits: combine Places + Tools with occasion-based
+variants.
+
+People/Places
+
+- Context costs: switching cost penalties by Place/Environment.
+- Social commitments: follow-ups after meetings; last-contact
+recency nudges.
+
+Tools/Inventory
+
+- Availability windows: block tasks when tool not available.
+- Maintenance: recurring tasks for calibration/refills.
+
+Days/Weeks
+
+- Day energy profile: morning/evening chronotypes adjust item
+rankings.
+- Thematic days: “Admin Tuesday,” “Maker Wednesday” guiding
+default priorities.
+
+Engine Hooks (cross-cutting)
+
+- Importance model: per-type weighting and property‑based boosts
+(deadline, impact, status match).
+- Conflict policy: per-type strategies (trim task before cutting
+habit; never trim appointments).
+- Dynamic duration: tasks shorten when low energy; routines
+expand with buffers when stressed.
+- Parallel caps: type‑based max concurrent items (e.g., 1
+cognitive + 1 passive).
+- Completion semantics: single‑shot vs repeating vs streaked.
+
+Command Extensions (examples)
+
+- task: start/stop, estimate , log , split, defer .
+- habit: skip today, reset streak, set target_count:.
+- routine: use variant , activate/deactivate, promote to day.
+- project: rollup, risk:set <low/med/high>, focus-window
+HH:MM-HH:MM (HH:MM-HH:MM).
+- appointment: add travel from , prep:, followup:.
+
+Data Model Enhancements
+
+- Common: effort:{energy,focus}, impact, deadline, window,
+buffers, depends_on.
+- Habit: target_count, grace_days, streak_policy, ramp.
+- Appointment: timezone, place, travel_time_rule.
+- Routine: variant, parallel_lanes, buffer_policy.

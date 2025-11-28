@@ -1,7 +1,7 @@
 export function mount(el, context){
   const css = `
     .term { display:flex; flex-direction:column; gap:8px; height:100%; }
-    .screen { flex:1; background:#0b0f16; color:#e6e8ef; border:1px solid #222835; border-radius:8px; padding:8px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; }
+    .screen { flex:1; min-height:160px; max-height:340px; background:#0b0f16; color:#e6e8ef; border:1px solid #222835; border-radius:8px; padding:8px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
     .prompt { display:flex; gap:6px; align-items:center; }
     .who { color:#7aa2f7; }
     .in { flex:1; background:#0f141d; color:#e6e8ef; border:1px solid #222835; border-radius:6px; padding:6px 8px; }

@@ -61,8 +61,9 @@ Items and hierarchy
 - Items live as single YAML files. Many items can nest other items (the "fractal" structure).
 
 Status-aware scheduling
-- `today reschedule` builds a schedule from templates and current status (energy, focus, emotion, etc.).
-- Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, and marking update the plan.
+- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `User/Settings/Status_Settings.yml`, scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
+- `today reschedule` rebuilds the day with those signals, boosts blocks whose tags match the current state, and automatically re-queues missed-but-important blocks (with a summary of what moved) instead of leaving them stuck in the past.
+- Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, marking, and `did` entries all update the plan.
 
 Scripts and conditions
 - `.chs` scripts can run CLI commands with variables and conditionals (`if/elseif/else/end`).
@@ -77,21 +78,24 @@ Entry points
 - Windows: run `console_launcher.bat` or `console_launcher.ps1`.
 - Direct: `python Modules/Console.py <command ...>`
 
-Common commands
-- `help` — list all commands and usage.
-- `new <type> <name> [k:v ...]` — create new items (defaults apply from settings).
-- `edit <type> <name> [editor:...]` — open item file in your editor.
-- `list <type> [sort_by:prop] [reverse_sort:true]` — list items.
-- `find <type> <keyword> [k:v ...]` — search items.
-- `set <type> <name> prop:value [...]` — set properties on an item.
-- `append <type> <name> "text"` — append content.
-- `delete [-f] <type> <name>` — delete with confirmation unless forced.
-- `today` / `today reschedule` — display or regenerate today’s schedule.
-- `trim <item> <minutes>` — reduce a scheduled item’s duration.
-- `change <item> <HH:MM>` — change an item’s start time (today).
-- `mark <item>:<status>` — mark status in today’s schedule (e.g., completed).
-- `status [k:v]` — view/set status variables (energy, focus, etc.).
-- `points balance|add|subtract|history` — view or change points and history.
+Common commands (all item types now share the same verbs via `handle_command`)
+- `help` — list commands and usage.
+- `new|create <type> <name> [k:v ...]` — create any item (tasks, commitments, rewards, achievements, goals, milestones, etc.). Defaults merge from `User/Settings/<type>_defaults.yml`.
+- `append <type> <name> "text"` / `set <type> <name> prop:value [...]` / `remove <type> <name> prop` — edit YAML content without leaving the CLI.
+- `list <type> [filters] [then <command> ...]`, `find <type> keyword [filters]`, `count <type> [filters]` — inspect collections; piped commands automatically receive the current type/name.
+- `delete [-f] <type> <name>`, `copy`, `rename`, `move type:<new_type>` — manage item files.
+- `view|info|track <type> <name>` — display summaries (`track goal`, `track milestone`, `view commitment`, `view reward`, etc.).
+- `commitments check` — evaluate frequency/never rules and fire triggers (scripts, rewards, achievements).
+- `redeem reward "<name>" [reason:...]` — apply reward cost/cooldown and perform its target action.
+- `today`, `today reschedule`, `trim`, `change`, `cut`, `mark <item>:<status>` — modify today’s schedule.
+- `did "<block>" [start_time:HH:MM] [end_time:HH:MM] [status:completed|skipped|partial]` — log actuals so completions, dashboards, and reschedules stay aligned.
+- `tomorrow [days:n]`, `this <weekday>`, `next <weekday>` — preview upcoming agendas using the same scheduler that powers `today`, handy for planning travel weeks or weekends.
+- `status [k:v ...]` — view or set energy/focus/mood/stress values that influence scheduling.
+- `timer start <profile> [bind_type:task bind_name:"Name"]`, `timer pause|resume|stop|cancel` — run focus sessions bound to items if desired.
+- `points balance|history|add|subtract` — inspect or adjust the points ledger.
+- `settings <file_shortcut> key value` — mutate `User/Settings/*.yml` files safely.
+- Listener & reminders: `listener start|stop`, `dismiss|snooze|skip <alarm>`.
+- Templates & variables: `template ...`, `filter ...`, `variables` via dashboard or CLI helper commands.
 
 Variables
 - The console seeds `@nickname` from `User/Profile/profile.yml`. Use in scripts/messages.
@@ -103,26 +107,25 @@ Server
 - Serves assets and provides JSON/YAML endpoints (see Dashboard API guide).
 
 UI
-- `Utilities/Dashboard/dashboard.html` + `app.js` load views & widgets.
-- Current widgets: Clock, Notes, Status, Timer, Goals, Item Manager, Journal, Profile, Review, Settings.
+- `Utilities/Dashboard/dashboard.html` + `app.js` load all views and widgets.
+- Views:
+  - **Calendar** (year/month/week/day canvas, draggable overlay for zoom/level/tool controls). Selecting a block in Day view targets Today widget actions.
+  - **Template Builder** (drag/drop week/day/routine trees with duration badges, nesting inspector, and POST `/api/template` saves).
+- **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree) and the new **Matrix** (pivot-style grid for Chronos data) can be arranged into a personal flight deck, with more panels on the way.
+- Widgets: Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 
-Selected endpoints
-- `GET /health` — basic server health YAML.
-- `GET /api/today` — YAML blocks for calendar (start/end/text/type/depth/is_parallel/order).
-- `POST /api/today/reschedule` — triggers `today reschedule` via CLI pipeline.
-- `POST /api/cli` — run CLI commands via YAML payload: `{ command, args: [], properties: {} }`.
-- `GET /api/items?type=<type>&q=<substr>&props=key:val,...` — list items (filtered).
-- `GET /api/item?type=<type>&name=<name>` — fetch full item YAML (JSON response).
-- `POST /api/item` — create/update item from payload map or named `properties`.
-- `POST /api/item/copy|rename|delete` — basic item management.
-- `POST /api/items/delete|setprop|copy|export` — bulk operations.
-- `GET /api/habits` — habit snapshot with streaks and today status.
-- `GET /api/goals` / `GET /api/goal?name=...` — goal summaries and details.
+Selected endpoints (JSON unless noted)
+- Health: `GET /health`.
+- Today: `GET /api/today`, `POST /api/today/reschedule`.
+- CLI Bridge: `POST /api/cli` (`{ command, args: [], properties: {} }`).
+- Items: `GET /api/items`, `GET /api/item`, `POST /api/item`, `POST /api/item/copy|rename|delete`, bulk `POST /api/items/delete|setprop|copy|export`.
+- Habits & Goals: `GET /api/habits`, `GET /api/goals`, `GET /api/goal?name=...`.
+- Commitments & Milestones: `GET /api/commitments`, `GET /api/milestones`, `POST /api/milestone/update`.
+- Rewards & Points: `GET /api/points`, `GET /api/rewards`, `POST /api/reward/redeem`.
+- Achievements: `GET /api/achievements`, `POST /api/achievement/update`.
 - Timer: `GET /api/timer/status|profiles|settings`, `POST /api/timer/start|pause|resume|stop`.
-- Settings:
-  - `GET /api/settings` -> `{ ok, files: [] }` from `User/Settings/`.
-  - `GET /api/settings?file=Name.yml` -> `{ ok, file, content }`.
-  - `POST /api/settings?file=Name.yml` (Content-Type: text/yaml body) -> writes file (validates YAML, preserves formatting).
+- Variables/Theme/Profile: `GET /api/vars`, `POST /api/vars`, `POST /api/vars/expand`, `GET /api/profile`, `GET /api/theme?name=...`.
+- Settings: `GET /api/settings`, `GET /api/settings?file=Name.yml`, `POST /api/settings?file=Name.yml` (raw YAML preserved after validation).
 
 ## Profile file path
 - Canonical path: `User/Profile/profile.yml`.

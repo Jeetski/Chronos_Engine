@@ -2,8 +2,8 @@ import os
 import yaml
 from datetime import datetime, timedelta
 from Modules.ItemManager import (
-    generic_handle_new, read_item_data, write_item_data, open_item_in_editor,
-    get_item_path
+    generic_handle_new, generic_handle_append, generic_handle_delete,
+    read_item_data, write_item_data, open_item_in_editor, get_item_path
 )
 
 ITEM_TYPE = "reward"
@@ -14,13 +14,33 @@ def handle_new(name, properties):
     generic_handle_new(ITEM_TYPE, name, properties)
 
 
-def handle_command(command, item_type, item_name, _text, properties):
-    if command == 'redeem':
+def handle_command(command, item_type, item_name, text_to_append, properties):
+    """Route reward commands. Supports generic item lifecycle commands plus redeem/info."""
+    normalized = (command or '').strip().lower()
+
+    if normalized in ('new', 'create'):
+        generic_handle_new(item_type, item_name, properties)
+        return
+
+    if normalized == 'append':
+        if not text_to_append:
+            print("Info: Nothing to append. Provide text after the reward name.")
+            return
+        generic_handle_append(item_type, item_name, text_to_append, properties)
+        return
+
+    if normalized == 'delete':
+        generic_handle_delete(item_type, item_name, properties)
+        return
+
+    if normalized in ('redeem', 'complete'):
         _redeem_reward(item_name, properties)
         return
-    if command == 'info' or command == 'view':
+
+    if normalized in ('info', 'view', 'track'):
         _info_reward(item_name)
         return
+
     print(f"Unsupported command for reward: {command}")
 
 

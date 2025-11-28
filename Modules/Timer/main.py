@@ -132,6 +132,7 @@ def pause_timer():
     if st.get('status') != 'running':
         return st
     st['status'] = 'paused'
+    st['last_tick'] = _now_str()
     _save_state(st)
     return st
 
@@ -152,12 +153,34 @@ def stop_timer():
         # finalize current partial session
         _finalize_current_phase(st, final=True)
     st['status'] = 'idle'
+    st['remaining_seconds'] = 0
+    st['current_phase'] = None
+    st['last_tick'] = _now_str()
+    _save_state(st)
+    return st
+
+
+def cancel_timer():
+    st = _load_state()
+    # do not log/award; just reset
+    st = {
+        'status': 'idle',
+        'profile_name': None,
+        'profile': {},
+        'current_phase': None,
+        'remaining_seconds': 0,
+        'cycle_index': 0,
+        'cycles_goal': None,
+        'auto_advance': True,
+        'bound_item': None,
+        'last_tick': _now_str(),
+    }
     _save_state(st)
     return st
 
 
 def status():
-    return _load_state()
+    return auto_tick()
 
 
 def profiles_list():
@@ -358,18 +381,51 @@ def tick():
     st = _load_state()
     if st.get('status') != 'running':
         return
-    # Decrement
-    rem = max(0, int(st.get('remaining_seconds') or 0) - 1)
-    st['remaining_seconds'] = rem
+    _tick_seconds(st, 1)
+
+
+def _seconds_since(ts: str | None) -> int:
+    if not ts:
+        return 0
+    try:
+        dt = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
+        delta = datetime.now() - dt
+        return max(0, int(delta.total_seconds()))
+    except Exception:
+        return 0
+
+
+def _tick_seconds(st: dict, seconds: int):
+    if st.get('status') != 'running':
+        return st
+    remaining = max(0, int(st.get('remaining_seconds') or 0))
+    left = max(0, int(seconds))
+    while left > 0 and st.get('status') == 'running':
+        if remaining > left:
+            remaining -= left
+            left = 0
+            break
+        # consume the current phase
+        left -= remaining
+        remaining = 0
+        _finalize_current_phase(st, final=False)
+        if not bool(st.get('auto_advance', True)):
+            st['status'] = 'paused'
+            st['remaining_seconds'] = 0
+            _save_state(st)
+            return st
+        _advance_phase(st)
+        remaining = max(0, int(st.get('remaining_seconds') or 0))
+        # if remaining==0 loop continues to avoid stuck state
+    st['remaining_seconds'] = remaining
+    st['last_tick'] = _now_str()
     _save_state(st)
-    if rem > 0:
-        return
-    # Phase ended
-    _finalize_current_phase(st, final=False)
-    if not bool(st.get('auto_advance', True)):
-        # Pause at phase boundary
-        st['status'] = 'paused'
-        _save_state(st)
-        return
-    _advance_phase(st)
-    _save_state(st)
+    return st
+
+
+def auto_tick():
+    st = _load_state()
+    if st.get('status') != 'running':
+        return st
+    delta = _seconds_since(st.get('last_tick')) or 1
+    return _tick_seconds(st, delta)
