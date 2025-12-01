@@ -48,6 +48,7 @@
           <strong>Template</strong>
           <select id="tplType">
             <option value="goal">goal</option>
+            <option value="project">project</option>
             <option value="routine">routine</option>
             <option value="subroutine">subroutine</option>
             <option value="microroutine">microroutine</option>
@@ -136,6 +137,76 @@
   const btnDel = el.querySelector('#btnDel');
   const btnUp = el.querySelector('#btnUp');
   const btnDown = el.querySelector('#btnDown');
+  // Project-specific inspector fields
+  const dependsRow = propDepends?.parentElement;
+  let projectLinkRow = null;
+  let projectStageRow = null;
+  let projectNotesRow = null;
+  let propProjectLink = null;
+  let propProjectStage = null;
+  let propProjectDue = null;
+  let propProjectNotes = null;
+  if (dependsRow){
+    projectLinkRow = document.createElement('div');
+    projectLinkRow.className = 'row project-meta';
+    projectLinkRow.style.marginTop = '8px';
+    projectLinkRow.style.gap = '6px';
+    const label = document.createElement('label');
+    label.style.width = '100px';
+    label.textContent = 'Link mode';
+    const select = document.createElement('select');
+    select.id = 'propProjectLink';
+    select.className = 'input';
+    const optCreate = document.createElement('option');
+    optCreate.value = 'create';
+    optCreate.textContent = 'Create new';
+    const optLink = document.createElement('option');
+    optLink.value = 'link';
+    optLink.textContent = 'Link existing';
+    select.append(optCreate, optLink);
+    const dueLabel = document.createElement('label');
+    dueLabel.style.width = '80px';
+    dueLabel.textContent = 'Due';
+    const dueInput = document.createElement('input');
+    dueInput.id = 'propProjectDue';
+    dueInput.className = 'input';
+    dueInput.placeholder = 'YYYY-MM-DD';
+    projectLinkRow.append(label, select, dueLabel, dueInput);
+    dependsRow.insertAdjacentElement('afterend', projectLinkRow);
+    propProjectLink = select;
+    propProjectDue = dueInput;
+
+    projectStageRow = document.createElement('div');
+    projectStageRow.className = 'row project-meta';
+    projectStageRow.style.marginTop = '6px';
+    projectStageRow.style.gap = '6px';
+    const stageLabel = document.createElement('label');
+    stageLabel.style.width = '100px';
+    stageLabel.textContent = 'Stage';
+    const stageInput = document.createElement('input');
+    stageInput.id = 'propProjectStage';
+    stageInput.className = 'input';
+    stageInput.placeholder = 'Phase or swimlane';
+    projectStageRow.append(stageLabel, stageInput);
+    projectLinkRow.insertAdjacentElement('afterend', projectStageRow);
+    propProjectStage = stageInput;
+
+    projectNotesRow = document.createElement('div');
+    projectNotesRow.className = 'row project-meta';
+    projectNotesRow.style.marginTop = '6px';
+    projectNotesRow.style.gap = '6px';
+    const notesLabel = document.createElement('label');
+    notesLabel.style.width = '100px';
+    notesLabel.textContent = 'Notes';
+    const notesInput = document.createElement('textarea');
+    notesInput.id = 'propProjectNotes';
+    notesInput.className = 'input';
+    notesInput.placeholder = 'Optional description';
+    notesInput.style.minHeight = '80px';
+    projectNotesRow.append(notesLabel, notesInput);
+    projectStageRow.insertAdjacentElement('afterend', projectNotesRow);
+    propProjectNotes = notesInput;
+  }
   // Add indent/outdent buttons near Up/Down
   const indentBtn = document.createElement('button'); indentBtn.className='btn'; indentBtn.textContent='>>'; indentBtn.title='Indent (make child of previous)';
   const outdentBtn = document.createElement('button'); outdentBtn.className='btn'; outdentBtn.textContent='<<'; outdentBtn.title='Outdent (lift to parent)';
@@ -170,6 +241,18 @@
   let expandFx = true;
   function maybeExpand(s){ try { if (!expandFx) return String(s||''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
   try { expandToggle?.addEventListener('change', ()=>{ expandFx = !!expandToggle.checked; renderTree(); renderTreeNested?.(); }); } catch {}
+  function refreshProjectInspectorVisibility(){
+    const isProject = String(tplType.value||'').toLowerCase() === 'project';
+    [projectLinkRow, projectStageRow, projectNotesRow].forEach(row=>{
+      if (row) row.style.display = isProject ? '' : 'none';
+    });
+    const durationRow = propDuration?.parentElement;
+    const startRow = propStart?.parentElement;
+    const endRow = propEnd?.parentElement;
+    if (durationRow) durationRow.style.display = isProject ? 'none' : '';
+    if (startRow) startRow.style.display = isProject ? 'none' : '';
+    if (endRow) endRow.style.display = isProject ? 'none' : '';
+  }
 
   function pathToArray(p){ if(!p) return []; return p.split('.').map(s=> parseInt(s,10)); }
   function getByPath(arr, path){
@@ -216,6 +299,7 @@
   function typeRank(t){
     const k = String(t||'').toLowerCase();
     if (k==='goal') return 2; // goal templates sit above milestone items
+    if (k==='project') return 2;
     if (k==='week') return 5;
     if (k==='day') return 4;
     if (k==='routine') return 3;
@@ -234,8 +318,9 @@
   // Allowed child types for a given parent template type
   function allowedChildTypesFor(parentType){
     const k = String(parentType||'').toLowerCase();
-    const leaves = ITEM_TYPES;
+    const leaves = ITEM_TYPES.filter(t => t !== 'project');
     if (k==='goal') return ['milestone'];
+    if (k==='project') return ['milestone', ...leaves.filter(t => t!=='milestone')];
     if (k==='week') return ['day','routine','subroutine','microroutine', ...leaves];
     if (k==='day') return ['routine','subroutine','microroutine', ...leaves];
     if (k==='routine') return ['subroutine','microroutine', ...leaves];
@@ -373,6 +458,7 @@
   }
 
   function syncInspector(){
+    refreshProjectInspectorVisibility();
     const ch = selPath ? getByPath(children, selPath).node : (selIdx>=0 ? children[selIdx] : null);
     if (!ch){ try{ propType.value=''; }catch{} try{ propName.value=''; }catch{} try{ if (typeof propMode!== 'undefined' && propMode) propMode.value='sequential'; }catch{} try{ propDuration.value=''; }catch{} try{ propStart.value=''; }catch{} try{ propEnd.value=''; }catch{} return; }
     // Constrain available types based on parent
@@ -396,6 +482,19 @@
       const stack=[{arr:children, base:''}];
       while(stack.length){ const {arr, base}=stack.pop(); (arr||[]).forEach((node, i)=>{ const p = base? base+'.'+i : String(i); if (p !== selPath){ const o=document.createElement('option'); o.value = node.name||''; o.textContent = `${node.name||''} (${node.type||''})`; if (dep.includes(String(node.name||''))) o.selected=true; propDepends.appendChild(o);} if(Array.isArray(node.children)&&node.children.length){ stack.push({arr:node.children, base:p}); } }); }
     } catch {}
+    if (propProjectLink){
+      const isProjectTpl = String(tplType.value||'').toLowerCase()==='project';
+      if (isProjectTpl){
+        propProjectLink.value = ch.link_existing ? 'link' : 'create';
+        if (propProjectStage) propProjectStage.value = ch.stage || '';
+        if (propProjectDue) propProjectDue.value = ch.due || ch.due_date || '';
+        if (propProjectNotes) propProjectNotes.value = ch.notes || '';
+      } else {
+        if (propProjectStage) propProjectStage.value = '';
+        if (propProjectDue) propProjectDue.value = '';
+        if (propProjectNotes) propProjectNotes.value = '';
+      }
+    }
   }
 
   const ITEM_TYPES = [
@@ -495,7 +594,7 @@
     // Ask app to show ItemManager widget and pulse it
     try { context?.bus?.emit('widget:show', 'ItemManager'); } catch {}
   });
-  tplType.addEventListener('change', loadNames);
+  tplType.addEventListener('change', ()=>{ refreshProjectInspectorVisibility(); loadNames(); });
   btnLoad.addEventListener('click', loadTemplate);
   btnSave.addEventListener('click', saveTemplate);
   // Normalize Up/Down glyphs and add Duplicate/Undo/Redo buttons
@@ -551,6 +650,28 @@
       const arr = Array.from(propDepends.selectedOptions).map(o=> String(o.value||'')).filter(Boolean);
       ch.depends_on = arr.length ? arr : undefined;
     } catch {}
+    if (String(tplType.value||'').toLowerCase()==='project'){
+      if (propProjectLink) {
+        ch.link_existing = String(propProjectLink.value||'create') === 'link';
+      }
+      if (propProjectStage) {
+        const v = String(propProjectStage.value||'').trim();
+        ch.stage = v || undefined;
+      }
+      if (propProjectDue) {
+        const v = String(propProjectDue.value||'').trim();
+        ch.due = v || undefined;
+      }
+      if (propProjectNotes) {
+        const v = String(propProjectNotes.value||'').trim();
+        ch.notes = v || undefined;
+      }
+    } else {
+      delete ch.link_existing;
+      delete ch.stage;
+      delete ch.due;
+      delete ch.notes;
+    }
     renderTreeNested();
   });
   btnDel.addEventListener('click', ()=>{ if(selPath){ removeAtPath(children, selPath); selPath=''; renderTreeNested(); syncInspector(); return;} if(selIdx<0) return; if(!confirm('Delete selected?')) return; children.splice(selIdx,1); selIdx = Math.min(selIdx, children.length-1); renderTreeNested(); syncInspector(); });
@@ -669,6 +790,7 @@
   // Init
   await loadLib();
   await loadNames();
+  refreshProjectInspectorVisibility();
   await loadTemplate();
   return {};
 }

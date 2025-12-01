@@ -1,6 +1,6 @@
-export function mount(el){
+export function mount(el, context){
   const tpl = `
-    <div class="header" id="twHeader">
+  <div class="header" id="twHeader">
       <div class="title">Timer</div>
       <div class="controls">
         <button class="icon-btn" id="twMin" title="Minimize">_</button>
@@ -8,6 +8,13 @@ export function mount(el){
       </div>
     </div>
     <div class="content" style="gap:10px;">
+      <div id="twBanner" style="display:none; border:1px solid rgba(122,162,247,0.5); background:rgba(42,92,255,0.08); border-radius:10px; padding:10px;">
+        <div id="twBannerText" style="font-weight:600; margin-bottom:6px;">Completed the current block?</div>
+        <div class="row" style="gap:8px;">
+          <button class="btn btn-primary" id="twBannerYes">Yes</button>
+          <button class="btn btn-secondary" id="twBannerNo">No</button>
+        </div>
+      </div>
       <div class="row" style="gap:8px; align-items:center;">
         <select id="twProfile" class="input" style="max-width:200px;"></select>
         <input id="twCycles" class="input" type="number" min="1" placeholder="cycles" style="max-width:90px;" />
@@ -21,6 +28,7 @@ export function mount(el){
       </div>
       <div class="row" style="gap:8px; align-items:center;">
         <button class="btn btn-primary" id="twStart">Start</button>
+        <button class="btn" id="twStartDay">Start Day</button>
         <button class="btn" id="twPause">Pause</button>
         <button class="btn" id="twResume">Resume</button>
         <button class="btn btn-secondary" id="twStop">Stop</button>
@@ -38,6 +46,8 @@ export function mount(el){
         <div style="height:10px; background:#0b0f16; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
           <div id="twBar" style="height:100%; width:0%; background:linear-gradient(90deg,#2a5cff,#7aa2f7);"></div>
         </div>
+        <div id="twBlockMeta" class="hint"></div>
+        <div id="twQueueMeta" class="hint"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -54,6 +64,7 @@ export function mount(el){
   const bindTypeEl = el.querySelector('#twBindType');
   const bindNameEl = el.querySelector('#twBindName');
   const startBtn = el.querySelector('#twStart');
+  const startDayBtn = el.querySelector('#twStartDay');
   const pauseBtn = el.querySelector('#twPause');
   const resumeBtn = el.querySelector('#twResume');
   const stopBtn = el.querySelector('#twStop');
@@ -64,8 +75,15 @@ export function mount(el){
   const statusEl = el.querySelector('#twStatus');
   const clockEl = el.querySelector('#twClock');
   const barEl = el.querySelector('#twBar');
+  const banner = el.querySelector('#twBanner');
+  const bannerText = el.querySelector('#twBannerText');
+  const bannerYes = el.querySelector('#twBannerYes');
+  const bannerNo = el.querySelector('#twBannerNo');
+  const blockMetaEl = el.querySelector('#twBlockMeta');
+  const queueMetaEl = el.querySelector('#twQueueMeta');
 
   let profiles = {};
+  let pendingConfirmation = null;
 
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -117,6 +135,23 @@ export function mount(el){
       phaseEl.textContent = `Phase: ${st.current_phase||'-'}`;
       cycleEl.textContent = `Cycle: ${st.cycle_index||0}`;
       clockEl.textContent = fmt(st.remaining_seconds||0);
+      const block = st.current_block;
+      if (block && blockMetaEl){
+        blockMetaEl.textContent = `Block: ${block.name || 'Block'} (${block.minutes || '?'}m)`;
+      } else if (blockMetaEl){
+        blockMetaEl.textContent = '';
+      }
+      if (queueMetaEl){
+        const sched = st.schedule_state || {};
+        const plan = sched.plan || {};
+        const total = Number(sched.total_blocks ?? (plan.blocks ? plan.blocks.length : 0));
+        const idx = Number(sched.current_index ?? 0);
+        if (total > 0){
+          queueMetaEl.textContent = `Schedule: block ${Math.min(total, idx + 1)} of ${total}`;
+        } else {
+          queueMetaEl.textContent = '';
+        }
+      }
       // Progress within current phase based on profile
       const prof = st.profile||{};
       let total = 1;
@@ -130,6 +165,14 @@ export function mount(el){
         resetDisplayForSelected();
       }
       updateButtons(st.status);
+      pendingConfirmation = st.pending_confirmation || null;
+      if (pendingConfirmation && pendingConfirmation.block && banner && bannerText){
+        const blk = pendingConfirmation.block;
+        bannerText.textContent = `Finished "${blk.name || 'this block'}"?`;
+        banner.style.display = '';
+      } else if (banner){
+        banner.style.display = 'none';
+      }
     } catch {}
   }
 
@@ -151,12 +194,15 @@ export function mount(el){
   btnMin.addEventListener('click', ()=> el.classList.toggle('minimized'));
   btnClose.addEventListener('click', ()=> { el.style.display='none'; });
   startBtn.addEventListener('click', start);
+  startDayBtn?.addEventListener('click', ()=> startDayRun());
   pauseBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/pause', { method:'POST' }); if(!r.ok) alert('Pause failed'); await status(); });
   resumeBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/resume', { method:'POST' }); if(!r.ok) alert('Resume failed'); await status(); });
   stopBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/stop', { method:'POST' }); if(!r.ok) alert('Stop failed'); await status(); });
   cancelBtn.addEventListener('click', async ()=>{ const r=await fetch(apiBase()+'/api/timer/cancel', { method:'POST' }); if(!r.ok) alert('Cancel failed'); await status(); resetDisplayForSelected(); });
   refreshBtn.addEventListener('click', status);
   profSel.addEventListener('change', ()=>{ try{localStorage.setItem('twProfile', profSel.value);}catch{} });
+  bannerYes?.addEventListener('click', ()=> confirmBlock(true));
+  bannerNo?.addEventListener('click', ()=> confirmBlock(false));
 
   function updateButtons(stStatus){
     const s = String(stStatus||'idle').toLowerCase();
@@ -168,6 +214,31 @@ export function mount(el){
     cancelBtn.disabled = !(running || paused);
   }
 
+  async function startDayRun(){
+    if (!startDayBtn || startDayBtn.disabled) return;
+    const prev = startDayBtn.textContent;
+    startDayBtn.disabled = true;
+    startDayBtn.textContent = 'Starting...';
+    try{
+      if (typeof window.ChronosStartDay === 'function'){
+        await window.ChronosStartDay({ source: 'timer-widget', target: 'day' });
+      } else {
+        const resp = await fetch(apiBase() + '/api/day/start', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ target: 'day' }) });
+        const data = await resp.json().catch(()=> ({}));
+        if (!resp.ok || data.ok === false){
+          throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
+        }
+      }
+      status();
+    } catch (err){
+      console.error('[Chronos][Timer] Start day failed', err);
+      alert(`Failed to start day: ${err?.message || err}`);
+    } finally {
+      startDayBtn.textContent = prev;
+      startDayBtn.disabled = false;
+    }
+  }
+
   function resetDisplayForSelected(){
     const p = profiles[profSel.value] || {};
     const sec = (p.focus_minutes ? Number(p.focus_minutes) : 25) * 60;
@@ -177,6 +248,26 @@ export function mount(el){
     cycleEl.textContent = 'Cycle: 0';
     barEl.style.width = '0%';
   }
+
+  async function confirmBlock(completed){
+    if (!pendingConfirmation) return;
+    try {
+      await fetch(apiBase()+'/api/timer/confirm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ completed }) });
+      pendingConfirmation = null;
+      await status();
+    } catch (err) {
+      console.error('[Chronos][Timer] confirm failed', err);
+      alert('Failed to send confirmation.');
+    }
+  }
+
+  function showWidget(){
+    el.style.display = '';
+    try { window.ensureWidgetInView?.(el); } catch {}
+  }
+
+  context?.bus?.on?.('timer:show', ()=> { showWidget(); status(); });
+  context?.bus?.on?.('timer:refresh', ()=> status());
 
   // Bootstrap
   loadProfiles().then(loadSettings).then(()=> status());

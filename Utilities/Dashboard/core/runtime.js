@@ -17,6 +17,7 @@ function createBus() {
 
 const bus = createBus();
 const context = { bus };
+try { window.ChronosBus = bus; } catch {}
 
 // ---- Global Vars: fetch/cache/expand ----
 const Vars = (()=>{

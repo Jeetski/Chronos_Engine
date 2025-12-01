@@ -60,6 +60,22 @@ def run(args, properties):
         print(f"Timer: {st.get('status')} | profile={st.get('profile_name')} | phase={st.get('current_phase')} | remaining={st.get('remaining_seconds')}s | cycle={st.get('cycle_index')}")
         return
 
+    if sub == 'confirm':
+        if len(args) < 2:
+            print(get_help_message())
+            return
+        answer = args[1].lower()
+        completed = answer in {'y', 'yes', 'done', 'complete'}
+        st = Timer.confirm_schedule_block(completed)
+        if st.get('pending_confirmation'):
+            print("Awaiting confirmation for the current block.")
+        else:
+            if completed:
+                print("Marked block as completed. Continuing.")
+            else:
+                print("Repeating current block.")
+        return
+
     if sub == 'profiles':
         if len(args) < 2:
             print(get_help_message())
@@ -111,6 +127,6 @@ def get_help_message():
 Usage:
   timer start <profile> [type:<item_type> name:<item_name>] [cycles:N] [auto_advance:true|false]
   timer pause | resume | stop | status
+  timer confirm yes|no
   timer profiles list | view <name> | save <name> [k:v ...] | delete <name>
 """
-

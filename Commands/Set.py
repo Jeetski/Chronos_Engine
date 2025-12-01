@@ -96,6 +96,23 @@ def run(args, properties):
                 pass
         return
 
+    if item_type == 'project':
+        if item_properties_to_set.get('template') is True:
+            data['is_template'] = True
+            item_properties_to_set.pop('template', None)
+
+        do_apply = bool(item_properties_to_set.get('apply') is True)
+        if 'apply' in item_properties_to_set:
+            item_properties_to_set.pop('apply', None)
+
+        data.update(item_properties_to_set)
+        write_item_data(item_type, item_name, data)
+        print(f"ƒo.. Properties of {item_type} '{item_name}' updated.")
+
+        if do_apply:
+            _apply_project_template(item_name)
+        return
+
     # Default path for other item types
     data.update(item_properties_to_set)
     write_item_data(item_type, item_name, data)
@@ -113,6 +130,10 @@ Example: set var my_variable:some_value
 Special (goals):
   set goal "<name>" template:true      # mark goal as a template
   set goal "<name>" apply:true         # instantiate milestones from template
+
+Special (projects):
+  set project "<name>" template:true   # treat project file as template
+  set project "<name>" apply:true      # instantiate linked items/milestones
 """
 
 
@@ -160,3 +181,85 @@ def _apply_goal_template(goal_name: str):
         created_count += 1
 
     print(f"✅. Applied goal template '{goal_name}': created {created_count} milestone(s).")
+
+
+
+def _apply_project_template(project_name: str):
+    data = read_item_data('project', project_name)
+    if not data:
+        print(f"??O Project '{project_name}' not found.")
+        return
+    nodes = data.get('children') or []
+    if not isinstance(nodes, list) or not nodes:
+        print(f"??O Project '{project_name}' has no template children.")
+        return
+
+    stats = {'created': 0, 'linked': 0, 'warnings': 0}
+
+    def _tag_item(existing: dict | None, item_type: str, item_name: str, node: dict):
+        payload = existing.copy() if isinstance(existing, dict) else {}
+        payload.setdefault('name', item_name)
+        payload.setdefault('type', item_type)
+        payload['project'] = project_name
+        notes = node.get('notes')
+        if notes:
+            payload.setdefault('description', notes)
+        if item_type == 'milestone':
+            payload.setdefault('status', 'pending')
+            payload.setdefault('progress', {'current': 0, 'target': 0, 'percent': 0})
+            if node.get('stage'):
+                payload['stage'] = node.get('stage')
+            if node.get('due'):
+                payload['due_date'] = node.get('due')
+        write_item_data(item_type, item_name, payload)
+
+    def _create_item(item_type: str, item_name: str, node: dict):
+        payload = {
+            'name': item_name,
+            'type': item_type,
+            'project': project_name,
+        }
+        if node.get('notes'):
+            payload['description'] = node.get('notes')
+        if item_type == 'task':
+            payload.setdefault('status', 'pending')
+        if item_type == 'milestone':
+            payload.setdefault('status', 'pending')
+            payload.setdefault('progress', {'current': 0, 'target': 0, 'percent': 0})
+            if node.get('stage'):
+                payload['stage'] = node.get('stage')
+            if node.get('due'):
+                payload['due_date'] = node.get('due')
+        write_item_data(item_type, item_name, payload)
+        stats['created'] += 1
+
+    def _ensure_node(node: dict):
+        item_type = str(node.get('type') or '').strip().lower()
+        item_name = str(node.get('name') or '').strip()
+        if not item_type or not item_name:
+            return
+        existing = read_item_data(item_type, item_name)
+        link_existing = bool(node.get('link_existing'))
+        if link_existing:
+            if not existing:
+                print(f"??O Cannot link '{item_name}' ({item_type}): item not found.")
+                stats['warnings'] += 1
+                return
+            _tag_item(existing, item_type, item_name, node)
+            stats['linked'] += 1
+        else:
+            if existing:
+                _tag_item(existing, item_type, item_name, node)
+                stats['linked'] += 1
+            else:
+                _create_item(item_type, item_name, node)
+
+        for child in node.get('children') or []:
+            if isinstance(child, dict):
+                _ensure_node(child)
+
+    for child in nodes:
+        if isinstance(child, dict):
+            _ensure_node(child)
+
+    print(f"?.. Applied project template '{project_name}': created {stats['created']} item(s), linked {stats['linked']} existing.")

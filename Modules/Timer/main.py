@@ -20,6 +20,7 @@ from Utilities import points as Points
 STATE_DIR = os.path.join(get_user_dir(), 'Timers')
 STATE_FILE = os.path.join(STATE_DIR, 'state.yml')
 SESSIONS_DIR = os.path.join(STATE_DIR, 'sessions')
+PLAN_FILE = os.path.join(STATE_DIR, 'start_day_plan.yml')
 PROFILES_FILE = os.path.join(get_user_dir(), 'Settings', 'Timer_Profiles.yml')
 SETTINGS_FILE = os.path.join(get_user_dir(), 'Settings', 'Timer_Settings.yml')
 
@@ -49,6 +50,27 @@ def _save_state(st):
     with open(STATE_FILE, 'w') as f:
         yaml.dump(st, f, default_flow_style=False)
 
+def _save_plan(plan):
+    _ensure_dirs()
+    with open(PLAN_FILE, 'w') as f:
+        yaml.dump(plan, f, default_flow_style=False)
+
+def _load_plan():
+    if not os.path.exists(PLAN_FILE):
+        return {}
+    try:
+        with open(PLAN_FILE, 'r') as f:
+            return yaml.safe_load(f) or {}
+    except Exception:
+        return {}
+
+def _clear_plan_file():
+    try:
+        if os.path.exists(PLAN_FILE):
+            os.remove(PLAN_FILE)
+    except OSError:
+        pass
+
 
 def _load_profiles():
     if not os.path.exists(PROFILES_FILE):
@@ -65,6 +87,16 @@ def _save_profiles(p):
     os.makedirs(os.path.dirname(PROFILES_FILE), exist_ok=True)
     with open(PROFILES_FILE, 'w') as f:
         yaml.dump(p, f, default_flow_style=False)
+
+def _load_settings():
+    if not os.path.exists(SETTINGS_FILE):
+        return {}
+    try:
+        with open(SETTINGS_FILE, 'r') as f:
+            data = yaml.safe_load(f) or {}
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
 
 def _default_profiles():
@@ -112,6 +144,7 @@ def start_timer(profile_name: str, *, bind_type: str | None = None, bind_name: s
 
     st = {
         'status': 'running',
+        'mode': 'profile',
         'profile_name': profile_name,
         'profile': prof,
         'current_phase': 'focus',
@@ -122,7 +155,56 @@ def start_timer(profile_name: str, *, bind_type: str | None = None, bind_name: s
         'auto_advance': bool(auto_advance),
         'bound_item': {'type': bind_type, 'name': bind_name} if bind_type and bind_name else None,
         'last_tick': _now_str(),
+        'schedule_state': None,
+        'pending_confirmation': None,
+        'confirm_completion': False,
+        'current_block': None,
     }
+    _save_state(st)
+    return st
+
+
+def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_completion: bool = True):
+    ensure_default_profiles()
+    if not isinstance(plan, dict) or not plan.get('blocks'):
+        raise ValueError("Plan must include at least one block.")
+
+    settings = _load_settings()
+    if not profile_name:
+        profile_name = settings.get('start_day_profile') or settings.get('default_profile') or 'classic_pomodoro'
+    profs = _load_profiles()
+    prof = profs.get(profile_name) or {}
+
+    blocks = plan.get('blocks') or []
+    first_block = blocks[0]
+    focus_sec = _block_minutes_value(first_block) * 60
+    schedule_state = {
+        'plan': plan,
+        'current_index': 0,
+        'completed_indices': [],
+        'total_blocks': len(blocks),
+        'plan_generated_at': plan.get('generated_at'),
+        'source': plan.get('source'),
+    }
+    st = {
+        'status': 'running',
+        'mode': 'schedule',
+        'profile_name': profile_name,
+        'profile': prof,
+        'current_phase': 'focus' if not first_block.get('is_buffer') else 'break',
+        'phase_start': _now_str(),
+        'remaining_seconds': focus_sec,
+        'cycle_index': 0,
+        'cycles_goal': None,
+        'auto_advance': True,
+        'bound_item': None,
+        'last_tick': _now_str(),
+        'schedule_state': schedule_state,
+        'pending_confirmation': None,
+        'confirm_completion': bool(confirm_completion),
+        'current_block': first_block,
+    }
+    _save_plan(plan)
     _save_state(st)
     return st
 
@@ -156,6 +238,10 @@ def stop_timer():
     st['remaining_seconds'] = 0
     st['current_phase'] = None
     st['last_tick'] = _now_str()
+    st['schedule_state'] = None
+    st['pending_confirmation'] = None
+    st['current_block'] = None
+    _clear_plan_file()
     _save_state(st)
     return st
 
@@ -174,7 +260,12 @@ def cancel_timer():
         'auto_advance': True,
         'bound_item': None,
         'last_tick': _now_str(),
+        'schedule_state': None,
+        'pending_confirmation': None,
+        'confirm_completion': False,
+        'current_block': None,
     }
+    _clear_plan_file()
     _save_state(st)
     return st
 
@@ -375,6 +466,102 @@ def _advance_phase(st):
         st['remaining_seconds'] = int(prof.get('focus_minutes', 25)) * 60
         st['phase_start'] = _now_str()
         _notify('Break Over', 'Focus started.', sound_filename=_phase_sound_name('break_end'))
+    # schedule-driven runs handle their own sequencing
+
+
+def _schedule_blocks(st):
+    sched = st.get('schedule_state') or {}
+    plan = sched.get('plan') or {}
+    blocks = plan.get('blocks') if isinstance(plan, dict) else None
+    if isinstance(blocks, list):
+        return blocks
+    return []
+
+
+def _begin_schedule_block(st, index):
+    blocks = _schedule_blocks(st)
+    sched = st.get('schedule_state') or {}
+    if index >= len(blocks):
+        _complete_schedule_run(st)
+        return False
+    block = blocks[index]
+    sched['current_index'] = index
+    st['schedule_state'] = sched
+    st['current_phase'] = 'focus' if not block.get('is_buffer') else 'break'
+    st['phase_start'] = _now_str()
+    st['remaining_seconds'] = _block_minutes_value(block) * 60
+    st['status'] = 'running'
+    st['current_block'] = block
+    st['pending_confirmation'] = None
+    _save_state(st)
+    return True
+
+
+def _complete_schedule_run(st):
+    st['status'] = 'idle'
+    st['current_phase'] = None
+    st['remaining_seconds'] = 0
+    st['current_block'] = None
+    st['pending_confirmation'] = None
+    st['schedule_state'] = None
+    _clear_plan_file()
+    _save_state(st)
+    _notify('Schedule Complete', 'All schedule blocks finished.', sound_filename=_phase_sound_name('focus_end'))
+
+
+def _handle_schedule_completion(st):
+    blocks = _schedule_blocks(st)
+    sched = st.get('schedule_state') or {}
+    idx = int(sched.get('current_index') or 0)
+    block = blocks[idx] if idx < len(blocks) else None
+    completed = sched.setdefault('completed_indices', [])
+    if idx not in completed:
+        completed.append(idx)
+    st['schedule_state'] = sched
+
+    next_index = idx + 1
+    if block and bool(st.get('confirm_completion')) and not block.get('is_buffer'):
+        st['pending_confirmation'] = {
+            'block_index': idx,
+            'next_index': next_index,
+            'block': block,
+            'prompted_at': _now_str(),
+        }
+        st['status'] = 'paused'
+        st['remaining_seconds'] = 0
+        _save_state(st)
+        return False
+
+    if next_index >= len(blocks):
+        _complete_schedule_run(st)
+        return False
+
+    return _begin_schedule_block(st, next_index)
+
+
+def confirm_schedule_block(completed: bool):
+    st = _load_state()
+    if st.get('mode') != 'schedule':
+        return st
+    pending = st.get('pending_confirmation')
+    if not pending:
+        return st
+
+    block_index = int(pending.get('block_index', 0))
+    next_index = int(pending.get('next_index', block_index + 1))
+    st['pending_confirmation'] = None
+
+    if completed:
+        blocks = _schedule_blocks(st)
+        if next_index >= len(blocks):
+            _complete_schedule_run(st)
+            return _load_state()
+        _begin_schedule_block(st, next_index)
+        return _load_state()
+
+    # Repeat the same block if not completed
+    _begin_schedule_block(st, block_index)
+    return _load_state()
 
 
 def tick():
@@ -409,6 +596,13 @@ def _tick_seconds(st: dict, seconds: int):
         left -= remaining
         remaining = 0
         _finalize_current_phase(st, final=False)
+        if st.get('mode') == 'schedule':
+            advanced = _handle_schedule_completion(st)
+            if not advanced:
+                remaining = int(st.get('remaining_seconds') or 0)
+                break
+            remaining = max(0, int(st.get('remaining_seconds') or 0))
+            continue
         if not bool(st.get('auto_advance', True)):
             st['status'] = 'paused'
             st['remaining_seconds'] = 0
@@ -429,3 +623,13 @@ def auto_tick():
         return st
     delta = _seconds_since(st.get('last_tick')) or 1
     return _tick_seconds(st, delta)
+def _block_minutes_value(block):
+    try:
+        minutes = block.get('minutes', 1)
+        if isinstance(minutes, (int, float)):
+            return max(1, int(round(minutes)))
+        if isinstance(minutes, str) and minutes.strip().isdigit():
+            return max(1, int(minutes.strip()))
+    except Exception:
+        pass
+    return 1

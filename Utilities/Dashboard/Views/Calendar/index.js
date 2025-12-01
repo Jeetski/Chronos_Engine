@@ -122,6 +122,7 @@ export function mount(el, context) {
       if (typeof window.__calendarRefreshBack === 'function') window.__calendarRefreshBack(navDepth > 0);
       Object.assign(window, extra);
     } catch {}
+    try { window.__calendarUpdateStartButton?.(); } catch {}
   }
 
   function snapshotState(){
@@ -579,7 +580,48 @@ try {
     toolPicker.addEventListener('click', ()=> setTool('picker'));
     toolEraser.addEventListener('click', ()=> setTool('eraser'));
     setTool(window.__calendarTool ?? 'cursor');
-    panel.append(timeMinus, timePlus, levelMinus, levelPlus, levelLabel, toolCursor, toolSelect, toolPicker, toolEraser);
+    const startDayBtn = mkBtn('Start Day');
+    startDayBtn.id = 'calendarStartDayBtn';
+    startDayBtn.style.background = 'linear-gradient(135deg, #2ec27e, #3ec4f5)';
+    startDayBtn.style.color = '#0b0f16';
+    async function triggerStartDay(){
+      if (startDayBtn.disabled) return;
+      startDayBtn.disabled = true;
+      const prev = startDayBtn.textContent;
+      startDayBtn.textContent = 'Starting...';
+      try {
+        if (typeof window.ChronosStartDay === 'function'){
+          await window.ChronosStartDay({ source: 'calendar', target: 'day' });
+        } else {
+          const resp = await fetch((window.location.origin && !window.location.origin.startsWith('file:')? window.location.origin : 'http://127.0.0.1:7357') + '/api/day/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target: 'day' }) });
+          const data = await resp.json().catch(()=> ({}));
+          if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
+          try { window.ChronosBus?.emit?.('timer:show', { source: 'calendar' }); } catch {}
+        }
+      } catch (err) {
+        console.error('[Chronos][Calendar] start day failed', err);
+        alert(`Failed to start day: ${err?.message || err}`);
+      } finally {
+        startDayBtn.textContent = prev;
+        startDayBtn.disabled = false;
+        updateStartButton();
+      }
+    }
+    startDayBtn.addEventListener('click', triggerStartDay);
+    function updateStartButton(){
+      try {
+        const isDayView = (window.__calendarViewMode === 'day');
+        const selDay = window.__calendarSelectedDay ? new Date(window.__calendarSelectedDay) : null;
+        const today = new Date(); today.setHours(0,0,0,0);
+        const selKey = selDay ? selDay.setHours(0,0,0,0) : null;
+        const enabled = !!(isDayView && selDay && selDay.getTime() === today.getTime());
+        startDayBtn.disabled = !enabled;
+        startDayBtn.title = enabled ? 'Run today + start timer' : 'Open today in Day view to start';
+      } catch {}
+    }
+    window.__calendarUpdateStartButton = updateStartButton;
+    updateStartButton();
+    panel.append(timeMinus, timePlus, levelMinus, levelPlus, levelLabel, toolCursor, toolSelect, toolPicker, toolEraser, startDayBtn);
     root.appendChild(panel);
   })();
 } catch {}

@@ -63,6 +63,22 @@ function injectStyles(){
     .schedule-panel-refresh:hover {
       filter: brightness(1.1);
     }
+    .schedule-panel-start {
+      background: linear-gradient(135deg, #2ec27e, #3ec4f5);
+      border: none;
+      color: #0b0f16;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .schedule-panel-start[disabled] {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .schedule-panel-start:hover:not([disabled]) {
+      filter: brightness(1.05);
+    }
     .schedule-panel-status {
       font-size: 12px;
       color: #93a0c7;
@@ -366,6 +382,7 @@ function mountSchedulePanel(root){
           <input class="schedule-day-input" type="date" />
         </label>
         <button type="button" class="schedule-panel-refresh">Refresh</button>
+        <button type="button" class="schedule-panel-start">Start Day</button>
       </div>
       <div class="schedule-panel-status"></div>
     </div>
@@ -384,6 +401,7 @@ function mountSchedulePanel(root){
   const statusEl = root.querySelector('.schedule-panel-status');
   const treeEl = root.querySelector('.schedule-tree');
   const messageEl = root.querySelector('.schedule-panel-message');
+  const startBtn = root.querySelector('.schedule-panel-start');
 
   const today = todayKey();
   if (dateInput) dateInput.value = today;
@@ -476,8 +494,16 @@ function mountSchedulePanel(root){
 
   const setStatus = (text)=>{ statusEl.textContent = text || ''; };
 
+  const updateStartButton = ()=>{
+    if (!startBtn) return;
+    const isToday = (dateInput?.value || today) === today;
+    startBtn.disabled = !isToday;
+    startBtn.title = isToday ? 'Run today reschedule + start timer' : 'Start is available only for today';
+  };
+
   const loadSchedule = async ()=>{
     const requestedDay = dateInput?.value || today;
+    updateStartButton();
     if (requestedDay !== today){
       treeData = [];
       expanded = new Set();
@@ -529,8 +555,39 @@ function mountSchedulePanel(root){
 
   treeEl.addEventListener('click', handleToggle);
   refreshBtn?.addEventListener('click', loadSchedule);
-  dateInput?.addEventListener('change', loadSchedule);
+  dateInput?.addEventListener('change', ()=>{
+    updateStartButton();
+    loadSchedule();
+  });
+  startBtn?.addEventListener('click', async ()=>{
+    if (startBtn.disabled) return;
+    startBtn.disabled = true;
+    const prev = startBtn.textContent;
+    startBtn.textContent = 'Starting...';
+    setMessage('');
+    try {
+      if (typeof window.ChronosStartDay === 'function') {
+        await window.ChronosStartDay({ source: 'schedule-panel', target: 'day' });
+      } else {
+        const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'day' }) });
+        const data = await resp.json().catch(()=> ({}));
+        if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
+      }
+      setMessage('Day started. Timer running.');
+      setStatus('Started automatically');
+      try { window.ChronosBus?.emit?.('timer:show', { source: 'schedule-panel' }); } catch {}
+      await loadSchedule();
+    } catch (err) {
+      console.error('[Chronos][Panels][Schedule] start failed', err);
+      setMessage(`Start failed: ${err?.message || err}`, true);
+      setStatus('Start failed');
+    } finally {
+      startBtn.disabled = false;
+      startBtn.textContent = prev;
+    }
+  });
 
+  updateStartButton();
   loadSchedule();
 
   return {

@@ -9,11 +9,13 @@
       </div>
     </div>
     <div class="content">
-      <div class="row" style="align-items: center; gap: 8px;">        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="todayFxToggle" checked /> fx</label>
+      <div class="row" style="align-items: center; gap: 8px;">
+        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="todayFxToggle" checked /> fx</label>
         <span class="hint" id="selSummary">Select an item on the calendarâ€¦</span>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="todayRefresh">Refresh</button>
-        <button class="btn btn-primary" id="todayReschedule">Reschedule</button>
+        <button class="btn btn-primary" id="todayStartDay">Start Day</button>
+        <button class="btn btn-secondary" id="todayReschedule">Reschedule</button>
       </div>
       <div class="row" id="actionsRow" style="display:none; gap:8px; align-items:center; margin-top:8px; flex-wrap: wrap;">
         <div class="row" style="gap:8px; align-items:center;">
@@ -84,6 +86,7 @@
   const content = el.querySelector('.content') || el;
   const btnRefresh = content.querySelector('#todayRefresh');
   const btnResched = content.querySelector('#todayReschedule');
+  const btnStartDay = content.querySelector('#todayStartDay');
   const selSummary = content.querySelector('#selSummary');
   const actionsRow = content.querySelector('#actionsRow');
   const btnTrim5 = content.querySelector('#trim5');
@@ -106,6 +109,7 @@
     }catch(e){ console.error('[Chronos][Today] Reschedule error:', e); }
     fetchToday();
   });
+  if (btnStartDay) btnStartDay.addEventListener('click', () => startDay());
 
   // Listen for calendar selection
   try {
@@ -171,6 +175,31 @@
   if(re) re.addEventListener('pointerdown', (ev)=>{ const r=el.getBoundingClientRect(); edgeDrag(r, (e,sr)=>{ el.style.width=Math.max(260, e.clientX - sr.left)+'px'; })(ev); });
   if(rs) rs.addEventListener('pointerdown', (ev)=>{ const r=el.getBoundingClientRect(); edgeDrag(r, (e,sr)=>{ el.style.height=Math.max(160, e.clientY - sr.top)+'px'; })(ev); });
   if(rse) rse.addEventListener('pointerdown', (ev)=>{ const r=el.getBoundingClientRect(); edgeDrag(r, (e,sr)=>{ el.style.width=Math.max(260, e.clientX - sr.left)+'px'; el.style.height=Math.max(160, e.clientY - sr.top)+'px'; })(ev); });
+
+  async function startDay(){
+    if (!btnStartDay) return;
+    if (btnStartDay.disabled) return;
+    btnStartDay.disabled = true;
+    const prev = btnStartDay.textContent;
+    btnStartDay.textContent = 'Starting...';
+    try {
+      if (typeof window.ChronosStartDay === 'function'){
+        await window.ChronosStartDay({ source: 'today-widget', target: 'day' });
+      } else {
+        const resp = await fetch(apiBase() + '/api/day/start', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ target: 'day' }) });
+        const data = await resp.json().catch(()=> ({}));
+        if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
+      }
+      fetchToday();
+      try { window.ChronosBus?.emit?.('timer:show', { source: 'today-widget' }); } catch {}
+    } catch (err) {
+      console.error('[Chronos][Today] start failed', err);
+      alert(`Failed to start day: ${err?.message || err}`);
+    } finally {
+      btnStartDay.disabled = false;
+      btnStartDay.textContent = prev;
+    }
+  }
 
   console.log('[Chronos][Today] Widget ready');
   return {};
