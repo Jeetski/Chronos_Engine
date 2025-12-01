@@ -3,6 +3,7 @@
 YAML-first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight dashboard.
 
 Quickstart
+- Onboarding: run `onboarding_wizard.bat` for a guided CLI setup, or open the dashboard and launch **Chronos Onboarding Wizard** from the Wizards menu.
 - Install: run `install_dependencies.bat` (creates `.venv`, installs deps)
 - CLI: `console_launcher.bat` then `help`
 - Listener: `listener_launcher.bat`

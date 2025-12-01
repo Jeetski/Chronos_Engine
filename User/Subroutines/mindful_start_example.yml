@@ -1,0 +1,11 @@
+name: Mindful Start (Example)
+type: subroutine
+description: Anchor your focus with a journal entry and mood check.
+duration: 00:20
+tags:
+  - example
+children:
+  - name: Journal Pulse (Example)
+    type: microroutine
+  - name: Morning Check-In (Example)
+    type: habit

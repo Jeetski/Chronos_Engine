@@ -1,0 +1,10 @@
+name: Journal Pulse (Example)
+type: microroutine
+duration: 00:10
+tags:
+  - example
+children:
+  - name: Journal Prompt (Example)
+    type: task
+  - name: Gratitude Note (Example)
+    type: task

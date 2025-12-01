@@ -24,6 +24,8 @@ Scripting & Automation Docs
 - Double-click `install_dependencies.bat`. It will:
   - Locate Python (or install via winget if missing).
   - Create `.venv` and install requirements.
+3) Guided onboarding
+- Run `onboarding_wizard.bat` (CLI) or from the dashboard Wizards menu choose **Chronos Onboarding Wizard** to customize nickname, categories, statuses, and clone the sample templates/items.
 3) Launch CLI
 - Run `console_launcher.bat` (or `python Modules/Console.py`).
 - Type `help` to see available commands.

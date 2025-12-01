@@ -1,0 +1,38 @@
+name: Learn Guitar Example
+type: goal
+priority: high
+category: Personal Development
+description: Mini goal that demonstrates how milestones, habits, and rewards connect.
+duration: 90d
+status: in_progress
+milestones:
+  - name: Consistent Practice Example
+    id: practice_example
+    description: Hit the Creative Practice habit 15 times this month.
+    weight: 1
+    criteria:
+      count:
+        of:
+          type: habit
+          name: Creative Practice (Example)
+        times: 15
+        period: month
+    on_complete:
+      - type: reward
+        name: Game Break Reward (Example)
+  - name: First Song Example
+    id: first_song_example
+    description: Check off the demo checklist to ship your first song draft.
+    weight: 1
+    criteria:
+      checklist:
+        require: all
+        items:
+          - type: task
+            name: Journal Prompt (Example)
+          - type: task
+            name: Creative Practice Session Notes (Example)
+            optional: false
+    on_complete:
+      - type: achievement
+        name: Practice Streak Achievement (Example)

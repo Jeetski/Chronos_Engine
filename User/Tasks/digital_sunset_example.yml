@@ -1,0 +1,8 @@
+name: Digital Sunset (Example)
+type: task
+category: Health
+description: Disable notifications, charge devices outside the bedroom, and dim lights.
+duration: 00:10
+tags:
+  - detox
+  - example

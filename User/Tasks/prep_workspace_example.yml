@@ -1,0 +1,10 @@
+name: Prep Workspace (Example)
+type: task
+category: Work
+description: Clear distractions, open the dashboard, and queue your first timer profile.
+duration: 00:05
+tags:
+  - workspace
+  - example
+status_requirements:
+  focus: good

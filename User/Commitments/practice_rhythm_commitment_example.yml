@@ -1,0 +1,21 @@
+name: Practice Rhythm Commitment (Example)
+type: commitment
+description: Keep Creative Practice (Example) alive at least 5 times per week.
+status: active
+frequency:
+  times: 5
+  period: week
+linked_habit: Creative Practice (Example)
+rewards:
+  - type: reward
+    name: Game Break Reward (Example)
+triggers:
+  on_violation:
+    - type: script
+      name: Scripts/commitments/miss_example.chs
+  on_complete:
+    - type: achievement
+      name: Practice Streak Achievement (Example)
+totals:
+  minutes: 0
+  sessions: 0

@@ -7,6 +7,30 @@ if (typeof window !== 'undefined' && !window.__cockpitPanelDefinitions) {
   window.__cockpitPanelDefinitions = [];
 }
 
+function apiBase(){
+  const o = window.location.origin;
+  if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357';
+  return o;
+}
+
+async function startChronosDay(options = {}){
+  const target = options.target || 'day';
+  const source = options.source || 'dashboard';
+  const body = JSON.stringify({ target });
+  const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+  const data = await resp.json().catch(()=> ({}));
+  if (!resp.ok || data.ok === false){
+    const msg = data.error || data.stderr || `Start failed (HTTP ${resp.status})`;
+    throw new Error(msg);
+  }
+  try { window.ChronosBus?.emit?.('timer:show', { source }); } catch {}
+  try { window.ChronosBus?.emit?.('timer:refresh'); } catch {}
+  try { window.calendarLoadToday?.(true); } catch {}
+  return data;
+}
+
+try { window.ChronosStartDay = startChronosDay; } catch {}
+
 const panelLoaders = [
   () => import(new URL('./Panels/Schedule/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load schedule panel module', err);
@@ -20,7 +44,6 @@ ready(async () => {
   console.log('[Chronos][app] Booting dashboard app');
 
   // Ensure logo loads when opened via file:// by pointing to API base
-  function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   try {
     const logo = document.getElementById('chronosLogo');
     if (logo) {
@@ -37,8 +60,16 @@ ready(async () => {
     { name: 'Cockpit', label: 'Cockpit' },
     { name: 'Calendar', label: 'Calendar' },
     { name: 'TemplateBuilder', label: 'Template Builder' },
+    { name: 'ProjectManager', label: 'Project Manager' },
   ];
   const wizardCatalog = [
+    {
+      id: 'onboarding',
+      module: 'Onboarding',
+      label: 'Chronos Onboarding Wizard',
+      description: 'Guided setup for nickname, categories, statuses, templates, and rewards.',
+      enabled: true,
+    },
     {
       id: 'goalPlanning',
       module: 'GoalPlanning',

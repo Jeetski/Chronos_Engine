@@ -1,0 +1,8 @@
+name: Evening Review (Example)
+type: task
+category: Reflection
+description: Scan today’s schedule, mark actuals, and note one lesson.
+duration: 00:10
+tags:
+  - review
+  - example

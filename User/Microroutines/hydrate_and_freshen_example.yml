@@ -1,0 +1,10 @@
+name: Hydrate & Freshen (Example)
+type: microroutine
+duration: 00:10
+tags:
+  - example
+children:
+  - name: Drink Water (Example)
+    type: task
+  - name: Refresh Space (Example)
+    type: task

@@ -221,6 +221,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read profile: {e}"})
             return
+        if parsed.path == "/api/preferences":
+            try:
+                pref_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences_settings.yml')
+                data = {}
+                if os.path.exists(pref_path):
+                    with open(pref_path, 'r', encoding='utf-8') as f:
+                        data = yaml.safe_load(f) or {}
+                self._write_json(200, {"ok": True, "preferences": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read preferences: {e}"})
+            return
         if parsed.path == "/api/theme":
             # Lookup a theme by name in User/Settings/theme_settings.yml
             try:
@@ -246,6 +257,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "name": name, "background_hex": bg, "text_hex": fg, "theme": found})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read theme: {e}"})
+            return
+        if parsed.path == "/api/settings":
+            try:
+                qs = parse_qs(parsed.query or '')
+                fname = (qs.get('file') or [''])[0].strip()
+                if not fname:
+                    self._write_json(400, {"ok": False, "error": "Missing file parameter"}); return
+                settings_root = os.path.join(ROOT_DIR, 'User', 'Settings')
+                fpath = os.path.abspath(os.path.join(settings_root, fname))
+                if not fpath.startswith(os.path.abspath(settings_root)):
+                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
+                if not os.path.exists(fpath):
+                    self._write_json(404, {"ok": False, "error": "Not found"}); return
+                with open(fpath, 'r', encoding='utf-8') as fh:
+                    data = yaml.safe_load(fh) or {}
+                self._write_json(200, {"ok": True, "data": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Settings read error: {e}"})
             return
         if parsed.path == "/api/cockpit/matrix":
             try:
@@ -283,6 +312,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(404, {"ok": False, "error": "Preset not found"})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Preset error: {e}"})
+            return
+        if parsed.path == "/api/status/current":
+            try:
+                status_path = os.path.join(ROOT_DIR, 'User', 'current_status.yml')
+                data = {}
+                if os.path.exists(status_path):
+                    with open(status_path, 'r', encoding='utf-8') as f:
+                        data = yaml.safe_load(f) or {}
+                self._write_json(200, {"ok": True, "status": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read current_status: {e}"})
             return
         if parsed.path == "/api/habits":
             # Enumerate habits with basic fields and today status
@@ -951,17 +991,46 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                             upd = _dt.fromtimestamp(os.path.getmtime(fpath)).strftime('%Y-%m-%d %H:%M')
                     except Exception:
                         upd = None
-                    out.append({
+                    entry = {
                         'name': name,
                         'type': item_type,
                         'category': dn.get('category'),
                         'priority': dn.get('priority'),
                         'status': dn.get('status'),
                         'updated': upd,
-                    })
+                    }
+                    if item_type == 'project':
+                        entry['state'] = dn.get('state') or dn.get('status')
+                        entry['stage'] = dn.get('stage')
+                        entry['owner'] = dn.get('owner')
+                    out.append(entry)
                 self._write_json(200, {"ok": True, "items": out})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to list items: {e}"})
+            return
+        if parsed.path == "/api/project/detail":
+            try:
+                qs = parse_qs(parsed.query or '')
+                proj_name = (qs.get('name') or [''])[0].strip()
+                if not proj_name:
+                    self._write_json(400, {"ok": False, "error": "Missing project name"}); return
+                from Modules.ItemManager import read_item_data, list_all_items
+                project = read_item_data('project', proj_name)
+                if not project:
+                    self._write_json(404, {"ok": False, "error": "Project not found"}); return
+                key = proj_name.strip().lower()
+                def _belongs(item):
+                    return str(item.get('project') or '').strip().lower() == key
+                milestones = [m for m in (list_all_items('milestone') or []) if _belongs(m)]
+                linked = {}
+                link_types = ['task','habit','routine','subroutine','microroutine','note','plan','appointment','ritual']
+                for t in link_types:
+                    arr = [it for it in (list_all_items(t) or []) if _belongs(it)]
+                    if arr:
+                        linked[t] = arr
+                self._write_json(200, {"ok": True, "project": project, "milestones": milestones, "linked": linked})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Project detail error: {e}"})
             return
         if parsed.path == "/api/vars":
             try:
@@ -1307,7 +1376,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
             ok, out, err = run_console_command(cmd, [*args, *prop_tokens])
             status = 200 if ok else 500
-            self._write_yaml(status, {"ok": ok, "stdout": out, "stderr": err})
+            self._write_json(status, {"ok": ok, "stdout": out, "stderr": err})
             return
 
         if parsed.path == "/api/cockpit/matrix/presets":
@@ -1540,7 +1609,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/status/update":
             # Payload: map of indicator:value, e.g., { energy: high, focus: good }
             if not isinstance(payload, dict):
-                self._write_yaml(400, {"ok": False, "error": "Payload must be a YAML map of indicator:value"})
+                self._write_json(400, {"ok": False, "error": "Payload must be a map of indicator:value"})
                 return
             results = {}
             overall_ok = True
@@ -1552,12 +1621,31 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 results[str(k)] = {"ok": ok, "stdout": out, "stderr": err}
                 if not ok:
                     overall_ok = False
-            self._write_yaml(200 if overall_ok else 500, {"ok": overall_ok, "results": results})
+            self._write_json(200 if overall_ok else 500, {"ok": overall_ok, "results": results})
             return
 
         if parsed.path == "/api/today/reschedule":
             ok, out, err = run_console_command("today", ["reschedule"])
             self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
+            return
+
+        if parsed.path == "/api/day/start":
+            target = "day"
+            try:
+                if isinstance(payload, dict):
+                    tgt = str(payload.get('target') or '').strip().lower()
+                    if tgt in {'today', 'day'}:
+                        target = tgt
+                ok, out, err = run_console_command("start", [target])
+                status_snapshot = None
+                try:
+                    from Modules.Timer import main as Timer
+                    status_snapshot = Timer.status()
+                except Exception:
+                    status_snapshot = None
+                self._write_json(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err, "status": status_snapshot})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Start day failed: {e}"})
             return
 
         if parsed.path == "/api/profile":
@@ -1605,6 +1693,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Profile save failed: {e}"})
+            return
+        if parsed.path == "/api/preferences":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                pref_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences_settings.yml')
+                existing = {}
+                if os.path.exists(pref_path):
+                    with open(pref_path, 'r', encoding='utf-8') as f:
+                        existing = yaml.safe_load(f) or {}
+                if not isinstance(existing, dict):
+                    existing = {}
+                for k, v in payload.items():
+                    existing[k] = v
+                os.makedirs(os.path.dirname(pref_path), exist_ok=True)
+                with open(pref_path, 'w', encoding='utf-8') as f:
+                    yaml.safe_dump(existing, f, allow_unicode=True, sort_keys=False)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Preferences save failed: {e}"})
             return
 
         if parsed.path == "/api/item":
@@ -1928,6 +2036,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "status": st})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer cancel error: {e}"})
+            return
+        if parsed.path == "/api/timer/confirm":
+            try:
+                completed = True
+                if isinstance(payload, dict) and 'completed' in payload:
+                    val = payload.get('completed')
+                    if isinstance(val, str):
+                        completed = val.strip().lower() in {'1', 'true', 'yes', 'y', 'done'}
+                    else:
+                        completed = bool(val)
+                from Modules.Timer import main as Timer
+                st = Timer.confirm_schedule_block(completed)
+                self._write_json(200, {"ok": True, "status": st})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Timer confirm error: {e}"})
             return
         if parsed.path == "/api/listener/start":
             try:

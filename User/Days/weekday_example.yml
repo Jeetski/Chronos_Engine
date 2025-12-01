@@ -1,0 +1,18 @@
+name: Weekday Example
+type: day
+description: >
+  Sample weekday template that strings together the example routines. Use this
+  as a sandbox before cloning it into your own schedule.
+category: General
+duration: 24h
+status_requirements:
+  energy: medium
+  focus: good
+children:
+  - name: Morning Routine (Example)
+    type: routine
+  - name: Evening Routine (Example)
+    type: routine
+  - name: Bedtime Routine (Example)
+    type: routine
+sequence: []

@@ -1,0 +1,15 @@
+name: Evening Routine (Example)
+type: routine
+description: >
+  Wind down with a short review, celebrate wins, and tie commitments or rewards
+  to the day.
+category: Personal Development
+tags:
+  - example
+  - evening
+duration: 01:15
+children:
+  - name: Evening Reset (Example)
+    type: subroutine
+  - name: Celebrate & Log (Example)
+    type: subroutine

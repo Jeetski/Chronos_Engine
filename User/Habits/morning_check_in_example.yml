@@ -1,0 +1,15 @@
+name: Morning Check-In (Example)
+type: habit
+category: Health
+polarity: good
+description: Rate your energy, focus, and emotion before shaping the day.
+frequency:
+  times: 1
+  period: day
+status_requirements:
+  mind_state: clear
+completion_dates: []
+incident_dates: []
+rewards:
+  - name: Game Break Reward (Example)
+    type: reward

@@ -1,0 +1,11 @@
+name: Wake & Refresh (Example)
+type: subroutine
+description: Gentle micro-steps to shake off sleep and check in with yourself.
+tags:
+  - example
+duration: 00:30
+children:
+  - name: Gentle Wake (Example)
+    type: microroutine
+  - name: Hydrate & Freshen (Example)
+    type: microroutine

@@ -1,0 +1,21 @@
+name: Creative Practice (Example)
+type: habit
+category: Personal Development
+polarity: good
+description: 20-minute session toward the Learn Guitar Example goal.
+frequency:
+  times: 5
+  period: week
+linked_goal: Learn Guitar Example
+linked_commitment: Practice Rhythm Commitment (Example)
+status_requirements:
+  energy: medium
+  focus: good
+rewards:
+  - name: Game Break Reward (Example)
+    type: reward
+achievements:
+  - name: Practice Streak Achievement (Example)
+    type: achievement
+completion_dates: []
+incident_dates: []

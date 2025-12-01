@@ -1,0 +1,10 @@
+name: Plan Today (Example)
+type: task
+category: Planning
+description: Review the Weekday Example template and highlight the top three blocks.
+duration: 00:10
+tags:
+  - planning
+  - example
+status_requirements:
+  focus: good

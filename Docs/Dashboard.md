@@ -40,6 +40,10 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - **Settings** – Lists `User/Settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
 - **Clock, Status, Debug Console** – Utility widgets for quick reference and event logging.
 
+## Wizards
+- **Chronos Onboarding Wizard** – Launch from the Wizards dropdown to mirror the CLI onboarding flow. It updates your nickname/profile, category order (`category_settings.yml`), status dimensions/scales (`status_settings.yml` plus each `<status>_settings.yml`), clones the Weekday Example templates/routines/habits, and lets you spin up the example goal, commitment, reward, and achievement. Each step relies on JSON endpoints such as `/api/settings`, `/api/item/copy`, `/api/preferences`, `/api/status/update`, and `/api/cli`.
+- **Goal Planning Wizard** – Placeholder overlay that will evolve into a full multi-step planner.
+
 All widgets live under `Utilities/Dashboard/Widgets/<Name>/index.js` and export `mount(el, context)`.
 
 ---
