@@ -1,7 +1,17 @@
 Place_Settings:
-    Optimal:
-        value: 1
-        description: Currently in the required location.
-    Suboptimal:
-        value: 5
-        description: Not in the required location, requires travel.
+  At Home:
+    value: 1
+    description: Working or relaxing at home base with full access to personal gear.
+    default: true
+  At Work:
+    value: 2
+    description: On-site at the office or client space with professional equipment.
+  On The Go:
+    value: 3
+    description: Moving between locations (errands/commute) with a light kit.
+  Traveling:
+    value: 4
+    description: Away from primary hubs; limited inventory and irregular schedule.
+  On Holiday:
+    value: 5
+    description: Intentionally off-duty or vacationing, minimal commitments.

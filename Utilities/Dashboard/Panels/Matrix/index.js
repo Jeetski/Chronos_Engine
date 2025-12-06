@@ -282,6 +282,8 @@ function mountMatrixPanel(root, panelId){
           <span class="title">Actions</span>
           <div class="matrix-panel-button-group">
             <button type="button" data-action="refresh">Refresh</button>
+            <button type="button" data-action="export-matrix">Export CSV</button>
+            <button type="button" data-action="visualize">Visualize</button>
             <button type="button" data-action="new-panel">New Panel</button>
             <button type="button" data-action="remove-panel">Remove Panel</button>
             <button type="button" data-action="save-preset">Save Preset</button>
@@ -323,6 +325,18 @@ function mountMatrixPanel(root, panelId){
   const addFilterBtn = root.querySelector('button[data-action="add-filter"]');
   const newPanelBtn = root.querySelector('button[data-action="new-panel"]');
   const removePanelBtn = root.querySelector('button[data-action="remove-panel"]');
+  const visualizeBtn = root.querySelector('button[data-action="visualize"]');
+  let exportBtn = root.querySelector('button[data-action="export-matrix"]');
+  if (!exportBtn){
+    const actionsGroup = root.querySelector('.matrix-panel-button-group');
+    if (actionsGroup){
+      exportBtn = document.createElement('button');
+      exportBtn.type = 'button';
+      exportBtn.dataset.action = 'export-matrix';
+      exportBtn.textContent = 'Export CSV';
+      actionsGroup.insertBefore(exportBtn, visualizeBtn || actionsGroup.firstChild);
+    }
+  }
   const filterList = root.querySelector('[data-field="filters"]');
   const statusEl = root.querySelector('.matrix-panel-status');
   const tableWrapper = root.querySelector('.matrix-panel-table-wrapper');
@@ -336,6 +350,16 @@ function mountMatrixPanel(root, panelId){
   filterKeyDatalist.id = filterKeyInputId;
   root.appendChild(filterKeyDatalist);
   const filterValueListPrefix = `matrix-filter-values-${Math.random().toString(36).slice(2)}`;
+  const downloadBlob = (filename, blob)=>{
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  };
 
   const panelKey = panelId || PANEL_BASE_ID;
   const stored = ensurePanelState(panelKey) || {};
@@ -609,6 +633,39 @@ function mountMatrixPanel(root, panelId){
 
   const filterMap = ()=> panelFiltersToObject(state.filters);
 
+  const buildSnapshot = ()=> {
+    if (!state.payload) return null;
+    return {
+      matrix: state.payload,
+      context: {
+        panelId,
+        metric: state.metric,
+        rows: [...state.rows],
+        cols: [...state.cols],
+        rowSort: state.rowSort,
+        colSort: state.colSort,
+        filters: filterMap(),
+      },
+      capturedAt: state.updatedAt ? state.updatedAt.getTime() : Date.now(),
+    };
+  };
+
+  const publishSnapshot = (intent)=> {
+    const snapshot = buildSnapshot();
+    if (!snapshot) return;
+    const service = window.MatrixVisualPanelService;
+    if (!service) return;
+    try {
+      if (intent === 'open' && typeof service.openWithPayload === 'function') {
+        service.openWithPayload(snapshot);
+      } else if (typeof service.setSnapshot === 'function') {
+        service.setSnapshot(snapshot);
+      }
+    } catch (err) {
+      console.warn('[Chronos][Matrix] Unable to share snapshot', err);
+    }
+  };
+
   const setStatus = ()=>{
     if (state.loading){
       statusEl.textContent = 'Loading...';
@@ -626,6 +683,42 @@ function mountMatrixPanel(root, panelId){
       bits.push(`Preset: ${state.activePreset}`);
     }
     statusEl.textContent = bits.join(' | ');
+  };
+
+  const exportMatrixCsv = ()=>{
+    if (!state.payload){
+      statusEl.textContent = 'Load a matrix first.';
+      setTimeout(()=> setStatus(), 2000);
+      return;
+    }
+    const rows = state.payload?.rows || [];
+    const cols = state.payload?.cols || [];
+    if (!rows.length || !cols.length){
+      statusEl.textContent = 'Nothing to export for this view.';
+      setTimeout(()=> setStatus(), 2000);
+      return;
+    }
+    const cells = state.payload?.cells || {};
+    const encode = (value)=>{
+      const str = value === null || value === undefined ? '' : String(value);
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const header = ['Label'].concat(cols.map(col => col.label || col.id || ''));
+    const lines = [header];
+    rows.forEach(row => {
+      const line = [row.label || row.id || ''];
+      cols.forEach(col => {
+        const cell = cells[`${row.id}|${col.id}`];
+        line.push(cell && cell.value !== undefined ? cell.value : '');
+      });
+      lines.push(line);
+    });
+    const csv = lines.map(line => line.map(encode).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const filename = `chronos_matrix_${state.metric}_${Date.now()}.csv`;
+    downloadBlob(filename, blob);
+    statusEl.textContent = `Exported ${filename}`;
+    setTimeout(()=> setStatus(), 2500);
   };
 
   const formatValue = (cell)=>{
@@ -749,6 +842,7 @@ function mountMatrixPanel(root, panelId){
       renderDimensionLists();
       renderFilterList();
       persistState();
+      publishSnapshot();
     } catch (error) {
       console.error('[Chronos][Cockpit] Matrix panel failed', error);
       state.error = error?.message || 'Unable to load matrix data.';
@@ -924,6 +1018,7 @@ function mountMatrixPanel(root, panelId){
   rowSortSelect.addEventListener('change', handleRowSortChange);
   colSortSelect.addEventListener('change', handleColSortChange);
   refreshBtn.addEventListener('click', fetchMatrix);
+  exportBtn?.addEventListener('click', exportMatrixCsv);
   savePresetBtn.addEventListener('click', savePreset);
   loadPresetBtn.addEventListener('click', ()=> loadPresetByName(presetSelect.value));
   deletePresetBtn.addEventListener('click', deletePreset);
@@ -949,6 +1044,14 @@ function mountMatrixPanel(root, panelId){
     persistState();
     renderFilterList();
   });
+  const handleVisualize = ()=>{
+    if (!state.payload){
+      window.alert('Load or refresh the matrix before visualizing.');
+      return;
+    }
+    publishSnapshot('open');
+  };
+  visualizeBtn?.addEventListener('click', handleVisualize);
   newPanelBtn.addEventListener('click', ()=>{
     try { window.MatrixPanelService?.create?.(); } catch (error) { console.error('[Chronos][Matrix] Unable to create panel', error); }
   });
@@ -987,6 +1090,7 @@ function mountMatrixPanel(root, panelId){
       addRowBtn.removeEventListener('click', ()=>{});
       addColBtn.removeEventListener('click', ()=>{});
       addFilterBtn.removeEventListener('click', ()=>{});
+      visualizeBtn?.removeEventListener('click', handleVisualize);
       newPanelBtn.removeEventListener('click', ()=>{});
       removePanelBtn.removeEventListener('click', ()=>{});
     }
@@ -1094,6 +1198,7 @@ function renameInstanceRecord(id, label){
 }
 
 function createDefinition(instance){
+  const isBase = instance.id === PANEL_BASE_ID;
   return {
     id: instance.id,
     label: instance.label || 'Matrix',
@@ -1101,6 +1206,9 @@ function createDefinition(instance){
     defaultPosition: { x: 120, y: 80 },
     size: { width: 640, height: 480 },
     mount: (el)=> mountMatrixPanel(el, instance.id),
+    menuKey: PANEL_BASE_ID,
+    menuLabel: 'Matrix',
+    menuPrimary: isBase,
   };
 }
 

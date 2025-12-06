@@ -20,7 +20,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 ### Views
 - **Calendar** – Year/Month/Week/Day canvas with a draggable overlay panel for zoom, hierarchy level (Routines → Items), and tool selection (cursor / select / picker / eraser). Selecting a block in Day view targets Today widget actions.
 - **Template Builder** – Drag-and-drop editing for week/day/routine/subroutine/microroutine templates. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
-- **Cockpit** – A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. Panels spawn from the “Panels” dropdown, remember their size/position (`chronos_cockpit_panels_v1` in localStorage), and can be rearranged into a personal flight deck. Shipping panels include **Schedule** (`Utilities/Dashboard/Panels/Schedule/`, a live agenda tree) and **Matrix** (`Utilities/Dashboard/Panels/Matrix/`, a configurable pivot grid fed by Chronos data), with more on the way.
+- **Cockpit** – A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. Panels spawn from the “Panels” dropdown, remember their size/position (`chronos_cockpit_panels_v1` in localStorage), and can be rearranged into a personal flight deck. Shipping panels include **Schedule** (`Utilities/Dashboard/Panels/Schedule/`, a live agenda tree), **Matrix** (`Utilities/Dashboard/Panels/Matrix/`, a configurable pivot grid fed by Chronos data), and the new **Status Strip** (`Utilities/Dashboard/Panels/StatusStrip/`, a minimal horizontal ticker that color-codes each status indicator by priority), with more on the way.
   - The Matrix panel now ships with curated presets (Status × Type, Task Priority vs Status, Duration by Tag, Points by Category) so you can load a meaningful pivot immediately before saving your own variations.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 
@@ -35,6 +35,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - **Rewards** – Displays point balance/history, lists rewards with cooldown/cost info, Redeem buttons call `/api/reward/redeem`.
 - **Achievements** – Alphabetical list with filters, mark awarded/archived actions via `/api/achievement/update`.
 - **Milestones** – Progress bars, filters (pending/in-progress/completed), Mark Complete / Reset buttons hitting `/api/milestone/update`.
+- **Inventory Manager** – Browse inventories, linked inventory items, and tools; add/remove items from kits without leaving the dashboard.
 - **Notes, Journal, Profile, Review** – Quick editors/viewers for common flows. Review surfaces recent completions; Profile shows nickname/theme.
 - **Timer** – Start/pause/resume/stop, select profiles, show bound item state.
 - **Settings** – Lists `User/Settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
@@ -42,7 +43,8 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 
 ## Wizards
 - **Chronos Onboarding Wizard** – Launch from the Wizards dropdown to mirror the CLI onboarding flow. It updates your nickname/profile, category order (`category_settings.yml`), status dimensions/scales (`status_settings.yml` plus each `<status>_settings.yml`), clones the Weekday Example templates/routines/habits, and lets you spin up the example goal, commitment, reward, and achievement. Each step relies on JSON endpoints such as `/api/settings`, `/api/item/copy`, `/api/preferences`, `/api/status/update`, and `/api/cli`.
-- **Goal Planning Wizard** – Placeholder overlay that will evolve into a full multi-step planner.
+- **Goal Planning Wizard** – Multi-step planner that captures the goal vision, success signals, milestones, and writes the YAML via `/api/item`.
+- **Project Launch Wizard** – Guides you through the project brief, milestones, and kickoff actions, then writes the project YAML and optional kickoff tasks via `/api/item`.
 
 All widgets live under `Utilities/Dashboard/Widgets/<Name>/index.js` and export `mount(el, context)`.
 

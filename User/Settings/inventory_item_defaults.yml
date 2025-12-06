@@ -1,5 +1,10 @@
-Name: New Inventory Item
-Description: A new item for inventory.
-Quantity: 1
-Location: ""
+﻿Name: New Inventory Item
 Type: inventory_item
+Description: General purpose item ready to be packed into inventories.
+Quantity: 1
+Category: gear
+Status: ready
+Tags: []
+Places:
+  - At Home
+Linked_Tools: []

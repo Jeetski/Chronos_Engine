@@ -38,6 +38,9 @@ const panelLoaders = [
   () => import(new URL('./Panels/Matrix/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load matrix panel module', err);
   }),
+  () => import(new URL('./Panels/StatusStrip/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load status strip panel module', err);
+  }),
 ];
 
 ready(async () => {
@@ -75,6 +78,13 @@ ready(async () => {
       module: 'GoalPlanning',
       label: 'Goal Planning Wizard',
       description: 'Guided flow to scope, break down, and schedule ambitious goals.',
+      enabled: true,
+    },
+    {
+      id: 'projectLaunch',
+      module: 'ProjectLaunch',
+      label: 'Project Launch Wizard',
+      description: 'Design project milestones and kickoff tasks before writing YAML.',
       enabled: true,
     },
   ];
@@ -536,28 +546,67 @@ ready(async () => {
       menu.appendChild(empty);
       return;
     }
-    const panels = manager.list() || [];
-    if (!panels.length){
+    const rawPanels = manager.list?.() || [];
+    if (!rawPanels.length){
       const empty = document.createElement('div');
       empty.className = 'item disabled';
       empty.textContent = 'No panels registered.';
       menu.appendChild(empty);
       return;
     }
+    const grouped = new Map();
+    rawPanels.forEach(panel => {
+      const key = panel.menuKey || panel.id;
+      if (!grouped.has(key)){
+        grouped.set(key, {
+          key,
+          label: panel.menuLabel || panel.label || key,
+          entries: [],
+          primary: null,
+        });
+      }
+      const bucket = grouped.get(key);
+      bucket.entries.push(panel);
+      if (!bucket.primary || panel.menuPrimary || panel.id === key){
+        bucket.primary = panel;
+      }
+    });
+    const panels = Array.from(grouped.values()).map(group => ({
+      key: group.key,
+      label: group.label,
+      entries: group.entries,
+      primary: group.primary || group.entries[0],
+      visible: group.entries.some(p => p.visible),
+    }));
     const MAX_PER_COLUMN = 10;
     const frag = document.createDocumentFragment();
     const createPanelItem = (panel) => {
       const item = document.createElement('div');
       item.className = 'item';
-      item.setAttribute('data-panel', panel.id);
+      item.setAttribute('data-panel', panel.primary?.id || panel.key);
       const check = document.createElement('span');
       check.className = 'check';
       check.textContent = panel.visible ? '✓' : '';
       const span = document.createElement('span');
-      span.textContent = panel.label || panel.id;
+      span.textContent = panel.label || panel.key;
       item.append(check, span);
       item.addEventListener('click', ()=> {
-        try { manager.toggle?.(panel.id); } catch {}
+        const entries = panel.entries || [];
+        if (!entries.length){
+          try { manager.toggle?.(panel.primary?.id || panel.key); } catch {}
+        } else if (entries.length === 1){
+          try { manager.toggle?.(entries[0].id); } catch {}
+        } else {
+          const anyVisible = entries.some(entry => entry.visible);
+          if (anyVisible){
+            entries.forEach(entry => {
+              try { manager.setVisible?.(entry.id, false); } catch {}
+            });
+          } else {
+            const target = panel.primary || entries[0];
+            try { manager.setVisible?.(target.id, true); } catch {}
+          }
+        }
         setTimeout(buildPanelsMenu, 0);
       });
       return item;

@@ -17,6 +17,7 @@ from Modules.Alarm.main import load_alarms, check_alarms, trigger_alarm, update_
 # Import the Reminder module functions
 from Modules.Reminder.main import load_reminders, check_reminders, trigger_reminder
 from Modules.Timer import main as Timer
+from Modules.Sequence.automation import maybe_queue_midnight_sync
 
 # --- Constants ---
 LISTENER_LOG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'User', 'Logs', 'listener.log'))
@@ -135,6 +136,10 @@ def run_listener():
 
     while True:
         current_time = datetime.now()
+        try:
+            maybe_queue_midnight_sync(current_time, _run_cli_command)
+        except Exception as automation_err:
+            log_message(f"DEBUG: Sequence automation hook error: {automation_err}")
         
         # --- Process Alarms ---
         

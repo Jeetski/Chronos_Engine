@@ -65,6 +65,16 @@
       .widget .controls { display: inline-flex; gap: 6px; }
       .icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #0f141d; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; padding: 0; border-radius: 6px; }
       .icon-btn:hover { color: var(--text); border-color: #2b3343; background: #0b0f16; transition: all 120ms ease; }
+      .wizard-help-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        font-weight: 700;
+        z-index: 30;
+      }
       .widget .content { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
       .input, .textarea, select { width: 100%; background: #0f141d; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none; transition: border-color 120ms ease, box-shadow 120ms ease; }
       .input:focus, .textarea:focus, select:focus { border-color: #3a4a6a; box-shadow: 0 0 0 3px rgba(122,162,247,0.15); }
@@ -122,6 +132,7 @@
     <aside class="widget" id="habitsWidget" style="display: none; right: 460px; top: 440px; width: 520px;" data-widget="HabitTracker" data-label="Habits"></aside>
     <aside class="widget" id="debugWidget" style="display: none; right: 460px; top: 60px; width: 520px;" data-widget="DebugConsole" data-label="Debug"></aside>
     <aside class="widget" id="itemManagerWidget" style="display: none; right: 900px; top: 60px; width: 760px;" data-widget="ItemManager" data-label="Items"></aside>
+    <aside class="widget" id="inventoryManagerWidget" style="display: none; right: 20px; top: 1720px; width: 760px;" data-widget="InventoryManager" data-label="Inventories"></aside>
     <aside class="widget" id="timerWidget" style="display: none; right: 20px; top: 540px; width: 420px;" data-widget="Timer" data-label="Timer"></aside>
     <aside class="widget" id="goalTrackerWidget" style="display: none; right: 460px; top: 540px; width: 520px;" data-widget="GoalTracker" data-label="Goals"></aside>
     <aside class="widget" id="commitmentsWidget" style="display: none; right: 20px; top: 1320px; width: 520px;" data-widget="Commitments" data-label="Commitments"></aside>

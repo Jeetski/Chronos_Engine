@@ -118,6 +118,15 @@ function injectStyles(){
     .cockpit-panel-actions button:hover {
       background: rgba(255,255,255,0.15);
     }
+    .cockpit-panel-help-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
     .cockpit-panel-content {
       flex: 1;
       padding: 16px 18px 18px;
@@ -221,6 +230,7 @@ class CockpitPanelManager {
       id: def.id,
       label: def.label || def.id,
       icon: def.icon || '',
+       helpKey: def.helpKey || def.menuKey || def.id,
       mount: def.mount,
       defaultVisible: !!def.defaultVisible,
       position: {
@@ -232,6 +242,9 @@ class CockpitPanelManager {
         height: def.size?.height ?? 360,
       },
       visible: !!def.defaultVisible,
+      menuKey: def.menuKey || def.menuGroup || def.id,
+      menuLabel: def.menuLabel || def.label || def.id,
+      menuPrimary: !!def.menuPrimary,
       el: null,
       api: null,
     };
@@ -254,6 +267,9 @@ class CockpitPanelManager {
       id: entry.id,
       label: entry.label,
       visible: !!entry.visible,
+      menuKey: entry.menuKey || entry.id,
+      menuLabel: entry.menuLabel || entry.label,
+      menuPrimary: !!entry.menuPrimary,
     }));
   }
 
@@ -325,6 +341,12 @@ class CockpitPanelManager {
     closeBtn.type = 'button';
     closeBtn.title = 'Hide panel';
     closeBtn.textContent = 'x';
+    const panelHelpKey = entry.helpKey || entry.menuKey || entry.id;
+    const helpBtn = this.context?.createHelpButton?.(panelHelpKey, {
+      className: 'cockpit-panel-help-btn',
+      fallbackLabel: entry.label || entry.id,
+    });
+    if (helpBtn) actions.appendChild(helpBtn);
     actions.appendChild(closeBtn);
     header.append(title, actions);
 
@@ -506,6 +528,30 @@ export function mount(el, context){
       }
     })
     .catch(err => console.error('[Chronos][Cockpit] Failed to load matrix panel module', err));
+
+  import(new URL('../../Panels/MatrixVisuals/index.js', import.meta.url))
+    .then(mod => {
+      console.log('[Chronos][Cockpit] Matrix visuals module import resolved', !!mod);
+      if (mod && typeof mod.register === 'function') {
+        try { mod.register(manager); } catch (err) { console.error('[Chronos][Cockpit] Matrix visuals panel register failed', err); }
+        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+      } else {
+        console.warn('[Chronos][Cockpit] Matrix visuals module has no register export');
+      }
+    })
+    .catch(err => console.error('[Chronos][Cockpit] Failed to load matrix visuals panel module', err));
+
+  import(new URL('../../Panels/StatusStrip/index.js', import.meta.url))
+    .then(mod => {
+      console.log('[Chronos][Cockpit] Status strip module import resolved', !!mod);
+      if (mod && typeof mod.register === 'function') {
+        try { mod.register(manager); } catch (err) { console.error('[Chronos][Cockpit] Status strip panel register failed', err); }
+        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+      } else {
+        console.warn('[Chronos][Cockpit] Status strip module has no register export');
+      }
+    })
+    .catch(err => console.error('[Chronos][Cockpit] Failed to load status strip panel module', err));
 
   window.CockpitPanels = manager.api;
   try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}

@@ -1,4 +1,10 @@
-Name: New Tool
-Description: A new tool.
-Function: ""
+﻿Name: New Tool
 Type: tool
+Description: Capability that can be referenced by tasks, projects, or inventories.
+Category: general
+Locations:
+  - At Home
+Capabilities:
+  - Example capability
+Depends_On: []
+Linked_Items: []

@@ -184,8 +184,9 @@ export async function mount(elem, context) {
     });
   }
 
-  // Edit preferences markdown in Notes widget
+  // Edit preferences / pilot brief markdown via Notes widget
   const editPrefsBtn = el.querySelector('#edit-preferences-md');
+  const editPilotBriefBtn = el.querySelector('#edit-pilot-brief');
   function showNotesWidget(){
     try {
       const notesEl = document.querySelector('[data-widget="Notes"]');
@@ -198,19 +199,25 @@ export async function mount(elem, context) {
     try { context?.bus?.emit('widget:show','Notes'); } catch {}
     try { window?.ChronosBus?.emit?.('widget:show','Notes'); } catch {}
   }
+  function openFileInNotes(path, title){
+    try {
+      const payload = { path, format: 'markdown', title };
+      if (context?.bus) {
+        context.bus.emit('notes:openFile', payload);
+      } else if (window?.ChronosBus && typeof window.ChronosBus.emit === 'function') {
+        window.ChronosBus.emit('notes:openFile', payload);
+      } else {
+        alert('Notes widget bus not available');
+        return;
+      }
+      showNotesWidget();
+    } catch {}
+  }
   if (editPrefsBtn) {
-    editPrefsBtn.addEventListener('click', async ()=> {
-      try {
-        if (context?.bus) {
-          context.bus.emit('notes:openFile', { path: 'User/Profile/preferences.md', format: 'markdown', title: 'preferences' });
-        } else if (window?.ChronosBus && typeof window.ChronosBus.emit === 'function') {
-          window.ChronosBus.emit('notes:openFile', { path: 'User/Profile/preferences.md', format: 'markdown', title: 'preferences' });
-        } else {
-          alert('Notes widget bus not available');
-        }
-        showNotesWidget();
-      } catch {}
-    });
+    editPrefsBtn.addEventListener('click', () => openFileInNotes('User/Profile/preferences.md', 'preferences'));
+  }
+  if (editPilotBriefBtn) {
+    editPilotBriefBtn.addEventListener('click', () => openFileInNotes('User/Profile/pilot_brief.md', 'pilot brief'));
   }
 
   // Resizers

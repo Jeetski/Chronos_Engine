@@ -54,6 +54,7 @@ if MODULES_DIR not in sys.path:
 
 # Now that MODULES_DIR is on sys.path, import Variables helper
 from Modules import Variables
+from Modules import theme_utils
 
 # --- Theme + ColorPrint integration ---
 def _safe_load_yaml(path):
@@ -74,39 +75,6 @@ def _find_colorprint_exe():
         return exe if os.path.exists(exe) else None
     except Exception:
         return None
-
-
-def _resolve_theme_colors():
-    colors = {'background': 'dark_blue', 'text': 'white'}
-    try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
-        theme_cfg = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml')) or {}
-        themes = (theme_cfg.get('themes') if isinstance(theme_cfg, dict) else None) or {}
-
-        theme_name = None
-        if isinstance(prof, dict):
-            theme_name = prof.get('theme') or (isinstance(prof.get('console'), dict) and prof.get('console', {}).get('theme'))
-        if isinstance(theme_name, str):
-            theme = themes.get(theme_name) if isinstance(themes, dict) else None
-            if isinstance(theme, dict):
-                bg = theme.get('background')
-                fg = theme.get('text')
-                if isinstance(bg, str):
-                    colors['background'] = bg
-                if isinstance(fg, str):
-                    colors['text'] = fg
-
-        if isinstance(prof, dict):
-            console_dict = prof.get('console') if isinstance(prof.get('console'), dict) else None
-            bg = prof.get('background') or (console_dict and console_dict.get('background'))
-            fg = prof.get('text') or (console_dict and console_dict.get('text'))
-            if isinstance(bg, str):
-                colors['background'] = bg
-            if isinstance(fg, str):
-                colors['text'] = fg
-    except Exception:
-        pass
-    return colors
 
 
 def color_print(message: str, text: str = 'white', background: str = 'dark_blue'):
@@ -379,67 +347,7 @@ if __name__ == "__main__":
         pass
     # Apply console theme via Windows 'color' command when available
     try:
-        _tc = _resolve_theme_colors()
-        _bg_name = str(_tc.get('background', 'dark_blue'))
-        _fg_name = str(_tc.get('text', 'white'))
-        if os.name == 'nt':
-            # TODO(colorhex): Replace nibble approximation + 'color' with a small
-            # C# utility (e.g., Utilities/colorhex/colorhex.exe) that accepts
-            # exact hex values and sets the console colors reliably. Keep this
-            # path as fallback for environments without colorhex.
-            def _nibble_from_hex_or_name(val: str) -> str:
-                val = (val or '').strip()
-                name_map = {
-                    # background/foreground names to console color nibble
-                    'black': '0', 'jet_black': '0',
-                    'dark_blue': '1', 'navy': '1',
-                    'dark_green': '2',
-                    'dark_cyan': '3', 'teal': '3', 'aqua': '3',
-                    'dark_red': '4', 'maroon': '4',
-                    'dark_purple': '5', 'purple': '5',
-                    'dark_yellow': '6', 'brown': '6', 'dark_brown': '6',
-                    'gray': '7', 'light_gray': '7',
-                    'dark_gray': '8', 'charcoal': '8',
-                    'blue': '9', 'light_blue': '9', 'diamond_blue': '9',
-                    'green': 'A', 'light_green': 'A', 'neon_green': 'A',
-                    'light_cyan': 'B', 'neon_cyan': 'B', 'cyan': 'B',
-                    'red': 'C', 'light_red': 'C', 'neon_red': 'C',
-                    'magenta': 'D', 'light_purple': 'D', 'lavender': 'D', 'neon_purple': 'D',
-                    'yellow': 'E', 'light_yellow': 'E', 'neon_yellow': 'E',
-                    'white': 'F', 'off_white': 'F', 'neon_white': 'F', 'chalk': 'F'
-                }
-                if val.startswith('#') and len(val) in (4, 7):
-                    # Rough map hex to nearest console color among 16 colors
-                    def parse_hex(h):
-                        h = h.lstrip('#')
-                        if len(h) == 3:
-                            r = int(h[0]*2, 16); g = int(h[1]*2, 16); b = int(h[2]*2, 16)
-                        else:
-                            r = int(h[0:2], 16); g = int(h[2:4], 16); b = int(h[4:6], 16)
-                        return (r,g,b)
-                    target = parse_hex(val)
-                    palette = {
-                        '0': (0,0,0), '1': (0,0,128), '2': (0,128,0), '3': (0,128,128),
-                        '4': (128,0,0), '5': (128,0,128), '6': (128,128,0), '7': (192,192,192),
-                        '8': (128,128,128), '9': (0,0,255), 'A': (0,255,0), 'B': (0,255,255),
-                        'C': (255,0,0), 'D': (255,0,255), 'E': (255,255,0), 'F': (255,255,255)
-                    }
-                    best = '7'; bestd = 10**9
-                    for k, rgb in palette.items():
-                        dr = rgb[0]-target[0]; dg = rgb[1]-target[1]; db = rgb[2]-target[2]
-                        d = dr*dr + dg*dg + db*db
-                        if d < bestd:
-                            bestd = d; best = k
-                    return best
-                return name_map.get(val.lower(), None) or ('1' if val == _bg_name else 'F')
-
-            bg_n = _nibble_from_hex_or_name(_bg_name)
-            fg_n = _nibble_from_hex_or_name(_fg_name)
-            try:
-                os.system(f"color {bg_n}{fg_n}")
-            except Exception:
-                # Fall back to previous default color
-                os.system("color 1F")
+        theme_utils.apply_theme_to_console(ROOT_DIR)
     except Exception:
         pass
     # Display Chronos Engine banner

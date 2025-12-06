@@ -31,71 +31,257 @@ function injectStyles(){
     .onboarding-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(7,10,18,0.82);
+      background: radial-gradient(circle at 25% 20%, rgba(49,76,199,0.25), rgba(5,7,15,0.95));
       z-index: 1200;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
-      backdrop-filter: blur(6px);
+      padding: clamp(16px,3vw,32px);
+      backdrop-filter: blur(10px);
     }
     .onboarding-shell {
-      width: min(920px, 95vw);
-      max-height: 92vh;
-      background: linear-gradient(180deg,#151d2c,#0d121b);
-      border: 1px solid #293248;
-      border-radius: 18px;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+      width: min(960px, 96vw);
+      max-height: 94vh;
+      background: linear-gradient(140deg, rgba(8,11,22,0.95), rgba(3,5,12,0.98));
+      border: 1px solid rgba(108,138,255,0.25);
+      border-radius: 24px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.65);
       display: flex;
       flex-direction: column;
       color: #f1f5ff;
-      padding: 24px;
-      gap: 20px;
+      padding: clamp(20px, 3vw, 32px);
+      gap: 18px;
+      position: relative;
     }
-    .onboarding-shell h1 {
+    .onboarding-header {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .onboarding-hero {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(120deg, rgba(15,24,54,0.9), rgba(10,14,30,0.9));
+      border: 1px solid rgba(104,133,255,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    .onboarding-hero::after {
+      content: "";
+      position: absolute;
+      inset: -60% auto auto 65%;
+      width: 360px;
+      height: 360px;
+      background: radial-gradient(circle, rgba(73,120,255,0.35), transparent 60%);
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    .onboarding-hero-icon {
+      position: relative;
+      width: 82px;
+      height: 82px;
+      flex-shrink: 0;
+      border-radius: 22px;
+      background: linear-gradient(150deg, rgba(150,174,255,0.2), rgba(58,94,255,0.35));
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aac0ff;
+      z-index: 1;
+    }
+    .onboarding-hero-icon svg {
+      width: 52px;
+      height: 52px;
+      stroke: currentColor;
+    }
+    .onboarding-hero-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .onboarding-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #a9bcff;
+      background: rgba(84,115,255,0.2);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .onboarding-hero-copy h1 {
       margin: 0;
-      font-size: 26px;
+      font-size: clamp(22px, 3vw, 30px);
     }
-    .onboarding-shell h2 {
-      margin: 0 0 6px;
-      font-size: 20px;
-      color: #97a6ce;
+    .onboarding-hero-copy p {
+      margin: 0;
+      color: #b8c8f2;
     }
     .onboarding-progress {
-      font-size: 14px;
-      letter-spacing: 0.4px;
-      color: #8da0d0;
+      font-size: 13px;
+      color: #8aa3ff;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .onboarding-stepper {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+    .onboarding-stepper::-webkit-scrollbar {
+      height: 6px;
+    }
+    .onboarding-stepper::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+    }
+    .stepper-node {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(12,16,28,0.75);
+      color: #a6b4df;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+      font-size: 13px;
+      min-width: 140px;
+    }
+    .stepper-node .step-index {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #d5ddff;
+    }
+    .stepper-node .stepper-title {
+      font-weight: 600;
+      color: inherit;
+    }
+    .stepper-node.active {
+      border-color: rgba(107,138,255,0.9);
+      background: linear-gradient(135deg, rgba(64,97,255,0.9), rgba(43,64,196,0.9));
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(52,78,195,0.35);
+    }
+    .stepper-node.active .step-index {
+      background: rgba(255,255,255,0.2);
+    }
+    .stepper-node.completed {
+      border-color: rgba(70,171,128,0.6);
+      color: #d2ffe8;
+      background: rgba(18,46,32,0.8);
+    }
+    .stepper-node.completed .step-index {
+      background: rgba(70,171,128,0.3);
+      color: #fff;
+    }
+    .onboarding-content {
+      flex: 1;
+      background: rgba(7,10,20,0.82);
+      border: 1px solid rgba(30,42,71,0.75);
+      border-radius: 20px;
+      padding: 18px;
+      display: flex;
+      min-height: 0;
     }
     .onboarding-body {
       flex: 1;
       overflow: auto;
       padding-right: 6px;
     }
+    .onboarding-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .onboarding-body::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+    }
     .onboarding-body p {
-      color: #b5c2e5;
-      line-height: 1.5;
+      color: #c4cff1;
+      line-height: 1.6;
+    }
+    .onboarding-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    @media (min-width: 680px){
+      .onboarding-footer {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+    .wizard-status-line {
+      font-size: 13px;
+      color: #9ebaff;
+      min-height: 24px;
+      padding: 10px 14px;
+      background: rgba(21,28,46,0.85);
+      border-radius: 12px;
+      border: 1px solid rgba(41,55,92,0.8);
+      flex: 1;
     }
     .onboarding-actions {
       display: flex;
+      width: 100%;
       justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
+    }
+    .onboarding-actions .action-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
     .onboarding-actions button {
-      border: 1px solid #3c4661;
-      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
       padding: 10px 18px;
-      background: #141a28;
+      background: rgba(12,14,24,0.9);
       color: inherit;
       cursor: pointer;
       font-size: 15px;
-      transition: background 120ms ease, border-color 120ms ease;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    .onboarding-actions button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .onboarding-actions button:hover:not(:disabled) {
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-1px);
     }
     .onboarding-actions button.primary {
-      background: linear-gradient(180deg,#3b64ff,#2849da);
-      border-color: #456fff;
+      background: linear-gradient(120deg,#6f89ff,#4f64f2);
+      border-color: rgba(143,168,255,0.45);
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(74,98,255,0.35);
     }
-    .onboarding-actions button:hover {
-      border-color: #53628c;
+    .onboarding-actions button.ghost {
+      background: rgba(12,16,28,0.6);
+    }
+    .onboarding-actions button.subtle {
+      border-color: transparent;
+      color: #a8befe;
+      background: transparent;
     }
     .wizard-form {
       display: flex;
@@ -178,11 +364,6 @@ function injectStyles(){
       padding: 10px;
       background: rgba(7,12,20,0.7);
       cursor: pointer;
-    }
-    .wizard-status-line {
-      font-size: 13px;
-      color: #9ab0ff;
-      min-height: 20px;
     }
   `;
   document.head.appendChild(style);
@@ -796,29 +977,107 @@ export async function launch(context, options = {}){
   const overlay = document.createElement('div');
   overlay.className = 'onboarding-overlay';
   overlay.dataset.wizardOverlay = OVERLAY_TAG;
+
   const shell = document.createElement('div');
   shell.className = 'onboarding-shell';
-  const header = document.createElement('h1');
-  header.textContent = 'Chronos Onboarding';
+
+  const headerWrap = document.createElement('div');
+  headerWrap.className = 'onboarding-header';
+
+  const hero = document.createElement('div');
+  hero.className = 'onboarding-hero';
+  const heroIcon = document.createElement('div');
+  heroIcon.className = 'onboarding-hero-icon';
+  heroIcon.innerHTML = `
+    <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="2" stroke-opacity="0.35"></circle>
+      <path d="M16 36L32 20L48 36" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M20 40L32 28L44 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"></path>
+    </svg>
+  `;
+  const heroCopy = document.createElement('div');
+  heroCopy.className = 'onboarding-hero-copy';
+  const heroBadge = document.createElement('div');
+  heroBadge.className = 'onboarding-badge';
+  heroBadge.textContent = 'Chronos Engine';
+  const heroTitle = document.createElement('h1');
+  heroTitle.textContent = 'Flight Deck Onboarding';
+  const heroSubtitle = document.createElement('p');
+  heroSubtitle.textContent = 'Tune nickname, categories, statuses, and templates in one guided flow.';
   const progress = document.createElement('div');
   progress.className = 'onboarding-progress';
+  heroCopy.append(heroBadge, heroTitle, heroSubtitle, progress);
+  hero.append(heroIcon, heroCopy);
+
+  const stepper = document.createElement('div');
+  stepper.className = 'onboarding-stepper';
+  const stepperButtons = [];
+  steps.forEach((step, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'stepper-node';
+    const index = document.createElement('span');
+    index.className = 'step-index';
+    index.textContent = String(idx + 1);
+    const label = document.createElement('span');
+    label.className = 'stepper-title';
+    label.textContent = step.title;
+    btn.append(index, label);
+    btn.addEventListener('click', ()=> {
+      if (idx <= stepIndex){
+        stepIndex = idx;
+        loadStep();
+      }
+    });
+    stepper.appendChild(btn);
+    stepperButtons.push(btn);
+  });
+
+  headerWrap.append(hero, stepper);
+
+  const content = document.createElement('div');
+  content.className = 'onboarding-content';
   const body = document.createElement('div');
   body.className = 'onboarding-body';
+  content.appendChild(body);
+
   const statusLine = document.createElement('div');
   statusLine.className = 'wizard-status-line';
   const actions = document.createElement('div');
   actions.className = 'onboarding-actions';
+  const actionsLeft = document.createElement('div');
+  actionsLeft.className = 'action-group';
+  const actionsRight = document.createElement('div');
+  actionsRight.className = 'action-group';
   const backBtn = document.createElement('button');
+  backBtn.className = 'ghost';
   backBtn.textContent = 'Back';
   const skipBtn = document.createElement('button');
+  skipBtn.className = 'ghost subtle';
   skipBtn.textContent = 'Skip Step';
   const nextBtn = document.createElement('button');
   nextBtn.className = 'primary';
   nextBtn.textContent = 'Next';
-  actions.append(backBtn, skipBtn, nextBtn);
-  shell.append(header, progress, body, statusLine, actions);
+  actionsLeft.append(backBtn, skipBtn);
+  actionsRight.append(nextBtn);
+  actions.append(actionsLeft, actionsRight);
+
+  const footer = document.createElement('div');
+  footer.className = 'onboarding-footer';
+  footer.append(statusLine, actions);
+
+  shell.append(headerWrap, content, footer);
   overlay.appendChild(shell);
   document.body.appendChild(overlay);
+  const helpBtn = context?.createHelpButton?.('Onboarding', {
+    className: 'wizard-help-btn icon-btn help-btn',
+    fallbackLabel: 'Chronos Onboarding Wizard'
+  });
+  if (helpBtn) {
+    helpBtn.classList.add('wizard-help-btn');
+    shell.appendChild(helpBtn);
+  }
+
   if (context?.bus){
     try { context.bus.emit('wizard:opened', { wizard: options?.wizard }); } catch {}
   }
@@ -831,13 +1090,21 @@ export async function launch(context, options = {}){
     setStatus(msg){ statusLine.textContent = msg || ''; },
   };
 
+  function syncStepper(){
+    stepperButtons.forEach((btn, idx) => {
+      btn.classList.toggle('active', idx === stepIndex);
+      btn.classList.toggle('completed', idx < stepIndex);
+    });
+    progress.textContent = `Step ${stepIndex + 1} of ${steps.length} · ${steps[stepIndex].title}`;
+  }
+
   async function loadStep(){
     ctx.setStatus('');
     if (currentHooks && typeof currentHooks.cleanup === 'function'){
       try { currentHooks.cleanup(); } catch {}
     }
+    syncStepper();
     const step = steps[stepIndex];
-    progress.textContent = `Step ${stepIndex + 1} of ${steps.length}`;
     nextBtn.textContent = stepIndex === steps.length - 1 ? 'Finish' : 'Next';
     skipBtn.style.display = stepIndex === steps.length - 1 ? 'none' : '';
     backBtn.disabled = stepIndex === 0;

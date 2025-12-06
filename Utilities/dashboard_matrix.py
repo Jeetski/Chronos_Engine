@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import sqlite3
 from collections import defaultdict
 from itertools import product
 from copy import deepcopy
@@ -15,6 +16,9 @@ if ROOT_DIR not in sys.path:
 USER_DIR = os.path.join(ROOT_DIR, "User")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
 PRESET_DIR = os.path.join(ROOT_DIR, "matrix", "presets")
+DATA_DIR = os.path.join(USER_DIR, "Data")
+MATRIX_DB_PATH = os.path.join(DATA_DIR, "chronos_matrix.db")
+NAME_SEPARATOR = "\x1f"
 
 from Modules.ItemManager import list_all_items  # type: ignore
 from Utilities.duration_parser import parse_duration_string  # type: ignore
@@ -133,6 +137,69 @@ def _load_status_keys() -> List[str]:
 
 
 STATUS_KEYS = _load_status_keys()
+
+
+def _matrix_db_available() -> bool:
+    return os.path.exists(MATRIX_DB_PATH)
+
+
+def _connect_matrix_db() -> sqlite3.Connection:
+    conn = sqlite3.connect(MATRIX_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 1500")
+    conn.execute("PRAGMA synchronous = OFF")
+    conn.execute("PRAGMA temp_store = MEMORY")
+    conn.execute("PRAGMA cache_size = -8192")
+    conn.execute("PRAGMA journal_mode = OFF")
+    conn.execute("PRAGMA mmap_size = 0")
+    conn.execute("PRAGMA automatic_index = ON")
+    conn.execute("PRAGMA case_sensitive_like = OFF")
+    conn.execute("PRAGMA group_concat_max_len = 1048576")
+    return conn
+
+
+def _dimension_label(dim_id: str) -> str:
+    definition = DIMENSIONS.get(dim_id)
+    if definition:
+        return definition.get("label") or _format_title(dim_id)
+    pretty = _format_title(dim_id.replace("property:", ""))
+    return f"Property: {pretty}"
+
+
+def _compose_dimension_label(dim_ids: List[str], displays: List[str]) -> str:
+    pieces = []
+    for dim_id, display in zip(dim_ids, displays):
+        label = _dimension_label(dim_id)
+        prefix = _dimension_value_prefix(label)
+        pieces.append(f"{prefix}: {display or 'Unspecified'}")
+    return " | ".join(pieces)
+
+
+def _resolve_dimension_display(dim_id: str, stored_display: Any, value: Any) -> str:
+    if stored_display:
+        return stored_display
+    if not value:
+        return "Unspecified"
+    if dim_id == "status_tag" and isinstance(value, str) and ":" in value:
+        left, right = value.split(":", 1)
+        return f"{_format_title(left)}: {_format_title(right)}"
+    return _format_title(value)
+
+
+def _metric_payload(metric: str, row: sqlite3.Row, names: List[str]) -> Dict[str, Any]:
+    if metric == "count":
+        return {"value": row["metric_count"] or 0, "items": names}
+    if metric == "duration":
+        total = row["metric_duration"] or 0
+        return {"value": total, "unit": "minutes", "items": names}
+    if metric == "points":
+        total = row["metric_points"] or 0.0
+        return {"value": total, "unit": "points", "items": names}
+    if metric == "list":
+        sample = names[:5]
+        return {"value": ", ".join(sample) if sample else "-", "items": names, "count": len(names)}
+    return {"value": row["metric_count"] or 0, "items": names}
 
 
 def _ensure_preset_dir():
@@ -627,7 +694,7 @@ def _combine_dimension_parts(item: Dict[str, Any], definitions: List[Dict[str, A
     return combos
 
 
-def compute_matrix(
+def _compute_matrix_from_dataset(
     row_dimensions: List[str],
     col_dimensions: List[str],
     metric: str,
@@ -728,9 +795,263 @@ def compute_matrix(
     return result
 
 
-def get_metadata():
+def _metadata_from_dataset():
     dataset = _load_items()
     return _build_metadata_payload(dataset)
+
+
+def compute_matrix(
+    row_dimensions: List[str],
+    col_dimensions: List[str],
+    metric: str,
+    filters: Dict[str, str] = None,
+    row_sort: str = None,
+    col_sort: str = None,
+):
+    if _matrix_db_available():
+        try:
+            return _compute_matrix_from_db(row_dimensions, col_dimensions, metric, filters, row_sort, col_sort)
+        except Exception:
+            pass
+    dataset = _load_items()
+    return _compute_matrix_from_dataset(row_dimensions, col_dimensions, metric, filters, row_sort, col_sort)
+
+
+def get_metadata():
+    if _matrix_db_available():
+        try:
+            return _db_metadata()
+        except Exception:
+            pass
+    return _metadata_from_dataset()
+
+
+def _db_metadata():
+    with _connect_matrix_db() as conn:
+        dimension_rows = conn.execute(
+            "SELECT DISTINCT dimension, kind FROM dimension_entries"
+        ).fetchall()
+        dynamic_properties = sorted(
+            {row["dimension"] for row in dimension_rows if row["kind"] == "property"}
+        )
+        dimension_ids = []
+        seen = set()
+        for builtin in DIMENSIONS.keys():
+            if builtin not in seen:
+                dimension_ids.append(builtin)
+                seen.add(builtin)
+        for row in dimension_rows:
+            dim = row["dimension"]
+            if dim not in seen:
+                dimension_ids.append(dim)
+                seen.add(dim)
+        dims = [{"id": dim, "label": _dimension_label(dim)} for dim in dimension_ids]
+        property_values: Dict[str, List[str]] = {}
+        for prop in dynamic_properties:
+            values = conn.execute(
+                """
+                SELECT value
+                FROM dimension_entries
+                WHERE dimension = ?
+                GROUP BY value
+                ORDER BY value
+                LIMIT ?
+                """,
+                (prop, MAX_PROPERTY_VALUES),
+            ).fetchall()
+            property_values[prop] = [row["value"] for row in values if row["value"]]
+        item_types = [
+            row["type"]
+            for row in conn.execute(
+                "SELECT DISTINCT type FROM items WHERE type IS NOT NULL ORDER BY type"
+            )
+            if row["type"]
+        ]
+        template_types = [
+            row["value"]
+            for row in conn.execute(
+                """
+                SELECT value
+                FROM dimension_entries
+                WHERE dimension = 'template_type'
+                GROUP BY value
+                ORDER BY value
+                """
+            )
+            if row["value"]
+        ]
+    return {
+        "available_dimensions": dims,
+        "available_metrics": _available_metrics(),
+        "item_types": item_types,
+        "template_types": template_types,
+        "properties": dynamic_properties,
+        "property_values": property_values,
+    }
+
+
+def _compute_matrix_from_db(
+    row_dimensions: List[str],
+    col_dimensions: List[str],
+    metric: str,
+    filters: Dict[str, str] = None,
+    row_sort: str = None,
+    col_sort: str = None,
+):
+    if metric not in METRICS:
+        raise ValueError(f"Unknown metric '{metric}'")
+
+    rows_sequence = _normalize_dimension_sequence(row_dimensions, ["item_type"])
+    cols_sequence = _normalize_dimension_sequence(col_dimensions, ["item_status"])
+
+    filters = filters or {}
+    joins: List[str] = []
+    params: List[Any] = []
+    select_parts: List[str] = []
+    group_parts: List[str] = []
+    alias_refs: List[Dict[str, str]] = []
+    alias_counter = 0
+
+    def attach_dimensions(sequence: List[str], prefix: str) -> List[Dict[str, str]]:
+        nonlocal alias_counter
+        refs: List[Dict[str, str]] = []
+        for dim_id in sequence:
+            alias = f"{prefix}{alias_counter}"
+            alias_counter += 1
+            joins.append(
+                f"""
+                JOIN dimension_entries {alias}
+                  ON {alias}.item_id = items.id AND {alias}.dimension = ?
+                """
+            )
+            params.append(dim_id)
+            select_parts.append(f"{alias}.value AS {alias}_value")
+            select_parts.append(f"{alias}.display AS {alias}_display")
+            group_parts.append(f"{alias}.value")
+            group_parts.append(f"{alias}.display")
+            refs.append({"alias": alias, "dimension": dim_id})
+        return refs
+
+    row_refs = attach_dimensions(rows_sequence, "rd")
+    col_refs = attach_dimensions(cols_sequence, "cd")
+
+    where_clauses: List[str] = []
+    for raw_key, raw_val in filters.items():
+        key = _normalize_key(raw_key)
+        value = _normalize_key(raw_val)
+        if not value:
+            continue
+        if key == "type":
+            where_clauses.append("items.type = ?")
+            params.append(value)
+        else:
+            alias = f"flt{alias_counter}"
+            alias_counter += 1
+            joins.append(
+                f"""
+                JOIN dimension_entries {alias}
+                  ON {alias}.item_id = items.id AND {alias}.dimension = ? AND {alias}.value = ?
+                """
+            )
+            params.extend([key, value])
+
+    select_parts.extend(
+        [
+            f"GROUP_CONCAT(DISTINCT items.name, '{NAME_SEPARATOR}') AS item_names",
+            "COUNT(DISTINCT items.id) AS metric_count",
+            "COALESCE(SUM(items.duration_minutes), 0) AS metric_duration",
+            "COALESCE(SUM(items.points_value), 0) AS metric_points",
+        ]
+    )
+
+    group_clause = ", ".join(group_parts) if group_parts else "items.id"
+    where_clause = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    sql = f"""
+        SELECT {', '.join(select_parts)}
+        FROM items
+        {' '.join(joins)}
+        {where_clause}
+        GROUP BY {group_clause}
+    """
+
+    with _connect_matrix_db() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    rows_map: Dict[str, str] = {}
+    cols_map: Dict[str, str] = {}
+    cells: Dict[str, Dict[str, Any]] = {}
+
+    for record in rows:
+        row_values: List[str] = []
+        row_labels: List[str] = []
+        for ref in row_refs:
+            value = record[f"{ref['alias']}_value"]
+            display = _resolve_dimension_display(ref["dimension"], record[f"{ref['alias']}_display"], value)
+            row_values.append(value or "")
+            row_labels.append(display)
+        col_values: List[str] = []
+        col_labels: List[str] = []
+        for ref in col_refs:
+            value = record[f"{ref['alias']}_value"]
+            display = _resolve_dimension_display(ref["dimension"], record[f"{ref['alias']}_display"], value)
+            col_values.append(value or "")
+            col_labels.append(display)
+
+        row_id = _encode_key(row_values)
+        col_id = _encode_key(col_values)
+        if row_id not in rows_map:
+            rows_map[row_id] = _compose_dimension_label(rows_sequence, row_labels)
+        if col_id not in cols_map:
+            cols_map[col_id] = _compose_dimension_label(cols_sequence, col_labels)
+
+        names = record["item_names"].split(NAME_SEPARATOR) if record["item_names"] else []
+        cell_key = f"{row_id}|{col_id}"
+        cells[cell_key] = _metric_payload(metric, record, [name for name in names if name])
+
+    rows_list = [{"id": key, "label": rows_map[key]} for key in rows_map.keys()]
+    cols_list = [{"id": key, "label": cols_map[key]} for key in cols_map.keys()]
+
+    def _aggregate(entry, axis):
+        total = 0.0
+        peers = cols_list if axis == "row" else rows_list
+        for peer in peers:
+            key = f"{entry['id']}|{peer['id']}" if axis == "row" else f"{peer['id']}|{entry['id']}"
+            cell = cells.get(key)
+            if not cell:
+                continue
+            value = cell.get("value")
+            if isinstance(value, (int, float)):
+                total += float(value)
+        return total
+
+    def _sort_entries(entries, mode, axis):
+        mode = (mode or DEFAULT_SORT_MODE).lower()
+        reverse = mode.endswith("desc")
+        if mode.startswith("metric"):
+            entries.sort(key=lambda entry: _aggregate(entry, axis), reverse=reverse)
+        else:
+            entries.sort(key=lambda entry: entry["label"].lower(), reverse=reverse)
+
+    _sort_entries(rows_list, row_sort or DEFAULT_SORT_MODE, "row")
+    _sort_entries(cols_list, col_sort or DEFAULT_SORT_MODE, "col")
+
+    metadata = _db_metadata()
+    result = {
+        "rows": rows_list,
+        "cols": cols_list,
+        "cells": cells,
+        "meta": {
+            "metric": metric,
+            "metric_label": METRICS[metric]["label"],
+            "filters": filters or {},
+            "row_dimensions": rows_sequence,
+            "col_dimensions": cols_sequence,
+            "row_sort": row_sort or DEFAULT_SORT_MODE,
+            "col_sort": col_sort or DEFAULT_SORT_MODE,
+        },
+    }
+    result.update(metadata)
+    return result
 
 
 def parse_filters(raw: str) -> Dict[str, str]:

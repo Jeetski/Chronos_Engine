@@ -1,0 +1,81 @@
+Chronos Sequence & Memory Plan
+==============================
+
+Command Surface
+---------------
+- New CLI command: `sequence` (Commands/Sequence.py) with helpers in Modules/ and Utilities/.
+- Primary subcommand: `sync` (default behavior). Example: `sequence sync --db core` or `sequence sync --db memory`.
+- Auxiliary subcommands (future-safe): `sequence status`, `sequence plan`, `sequence memory --metastudy`, `sequence data <query>`, etc.
+- Power users get SQL/query access via Chronos CLI command `data` (planned) and via `/api/data/*` endpoints; raw SQLite exposure is encouraged.
+
+Datastore Layout
+----------------
+- New directory: `User/Data/` (local-only; ignored by Git for general users). Contains:
+  - `chronos_core.db` — structured mirror of YAML items for fast queries.
+  - `chronos_events.db` — append-only log of commands/events/triggers.
+  - `chronos_memory.db` — raw behavioral log (schedule adherence, status snapshots, narratives).
+  - `chronos_trends.db` or equivalent tables capturing metastudy rollups.
+  - `databases.yml` (registry: schema versions, last sync timestamps, counts).
+  - Metafiles (Markdown/JSON) such as `tendencies.md` summarizing metastudies.
+- Separate databases “where it makes sense”; do not over-consolidate into a single file.
+- YAML remains the source of truth; SQLite mirrors are read-optimized.
+
+Schemas (initial vision)
+------------------------
+- chronos_core.db tables:
+  - `items` (id, type, name, path, created/updated timestamps, status, priority, tags, JSON blob).
+  - `relations` (parent-child links; routines→tasks, goals→milestones, etc.).
+  - `completions` (item reference, date, duration, status, source).
+  - `schedules` (per-day planned vs actual times).
+  - `points_ledger`, `status_log`, optional `variables`.
+- chronos_events.db tables:
+  - `events` (timestamp, event_type, payload JSON).
+  - `command_runs` (timestamp, command, args, duration, result).
+  - `trigger_log` (commitments/rewards outcomes).
+- chronos_memory.db tables:
+  - `activity_facts` (scheduled/actual start, duration, status per block).
+  - `status_snapshots` (timestamped mood/energy/focus, etc.).
+  - `narratives` (qualitative descriptions of behavior).
+  - `reinforcements` (links to commitments/rewards fired).
+- chronos_trends (or metastudy tables):
+  - `item_trends`, `type_trends`, `status_trends`, etc., storing averaged metrics over windows.
+
+Memory & Metastudy Flow
+-----------------------
+- Raw memory logging (activity_facts + status snapshots) provides a granular history (“ego ideal vs reality”).
+- Metastudy runs (`sequence memory --metastudy`) digest logs into statistics, update trends tables/DB, and emit human-readable Markdown (e.g., `User/Data/tendencies.md`) plus optional JSON.
+- Example insights: avg start times, completion rates, streaks, day-of-week tendencies, energy drift.
+- Agents read the metastudy metafiles by default (token-efficient). Only when prompted do they dive into raw DBs.
+
+Sync & Scheduling
+-----------------
+- `sequence sync` is the canonical full rebuild (no per-command incremental syncs for now).
+- Nightly automatic sync triggered via Listener at 00:00 local time; also surface a user-facing “last sync” timestamp (either in `databases.yml` or a dedicated status file).
+- Reviews should also trigger a summary/metastudy run (chronos already encourages reflective workflows).
+- Listener automation handles the midnight sync; manual CLI invocation is available anytime.
+
+Reviews & Summaries
+-------------------
+- Each review (daily/weekly/etc.) runs the metastudy summarizer so the latest behavior is captured.
+- Summary output goes into Markdown (e.g., `tendencies.md`) for agents and human pilots.
+
+Agent & User Guidance
+---------------------
+- Update `Docs/agents.md` so AI agents MUST read `tendencies.md` (and similar metafiles) before offering advice; raw DB reads only when explicitly instructed.
+- Document the sequence workflow for users/developers (new doc or sections in existing guides).
+
+Open Items / Next Decisions
+---------------------------
+1. Finalize exact schemas for each DB (columns, indexes, JSON usage).
+2. Decide location for “last sync time” metadata (maybe `User/Data/databases.yml` or `User/Profile/...`).
+3. Outline the specific metrics included in metastudy outputs (e.g., per-type averages, start-time variance, energy trends).
+4. Define the command syntax for querying data (`sequence data ...` vs separate `data` command).
+5. Determine how Listener schedules nightly sync (cron-like settings? `Settings/Sequence.yml`?).
+6. Implementation order: scaffold `Sequence` command → core DB builder → events log → memory log → metastudy generator → docs.
+
+Assumptions / Clarifications
+----------------------------
+- Git usage is mostly for the maintainer; typical pilots stay local, so `User/Data` can remain untracked.
+- Windows remains primary target; cross-platform SQLite packaging can wait.
+- CLI testing will mirror “real” usage; no specialized fixtures at first.
+- Chronos commands (and eventual OS-level integration) will expose these datasets for power users.

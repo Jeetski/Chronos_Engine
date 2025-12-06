@@ -258,24 +258,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read theme: {e}"})
             return
-        if parsed.path == "/api/settings":
-            try:
-                qs = parse_qs(parsed.query or '')
-                fname = (qs.get('file') or [''])[0].strip()
-                if not fname:
-                    self._write_json(400, {"ok": False, "error": "Missing file parameter"}); return
-                settings_root = os.path.join(ROOT_DIR, 'User', 'Settings')
-                fpath = os.path.abspath(os.path.join(settings_root, fname))
-                if not fpath.startswith(os.path.abspath(settings_root)):
-                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
-                if not os.path.exists(fpath):
-                    self._write_json(404, {"ok": False, "error": "Not found"}); return
-                with open(fpath, 'r', encoding='utf-8') as fh:
-                    data = yaml.safe_load(fh) or {}
-                self._write_json(200, {"ok": True, "data": data})
-            except Exception as e:
-                self._write_json(500, {"ok": False, "error": f"Settings read error: {e}"})
-            return
         if parsed.path == "/api/cockpit/matrix":
             try:
                 qs = parse_qs(parsed.query or "")
@@ -939,8 +921,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     try:
                         with open(fpath, 'r', encoding='utf-8') as fh:
                             text = fh.read()
-                        # return raw content as JSON for easy client parsing
-                        self._write_json(200, {"ok": True, "file": fname, "content": text})
+                        parsed_yaml = {}
+                        try:
+                            loaded = yaml.safe_load(text) or {}
+                            if isinstance(loaded, dict):
+                                parsed_yaml = loaded
+                        except Exception:
+                            parsed_yaml = {}
+                        self._write_json(200, {"ok": True, "file": fname, "content": text, "data": parsed_yaml})
                     except Exception as e:
                         self._write_json(500, {"ok": False, "error": f"Read failed: {e}"})
                     return
@@ -1003,6 +991,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         entry['state'] = dn.get('state') or dn.get('status')
                         entry['stage'] = dn.get('stage')
                         entry['owner'] = dn.get('owner')
+                    elif item_type == 'inventory':
+                        # Surface placement metadata and linked entries so dashboards can show counts
+                        entry['places'] = dn.get('places') or dn.get('location')
+                        entry['tags'] = dn.get('tags')
+                        inv_items = dn.get('inventory_items')
+                        if not isinstance(inv_items, list):
+                            inv_items = dn.get('items') if isinstance(dn.get('items'), list) else []
+                        entry['inventory_items'] = inv_items if isinstance(inv_items, list) else []
+                        tools = dn.get('tools')
+                        entry['tools'] = tools if isinstance(tools, list) else []
                     out.append(entry)
                 self._write_json(200, {"ok": True, "items": out})
             except Exception as e:

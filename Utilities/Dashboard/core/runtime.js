@@ -16,8 +16,9 @@ function createBus() {
 }
 
 const bus = createBus();
-const context = { bus };
+const context = { bus, getHelpText: getHelpTip, createHelpButton, attachHelpButton };
 try { window.ChronosBus = bus; } catch {}
+try { window.ChronosHelp = { get: getHelpTip, create: createHelpButton, attach: attachHelpButton }; } catch {}
 
 // ---- Global Vars: fetch/cache/expand ----
 const Vars = (()=>{
@@ -78,6 +79,7 @@ const HELP_TEXT = {
   Status: 'Status: View and adjust indicators (energy, focus, mood, etc.).',
   Today: 'Today: View and manage today\'s schedule. Select blocks to trim, change time, cut, mark, then reschedule.',
   ItemManager: 'Item Manager: Browse, search, create, rename, delete, and edit items.',
+  InventoryManager: 'Inventory Manager: Inspect inventories, linked items, and tools; add/remove or copy kits without memorizing commands.',
   Timer: 'Timer: Start, pause, resume, stop timers; choose profiles; view status.',
   GoalTracker: 'Goals: View goal summaries and details.',
   Commitments: 'Commitments: Monitor frequency goals, forbidden rules, and trigger status.',
@@ -94,8 +96,55 @@ const HELP_TEXT = {
   Variables: 'Variables: View and edit global @vars used across the dashboard and CLI.',
   // Views
   Calendar: 'Calendar View: Timeline of scheduled blocks. Use zoom/level controls and toolstrip to navigate and manage.',
-  TemplateBuilder: 'Template Builder: Build templates via drag & drop. Indent/outdent to nest. Toggle Sequential/Parallel; Save to persist.'
+  TemplateBuilder: 'Template Builder: Build templates via drag & drop. Indent/outdent to nest. Toggle Sequential/Parallel; Save to persist.',
+  Cockpit: 'Cockpit View: Drag modular panels onto the canvas, move/resize them, and curate your personal flight deck via the Panels menu.',
+  ProjectManager: 'Project Manager: Filter/search projects on the left and review summaries, milestones, and linked items in the detail pane.',
+  // Panels
+  schedule: 'Schedule Panel: Mirrors today\'s agenda, lets you refresh/reschedule, jump dates, and kick off the Chronos day timer.',
+  matrix: 'Matrix Panel: Interactive pivot grid for Chronos data. Choose rows/cols/values/filters, save presets, and spawn additional panels.',
+  'matrix-visuals': 'Matrix Visuals Panel: Render charts/heatmaps from Matrix presets to spot trends at a glance.',
+  status_strip: 'Status Strip Panel: Compact strip that color-codes your current status indicators for cockpit situational awareness.',
+  // Wizards
+  Onboarding: 'Chronos Onboarding Wizard: Guided flow to set nickname, categories, statuses, templates, and starter goals/rewards.',
+  GoalPlanning: 'Goal Planning Wizard: Capture intent, milestones, and supporting work to spin up a rich goal file.',
+  ProjectLaunch: 'Project Launch Wizard: Draft a project brief, milestones, and kickoff actions before writing YAML.'
 };
+
+function getHelpTip(name, fallback){
+  const key = (name || '').toString().trim();
+  const fallbackKey = (fallback || '').toString().trim();
+  if (key && HELP_TEXT[key]) return HELP_TEXT[key];
+  if (fallbackKey && HELP_TEXT[fallbackKey]) return HELP_TEXT[fallbackKey];
+  const label = fallbackKey || key || 'Component';
+  return `${label}: No help available.`;
+}
+
+function createHelpButton(name, options = {}){
+  try {
+    const btn = document.createElement(options.element || 'button');
+    btn.type = 'button';
+    btn.className = options.className || 'icon-btn help-btn';
+    btn.textContent = options.text || '?';
+    const tip = options.tooltip || getHelpTip(name, options.fallbackLabel || name);
+    btn.title = tip;
+    btn.setAttribute('aria-label', tip);
+    if (typeof options.onClick === 'function'){
+      btn.addEventListener('click', options.onClick);
+    }
+    return btn;
+  } catch {
+    return null;
+  }
+}
+
+function attachHelpButton(target, name, options = {}){
+  if (!target) return null;
+  const btn = createHelpButton(name, options);
+  if (!btn) return null;
+  if (options.position === 'prepend') target.prepend(btn);
+  else target.appendChild(btn);
+  return btn;
+}
 
 // ---- Widget state persistence ----
 const WSTATE_KEY = 'chronos_widget_state_v1';
@@ -163,12 +212,8 @@ function insertHelpIntoWidget(el, name){
     const controls = header ? header.querySelector('.controls') : null;
     if (!header) return;
     if (header.querySelector('.help-btn')) return; // avoid duplicates
-    const btn = document.createElement('button');
-    btn.className = 'icon-btn help-btn';
-    btn.textContent = '?';
-    const tip = HELP_TEXT[name] || `${name}: No help available.`;
-    btn.title = tip;
-    btn.setAttribute('aria-label', tip);
+    const btn = createHelpButton(name, { className: 'icon-btn help-btn', fallbackLabel: name });
+    if (!btn) return;
     // Prefer placing before controls; otherwise append to header
     if (controls && controls.parentElement) controls.parentElement.insertBefore(btn, controls);
     else header.appendChild(btn);
@@ -180,12 +225,8 @@ function insertHelpIntoView(el, name){
     if (!el || !name) return;
     // Avoid duplicate
     if (el.querySelector('.view-help-btn')) return;
-    const btn = document.createElement('button');
-    btn.className = 'icon-btn view-help-btn';
-    btn.textContent = '?';
-    const tip = HELP_TEXT[name] || `${name}: No help available.`;
-    btn.title = tip;
-    btn.setAttribute('aria-label', tip);
+    const btn = createHelpButton(name, { className: 'icon-btn view-help-btn', fallbackLabel: name });
+    if (!btn) return;
     // Position top-right but leave space for any existing overlay controls
     btn.style.position = 'absolute';
     btn.style.top = '10px';

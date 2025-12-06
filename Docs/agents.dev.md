@@ -1,5 +1,5 @@
 # Chronos Engine: Agent Development Guide  
-_Last updated: 2025‑11‑18_
+_Last updated: 2025‑12‑02_
 
 This document is for AI agents (and human developers) extending Chronos: adding commands, wiring new item types, adjusting the CLI, or integrating dashboards/helpers.
 
@@ -26,7 +26,9 @@ Core principle: keep commands thin. ItemManager and per-item modules handle almo
 - Items live under `User/<TypePlural>/` (e.g., `User/Tasks/My Task.yml`). Filenames are sanitized (lowercase, spaces preserved, `&` → `and`, `:` → `-`). Expect YAML dictionaries.
 - Defaults: `User/Settings/<type>_defaults.yml`. ItemManager’s `generic_handle_new` merges these and applies simple placeholders (`{{timestamp}}`, `{{tomorrow}}`).
 - Settings: `User/Settings/*.yml` (points, themes, preferences, timer profiles, etc.). Use the `settings` command to mutate them.
+- Pilot context: `User/Profile/pilot_brief.md` (long-form priorities/motivations) and `User/Profile/preferences.md` are plain Markdown that agents must read at startup; keep them lightweight and user-owned.
 - Schedule: `User/today_schedule.yml`, with manual modifications tracked via `manual_modifications.yml`. Scheduler merges these each `today reschedule` run.
+- Data mirrors: the `sequence` command writes SQLite caches under `User/Data/` (`chronos_core.db`, `chronos_matrix.db`, `chronos_events.db`, `chronos_memory.db`, `chronos_trends.db`, plus `trends.md`). Treat YAML as the source of truth but rely on these mirrors for fast analytics/dashboards.
 
 ---
 
@@ -119,7 +121,17 @@ When adding a widget:
 
 ---
 
-## 9. Common Extension Scenarios
+## 9. Sequence mirrors & automation
+
+- `sequence status` reads `User/Data/databases.yml` and shows the state of every mirror.
+- `sequence sync <targets>` rebuilds specific datasets. Targets currently include `matrix`, `core`, `events`, `memory`, `trends`, and `trends_digest` (placeholder). Omit the target list to refresh everything.
+- `sequence trends` is a shortcut for rebuilding the memory/trends pipeline and writing `User/Data/trends.md`.
+- The Listener imports `Modules.Sequence.automation.maybe_queue_midnight_sync` so it can run `sequence sync memory trends` shortly after midnight (state stored in `User/Data/sequence_automation.yml`). If you change the automation cadence, update that helper and make sure agents know where to look for the digest.
+- When you add new analytics, prefer piggybacking on Sequence (store data in `User/Data/*.db` and expose summaries in docs) so agents/dashboards can reuse the same mirrors.
+
+---
+
+## 10. Common Extension Scenarios
 
 1. **New item type.** Clone an existing module (e.g., `Modules/Reward`) as a template. Ensure `handle_command` covers generic verbs.
 2. **New dashboard widget.** Add `/api/<resource>` endpoints, create widget, register in HTML/help. Follow the pattern used by Rewards/Achievements/Commitments/Milestones.
@@ -128,7 +140,7 @@ When adding a widget:
 
 ---
 
-## 10. File Map Reference
+## 11. File Map Reference
 
 - Entry scripts: `console_launcher.bat/.sh`, `listener_launcher.*`, `timer_launcher.*` (if any).
 - Commands: `Commands/*.py` (snake_case filenames, capitalized user names `Commands/Add.py` vs `add`? verify pattern when editing).  
@@ -139,7 +151,7 @@ When adding a widget:
 
 ---
 
-## 11. Conventions & Tips
+## 12. Conventions & Tips
 
 - Keep modules idempotent; avoid surprise side effects unless triggered by explicit commands.
 - Use lowercase type names (e.g., `task`, `goal`, `milestone`). `ItemManager` handles pluralization in paths.
@@ -152,7 +164,7 @@ When adding a widget:
 
 ---
 
-## 12. Reference Library
+## 13. Reference Library
 
 Consult these documents for deeper technical details:
 

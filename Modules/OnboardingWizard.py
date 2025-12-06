@@ -7,6 +7,13 @@ from pathlib import Path
 
 import yaml
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+_sys_paths = {str(Path(p)) for p in sys.path if isinstance(p, str)}
+if str(ROOT_DIR) not in _sys_paths:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from Modules import theme_utils  # noqa: E402
+
 
 def slugify(name: str) -> str:
     return (
@@ -37,13 +44,18 @@ def prompt_yes_no(text: str, default: bool = True) -> bool:
 
 class OnboardingWizard:
     def __init__(self) -> None:
-        self.root = Path(__file__).resolve().parent.parent
+        self.root = ROOT_DIR
         self.user_dir = self.root / "User"
         self.settings_dir = self.user_dir / "Settings"
         self.profile_path = self.user_dir / "Profile" / "profile.yml"
         self.current_status_path = self.user_dir / "current_status.yml"
         self.nickname = "Pilot"
         self.changes: list[str] = []
+        # Apply the console theme immediately so the wizard mirrors CLI colors.
+        try:
+            self.theme_colors = theme_utils.apply_theme_to_console(self.root)
+        except Exception:
+            self.theme_colors = theme_utils.DEFAULT_THEME.copy()
 
     # ---- helpers ---------------------------------------------------------
     def load_yaml(self, path: Path, default):

@@ -20,6 +20,21 @@ def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+def _normalize_filename(name, prefer_underscores=False):
+    """
+    Build a filesystem-friendly slug while keeping backward compatibility
+    with older files that used literal spaces in their names.
+    """
+    slug = str(name or "").strip().lower()
+    if not slug:
+        return "item"
+    slug = slug.replace('&', 'and').replace(':', '-')
+    slug = slug.replace('/', '_').replace('\\', '_')
+    if prefer_underscores:
+        slug = "_".join(slug.split())
+    slug = slug.replace('__', '_').strip('_')
+    return slug or "item"
+
 def _pluralize(word):
     """A simple pluralizer for English words."""
     if not word:
@@ -49,8 +64,14 @@ def get_item_path(item_type, name):
     Sanitizes the name for use in filenames.
     """
     item_dir = get_item_dir(item_type)
-    sanitized_name = name.lower().replace('&', 'and').replace(':', '-') # Convert to lowercase and replace '&' with 'and', and colons with hyphens
-    return os.path.join(item_dir, f"{sanitized_name}.yml")
+    preferred = _normalize_filename(name, prefer_underscores=True)
+    legacy = _normalize_filename(name, prefer_underscores=False)
+    preferred_path = os.path.join(item_dir, f"{preferred}.yml")
+    legacy_path = os.path.join(item_dir, f"{legacy}.yml")
+    # Use legacy naming if it already exists to avoid duplicating files.
+    if os.path.exists(legacy_path) and not os.path.exists(preferred_path):
+        return legacy_path
+    return preferred_path
 
 def read_item_data(item_type, name):
     """

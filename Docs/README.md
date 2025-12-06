@@ -45,12 +45,14 @@ High level
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `Modules/Listener/Listener.py` runs alarms, reminders, and timer lifecycle.
 - Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views.
+- Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, memory, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
 - `Commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
 - `Modules/`: engine features (ItemManager, Scheduler, Timer, Conditions, etc.).
 - `Utilities/`: helper libs and Dashboard code.
 - `User/`: your data (items, schedules, settings, logs).
+- `User/Inventories`, `User/Inventory_Items`, `User/Tools`: optional gear and capability records that inventories/templates can reference.
 
 Key defaults and conventions
 - Item directories: lowercase, underscored, plural (e.g., `User/notes`, `User/goals`).
@@ -84,8 +86,9 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `help` — list commands and usage.
 - `new|create <type> <name> [k:v ...]` — create any item (tasks, commitments, rewards, achievements, goals, milestones, etc.). Defaults merge from `User/Settings/<type>_defaults.yml`.
 - `append <type> <name> "text"` / `set <type> <name> prop:value [...]` / `remove <type> <name> prop` — edit YAML content without leaving the CLI.
-- `list <type> [filters] [then <command> ...]`, `find <type> keyword [filters]`, `count <type> [filters]` — inspect collections; piped commands automatically receive the current type/name.
-- `delete [-f] <type> <name>`, `copy`, `rename`, `move type:<new_type>` — manage item files.
+- `list <type> [filters] [then <command> ...]`, `find <type> keyword [filters]`, `count <type> [filters]` – inspect collections; piped commands automatically receive the current type/name.
+- `inventory ...` – manage inventories, inventory items, and tools (list/show/new/add/remove) without remembering every verb.
+- `delete [-f] <type> <name>`, `copy`, `rename`, `move type:<new_type>` – manage item files.
 - `view|info|track <type> <name>` — display summaries (`track goal`, `track milestone`, `view commitment`, `view reward`, etc.).
 - `commitments check` — evaluate frequency/never rules and fire triggers (scripts, rewards, achievements).
 - `redeem reward "<name>" [reason:...]` — apply reward cost/cooldown and perform its target action.
@@ -96,6 +99,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `timer start <profile> [bind_type:task bind_name:"Name"]`, `timer pause|resume|stop|cancel` — run focus sessions bound to items if desired.
 - `points balance|history|add|subtract` — inspect or adjust the points ledger.
 - `settings <file_shortcut> key value` — mutate `User/Settings/*.yml` files safely.
+- `sequence <subcommand>` — manage data mirrors (`status`, `sync <targets>`, `trends` to refresh the digest).
 - Listener & reminders: `listener start|stop`, `dismiss|snooze|skip <alarm>`.
 - Templates & variables: `template ...`, `filter ...`, `variables` via dashboard or CLI helper commands.
 
@@ -113,7 +117,7 @@ UI
 - Views:
   - **Calendar** (year/month/week/day canvas, draggable overlay for zoom/level/tool controls). Selecting a block in Day view targets Today widget actions.
   - **Template Builder** (drag/drop week/day/routine trees with duration badges, nesting inspector, and POST `/api/template` saves).
-- **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree) and the new **Matrix** (pivot-style grid for Chronos data) can be arranged into a personal flight deck, with more panels on the way.
+- **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree), **Matrix** (pivot-style grid for Chronos data), and **Status Strip** (color-coded horizontal strip of your current status indicators) can be arranged into a personal flight deck, with more panels on the way.
 - Widgets: Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 
 Selected endpoints (JSON unless noted)
@@ -131,6 +135,9 @@ Selected endpoints (JSON unless noted)
 
 ## Profile file path
 - Canonical path: `User/Profile/profile.yml`.
+- Long-form brief & preferences live next to it:
+  - `User/Profile/pilot_brief.md` — free-form priorities, motivations, how you want to use Chronos.
+  - `User/Profile/preferences.md` — interaction preferences for the agent (tone, rituals, etc.).
 
 ## Listener target actions
 Alarms and reminders can execute linked actions when they trigger. In the item YAML:
@@ -145,6 +152,17 @@ target:
 ```
 
 This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and runs it when the alarm/reminder triggers.
+
+## Sequence mirrors & digest
+- `sequence status` lists every mirror tracked in `User/Data/databases.yml`.
+  - `chronos_core.db` — canonical mirror of YAML items, relations, completions, and schedules.
+  - `chronos_matrix.db` — fast analytics cache powering cockpit Matrix panels.
+  - `chronos_events.db` — listener log stream plus command/trigger history.
+  - `chronos_memory.db` — activity facts (planned vs actual) and status snapshots.
+  - `chronos_trends.db` + `trends.md` — digest of completion rates/variance for agents.
+- `sequence sync <targets>` rebuilds one or more datasets (`matrix core events memory trends`). Omit the target list to refresh everything.
+- `sequence trends` is a shortcut that rebuilds the memory/trends chain and rewrites `User/Data/trends.md`.
+- The Listener automatically runs `sequence sync memory trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
 
 ## Development Notes
 Coding style
