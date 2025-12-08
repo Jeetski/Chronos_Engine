@@ -178,11 +178,25 @@ def _load_exit_lines():
 # Dictionary to store loaded modules to avoid re-importing
 LOADED_MODULES = {}
 
+# Command aliases (lowercase) -> canonical command name
+COMMAND_ALIASES = {
+    "dash": "dashboard",
+}
+
+def resolve_command_alias(command_name):
+    """
+    Map shorthand command names to their canonical counterparts.
+    """
+    if not isinstance(command_name, str):
+        return command_name
+    return COMMAND_ALIASES.get(command_name.lower(), command_name)
+
 def invoke_command(command_name, args, properties):
     """
     Run a command while triggering MacroEngine hooks before/after when enabled.
     Suppress by setting env CHRONOS_SUPPRESS_MACROS or passing property no_macros:true.
     """
+    command_name = resolve_command_alias(command_name)
     suppress = False
     try:
         if os.environ.get("CHRONOS_SUPPRESS_MACROS"):
@@ -232,6 +246,7 @@ def run_command(command_name, args, properties):
     Executes a command by dynamically loading its corresponding Python file
     from the 'commands' directory and calling its 'run' function.
     """
+    command_name = resolve_command_alias(command_name)
     command_file_path = os.path.join(COMMANDS_DIR, f"{command_name}.py")
     if os.path.isfile(command_file_path):
         # Dynamically load the command module
@@ -315,6 +330,7 @@ except NameError:
     run_command_core = run_command  # type: ignore[assignment]
 
 def run_command(command_name, args, properties):
+    command_name = resolve_command_alias(command_name)
     try:
         suppress = False
         try:

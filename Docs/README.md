@@ -33,7 +33,7 @@ Scripting & Automation Docs
 - Run `listener_launcher.bat` to enable alarms, reminders, and timer ticks.
 5) Dashboard
 - Option A: double-click `dashboard_launcher.bat`.
-- Option B: from the Console, run: `dashboard`.
+- Option B: from the Console, run: `dashboard` (alias `dash`).
   - Both start the server and open the dashboard automatically.
 
 Tips
@@ -116,7 +116,7 @@ UI
 - `Utilities/Dashboard/dashboard.html` + `app.js` load all views and widgets.
 - Views:
   - **Calendar** (year/month/week/day canvas, draggable overlay for zoom/level/tool controls). Selecting a block in Day view targets Today widget actions.
-  - **Template Builder** (drag/drop week/day/routine trees with duration badges, nesting inspector, and POST `/api/template` saves).
+  - **Template Builder** (drag/drop week/day/routine trees plus goal/project/inventory builders with duration badges, nesting inspector, and POST `/api/template` saves).
 - **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree), **Matrix** (pivot-style grid for Chronos data), and **Status Strip** (color-coded horizontal strip of your current status indicators) can be arranged into a personal flight deck, with more panels on the way.
 - Widgets: Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 

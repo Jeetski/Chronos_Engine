@@ -9,7 +9,7 @@ Chronos includes a lightweight local dashboard that complements the CLI and List
 | Method | Steps |
 | --- | --- |
 | Launcher | Double-click `dashboard_launcher.bat` (or `.sh` on Linux/macOS). |
-| From Console | Open the Chronos Console and run `dashboard`. |
+| From Console | Open the Chronos Console and run `dashboard` (alias `dash`). |
 
 Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the UI in your default browser.
 
@@ -19,8 +19,8 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 
 ### Views
 - **Calendar** – Year/Month/Week/Day canvas with a draggable overlay panel for zoom, hierarchy level (Routines → Items), and tool selection (cursor / select / picker / eraser). Selecting a block in Day view targets Today widget actions.
-- **Template Builder** – Drag-and-drop editing for week/day/routine/subroutine/microroutine templates. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
-- **Cockpit** – A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. Panels spawn from the “Panels” dropdown, remember their size/position (`chronos_cockpit_panels_v1` in localStorage), and can be rearranged into a personal flight deck. Shipping panels include **Schedule** (`Utilities/Dashboard/Panels/Schedule/`, a live agenda tree), **Matrix** (`Utilities/Dashboard/Panels/Matrix/`, a configurable pivot grid fed by Chronos data), and the new **Status Strip** (`Utilities/Dashboard/Panels/StatusStrip/`, a minimal horizontal ticker that color-codes each status indicator by priority), with more on the way.
+- **Template Builder** – Drag-and-drop editing for week/day/routine/subroutine/microroutine templates plus goal/project/inventory builders. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
+- **Cockpit** – A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. The grid now pans infinitely (scroll or drag empty space) and supports zoom via Ctrl + scroll or the floating ± controls, so you can arrange gauges anywhere and view the whole flight deck at once. Panels spawn from the “Panels” dropdown, remember their size/position (`chronos_cockpit_panels_v1` in localStorage), and can be rearranged into a personal layout. Shipping panels include **Schedule** (`Utilities/Dashboard/Panels/Schedule/`, a live agenda tree), **Matrix** (`Utilities/Dashboard/Panels/Matrix/`, a configurable pivot grid fed by Chronos data), **Status Strip** (`Utilities/Dashboard/Panels/StatusStrip/`, a minimal horizontal ticker that color-codes each status indicator by priority), and the new **Commitments Snapshot** (`Utilities/Dashboard/Panels/Commitments/`, glanceable totals plus your top offenders/on-track promises), with more on the way.
   - The Matrix panel now ships with curated presets (Status × Type, Task Priority vs Status, Duration by Tag, Points by Category) so you can load a meaningful pivot immediately before saving your own variations.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 

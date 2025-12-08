@@ -1,5 +1,7 @@
 const STYLE_ID = 'cockpit-blank-style';
 const STORAGE_KEY = 'chronos_cockpit_panels_v1';
+const VIEW_DEFAULT = { panX: 0, panY: 0, zoom: 1 };
+const ZOOM_LIMITS = { min: 0.6, max: 1.8 };
 
 function injectStyles(){
   if (document.getElementById(STYLE_ID)) return;
@@ -15,6 +17,7 @@ function injectStyles(){
       overflow: hidden;
       background: #0d111a;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 60px rgba(0,0,0,0.45);
+      touch-action: none;
     }
     .cockpit-grid {
       position: absolute;
@@ -27,11 +30,14 @@ function injectStyles(){
       background-position: 0 0, 0 0;
       opacity: 0.95;
       pointer-events: none;
+      will-change: background-position, background-size;
     }
     .cockpit-panels {
       position: absolute;
       inset: 0;
       padding: 18px;
+      transform-origin: 0 0;
+      will-change: transform;
     }
     .cockpit-overlay {
       position: absolute;
@@ -161,6 +167,49 @@ function injectStyles(){
       border-right: 2px solid rgba(255,255,255,0.6);
       border-bottom: 2px solid rgba(255,255,255,0.6);
     }
+    .cockpit-controls {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: rgba(9,12,20,0.9);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: 6px 12px;
+      color: #dbe3ff;
+      pointer-events: auto;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+      z-index: 30;
+    }
+    .cockpit-zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cockpit-zoom-btn,
+    .cockpit-reset-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.08);
+      color: #f8fbff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .cockpit-zoom-btn:hover,
+    .cockpit-reset-btn:hover {
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.15);
+    }
+    .cockpit-zoom-label {
+      min-width: 48px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-size: 13px;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -174,10 +223,21 @@ class CockpitPanelManager {
     this.root = rootEl;
     this.context = context || {};
     this.surface = rootEl.querySelector('.cockpit-panels');
+    this.grid = rootEl.querySelector('.cockpit-grid');
     this.overlay = rootEl.querySelector('.cockpit-overlay');
+    this.controls = rootEl.querySelector('.cockpit-controls');
+    this.zoomLabel = rootEl.querySelector('[data-zoom-label]');
+    this.zoomInBtn = rootEl.querySelector('[data-zoom-in]');
+    this.zoomOutBtn = rootEl.querySelector('[data-zoom-out]');
+    this.resetBtn = rootEl.querySelector('[data-reset-view]');
     this.entries = new Map();
     this.zIndex = 10;
+    this.cleanups = [];
+    this.persistHandle = null;
     this.state = this._loadState();
+    this.view = this._loadView();
+    this._applyViewTransform();
+    this._bindViewportControls();
     this.api = {
       list: () => this.list(),
       toggle: (id) => this.toggle(id),
@@ -200,8 +260,29 @@ class CockpitPanelManager {
     }
   }
 
+  _loadView(){
+    const base = { ...VIEW_DEFAULT };
+    const stored = this.state?._view;
+    if (stored && typeof stored === 'object'){
+      if (typeof stored.panX === 'number') base.panX = stored.panX;
+      if (typeof stored.panY === 'number') base.panY = stored.panY;
+      if (typeof stored.zoom === 'number') base.zoom = clamp(stored.zoom, ZOOM_LIMITS.min, ZOOM_LIMITS.max);
+    }
+    return base;
+  }
+
   _persist(){
-    const payload = {};
+    if (this.persistHandle){
+      window.clearTimeout(this.persistHandle);
+      this.persistHandle = null;
+    }
+    const payload = {
+      _view: {
+        panX: this.view.panX,
+        panY: this.view.panY,
+        zoom: this.view.zoom,
+      }
+    };
     this.entries.forEach(entry => {
       payload[entry.id] = {
         visible: !!entry.visible,
@@ -212,10 +293,136 @@ class CockpitPanelManager {
       };
     });
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
+    this.state = payload;
   }
 
   _notify(){
     try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+  }
+
+  _applyViewTransform(){
+    if (this.surface){
+      const { panX, panY, zoom } = this.view;
+      this.surface.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    }
+    if (this.grid){
+      const { panX, panY, zoom } = this.view;
+      const coarse = 60 * zoom;
+      const fine = 12 * zoom;
+      this.grid.style.backgroundSize = `${coarse}px ${coarse}px, ${fine}px ${fine}px`;
+      this.grid.style.backgroundPosition = `${panX}px ${panY}px, ${panX}px ${panY}px`;
+    }
+    this._updateZoomLabel();
+  }
+
+  _updateZoomLabel(){
+    if (!this.zoomLabel) return;
+    const pct = Math.round((this.view.zoom || 1) * 100);
+    this.zoomLabel.textContent = `${pct}%`;
+  }
+
+  _schedulePersist(){
+    if (this.persistHandle) return;
+    this.persistHandle = window.setTimeout(()=> {
+      this.persistHandle = null;
+      this._persist();
+    }, 200);
+  }
+
+  _bindViewportControls(){
+    if (!this.root) return;
+    const handleWheel = (ev)=>{
+      if (ev.ctrlKey){
+        ev.preventDefault();
+        const rect = this.root.getBoundingClientRect();
+        const point = {
+          x: ev.clientX - rect.left,
+          y: ev.clientY - rect.top,
+        };
+        const delta = clamp(-ev.deltaY * 0.0015, -0.8, 0.8);
+        this.zoomBy(delta, point);
+      } else {
+        ev.preventDefault();
+        this.panBy(-ev.deltaX, -ev.deltaY);
+      }
+    };
+    this.root.addEventListener('wheel', handleWheel, { passive: false });
+    this.cleanups.push(()=> this.root.removeEventListener('wheel', handleWheel));
+
+    const handlePanStart = (ev)=>{
+      if (ev.button !== 0) return;
+      if (ev.target.closest('.cockpit-panel')) return;
+      if (ev.target.closest('.cockpit-controls')) return;
+      ev.preventDefault();
+      const start = { x: ev.clientX, y: ev.clientY };
+      const startPan = { x: this.view.panX, y: this.view.panY };
+      const move = (e)=>{
+        const dx = e.clientX - start.x;
+        const dy = e.clientY - start.y;
+        this.setPan(startPan.x + dx, startPan.y + dy);
+      };
+      const up = ()=>{
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        this._persist();
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+    this.root.addEventListener('pointerdown', handlePanStart);
+    this.cleanups.push(()=> this.root.removeEventListener('pointerdown', handlePanStart));
+
+    if (this.zoomInBtn){
+      const zoomInHandler = ()=> this.setZoom(this.view.zoom + 0.15);
+      this.zoomInBtn.addEventListener('click', zoomInHandler);
+      this.cleanups.push(()=> this.zoomInBtn.removeEventListener('click', zoomInHandler));
+    }
+    if (this.zoomOutBtn){
+      const zoomOutHandler = ()=> this.setZoom(this.view.zoom - 0.15);
+      this.zoomOutBtn.addEventListener('click', zoomOutHandler);
+      this.cleanups.push(()=> this.zoomOutBtn.removeEventListener('click', zoomOutHandler));
+    }
+    if (this.resetBtn){
+      const resetHandler = ()=> this.resetView();
+      this.resetBtn.addEventListener('click', resetHandler);
+      this.cleanups.push(()=> this.resetBtn.removeEventListener('click', resetHandler));
+    }
+  }
+
+  setPan(x, y){
+    this.view.panX = x;
+    this.view.panY = y;
+    this._applyViewTransform();
+    this._schedulePersist();
+  }
+
+  panBy(dx, dy){
+    this.setPan(this.view.panX + dx, this.view.panY + dy);
+  }
+
+  setZoom(nextZoom, center){
+    const prev = this.view.zoom || 1;
+    const clamped = clamp(nextZoom, ZOOM_LIMITS.min, ZOOM_LIMITS.max);
+    const rect = this.root?.getBoundingClientRect();
+    const anchor = center || (rect ? { x: rect.width / 2, y: rect.height / 2 } : { x: 0, y: 0 });
+    const worldX = (anchor.x - this.view.panX) / prev;
+    const worldY = (anchor.y - this.view.panY) / prev;
+    this.view.zoom = clamped;
+    this.view.panX = anchor.x - worldX * clamped;
+    this.view.panY = anchor.y - worldY * clamped;
+    this._applyViewTransform();
+    this._schedulePersist();
+  }
+
+  zoomBy(delta, center){
+    const factor = 1 + delta;
+    this.setZoom(this.view.zoom * factor, center);
+  }
+
+  resetView(){
+    this.view = { ...VIEW_DEFAULT };
+    this._applyViewTransform();
+    this._persist();
   }
 
   _updateOverlay(){
@@ -255,6 +462,15 @@ class CockpitPanelManager {
       if (typeof saved.width === 'number') entry.size.width = saved.width;
       if (typeof saved.height === 'number') entry.size.height = saved.height;
       if (typeof saved.visible === 'boolean') entry.visible = saved.visible;
+    } else if (this.root){
+      try {
+        const rect = this.root.getBoundingClientRect();
+        const zoom = this.view.zoom || 1;
+        const vx = rect.width / 2 - (entry.size.width / 2);
+        const vy = rect.height / 2 - (entry.size.height / 2);
+        entry.position.x = (-this.view.panX / zoom) + vx;
+        entry.position.y = (-this.view.panY / zoom) + vy;
+      } catch {}
     }
     this.entries.set(entry.id, entry);
     if (entry.visible) this._mountEntry(entry);
@@ -394,14 +610,9 @@ class CockpitPanelManager {
       const startY = ev.clientY;
       const startPos = { x: entry.position.x, y: entry.position.y };
       const move = (e)=>{
-        const bounds = this.surface.getBoundingClientRect();
-        const panelRect = entry.el?.getBoundingClientRect();
-        const width = panelRect?.width ?? entry.size.width;
-        const height = panelRect?.height ?? entry.size.height;
-        let nextX = startPos.x + (e.clientX - startX);
-        let nextY = startPos.y + (e.clientY - startY);
-        nextX = clamp(nextX, 0, Math.max(0, bounds.width - width));
-        nextY = clamp(nextY, 0, Math.max(0, bounds.height - height));
+        const zoom = this.view.zoom || 1;
+        const nextX = startPos.x + (e.clientX - startX) / zoom;
+        const nextY = startPos.y + (e.clientY - startY) / zoom;
         entry.position.x = nextX;
         entry.position.y = nextY;
         if (entry.el){
@@ -433,14 +644,12 @@ class CockpitPanelManager {
       const startX = ev.clientX;
       const startY = ev.clientY;
       const startSize = { width: entry.size.width, height: entry.size.height };
-      const bounds = this.surface.getBoundingClientRect();
       const move = (e)=>{
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
+        const zoom = this.view.zoom || 1;
+        const deltaX = (e.clientX - startX) / zoom;
+        const deltaY = (e.clientY - startY) / zoom;
         let newWidth = Math.max(MIN_WIDTH, startSize.width + deltaX);
         let newHeight = Math.max(MIN_HEIGHT, startSize.height + deltaY);
-        newWidth = Math.min(newWidth, bounds.width);
-        newHeight = Math.min(newHeight, bounds.height);
         entry.size.width = newWidth;
         entry.size.height = newHeight;
         if (entry.el){
@@ -459,6 +668,16 @@ class CockpitPanelManager {
   }
 
   dispose(){
+    if (this.persistHandle){
+      window.clearTimeout(this.persistHandle);
+      this.persistHandle = null;
+    }
+    if (Array.isArray(this.cleanups)){
+      this.cleanups.forEach(fn => {
+        try { fn(); } catch {}
+      });
+      this.cleanups = [];
+    }
     this.entries.forEach(entry => this._unmountEntry(entry));
     this.entries.clear();
     this._updateOverlay();
@@ -477,7 +696,15 @@ export function mount(el, context){
         <div class="cockpit-subtitle">
           This space acts like a navigation table. Drop panels from the Panels menu, drag them into position, and arrange your personal flight deck.
         </div>
-        <div class="cockpit-hint">Choose a panel from the Panels dropdown to place your first puzzle piece.</div>
+        <div class="cockpit-hint">Scroll to glide across the grid, Ctrl + scroll (or the buttons) to zoom. Choose a panel from the Panels dropdown to place your first gauge.</div>
+      </div>
+      <div class="cockpit-controls">
+        <div class="cockpit-zoom-controls">
+          <button type="button" class="cockpit-zoom-btn" data-zoom-out aria-label="Zoom out">−</button>
+          <span class="cockpit-zoom-label" data-zoom-label>100%</span>
+          <button type="button" class="cockpit-zoom-btn" data-zoom-in aria-label="Zoom in">+</button>
+        </div>
+        <button type="button" class="cockpit-reset-btn" data-reset-view>Reset</button>
       </div>
     </div>
   `;
@@ -552,6 +779,18 @@ export function mount(el, context){
       }
     })
     .catch(err => console.error('[Chronos][Cockpit] Failed to load status strip panel module', err));
+
+  import(new URL('../../Panels/Commitments/index.js', import.meta.url))
+    .then(mod => {
+      console.log('[Chronos][Cockpit] Commitments module import resolved', !!mod);
+      if (mod && typeof mod.register === 'function') {
+        try { mod.register(manager); } catch (err) { console.error('[Chronos][Cockpit] Commitments panel register failed', err); }
+        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+      } else {
+        console.warn('[Chronos][Cockpit] Commitments module has no register export');
+      }
+    })
+    .catch(err => console.error('[Chronos][Cockpit] Failed to load commitments panel module', err));
 
   window.CockpitPanels = manager.api;
   try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}

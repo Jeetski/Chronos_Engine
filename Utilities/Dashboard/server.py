@@ -1079,7 +1079,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 # Normalize children
                 children = []
                 try:
-                    if isinstance(data.get('children'), list):
+                    if t == "inventory":
+                        for key in ("inventory_items", "tools"):
+                            seq = data.get(key)
+                            if isinstance(seq, list):
+                                children.extend(seq)
+                    elif isinstance(data.get('children'), list):
                         children = data['children']
                     elif isinstance(data.get('items'), list):
                         children = data['items']
@@ -1878,7 +1883,28 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(400, {"ok": False, "error": "Missing type, name, or children[]"}); return
                 from Modules.ItemManager import read_item_data, write_item_data
                 data = read_item_data(t, n) or {}
-                data['children'] = children
+                if t == "inventory":
+                    inv_items = []
+                    tools = []
+                    for child in children:
+                        if not isinstance(child, dict):
+                            continue
+                        entry = dict(child)
+                        entry.pop("children", None)
+                        entry.pop("depends_on", None)
+                        entry.pop("ideal_start_time", None)
+                        entry.pop("ideal_end_time", None)
+                        entry.pop("duration", None)
+                        dtype = str(entry.get("type") or "").lower()
+                        if dtype == "tool":
+                            tools.append(entry)
+                        else:
+                            inv_items.append(entry)
+                    data['inventory_items'] = inv_items
+                    data['tools'] = tools
+                    data.pop('children', None)
+                else:
+                    data['children'] = children
                 write_item_data(t, n, data)
                 self._write_json(200, {"ok": True})
             except Exception as e:

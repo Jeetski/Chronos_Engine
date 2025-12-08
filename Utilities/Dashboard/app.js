@@ -41,6 +41,9 @@ const panelLoaders = [
   () => import(new URL('./Panels/StatusStrip/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load status strip panel module', err);
   }),
+  () => import(new URL('./Panels/Commitments/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load commitments panel module', err);
+  }),
 ];
 
 ready(async () => {

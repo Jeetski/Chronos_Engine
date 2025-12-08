@@ -45,14 +45,15 @@
       </div>
       <div class="col center">
         <div class="row" style="gap:8px; align-items:center; margin-bottom:8px;">
-          <strong>Template</strong>
-          <select id="tplType">
-            <option value="goal">goal</option>
-            <option value="project">project</option>
-            <option value="routine">routine</option>
-            <option value="subroutine">subroutine</option>
-            <option value="microroutine">microroutine</option>
-            <option value="day">day</option>
+           <strong>Template</strong>
+           <select id="tplType">
+             <option value="goal">goal</option>
+             <option value="inventory">inventory</option>
+             <option value="project">project</option>
+             <option value="routine">routine</option>
+             <option value="subroutine">subroutine</option>
+             <option value="microroutine">microroutine</option>
+             <option value="day">day</option>
             <option value="week">week</option>
           </select>
           <select id="tplName" style="flex:1"></select>
@@ -137,6 +138,7 @@
   const btnDel = el.querySelector('#btnDel');
   const btnUp = el.querySelector('#btnUp');
   const btnDown = el.querySelector('#btnDown');
+  let propMode = null;
   // Project-specific inspector fields
   const dependsRow = propDepends?.parentElement;
   let projectLinkRow = null;
@@ -146,6 +148,10 @@
   let propProjectStage = null;
   let propProjectDue = null;
   let propProjectNotes = null;
+  let inventoryQuantityRow = null;
+  let inventoryNotesRow = null;
+  let propInventoryQuantity = null;
+  let propInventoryNotes = null;
   if (dependsRow){
     projectLinkRow = document.createElement('div');
     projectLinkRow.className = 'row project-meta';
@@ -206,6 +212,39 @@
     projectNotesRow.append(notesLabel, notesInput);
     projectStageRow.insertAdjacentElement('afterend', projectNotesRow);
     propProjectNotes = notesInput;
+    inventoryQuantityRow = document.createElement('div');
+    inventoryQuantityRow.className = 'row inventory-meta';
+    inventoryQuantityRow.style.marginTop = '8px';
+    inventoryQuantityRow.style.gap = '6px';
+    const qtyLabel = document.createElement('label');
+    qtyLabel.style.width = '100px';
+    qtyLabel.textContent = 'Quantity';
+    const qtyInput = document.createElement('input');
+    qtyInput.id = 'propInventoryQuantity';
+    qtyInput.className = 'input';
+    qtyInput.type = 'number';
+    qtyInput.min = '0';
+    qtyInput.placeholder = 'Qty';
+    inventoryQuantityRow.append(qtyLabel, qtyInput);
+    const inventoryRowAnchor = projectNotesRow || dependsRow;
+    inventoryRowAnchor.insertAdjacentElement('afterend', inventoryQuantityRow);
+    propInventoryQuantity = qtyInput;
+
+    inventoryNotesRow = document.createElement('div');
+    inventoryNotesRow.className = 'row inventory-meta';
+    inventoryNotesRow.style.marginTop = '6px';
+    inventoryNotesRow.style.gap = '6px';
+    const invNotesLabel = document.createElement('label');
+    invNotesLabel.style.width = '100px';
+    invNotesLabel.textContent = 'Notes';
+    const invNotesInput = document.createElement('textarea');
+    invNotesInput.id = 'propInventoryNotes';
+    invNotesInput.className = 'input';
+    invNotesInput.placeholder = 'Optional details';
+    invNotesInput.style.minHeight = '80px';
+    inventoryNotesRow.append(invNotesLabel, invNotesInput);
+    inventoryQuantityRow.insertAdjacentElement('afterend', inventoryNotesRow);
+    propInventoryNotes = invNotesInput;
   }
   // Add indent/outdent buttons near Up/Down
   const indentBtn = document.createElement('button'); indentBtn.className='btn'; indentBtn.textContent='>>'; indentBtn.title='Indent (make child of previous)';
@@ -233,6 +272,7 @@
       try { _propDuration.placeholder = 'minutes (integer)'; } catch{}
     }
   } catch{}
+  propMode = el.querySelector('#propMode');
 
   let library = [];
   let children = [];
@@ -240,18 +280,30 @@
   let selPath = '';
   let expandFx = true;
   function maybeExpand(s){ try { if (!expandFx) return String(s||''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
+  function isInventoryTemplate(){ return String(tplType.value||'').toLowerCase() === 'inventory'; }
   try { expandToggle?.addEventListener('change', ()=>{ expandFx = !!expandToggle.checked; renderTree(); renderTreeNested?.(); }); } catch {}
-  function refreshProjectInspectorVisibility(){
-    const isProject = String(tplType.value||'').toLowerCase() === 'project';
+  function refreshInspectorVisibility(){
+    const tplKind = String(tplType.value||'').toLowerCase();
+    const isProject = tplKind === 'project';
+    const isInventory = tplKind === 'inventory';
     [projectLinkRow, projectStageRow, projectNotesRow].forEach(row=>{
       if (row) row.style.display = isProject ? '' : 'none';
+    });
+    [inventoryQuantityRow, inventoryNotesRow].forEach(row=>{
+      if (row) row.style.display = isInventory ? '' : 'none';
     });
     const durationRow = propDuration?.parentElement;
     const startRow = propStart?.parentElement;
     const endRow = propEnd?.parentElement;
-    if (durationRow) durationRow.style.display = isProject ? 'none' : '';
-    if (startRow) startRow.style.display = isProject ? 'none' : '';
-    if (endRow) endRow.style.display = isProject ? 'none' : '';
+    if (durationRow) durationRow.style.display = (isProject || isInventory) ? 'none' : '';
+    if (startRow) startRow.style.display = isInventory ? 'none' : '';
+    if (endRow) endRow.style.display = isInventory ? 'none' : '';
+    if (dependsRow){
+      dependsRow.style.display = isInventory ? 'none' : '';
+    }
+    if (propDepends){
+      propDepends.disabled = !!isInventory;
+    }
   }
 
   function pathToArray(p){ if(!p) return []; return p.split('.').map(s=> parseInt(s,10)); }
@@ -284,6 +336,7 @@
   }
   function computeDurationsMap(){
     const map = new Map();
+    if (isInventoryTemplate()) return map;
     const walk = (arr, base)=>{
       (arr||[]).forEach((n,i)=>{
         const p = base? base+'.'+i : String(i);
@@ -299,6 +352,7 @@
   function typeRank(t){
     const k = String(t||'').toLowerCase();
     if (k==='goal') return 2; // goal templates sit above milestone items
+    if (k==='inventory') return 2;
     if (k==='project') return 2;
     if (k==='week') return 5;
     if (k==='day') return 4;
@@ -309,6 +363,9 @@
     return 0;
   }
   function canNest(parentType, childType){
+    const parentKey = String(parentType||'').toLowerCase();
+    const childKey = String(childType||'').toLowerCase();
+    if (parentKey==='inventory_item' || parentKey==='tool') return false;
     const rp = typeRank(parentType);
     const rc = typeRank(childType);
     // Disallow equal-ranked templates nesting into themselves (for template kinds rank>=1)
@@ -321,12 +378,43 @@
     const leaves = ITEM_TYPES.filter(t => t !== 'project');
     if (k==='goal') return ['milestone'];
     if (k==='project') return ['milestone', ...leaves.filter(t => t!=='milestone')];
+    if (k==='inventory') return ['inventory_item','tool'];
     if (k==='week') return ['day','routine','subroutine','microroutine', ...leaves];
     if (k==='day') return ['routine','subroutine','microroutine', ...leaves];
     if (k==='routine') return ['subroutine','microroutine', ...leaves];
     if (k==='subroutine') return ['microroutine', ...leaves];
     if (k==='microroutine') return [...leaves];
     return [...leaves];
+  }
+  function createNodePayload(nodeType, name){
+    const payload = { name, type: nodeType };
+    if (isInventoryTemplate()){
+      if (String(nodeType||'').toLowerCase() === 'inventory_item'){
+        payload.quantity = 1;
+      }
+    } else {
+      payload.duration = 0;
+    }
+    return payload;
+  }
+  function describeInventoryMeta(node){
+    const type = String(node?.type||'').toLowerCase();
+    const parts = [];
+    if (type === 'inventory_item'){
+      const rawQty = node?.quantity;
+      const qty = (typeof rawQty === 'number' && isFinite(rawQty)) ? rawQty : (rawQty ?? '');
+      parts.push(`qty: ${qty === '' ? '—' : qty}`);
+    }
+    if (type === 'tool' && !node?.notes){
+      parts.push('tool');
+    }
+    if (node?.notes){
+      parts.push(String(node.notes));
+    }
+    if (!parts.length){
+      parts.push('inventory entry');
+    }
+    return parts.join(' • ');
   }
   function populateTypeOptions(selectEl, parentType, currentType){
     if (!selectEl) return;
@@ -393,7 +481,7 @@
           } catch { propType.value = ct; propName.value = name; }
           return;
         }
-        children.push({ name, type: ct, duration: 0 }); selIdx = -1; selPath = String(children.length-1); renderTreeNested();
+        children.push(createNodePayload(ct, name)); selIdx = -1; selPath = String(children.length-1); renderTreeNested();
       });
       libList.appendChild(div);
     });
@@ -409,12 +497,14 @@
 
   function renderTree(){
     treeEl.innerHTML = '';
+    const isInv = isInventoryTemplate();
     children.forEach((ch, i)=>{
       const div = document.createElement('div');
       div.className = 'item' + (i===selIdx ? ' sel' : '');
       const __dn = (function(){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ch.name||'')) : String(ch.name||''); } catch { return String(ch.name||''); } })();
+      const meta = isInv ? describeInventoryMeta(ch) : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}`;
       div.innerHTML = `<div><strong>${__dn||''}</strong> <span style=\"opacity:.7\">(${ch.type||''})</span></div>
-                       <div style="opacity:.8; font-size:12px;">dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}</div>`;
+                       <div style="opacity:.8; font-size:12px;">${meta}</div>`;
       try { if (__dn !== String(ch.name||'')) div.title = String(ch.name||''); } catch {}
       div.addEventListener('click', ()=>{ selIdx = i; syncInspector(); renderTree(); });
 
@@ -458,9 +548,19 @@
   }
 
   function syncInspector(){
-    refreshProjectInspectorVisibility();
+    refreshInspectorVisibility();
     const ch = selPath ? getByPath(children, selPath).node : (selIdx>=0 ? children[selIdx] : null);
-    if (!ch){ try{ propType.value=''; }catch{} try{ propName.value=''; }catch{} try{ if (typeof propMode!== 'undefined' && propMode) propMode.value='sequential'; }catch{} try{ propDuration.value=''; }catch{} try{ propStart.value=''; }catch{} try{ propEnd.value=''; }catch{} return; }
+    if (!ch){
+      try{ propType.value=''; }catch{}
+      try{ propName.value=''; }catch{}
+      try{ if (typeof propMode!== 'undefined' && propMode) propMode.value='sequential'; }catch{}
+      try{ propDuration.value=''; }catch{}
+      try{ propStart.value=''; }catch{}
+      try{ propEnd.value=''; }catch{}
+      if (propInventoryQuantity) propInventoryQuantity.value = '';
+      if (propInventoryNotes) propInventoryNotes.value = '';
+      return;
+    }
     // Constrain available types based on parent
     try {
       const parentType = selPath ? getParentTypeForPath(selPath) : String(tplType.value||'');
@@ -493,6 +593,23 @@
         if (propProjectStage) propProjectStage.value = '';
         if (propProjectDue) propProjectDue.value = '';
         if (propProjectNotes) propProjectNotes.value = '';
+      }
+    }
+    if (propInventoryQuantity || propInventoryNotes){
+      const isInvTpl = isInventoryTemplate();
+      const nodeType = String(ch.type||'').toLowerCase();
+      if (propInventoryQuantity){
+        propInventoryQuantity.disabled = !(isInvTpl && nodeType === 'inventory_item');
+        if (isInvTpl && nodeType === 'inventory_item'){
+          const rawQ = ch.quantity;
+          propInventoryQuantity.value = (rawQ === null || typeof rawQ === 'undefined') ? '' : String(rawQ);
+        } else {
+          propInventoryQuantity.value = '';
+        }
+      }
+      if (propInventoryNotes){
+        propInventoryNotes.disabled = !isInvTpl;
+        propInventoryNotes.value = isInvTpl ? (ch.notes || '') : '';
       }
     }
   }
@@ -563,7 +680,14 @@
     const t = String(tplType.value||'');
     const name = prompt(`New ${t} name:`,'');
     if (!name) return;
-    await postYaml(apiBase()+`/api/item`, { type:t, name, properties:{ name, type:t, children: [] } });
+    const props = { name, type:t };
+    if (t === 'inventory'){
+      props.inventory_items = [];
+      props.tools = [];
+    } else {
+      props.children = [];
+    }
+    await postYaml(apiBase()+`/api/item`, { type:t, name, properties: props });
     await loadNames();
     tplName.value = name;
     children = [];
@@ -594,7 +718,7 @@
     // Ask app to show ItemManager widget and pulse it
     try { context?.bus?.emit('widget:show', 'ItemManager'); } catch {}
   });
-  tplType.addEventListener('change', ()=>{ refreshProjectInspectorVisibility(); loadNames(); });
+  tplType.addEventListener('change', ()=>{ refreshInspectorVisibility(); loadNames(); });
   btnLoad.addEventListener('click', loadTemplate);
   btnSave.addEventListener('click', saveTemplate);
   // Normalize Up/Down glyphs and add Duplicate/Undo/Redo buttons
@@ -630,27 +754,61 @@
   } catch {}
   btnApply.addEventListener('click', ()=>{
     const ch = selPath ? getByPath(children, selPath).node : (selIdx>=0 ? children[selIdx] : null); if(!ch) return;
+    const tplKind = String(tplType.value||'').toLowerCase();
+    const isInvTpl = tplKind === 'inventory';
     const newType = String((propType && propType.value) ? propType.value : (ch.type||'')).trim()||ch.type;
     // Enforce nesting rule against current parent
     const parentType = selPath ? getParentTypeForPath(selPath) : String(tplType.value||'');
     if (!canNest(parentType, newType)) { try{ showToast(`Cannot set type '${newType}' under '${parentType}'.`);}catch{} return; }
     ch.type = newType;
     ch.name = (propName?.value||'').trim()||ch.name;
-    const mode = (typeof propMode !== 'undefined' && propMode) ? String(propMode.value||'sequential') : 'sequential';
-    const dv = String(propDuration?.value||'').trim();
-    if (mode==='parallel') ch.duration = 'parallel';
-    else if (/^-?\d+$/.test(dv)) ch.duration = parseInt(dv,10); else ch.duration = 0;
-    const st = String(propStart?.value||'').trim(); const et = String(propEnd?.value||'').trim();
-    if (st && !/^\d{2}:\d{2}$/.test(st)) { showToast('Invalid start time. Use HH:MM.'); return; }
-    if (et && !/^\d{2}:\d{2}$/.test(et)) { showToast('Invalid end time. Use HH:MM.'); return; }
-    ch.ideal_start_time = st || undefined;
-    ch.ideal_end_time = et || undefined;
+    if (!isInvTpl){
+      const mode = (typeof propMode !== 'undefined' && propMode) ? String(propMode.value||'sequential') : 'sequential';
+      const dv = String(propDuration?.value||'').trim();
+      if (mode==='parallel') ch.duration = 'parallel';
+      else if (/^-?\d+$/.test(dv)) ch.duration = parseInt(dv,10); else ch.duration = 0;
+      const st = String(propStart?.value||'').trim(); const et = String(propEnd?.value||'').trim();
+      if (st && !/^\d{2}:\d{2}$/.test(st)) { showToast('Invalid start time. Use HH:MM.'); return; }
+      if (et && !/^\d{2}:\d{2}$/.test(et)) { showToast('Invalid end time. Use HH:MM.'); return; }
+      ch.ideal_start_time = st || undefined;
+      ch.ideal_end_time = et || undefined;
+    } else {
+      delete ch.duration;
+      delete ch.ideal_start_time;
+      delete ch.ideal_end_time;
+    }
     // depends_on from selected options
-    try {
-      const arr = Array.from(propDepends.selectedOptions).map(o=> String(o.value||'')).filter(Boolean);
-      ch.depends_on = arr.length ? arr : undefined;
-    } catch {}
-    if (String(tplType.value||'').toLowerCase()==='project'){
+    if (!isInvTpl){
+      try {
+        const arr = Array.from(propDepends.selectedOptions).map(o=> String(o.value||'')).filter(Boolean);
+        ch.depends_on = arr.length ? arr : undefined;
+      } catch {}
+    } else {
+      delete ch.depends_on;
+    }
+    if (isInvTpl){
+      const nodeType = String(newType||'').toLowerCase();
+      if (propInventoryQuantity){
+        const rawQty = String(propInventoryQuantity.value||'').trim();
+        if (nodeType === 'inventory_item'){
+          if (!rawQty){
+            delete ch.quantity;
+          } else {
+            const parsed = Number(rawQty);
+            ch.quantity = Number.isFinite(parsed) ? parsed : rawQty;
+          }
+        } else {
+          delete ch.quantity;
+        }
+      }
+      if (propInventoryNotes){
+        const noteVal = String(propInventoryNotes.value||'').trim();
+        ch.notes = noteVal || undefined;
+      }
+    } else if (tplKind !== 'project'){
+      delete ch.quantity;
+    }
+    if (tplKind==='project'){
       if (propProjectLink) {
         ch.link_existing = String(propProjectLink.value||'create') === 'link';
       }
@@ -670,7 +828,7 @@
       delete ch.link_existing;
       delete ch.stage;
       delete ch.due;
-      delete ch.notes;
+      if (!isInvTpl) delete ch.notes;
     }
     renderTreeNested();
   });
@@ -684,6 +842,7 @@
   function renderTreeNested(){
     treeEl.innerHTML = '';
     const durMap = computeDurationsMap();
+    const isInv = isInventoryTemplate();
     const renderNodes = (arr, basePath, level)=>{
       (arr||[]).forEach((ch, i)=>{
         const path = basePath ? `${basePath}.${i}` : String(i);
@@ -693,9 +852,13 @@
         const eff = durMap.get(path) || 0;
         const modeIcon = isParallel(ch) ? '||' : 'sum';
         const __dn2 = (function(){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ch.name||'')) : String(ch.name||''); } catch { return String(ch.name||''); } })();
-        div.innerHTML = `<div><strong>${__dn2||''}</strong> <span style=\"opacity:.7\">(${ch.type||''})</span></div>
-                         <div style=\"opacity:.8; font-size:12px;\">dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}</div>
-                         <span class=\"badge\" title=\"Computed duration\">${modeIcon} ${eff}m</span>`;
+        const detail = isInv ? describeInventoryMeta(ch) : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}`;
+        let inner = `<div><strong>${__dn2||''}</strong> <span style=\"opacity:.7\">(${ch.type||''})</span></div>
+                     <div style=\"opacity:.8; font-size:12px;\">${detail}</div>`;
+        if (!isInv){
+          inner += `<span class=\"badge\" title=\"Computed duration\">${modeIcon} ${eff}m</span>`;
+        }
+        div.innerHTML = inner;
         try { if (__dn2 !== String(ch.name||'')) div.title = String(ch.name||''); } catch {}
         div.addEventListener('click', ()=>{ selPath = path; selIdx=-1; syncInspector(); renderTreeNested(); });
 
@@ -766,7 +929,7 @@
             moved = removeAtPath(children, fromPath);
             if (!moved) return;
           } else if (libPayload) {
-            moved = { name: String(libPayload.name||''), type: String(libPayload.type||''), duration: 0 };
+            moved = createNodePayload(String(libPayload.type||''), String(libPayload.name||''));
           }
           const sameParent = (!!srcInfo.parentArray && !!destInfo.node && srcInfo.parentArray === destInfo.node.children) || (!destInfo.node && srcInfo.parentPath==='');
           if (sameParent) {
@@ -790,7 +953,7 @@
   // Init
   await loadLib();
   await loadNames();
-  refreshProjectInspectorVisibility();
+  refreshInspectorVisibility();
   await loadTemplate();
   return {};
 }
