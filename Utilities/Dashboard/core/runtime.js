@@ -76,6 +76,7 @@ const HELP_TEXT = {
   // Widgets
   Clock: 'Clock: Shows current time.',
   Notes: 'Notes: Create quick notes. Fill Title/Category/Priority/Tags/Content and click Create. Load opens from API or YAML file.',
+  StickyNotes: 'Sticky Notes: Capture Chronos note items tagged sticky, set colors, pin favorites, and spin up reminders from the dashboard.',
   Status: 'Status: View and adjust indicators (energy, focus, mood, etc.).',
   Today: 'Today: View and manage today\'s schedule. Select blocks to trim, change time, cut, mark, then reschedule.',
   ItemManager: 'Item Manager: Browse, search, create, rename, delete, and edit items.',

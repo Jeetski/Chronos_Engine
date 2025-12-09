@@ -44,6 +44,9 @@ const panelLoaders = [
   () => import(new URL('./Panels/Commitments/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load commitments panel module', err);
   }),
+  () => import(new URL('./Panels/Lists/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load lists panel module', err);
+  }),
 ];
 
 ready(async () => {

@@ -169,6 +169,139 @@ def run_console_command(command_name, args_list):
         ok = proc.returncode == 0
         return ok, (out or '').strip(), (err or '').strip()
 
+STICKY_NOTE_COLORS = {
+    "amber": "#f4d482",
+    "citrus": "#ffd6a5",
+    "mint": "#c7f9cc",
+    "aqua": "#b4e9ff",
+    "lilac": "#e3c6ff",
+    "slate": "#dfe6f3",
+}
+DEFAULT_STICKY_NOTE_COLOR = "amber"
+
+
+def _normalize_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return False
+
+
+def _coerce_sticky_color(value):
+    try:
+        color = str(value or "").strip().lower()
+    except Exception:
+        color = ""
+    if color in STICKY_NOTE_COLORS:
+        return color
+    return DEFAULT_STICKY_NOTE_COLOR
+
+
+def _tags_from_value(value):
+    if isinstance(value, list):
+        tags = []
+        for t in value:
+            try:
+                s = str(t or "").strip()
+            except Exception:
+                s = ""
+            if s:
+                tags.append(s)
+        return tags
+    return []
+
+
+def _ensure_sticky_markers(data):
+    tags = _tags_from_value(data.get("tags"))
+    if not any(str(t).strip().lower() == "sticky" for t in tags):
+        tags.append("sticky")
+    data["tags"] = tags
+    data["sticky"] = True
+    return data
+
+
+def _is_sticky_note(data):
+    if not isinstance(data, dict):
+        return False
+    sticky_flag = data.get("sticky")
+    if _normalize_bool(sticky_flag):
+        return True
+    tags = _tags_from_value(data.get("tags"))
+    return any(str(t).strip().lower() == "sticky" for t in tags)
+
+
+def _ensure_unique_item_name(item_type, base_name):
+    try:
+        from Modules.ItemManager import read_item_data
+    except Exception:
+        return base_name
+    candidate = base_name
+    counter = 2
+    while read_item_data(item_type, candidate):
+        candidate = f"{base_name} ({counter})"
+        counter += 1
+    return candidate
+
+
+def _sticky_timestamp_for(name):
+    try:
+        from Modules.ItemManager import get_item_path
+        fpath = get_item_path("note", name)
+        if fpath and os.path.exists(fpath):
+            return datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(timespec="seconds")
+    except Exception:
+        return None
+    return None
+
+
+def _build_sticky_payload(data):
+    if not isinstance(data, dict):
+        data = {}
+    name = str(data.get("name") or "").strip()
+    payload = {
+        "name": name,
+        "content": str(data.get("content") or ""),
+        "color": data.get("color") or DEFAULT_STICKY_NOTE_COLOR,
+        "pinned": _normalize_bool(data.get("pinned")),
+        "category": data.get("category"),
+        "priority": data.get("priority"),
+        "tags": _tags_from_value(data.get("tags")),
+    }
+    payload["updated"] = _sticky_timestamp_for(name)
+    return payload
+
+
+def _list_sticky_notes():
+    try:
+        from Modules.ItemManager import list_all_items, read_item_data
+    except Exception:
+        return []
+    rows = list_all_items("note") or []
+    results = []
+    seen = set()
+    for row in rows:
+        name = str((row or {}).get("name") or "").strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        try:
+            data = read_item_data("note", name) or {}
+        except Exception:
+            data = {}
+        if not _is_sticky_note(data):
+            continue
+        data.setdefault("name", name)
+        results.append(_build_sticky_payload(data))
+    results.sort(key=lambda item: (0 if item.get("pinned") else 1, (item.get("name") or "").lower()))
+    return results
+
+
+def _generate_sticky_name():
+    return f"Sticky {datetime.now().strftime('%Y-%m-%d %H-%M-%S')}"
+
 
 class DashboardHandler(SimpleHTTPRequestHandler):
     server_version = "ChronosDashboardServer/1.0"
@@ -1006,6 +1139,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to list items: {e}"})
             return
+        if parsed.path == "/api/sticky-notes":
+            try:
+                notes = _list_sticky_notes()
+                self._write_json(200, {"ok": True, "notes": notes})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Sticky notes error: {e}"})
+            return
         if parsed.path == "/api/project/detail":
             try:
                 qs = parse_qs(parsed.query or '')
@@ -1382,6 +1522,148 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._write_json(status, {"ok": ok, "stdout": out, "stderr": err})
             return
 
+        if parsed.path == "/api/sticky-notes":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                content = str(payload.get('content') or payload.get('text') or '').rstrip()
+                if not content:
+                    self._write_json(400, {"ok": False, "error": "Content is required"}); return
+                desired_name = str(payload.get('name') or payload.get('title') or '').strip()
+                if not desired_name:
+                    desired_name = _generate_sticky_name()
+                desired_name = desired_name[:160] or _generate_sticky_name()
+                name = _ensure_unique_item_name('note', desired_name)
+                color = _coerce_sticky_color(payload.get('color'))
+                pinned = _normalize_bool(payload.get('pinned'))
+                category = str(payload.get('category') or '').strip()
+                priority = str(payload.get('priority') or '').strip()
+                from Modules.ItemManager import write_item_data
+                note_data = {
+                    'name': name,
+                    'type': 'note',
+                    'content': content,
+                    'color': color,
+                    'pinned': pinned,
+                    'sticky': True,
+                }
+                if category:
+                    note_data['category'] = category
+                if priority:
+                    note_data['priority'] = priority
+                tags = payload.get('tags') if isinstance(payload.get('tags'), list) else None
+                if tags:
+                    note_data['tags'] = _tags_from_value(tags)
+                _ensure_sticky_markers(note_data)
+                write_item_data('note', name, note_data)
+                self._write_json(200, {"ok": True, "note": _build_sticky_payload(note_data)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to create sticky note: {e}"})
+            return
+
+        if parsed.path == "/api/sticky-notes/update":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                name = str(payload.get('name') or '').strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing note name"}); return
+                from Modules.ItemManager import read_item_data, write_item_data, delete_item
+                data = read_item_data('note', name)
+                if not data:
+                    self._write_json(404, {"ok": False, "error": "Note not found"}); return
+                target_name = name
+                new_name = str(payload.get('new_name') or '').strip()
+                if new_name and new_name != name:
+                    target_name = _ensure_unique_item_name('note', new_name[:160] or name)
+                if 'content' in payload:
+                    data['content'] = str(payload.get('content') or '')
+                if 'color' in payload:
+                    data['color'] = _coerce_sticky_color(payload.get('color'))
+                if 'pinned' in payload:
+                    data['pinned'] = _normalize_bool(payload.get('pinned'))
+                if 'category' in payload:
+                    val = str(payload.get('category') or '').strip()
+                    if val:
+                        data['category'] = val
+                    elif 'category' in data:
+                        data.pop('category', None)
+                if 'priority' in payload:
+                    val = str(payload.get('priority') or '').strip()
+                    if val:
+                        data['priority'] = val
+                    elif 'priority' in data:
+                        data.pop('priority', None)
+                if 'tags' in payload and isinstance(payload.get('tags'), list):
+                    data['tags'] = _tags_from_value(payload.get('tags'))
+                _ensure_sticky_markers(data)
+                if target_name != name:
+                    data['name'] = target_name
+                    write_item_data('note', target_name, data)
+                    delete_item('note', name)
+                else:
+                    write_item_data('note', name, data)
+                self._write_json(200, {"ok": True, "note": _build_sticky_payload(data)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to update sticky note: {e}"})
+            return
+
+        if parsed.path == "/api/sticky-notes/delete":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                name = str(payload.get('name') or '').strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing note name"}); return
+                from Modules.ItemManager import delete_item
+                delete_item('note', name)
+                self._write_json(200, {"ok": True})
+            except FileNotFoundError:
+                self._write_json(404, {"ok": False, "error": "Note not found"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to delete sticky note: {e}"})
+            return
+
+        if parsed.path == "/api/sticky-notes/reminder":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                note_name = str(payload.get('name') or payload.get('note') or '').strip()
+                if not note_name:
+                    self._write_json(400, {"ok": False, "error": "Missing note name"}); return
+                time_field = str(payload.get('time') or '').strip()
+                if not time_field:
+                    self._write_json(400, {"ok": False, "error": "Missing reminder time"}); return
+                message = str(payload.get('message') or f"Review note: {note_name}")
+                date_field = str(payload.get('date') or '').strip()
+                reminder_name = str(payload.get('reminder_name') or f"{note_name} reminder").strip() or f"{note_name} reminder"
+                reminder_name = _ensure_unique_item_name('reminder', reminder_name[:160])
+                from Modules.ItemManager import read_item_data, write_item_data
+                note = read_item_data('note', note_name)
+                if not note:
+                    self._write_json(404, {"ok": False, "error": "Note not found"}); return
+                reminder = {
+                    'name': reminder_name,
+                    'type': 'reminder',
+                    'time': time_field,
+                    'enabled': True,
+                    'message': message,
+                    'target': {
+                        'type': 'note',
+                        'name': note_name,
+                        'action': 'open',
+                    },
+                    'tags': ['sticky'],
+                }
+                if date_field:
+                    reminder['date'] = date_field
+                if payload.get('recurrence'):
+                    reminder['recurrence'] = payload['recurrence']
+                write_item_data('reminder', reminder_name, reminder)
+                self._write_json(200, {"ok": True, "reminder": reminder_name})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to create reminder: {e}"})
+            return
         if parsed.path == "/api/cockpit/matrix/presets":
             try:
                 if not isinstance(payload, dict):
