@@ -180,6 +180,9 @@ Emojis & encoding
 
 ## Changelog Highlights
 Recent improvements
+- Dashboard themes now live under `Utilities/Dashboard/Themes/` with a runtime picker (Blue, Amber, Emerald, Rose) so operators can switch palettes without editing CSS; base components (wizards, panels, widgets) read shared CSS variables.
+- Added the **New Year's Resolutions Wizard** and **Self Authoring Suite** (see `Utilities/Dashboard/Wizards/`) to turn reflections into Chronos items, plus a Resolution Tracker widget and aggregated `/api/items` endpoint so dashboards can surface resolution progress at a glance.
+- Cockpit panels (Schedule, Matrix, Matrix Visuals, Lists, Commitments) now respect the shared theme tokens, improving readability across palettes.
 - Virtualenv installer (`install_dependencies.bat`) to isolate dependencies.
 - Settings widget + API for editing `User/Settings/*.yml` from the dashboard.
 - Points config standardized to `points_settings.yml` (backward compatible).

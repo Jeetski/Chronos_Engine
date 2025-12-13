@@ -1,0 +1,16 @@
+Chronos Extensibility Ideas
+
+1. Rich scripting layer
+- Expose Chronos data (journal entries, commitments, schedules, themes) to sandboxed scripts so developers can build games, visualizers, or bespoke automations that feel native.
+- Include helper APIs for creating widgets/panels, posting notifications, or inserting generated content into bays.
+- Ship a CLI/browser REPL for experimenting with Chronos objects in real-time and iterating on scripts quickly.
+
+2. Clean API surface
+- Provide documented REST/WS endpoints and SDKs so external tools can read/write data, subscribe to change events, and trigger automations.
+- Offer authentication flows (tokens, OAuth) and rate-limiting to keep the ecosystem stable while empowering integrations.
+- Surface a script/plugin registry so users can discover, enable, or disable community contributions safely.
+
+3. Plugin hosting UX
+- Allow plugins or scripts to register UI hooks (dashboard cards, timeline overlays, inbox widgets) and be managed like optional feature packs.
+- Sandbox execution and resource caps keep custom scripts reliable while still powerful.
+- Provide example repos or templates (games, visualizers, automation recipes) to inspire community creativity.

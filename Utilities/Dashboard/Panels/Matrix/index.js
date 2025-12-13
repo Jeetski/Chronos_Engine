@@ -34,7 +34,7 @@ function injectStyles(){
       flex-direction: column;
       height: 100%;
       gap: 10px;
-      color: #dfe5ff;
+      color: var(--chronos-text);
       font-size: 14px;
     }
     .matrix-panel-toolbar {
@@ -50,16 +50,16 @@ function injectStyles(){
       gap: 6px;
       font-size: 12px;
       letter-spacing: 0.4px;
-      color: #98a5ce;
+      color: var(--chronos-text-muted);
       text-transform: uppercase;
     }
     .matrix-panel-toolbar select,
     .matrix-panel-toolbar input {
-      background: rgba(18,24,37,0.92);
-      border: 1px solid rgba(90,97,130,0.9);
+      background: var(--chronos-surface-soft);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 8px;
       padding: 6px 10px;
-      color: #f1f4ff;
+      color: var(--chronos-text);
       font-size: 13px;
     }
     .matrix-panel-actions .title {
@@ -74,7 +74,7 @@ function injectStyles(){
     }
     .matrix-panel-toolbar button,
     .matrix-panel-actions button {
-      background: linear-gradient(135deg, #5d8dff, #8373ff);
+      background: var(--chronos-accent-gradient);
       border: none;
       border-radius: 10px;
       color: #fff;
@@ -113,9 +113,9 @@ function injectStyles(){
     }
     .matrix-panel-dimension-entry button,
     .matrix-panel-filter-entry button {
-      background: rgba(120,86,108,0.9);
+      background: rgba(255,154,162,0.18);
       border: none;
-      color: #fff;
+      color: var(--chronos-danger);
       border-radius: 8px;
       width: 28px;
       height: 28px;
@@ -124,10 +124,10 @@ function injectStyles(){
       line-height: 1;
     }
     .matrix-panel-filters {
-      border: 1px solid rgba(58,68,96,0.8);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
       padding: 10px 12px;
-      background: rgba(8,11,18,0.9);
+      background: var(--chronos-surface-soft);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -138,18 +138,18 @@ function injectStyles(){
       justify-content: space-between;
       font-size: 11px;
       letter-spacing: 0.5px;
-      color: #8fa0cd;
+      color: var(--chronos-text-soft);
       text-transform: uppercase;
     }
     .matrix-panel-status {
       font-size: 12px;
-      color: #8c9dc2;
+      color: var(--chronos-text-muted);
     }
     .matrix-panel-body {
       flex: 1;
-      border: 1px solid rgba(60,70,96,0.8);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
-      background: rgba(9,12,21,0.9);
+      background: var(--chronos-surface);
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -160,7 +160,7 @@ function injectStyles(){
       align-items: center;
       justify-content: center;
       font-size: 13px;
-      color: #9aa5c7;
+      color: var(--chronos-text-muted);
       padding: 16px;
       text-align: center;
     }
@@ -175,25 +175,25 @@ function injectStyles(){
     }
     table.matrix-table th,
     table.matrix-table td {
-      border: 1px solid rgba(60,70,96,0.5);
+      border: 1px solid rgba(255,255,255,0.05);
       padding: 8px 10px;
       font-size: 13px;
     }
     table.matrix-table th {
-      background: rgba(18,24,37,0.95);
+      background: var(--chronos-surface-soft);
       font-weight: 600;
       text-align: left;
-      color: #f5f6ff;
+      color: var(--chronos-text);
       position: sticky;
       top: 0;
       z-index: 2;
     }
     table.matrix-table td {
-      color: #e6ebff;
+      color: var(--chronos-text);
       min-width: 120px;
     }
     table.matrix-table td[data-empty="true"] {
-      color: #6e779a;
+      color: var(--chronos-text-muted);
     }
   `;
   document.head.appendChild(style);
@@ -562,7 +562,7 @@ function mountMatrixPanel(root, panelId){
       const empty = document.createElement('div');
       empty.className = 'matrix-panel-filter-entry';
       const span = document.createElement('span');
-      span.style.color = '#7c85a8';
+      span.style.color = 'var(--chronos-text-muted)';
       span.textContent = 'No filters applied';
       empty.appendChild(span);
       filterList.appendChild(empty);

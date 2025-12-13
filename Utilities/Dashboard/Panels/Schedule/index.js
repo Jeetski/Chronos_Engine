@@ -18,7 +18,7 @@ function injectStyles(){
       flex-direction: column;
       height: 100%;
       gap: 14px;
-      color: #dfe5ff;
+      color: var(--chronos-text);
       font-size: 14px;
     }
     .schedule-panel-toolbar {
@@ -41,18 +41,18 @@ function injectStyles(){
       font-size: 12px;
       letter-spacing: 0.6px;
       text-transform: uppercase;
-      color: #8d96b6;
+      color: var(--chronos-text-muted);
     }
     .schedule-day-picker input[type="date"] {
-      background: rgba(16,22,36,0.9);
-      border: 1px solid rgba(85,93,120,0.8);
+      background: var(--chronos-surface-soft);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 8px;
       padding: 6px 10px;
-      color: #f1f4ff;
+      color: var(--chronos-text);
       font-size: 13px;
     }
     .schedule-panel-refresh {
-      background: linear-gradient(135deg, #5a63ff, #7c6bff);
+      background: var(--chronos-accent-gradient);
       border: none;
       color: white;
       border-radius: 10px;
@@ -64,9 +64,9 @@ function injectStyles(){
       filter: brightness(1.1);
     }
     .schedule-panel-start {
-      background: linear-gradient(135deg, #2ec27e, #3ec4f5);
+      background: linear-gradient(135deg, var(--chronos-success), var(--chronos-accent));
       border: none;
-      color: #0b0f16;
+      color: var(--chronos-bg, #0b0f16);
       border-radius: 10px;
       padding: 8px 14px;
       font-weight: 600;
@@ -81,15 +81,15 @@ function injectStyles(){
     }
     .schedule-panel-status {
       font-size: 12px;
-      color: #93a0c7;
+      color: var(--chronos-text-muted);
     }
     .schedule-panel-table {
       flex: 1;
       display: flex;
       flex-direction: column;
-      border: 1px solid rgba(60,70,96,0.7);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
-      background: rgba(9,12,21,0.92);
+      background: var(--chronos-surface);
       overflow: hidden;
     }
     .schedule-tree-head {
@@ -100,7 +100,7 @@ function injectStyles(){
       font-size: 12px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: #7c85a8;
+      color: var(--chronos-text-soft);
       border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .schedule-tree {
@@ -158,9 +158,9 @@ function injectStyles(){
       width: 24px;
       height: 24px;
       border-radius: 6px;
-      border: 1px solid rgba(120,132,168,0.7);
-      background: rgba(15,21,34,0.9);
-      color: #dfe3ff;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: var(--chronos-surface-soft);
+      color: var(--chronos-text);
       cursor: pointer;
       font-size: 12px;
       line-height: 1;
@@ -172,26 +172,26 @@ function injectStyles(){
     .schedule-node-name {
       font-weight: 600;
       font-size: 14px;
-      color: #f4f6ff;
+      color: var(--chronos-text);
     }
     .schedule-node-type {
       font-size: 12px;
-      color: #8893b8;
+      color: var(--chronos-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.8px;
     }
     .schedule-panel-message {
       font-size: 13px;
-      color: #929dc0;
+      color: var(--chronos-text-muted);
       min-height: 18px;
     }
     .schedule-panel-message.error {
-      color: #ff8f9a;
+      color: var(--chronos-danger);
     }
     .schedule-empty {
       padding: 30px 18px;
       font-size: 14px;
-      color: #8f99b6;
+      color: var(--chronos-text-muted);
       text-align: center;
     }
   `;

@@ -43,17 +43,17 @@ function injectStyles(){
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 20% 20%, rgba(45,71,226,0.25), rgba(5,7,12,0.92));
-      backdrop-filter: blur(10px);
+      background: var(--chronos-overlay-gradient);
+      backdrop-filter: var(--chronos-overlay-blur);
       padding: clamp(16px, 3vw, 32px);
     }
     .goal-wizard-shell {
       width: min(960px, 95vw);
       max-height: 92vh;
-      background: linear-gradient(180deg, #141a27, #0b101a);
+      background: linear-gradient(180deg, var(--chronos-surface-strong), var(--chronos-surface));
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 20px;
-      color: #f6f9ff;
+      color: var(--chronos-text);
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -76,13 +76,13 @@ function injectStyles(){
       font-size: 13px;
       text-transform: uppercase;
       letter-spacing: 2px;
-      color: #8fa0c1;
+      color: var(--chronos-text-soft);
       margin-bottom: 6px;
     }
     .wizard-header button.close {
       background: none;
       border: none;
-      color: #8fa0c1;
+      color: var(--chronos-text-soft);
       font-size: 20px;
       cursor: pointer;
       padding: 4px 8px;
@@ -116,20 +116,20 @@ function injectStyles(){
       border: 1px solid rgba(255,255,255,0.2);
     }
     .wizard-progress .step.active {
-      border-color: rgba(58,111,255,0.8);
-      background: rgba(58,111,255,0.12);
+      border-color: var(--chronos-accent);
+      background: var(--chronos-accent-soft);
     }
     .wizard-progress .step.done {
-      border-color: rgba(22,189,134,0.8);
-      background: rgba(22,189,134,0.12);
+      border-color: var(--chronos-success);
+      background: var(--chronos-success-soft);
     }
     .wizard-progress .step.active .bullet {
-      border-color: #4d78ff;
-      color: #cbd6ff;
+      border-color: var(--chronos-accent);
+      color: var(--chronos-text);
     }
     .wizard-progress .step.done .bullet {
-      border-color: #1dd1a1;
-      color: #a5ffe7;
+      border-color: var(--chronos-success);
+      color: var(--chronos-success);
     }
     .wizard-body {
       flex: 1;
@@ -159,10 +159,11 @@ function injectStyles(){
       cursor: pointer;
     }
     .wizard-actions button.primary {
-      background: linear-gradient(180deg, #3d6cff, #2644c7);
-      border-color: #3f67ff;
+      background: var(--chronos-accent-gradient);
+      border-color: rgba(122,162,247,0.6);
       color: #fff;
       font-weight: 600;
+      box-shadow: var(--chronos-accent-glow);
     }
     .wizard-actions button:disabled {
       opacity: 0.5;
@@ -178,12 +179,12 @@ function injectStyles(){
       min-height: 20px;
       font-size: 14px;
     }
-    .wizard-status [data-status][data-tone="success"] { color: #8ef7c2; }
-    .wizard-status [data-status][data-tone="error"] { color: #ff9aa2; }
-    .wizard-status [data-status][data-tone="warn"] { color: #ffd77a; }
+    .wizard-status [data-status][data-tone="success"] { color: var(--chronos-success); }
+    .wizard-status [data-status][data-tone="error"] { color: var(--chronos-danger); }
+    .wizard-status [data-status][data-tone="warn"] { color: var(--chronos-warning); }
     .wizard-status [data-validation] {
       font-size: 13px;
-      color: #f9d48b;
+      color: var(--chronos-warning);
     }
     .form-grid {
       display: grid;
@@ -200,17 +201,17 @@ function injectStyles(){
       flex-direction: column;
       gap: 6px;
       font-size: 13px;
-      color: #c2c9dc;
+      color: var(--chronos-text-muted);
     }
     .form-grid label span.hint {
       font-size: 12px;
-      color: #8fa0c1;
+      color: var(--chronos-text-soft);
     }
     input[type="text"], input[type="date"], input[type="number"], select, textarea {
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(8,12,20,0.85);
-      color: #f6f9ff;
+      color: var(--chronos-text);
       padding: 9px 12px;
       font-size: 15px;
     }
@@ -222,10 +223,10 @@ function injectStyles(){
       margin: 0 0 12px 0;
       font-size: 18px;
       font-weight: 600;
-      color: #f1f5ff;
+      color: var(--chronos-text);
     }
     .hint {
-      color: #8fa0c1;
+      color: var(--chronos-text-soft);
       font-size: 13px;
     }
     .metric-list, .milestone-list {
@@ -251,11 +252,11 @@ function injectStyles(){
     .metric-card button.remove, .milestone-card button.remove {
       background: none;
       border: none;
-      color: #8fa0c1;
+      color: var(--chronos-text-soft);
       cursor: pointer;
     }
     .metric-card button.remove:hover, .milestone-card button.remove:hover {
-      color: #ff9aa2;
+      color: var(--chronos-danger);
     }
     .yaml-preview {
       border: 1px solid rgba(255,255,255,0.08);
@@ -270,12 +271,12 @@ function injectStyles(){
       background: rgba(3,5,9,0.9);
       padding: 14px;
       border-radius: 10px;
-      color: #d8e0ff;
+      color: var(--chronos-text);
       font-size: 13px;
     }
     .tagline {
       font-size: 14px;
-      color: #a3b2d8;
+      color: var(--chronos-text-muted);
     }
   `;
   document.head.appendChild(style);

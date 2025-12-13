@@ -38,7 +38,7 @@ function injectStyles(){
       flex-direction: column;
       height: 100%;
       gap: 12px;
-      color: #dfe5ff;
+      color: var(--chronos-text);
       font-size: 14px;
     }
     .matrix-visual-toolbar {
@@ -53,14 +53,14 @@ function injectStyles(){
       font-size: 12px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: #8d9ac4;
+      color: var(--chronos-text-muted);
     }
     .matrix-visual-toolbar select {
-      background: rgba(16,21,34,0.92);
-      border: 1px solid rgba(75,85,120,0.9);
+      background: var(--chronos-surface-soft);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 8px;
       padding: 6px 10px;
-      color: #f1f4ff;
+      color: var(--chronos-text);
       font-size: 13px;
     }
     .matrix-visual-actions {
@@ -69,7 +69,7 @@ function injectStyles(){
       align-items: center;
     }
     .matrix-visual-actions button {
-      background: linear-gradient(135deg, #5d8dff, #7f7dff);
+      background: var(--chronos-accent-gradient);
       border: none;
       border-radius: 10px;
       color: #fff;
@@ -85,13 +85,13 @@ function injectStyles(){
     }
     .matrix-visual-status {
       font-size: 12px;
-      color: #8fa0cd;
+      color: var(--chronos-text-muted);
     }
     .matrix-visual-canvas {
       flex: 1;
-      border: 1px solid rgba(55,64,96,0.8);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
-      background: rgba(8,11,18,0.94);
+      background: var(--chronos-surface);
       position: relative;
       display: flex;
       flex-direction: column;
@@ -104,7 +104,7 @@ function injectStyles(){
     .matrix-visual-empty {
       padding: 18px;
       text-align: center;
-      color: #9aa5c7;
+      color: var(--chronos-text-muted);
       font-size: 13px;
     }
     .matrix-visual-legend {
@@ -117,11 +117,11 @@ function injectStyles(){
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(16,21,34,0.9);
+      background: var(--chronos-surface-soft);
       border-radius: 8px;
       padding: 4px 10px;
       font-size: 12px;
-      color: #c3cae6;
+      color: var(--chronos-text);
     }
     .matrix-visual-legend span::before {
       content: '';

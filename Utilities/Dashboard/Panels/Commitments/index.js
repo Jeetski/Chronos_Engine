@@ -19,7 +19,7 @@ function injectStyles(){
       display: flex;
       flex-direction: column;
       height: 100%;
-      color: #eff3ff;
+      color: var(--chronos-text);
       font-size: 13px;
       gap: 12px;
     }
@@ -31,9 +31,9 @@ function injectStyles(){
     }
     .commitments-panel-count {
       flex: 1 1 120px;
-      background: rgba(20,28,45,0.95);
+      background: var(--chronos-surface);
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
       padding: 12px 14px;
       display: flex;
       flex-direction: column;
@@ -43,12 +43,12 @@ function injectStyles(){
       font-size: 12px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.65);
+      color: var(--chronos-text-muted);
     }
     .commitments-panel-count strong {
       font-size: 26px;
       font-weight: 700;
-      color: #ffffff;
+      color: var(--chronos-text);
       line-height: 1.2;
     }
     .commitments-panel-actions {
@@ -60,8 +60,8 @@ function injectStyles(){
     .commitments-panel-actions button {
       border: none;
       border-radius: 999px;
-      background: linear-gradient(120deg, #6c7dff, #9c6bff);
-      color: #0b0f16;
+      background: var(--chronos-accent-gradient);
+      color: var(--chronos-bg, #0b0f16);
       padding: 8px 16px;
       font-weight: 600;
       cursor: pointer;
@@ -77,7 +77,7 @@ function injectStyles(){
       flex: 1;
       border: 1px solid rgba(255,255,255,0.05);
       border-radius: 16px;
-      background: rgba(11,14,24,0.95);
+      background: var(--chronos-surface);
       padding: 10px;
       overflow: auto;
     }
@@ -88,7 +88,7 @@ function injectStyles(){
       display: flex;
       flex-direction: column;
       gap: 6px;
-      background: rgba(21,26,40,0.9);
+      background: var(--chronos-surface-soft);
     }
     .commitments-panel-item + .commitments-panel-item {
       margin-top: 8px;
@@ -133,27 +133,27 @@ function injectStyles(){
     }
     .commitments-panel-progress {
       font-size: 12px;
-      color: #9ba8cc;
+      color: var(--chronos-text-muted);
     }
     .commitments-panel-trace {
       font-size: 11px;
-      color: #818cac;
+      color: var(--chronos-text-soft);
     }
     .commitments-panel-empty {
       padding: 24px;
       text-align: center;
-      color: #8893b8;
+      color: var(--chronos-text-muted);
     }
     .commitments-panel-status {
       min-height: 16px;
       font-size: 12px;
-      color: #91a0c7;
+      color: var(--chronos-text-muted);
     }
     .commitments-panel-status[data-tone="error"] {
-      color: #ff9fa6;
+      color: var(--chronos-danger);
     }
     .commitments-panel-status[data-tone="success"] {
-      color: #6ff3b1;
+      color: var(--chronos-success);
     }
   `;
   document.head.appendChild(style);

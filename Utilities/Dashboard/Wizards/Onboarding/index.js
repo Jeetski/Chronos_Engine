@@ -31,24 +31,24 @@ function injectStyles(){
     .onboarding-overlay {
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at 25% 20%, rgba(49,76,199,0.25), rgba(5,7,15,0.95));
+      background: var(--chronos-overlay-gradient);
       z-index: 1200;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: clamp(16px,3vw,32px);
-      backdrop-filter: blur(10px);
+      backdrop-filter: var(--chronos-overlay-blur);
     }
     .onboarding-shell {
       width: min(960px, 96vw);
       max-height: 94vh;
-      background: linear-gradient(140deg, rgba(8,11,22,0.95), rgba(3,5,12,0.98));
-      border: 1px solid rgba(108,138,255,0.25);
+      background: linear-gradient(140deg, var(--chronos-surface-strong), rgba(3,5,12,0.98));
+      border: 1px solid rgba(122,162,247,0.25);
       border-radius: 24px;
       box-shadow: 0 30px 90px rgba(0,0,0,0.65);
       display: flex;
       flex-direction: column;
-      color: #f1f5ff;
+      color: var(--chronos-text);
       padding: clamp(20px, 3vw, 32px);
       gap: 18px;
       position: relative;
@@ -65,7 +65,7 @@ function injectStyles(){
       padding: 18px;
       border-radius: 18px;
       background: linear-gradient(120deg, rgba(15,24,54,0.9), rgba(10,14,30,0.9));
-      border: 1px solid rgba(104,133,255,0.2);
+      border: 1px solid rgba(122,162,247,0.2);
       position: relative;
       overflow: hidden;
     }
@@ -90,7 +90,7 @@ function injectStyles(){
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #aac0ff;
+      color: var(--chronos-text-soft);
       z-index: 1;
     }
     .onboarding-hero-icon svg {
@@ -112,8 +112,8 @@ function injectStyles(){
       font-size: 12px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #a9bcff;
-      background: rgba(84,115,255,0.2);
+      color: var(--chronos-text-soft);
+      background: var(--chronos-accent-soft);
       border-radius: 999px;
       padding: 4px 10px;
     }
@@ -123,11 +123,11 @@ function injectStyles(){
     }
     .onboarding-hero-copy p {
       margin: 0;
-      color: #b8c8f2;
+      color: var(--chronos-text-muted);
     }
     .onboarding-progress {
       font-size: 13px;
-      color: #8aa3ff;
+      color: var(--chronos-text-muted);
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
@@ -152,7 +152,7 @@ function injectStyles(){
       border-radius: 14px;
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(12,16,28,0.75);
-      color: #a6b4df;
+      color: var(--chronos-text-soft);
       cursor: pointer;
       transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
       font-size: 13px;
@@ -167,25 +167,25 @@ function injectStyles(){
       align-items: center;
       justify-content: center;
       font-weight: 600;
-      color: #d5ddff;
+      color: var(--chronos-text);
     }
     .stepper-node .stepper-title {
       font-weight: 600;
       color: inherit;
     }
     .stepper-node.active {
-      border-color: rgba(107,138,255,0.9);
-      background: linear-gradient(135deg, rgba(64,97,255,0.9), rgba(43,64,196,0.9));
+      border-color: var(--chronos-accent);
+      background: var(--chronos-accent-gradient);
       color: #fff;
-      box-shadow: 0 10px 30px rgba(52,78,195,0.35);
+      box-shadow: var(--chronos-accent-glow);
     }
     .stepper-node.active .step-index {
       background: rgba(255,255,255,0.2);
     }
     .stepper-node.completed {
-      border-color: rgba(70,171,128,0.6);
-      color: #d2ffe8;
-      background: rgba(18,46,32,0.8);
+      border-color: var(--chronos-success);
+      color: var(--chronos-success);
+      background: var(--chronos-success-soft);
     }
     .stepper-node.completed .step-index {
       background: rgba(70,171,128,0.3);
@@ -213,7 +213,7 @@ function injectStyles(){
       border-radius: 999px;
     }
     .onboarding-body p {
-      color: #c4cff1;
+      color: var(--chronos-text);
       line-height: 1.6;
     }
     .onboarding-footer {
@@ -230,7 +230,7 @@ function injectStyles(){
     }
     .wizard-status-line {
       font-size: 13px;
-      color: #9ebaff;
+      color: var(--chronos-text-soft);
       min-height: 24px;
       padding: 10px 14px;
       background: rgba(21,28,46,0.85);
@@ -270,17 +270,17 @@ function injectStyles(){
       transform: translateY(-1px);
     }
     .onboarding-actions button.primary {
-      background: linear-gradient(120deg,#6f89ff,#4f64f2);
+      background: var(--chronos-accent-gradient);
       border-color: rgba(143,168,255,0.45);
       color: #fff;
-      box-shadow: 0 12px 30px rgba(74,98,255,0.35);
+      box-shadow: var(--chronos-accent-glow);
     }
     .onboarding-actions button.ghost {
       background: rgba(12,16,28,0.6);
     }
     .onboarding-actions button.subtle {
       border-color: transparent;
-      color: #a8befe;
+      color: var(--chronos-text-soft);
       background: transparent;
     }
     .wizard-form {
@@ -293,17 +293,17 @@ function injectStyles(){
       flex-direction: column;
       gap: 4px;
       font-size: 14px;
-      color: #c5d4ff;
+      color: var(--chronos-text);
     }
     .wizard-form input, .wizard-form textarea, .wizard-form select {
       border-radius: 8px;
-      border: 1px solid #293248;
+      border: 1px solid var(--chronos-border-strong);
       padding: 8px 10px;
       background: rgba(9,14,22,0.7);
       color: inherit;
     }
     .list-card {
-      border: 1px solid #273147;
+      border: 1px solid var(--chronos-border-strong);
       border-radius: 12px;
       padding: 12px;
       margin-top: 10px;
@@ -327,7 +327,7 @@ function injectStyles(){
       padding: 4px 10px;
       border-radius: 999px;
       background: rgba(59,100,255,0.15);
-      color: #a9bbff;
+      color: var(--chronos-text-soft);
       font-size: 13px;
     }
     .status-values {
@@ -347,8 +347,8 @@ function injectStyles(){
     .status-values .value-row button {
       padding: 6px 10px;
       border-radius: 8px;
-      border: 1px solid #34405c;
-      background: #111725;
+      border: 1px solid var(--chronos-border-strong);
+      background: var(--chronos-surface-strong);
       color: inherit;
       cursor: pointer;
     }
@@ -359,7 +359,7 @@ function injectStyles(){
       margin-top: 12px;
     }
     .items-grid label {
-      border: 1px solid #263148;
+      border: 1px solid var(--chronos-border-strong);
       border-radius: 12px;
       padding: 10px;
       background: rgba(7,12,20,0.7);

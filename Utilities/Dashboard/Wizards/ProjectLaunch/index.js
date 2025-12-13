@@ -25,17 +25,17 @@ function injectStyles(){
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 20% 20%, rgba(68,108,241,0.25), rgba(5,8,14,0.92));
-      backdrop-filter: blur(10px);
+      background: var(--chronos-overlay-gradient);
+      backdrop-filter: var(--chronos-overlay-blur);
       padding: clamp(16px, 3vw, 32px);
     }
     .project-wizard-shell {
       width: min(920px, 95vw);
       max-height: 92vh;
-      background: linear-gradient(180deg, #171c2b, #0a0f19);
+      background: linear-gradient(180deg, var(--chronos-surface-strong), var(--chronos-surface));
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 20px;
-      color: #f6f9ff;
+      color: var(--chronos-text);
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -48,14 +48,14 @@ function injectStyles(){
     .wizard-header button.close {
       background: none;
       border: none;
-      color: #8fa0c1;
+      color: var(--chronos-text-soft);
       font-size: 20px;
       cursor: pointer;
       padding: 4px 8px;
       border-radius: 10px;
     }
     .wizard-header button.close:hover { color: #fff; background: rgba(255,255,255,0.08); }
-    .wizard-eyebrow { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: #8fa0c1; margin-bottom: 6px; }
+    .wizard-eyebrow { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--chronos-text-soft); margin-bottom: 6px; }
     .wizard-progress {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -79,8 +79,8 @@ function injectStyles(){
       font-weight: 600;
       border: 1px solid rgba(255,255,255,0.2);
     }
-    .wizard-progress .step.active { border-color: rgba(74,131,255,0.8); background: rgba(74,131,255,0.12); }
-    .wizard-progress .step.done { border-color: rgba(22,189,134,0.8); background: rgba(22,189,134,0.12); }
+    .wizard-progress .step.active { border-color: var(--chronos-accent); background: var(--chronos-accent-soft); }
+    .wizard-progress .step.done { border-color: var(--chronos-success); background: var(--chronos-success-soft); }
     .wizard-body {
       flex: 1;
       overflow: auto;
@@ -105,21 +105,27 @@ function injectStyles(){
       color: inherit;
       cursor: pointer;
     }
-    .wizard-actions button.primary { background: linear-gradient(180deg, #3d6cff, #2644c7); border-color: #3f67ff; color: #fff; font-weight: 600; }
+    .wizard-actions button.primary {
+      background: var(--chronos-accent-gradient);
+      border-color: rgba(122,162,247,0.6);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: var(--chronos-accent-glow);
+    }
     .wizard-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
     .wizard-status { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-    .wizard-status [data-status][data-tone="success"] { color: #8ef7c2; }
-    .wizard-status [data-status][data-tone="error"] { color: #ff9aa2; }
-    .wizard-status [data-status][data-tone="warn"] { color: #ffd77a; }
+    .wizard-status [data-status][data-tone="success"] { color: var(--chronos-success); }
+    .wizard-status [data-status][data-tone="error"] { color: var(--chronos-danger); }
+    .wizard-status [data-status][data-tone="warn"] { color: var(--chronos-warning); }
     .form-grid { display: grid; gap: 14px; }
     .form-grid.two { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-    .form-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #c7d1ef; }
-    .form-grid label span.hint { font-size: 12px; color: #8fa0c1; }
+    .form-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--chronos-text); }
+    .form-grid label span.hint { font-size: 12px; color: var(--chronos-text-soft); }
     input[type="text"], input[type="date"], textarea, select {
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(8,12,20,0.85);
-      color: #f6f9ff;
+      color: var(--chronos-text);
       padding: 9px 12px;
       font-size: 15px;
     }
@@ -127,10 +133,10 @@ function injectStyles(){
     .card-list { display: flex; flex-direction: column; gap: 12px; }
     .wizard-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; background: rgba(11,15,24,0.88); }
     .wizard-card header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .wizard-card button.remove { background: none; border: none; color: #8fa0c1; cursor: pointer; }
-    .wizard-card button.remove:hover { color: #ff9aa2; }
+    .wizard-card button.remove { background: none; border: none; color: var(--chronos-text-soft); cursor: pointer; }
+    .wizard-card button.remove:hover { color: var(--chronos-danger); }
     .yaml-preview { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px; background: rgba(9,12,20,0.9); margin-top: 12px; }
-    .yaml-preview pre { max-height: 320px; overflow: auto; background: rgba(3,5,9,0.9); padding: 14px; border-radius: 10px; color: #d8e0ff; font-size: 13px; }
+    .yaml-preview pre { max-height: 320px; overflow: auto; background: rgba(3,5,9,0.9); padding: 14px; border-radius: 10px; color: var(--chronos-text); font-size: 13px; }
   `;
   document.head.appendChild(style);
   stylesInjected = true;

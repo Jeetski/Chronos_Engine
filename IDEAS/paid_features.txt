@@ -1,0 +1,37 @@
+Paid Feature Ideas for Chronos
+
+1. Money & Business Pack
+- Commands, modules, widgets, panels, and wizards for managing budgets, tracking revenue/expenses, scheduling grant deadlines, and aligning financial goals with daily commitments.
+- Views that synthesize cash-flow trends, invoices, targets, and investment notes; automated reminders for billing cycles.
+- Integration helpers for connecting to external financial data or importing ledger-style YAML entries.
+
+2. Health & Fitness Pack
+- Modules and widgets for logging water intake, meals, workouts, supplements, and recovery metrics.
+- Routines wizard that schedules exercise sessions, rest days, and progressive overload adjustments with habit linkages.
+- Dashboards that combine biometrics, mood, and workout summaries while allowing quick habit edits.
+
+3. Mystical Pack
+- Astrology integrations with planetary hours, transits, numerology overlays, and themed days/weeks (e.g., “Year of the Cat,” “Mercury Retrograde Ritual”).
+- Magical association themes for schedule slots, tarot spreads, rune draws, I Ching readings, and other divinations with Chronos items.
+- Widgets that surface suggested rituals, chants, or focus prompts based on current cosmic alignments.
+
+4. Mindful Pack
+- Yoga, meditation, and spiritual practice modules: pose sequences, breathing timers, mindful journaling prompts.
+- Zen modes that declutter UI, enforce focus blocks, and present minimalist themes tied to the user’s intention.
+- Specialized journals or sacred spaces for gratitude, compassion, and presence work, complete with reminders or ritual cues.
+
+5. Sleep & Dreams Pack
+- Expanded dream journal that supports multi-entry nights, tags, and quick voice-to-text capture for hazy recollections.
+- Dream analysis engine that applies code-like syntax highlighting to symbols, archetypes, recurring motifs, and emotional tones, storing them as structured tokens.
+- Symbol tracker that charts frequency, combinations, and evolution of motifs over time with comparative visuals (personal vs. collective archetypes).
+- Dictionary layer that merges multiple dream dictionaries and mythic references, surfacing relevant interpretations inline and linking to deeper study cards.
+- Sleep tracking dashboards that combine wearable/imported data, Chronos routines, and recovery metrics to correlate dream quality with bedtime habits.
+- Smart prompts for pre-sleep intention setting, lucid-dream cues, and morning reflection workflows that feed directly into the journal and analytics.
+
+6. Entrepreneur Pack
+- Solo founder cockpit with pitch-ready task pipelines, funding trackers, and investor update templates aligned to sprint cycles.
+- Market and customer intelligence dashboards that surface surveys, illustrations, and traction metrics next to the product roadmap.
+- Revenue and runway widgets that accept CRM, ledger, and payment data while highlighting deal stages, taxes, and compliance reminders.
+- Coaching prompts and accountability rituals for experiments, launches, and founder wellness, all tied to Chronos routines and focus rooms.
+- Collaboration helpers for contractors, advisors, and communities: shared belief boards, action approvals, and timeline syncing across ecosystems.
+- Content orchestration tools (calendars, campaign briefs, editorial reminders) that stay in sync with launch plans and social signals.

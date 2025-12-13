@@ -1,35 +1,35 @@
 // Simple app bootstrapper with debug logs
 import { mountWidget, mountView, launchWizard } from './core/runtime.js';
 
-function ready(fn){ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+function ready(fn) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
 
 if (typeof window !== 'undefined' && !window.__cockpitPanelDefinitions) {
   window.__cockpitPanelDefinitions = [];
 }
 
-function apiBase(){
+function apiBase() {
   const o = window.location.origin;
-  if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357';
+  if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357';
   return o;
 }
 
-async function startChronosDay(options = {}){
+async function startChronosDay(options = {}) {
   const target = options.target || 'day';
   const source = options.source || 'dashboard';
   const body = JSON.stringify({ target });
   const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-  const data = await resp.json().catch(()=> ({}));
-  if (!resp.ok || data.ok === false){
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false) {
     const msg = data.error || data.stderr || `Start failed (HTTP ${resp.status})`;
     throw new Error(msg);
   }
-  try { window.ChronosBus?.emit?.('timer:show', { source }); } catch {}
-  try { window.ChronosBus?.emit?.('timer:refresh'); } catch {}
-  try { window.calendarLoadToday?.(true); } catch {}
+  try { window.ChronosBus?.emit?.('timer:show', { source }); } catch { }
+  try { window.ChronosBus?.emit?.('timer:refresh'); } catch { }
+  try { window.calendarLoadToday?.(true); } catch { }
   return data;
 }
 
-try { window.ChronosStartDay = startChronosDay; } catch {}
+try { window.ChronosStartDay = startChronosDay; } catch { }
 
 const panelLoaders = [
   () => import(new URL('./Panels/Schedule/index.js', import.meta.url)).catch(err => {
@@ -60,9 +60,9 @@ ready(async () => {
       if (!logo.src || logo.src.startsWith('file:') || logo.src.endsWith('/assets/Logo_No_Background.png')) {
         logo.src = want;
       }
-      logo.addEventListener('error', ()=>{ logo.src = want; });
+      logo.addEventListener('error', () => { logo.src = want; });
     }
-  } catch {}
+  } catch { }
 
   const viewRoot = document.getElementById('view');
   const availableViews = [
@@ -93,7 +93,94 @@ ready(async () => {
       description: 'Design project milestones and kickoff tasks before writing YAML.',
       enabled: true,
     },
+    {
+      id: 'newYearResolutions',
+      module: 'NewYearResolutions',
+      label: 'New Year\'s Resolutions Wizard',
+      description: 'Transform your dreams into actionable resolutions with affirmations for the year ahead.',
+      enabled: true,
+    },
+    {
+      id: 'selfAuthoring',
+      module: 'SelfAuthoring',
+      label: 'Self Authoring Suite',
+      description: 'Comprehensive Past/Present/Future reflection exercises to generate goals, habits, and tasks.',
+      enabled: true,
+    },
   ];
+  const themeOptions = [
+    {
+      id: 'chronos-blue',
+      label: 'Chronos Blue',
+      file: 'chronos-blue.css',
+      description: 'Default indigo cockpit palette.',
+      accent: '#7aa2f7',
+    },
+    {
+      id: 'chronos-amber',
+      label: 'Amber Drift',
+      file: 'chronos-amber.css',
+      description: 'Warm sunrise gradients and copper tones.',
+      accent: '#f3a64c',
+    },
+    {
+      id: 'chronos-emerald',
+      label: 'Emerald Focus',
+      file: 'chronos-emerald.css',
+      description: 'Green focus mode pulled from the CLI themes.',
+      accent: '#4de2b6',
+    },
+    {
+      id: 'chronos-rose',
+      label: 'Rose Nebula',
+      file: 'chronos-rose.css',
+      description: 'Vibrant magenta hues for late-night plotting.',
+      accent: '#ff6fb1',
+    },
+  ];
+  const THEME_STORAGE_KEY = 'chronos_dashboard_theme_v1';
+  const themeStylesheet = document.getElementById('themeStylesheet');
+
+  function resolveTheme(themeId) {
+    if (!themeOptions.length) return null;
+    if (!themeId) return themeOptions[0];
+    return themeOptions.find(t => t.id === themeId) || themeOptions[0];
+  }
+
+  function refreshThemeMenuChecks(activeId) {
+    const menu = document.getElementById('menu-themes');
+    if (!menu) return;
+    const current = activeId || themeStylesheet?.dataset.themeId || themeOptions[0]?.id;
+    menu.querySelectorAll('.item').forEach(item => {
+      const id = item.getAttribute('data-theme');
+      const check = item.querySelector('.check');
+      if (check) check.textContent = id === current ? '✓' : '';
+    });
+  }
+
+  function applyTheme(themeId, opts = {}) {
+    const { persist = true } = opts;
+    const theme = resolveTheme(themeId);
+    if (!theme || !themeStylesheet) return theme;
+    const desiredHref = `./Themes/${theme.file}`;
+    if (themeStylesheet.getAttribute('href') !== desiredHref) {
+      themeStylesheet.setAttribute('href', desiredHref);
+    }
+    themeStylesheet.dataset.themeId = theme.id;
+    try { document.body?.setAttribute('data-theme', theme.id); } catch { }
+    if (persist) {
+      try { localStorage.setItem(THEME_STORAGE_KEY, theme.id); } catch { }
+    }
+    refreshThemeMenuChecks(theme.id);
+    return theme;
+  }
+
+  try {
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    applyTheme(storedTheme, { persist: false });
+  } catch {
+    applyTheme(themeOptions[0]?.id, { persist: false });
+  }
   const openPanes = [];
   const MAX_PANES = 3;
   let viewPanes = null;
@@ -101,7 +188,7 @@ ready(async () => {
   const VIEW_STATE_KEY = 'chronos_view_state_v1';
   const MIN_PANE_PX = 220;
 
-  function ensureViewShell(){
+  function ensureViewShell() {
     if (!viewRoot) return;
     if (viewPanes && viewEmpty) return;
     viewRoot.innerHTML = '';
@@ -114,29 +201,29 @@ ready(async () => {
   }
   ensureViewShell();
 
-  function updateEmptyState(){
+  function updateEmptyState() {
     if (!viewEmpty) return;
     viewEmpty.style.display = openPanes.length ? 'none' : '';
   }
 
-  function persistViewState(){
+  function persistViewState() {
     try {
       const payload = { open: openPanes.map(p => ({ name: p.name, label: p.label })) };
       localStorage.setItem(VIEW_STATE_KEY, JSON.stringify(payload));
-    } catch {}
+    } catch { }
   }
 
-  function loadViewState(){
+  function loadViewState() {
     try {
       const raw = localStorage.getItem(VIEW_STATE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.open)) return parsed.open;
-    } catch {}
+    } catch { }
     return null;
   }
 
-  function refreshViewMenuChecks(){
+  function refreshViewMenuChecks() {
     const viewMenu = document.getElementById('menu-view');
     if (!viewMenu) return;
     viewMenu.querySelectorAll('.item').forEach(it => {
@@ -146,12 +233,12 @@ ready(async () => {
     });
   }
 
-  function getPaneElements(){
+  function getPaneElements() {
     if (!viewPanes) return [];
     return Array.from(viewPanes.querySelectorAll('.view-pane'));
   }
 
-  function normalizePaneSizes(){
+  function normalizePaneSizes() {
     const panes = getPaneElements();
     if (!panes.length) return;
     let total = 0;
@@ -161,12 +248,12 @@ ready(async () => {
       if (v > 0) total += v;
       else missing.push(p);
     });
-    if (missing.length){
+    if (missing.length) {
       const remaining = Math.max(0, 1 - total);
       const share = remaining > 0 ? (remaining / missing.length) : (1 / panes.length);
       missing.forEach(p => { p.dataset.size = share; total += share; });
     }
-    if (!(total > 0)){
+    if (!(total > 0)) {
       const equal = 1 / panes.length;
       panes.forEach(p => p.dataset.size = equal);
       total = 1;
@@ -177,7 +264,7 @@ ready(async () => {
     });
   }
 
-  function applyPaneSizes(){
+  function applyPaneSizes() {
     const panes = getPaneElements();
     if (!panes.length) return;
     panes.forEach(p => {
@@ -189,7 +276,7 @@ ready(async () => {
     });
   }
 
-  function beginPaneResize(ev, leftPane, rightPane){
+  function beginPaneResize(ev, leftPane, rightPane) {
     if (!viewPanes) return;
     ev.preventDefault();
     ev.stopPropagation();
@@ -199,8 +286,8 @@ ready(async () => {
     const totalSize = leftSize + rightSize;
     const minFrac = Math.min(0.45, Math.max(0.08, MIN_PANE_PX / totalWidth));
     const startX = ev.clientX;
-    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
-    function onMove(e){
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function onMove(e) {
       const deltaFrac = (e.clientX - startX) / totalWidth;
       let nextLeft = clamp(leftSize + deltaFrac, minFrac, totalSize - minFrac);
       let nextRight = totalSize - nextLeft;
@@ -208,7 +295,7 @@ ready(async () => {
       rightPane.dataset.size = nextRight;
       applyPaneSizes();
     }
-    function onUp(){
+    function onUp() {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       normalizePaneSizes();
@@ -218,7 +305,7 @@ ready(async () => {
     window.addEventListener('pointerup', onUp);
   }
 
-  function rebuildPaneResizers(){
+  function rebuildPaneResizers() {
     if (!viewPanes) return;
     const panes = getPaneElements();
     viewPanes.querySelectorAll('.pane-resizer').forEach(r => r.remove());
@@ -230,24 +317,24 @@ ready(async () => {
       const handle = document.createElement('div');
       handle.className = 'pane-resizer';
       handle.title = 'Drag to resize panes';
-      handle.addEventListener('pointerdown', (ev)=> beginPaneResize(ev, pane, panes[idx+1]));
+      handle.addEventListener('pointerdown', (ev) => beginPaneResize(ev, pane, panes[idx + 1]));
       pane.appendChild(handle);
     });
   }
 
-  function removeCalendarControls(){
+  function removeCalendarControls() {
     const panel = document.getElementById('calendarControls');
     if (panel) {
       if (panel.__calendarClamp) {
-        try { window.removeEventListener('resize', panel.__calendarClamp); } catch {}
-        try { delete panel.__calendarClamp; } catch {}
+        try { window.removeEventListener('resize', panel.__calendarClamp); } catch { }
+        try { delete panel.__calendarClamp; } catch { }
       }
       panel.remove();
     }
-    try { delete window.__calendarRefreshBack; } catch {}
+    try { delete window.__calendarRefreshBack; } catch { }
   }
 
-  function ensureCalendarControls(host){
+  function ensureCalendarControls(host) {
     try {
       if (!host) return;
       const existing = document.getElementById('calendarControls');
@@ -271,30 +358,30 @@ ready(async () => {
       panel.style.backdropFilter = 'blur(2px)';
       panel.style.cursor = 'grab';
       panel.style.userSelect = 'none';
-      const mkBtn = (label)=>{ const b=document.createElement('button'); b.textContent=label; b.className='btn'; b.style.padding='4px 8px'; return b; };
-      const mkIconBtn = (glyph, title)=>{ const b=document.createElement('button'); b.className='btn'; b.style.padding='4px 8px'; b.textContent = glyph; if(title) b.title = title; return b; };
-      const lbl = document.createElement('span'); lbl.style.color='#a6adbb'; lbl.style.padding='4px 6px';
-      function updateLevel(){ const map=['Routines','Subroutines','Microroutines','Items']; lbl.textContent = map[Math.max(0, Math.min(3, (window.__calendarLevel??0)))] || 'Items'; }
+      const mkBtn = (label) => { const b = document.createElement('button'); b.textContent = label; b.className = 'btn'; b.style.padding = '4px 8px'; return b; };
+      const mkIconBtn = (glyph, title) => { const b = document.createElement('button'); b.className = 'btn'; b.style.padding = '4px 8px'; b.textContent = glyph; if (title) b.title = title; return b; };
+      const lbl = document.createElement('span'); lbl.style.color = '#a6adbb'; lbl.style.padding = '4px 6px';
+      function updateLevel() { const map = ['Routines', 'Subroutines', 'Microroutines', 'Items']; lbl.textContent = map[Math.max(0, Math.min(3, (window.__calendarLevel ?? 0)))] || 'Items'; }
       const zoomMinus = mkIconBtn('-', 'Zoom out');
       const zoomPlus = mkIconBtn('+', 'Zoom in');
       const levelMinus = mkIconBtn('Lv-', 'Level up');
       const levelPlus = mkIconBtn('Lv+', 'Level down');
       const backBtn = mkIconBtn('Back', 'Back');
-      zoomMinus.addEventListener('click', ()=>{ window.__calendarPxPerMin = Math.max(0.25, (window.__calendarPxPerMin??1) - 0.25); window.redraw?.(); });
-      zoomPlus.addEventListener('click', ()=>{ window.__calendarPxPerMin = Math.min(4, (window.__calendarPxPerMin??1) + 0.25); window.redraw?.(); });
-      levelMinus.addEventListener('click', ()=>{ window.__calendarLevel = Math.max(0, (window.__calendarLevel??0) - 1); updateLevel(); window.redraw?.(); });
-      levelPlus.addEventListener('click', ()=>{ window.__calendarLevel = Math.min(3, (window.__calendarLevel??0) + 1); updateLevel(); window.redraw?.(); });
-      function refreshBack(force){
-        try{
+      zoomMinus.addEventListener('click', () => { window.__calendarPxPerMin = Math.max(0.25, (window.__calendarPxPerMin ?? 1) - 0.25); window.redraw?.(); });
+      zoomPlus.addEventListener('click', () => { window.__calendarPxPerMin = Math.min(4, (window.__calendarPxPerMin ?? 1) + 0.25); window.redraw?.(); });
+      levelMinus.addEventListener('click', () => { window.__calendarLevel = Math.max(0, (window.__calendarLevel ?? 0) - 1); updateLevel(); window.redraw?.(); });
+      levelPlus.addEventListener('click', () => { window.__calendarLevel = Math.min(3, (window.__calendarLevel ?? 0) + 1); updateLevel(); window.redraw?.(); });
+      function refreshBack(force) {
+        try {
           const can = typeof force === 'boolean'
             ? force
             : (window.__calendarHasHistory ?? (window.__calendarCanGoBack ? window.__calendarCanGoBack() : false));
           backBtn.style.opacity = can ? '' : '0.6';
           backBtn.style.pointerEvents = 'auto'; // always clickable; goBack will no-op if empty
-        }catch{}
+        } catch { }
       }
-      try { window.__calendarRefreshBack = refreshBack; } catch {}
-      backBtn.addEventListener('click', ()=>{ window.__calendarGoBack?.(); refreshBack(); });
+      try { window.__calendarRefreshBack = refreshBack; } catch { }
+      backBtn.addEventListener('click', () => { window.__calendarGoBack?.(); refreshBack(); });
       backBtn.addEventListener('mouseenter', refreshBack);
       refreshBack();
       updateLevel();
@@ -303,31 +390,31 @@ ready(async () => {
       const toolSelect = mkIconBtn('Select', 'Select');
       const toolPicker = mkIconBtn('Pick', 'Picker');
       const toolEraser = mkIconBtn('Erase', 'Eraser');
-      function setTool(t){
+      function setTool(t) {
         window.__calendarTool = t;
-        [toolCursor, toolSelect, toolPicker, toolEraser].forEach(b=> b.classList.remove('btn-primary'));
-        if (t==='cursor') toolCursor.classList.add('btn-primary');
-        if (t==='select') toolSelect.classList.add('btn-primary');
-        if (t==='picker') toolPicker.classList.add('btn-primary');
-        if (t==='eraser') toolEraser.classList.add('btn-primary');
+        [toolCursor, toolSelect, toolPicker, toolEraser].forEach(b => b.classList.remove('btn-primary'));
+        if (t === 'cursor') toolCursor.classList.add('btn-primary');
+        if (t === 'select') toolSelect.classList.add('btn-primary');
+        if (t === 'picker') toolPicker.classList.add('btn-primary');
+        if (t === 'eraser') toolEraser.classList.add('btn-primary');
       }
-      toolCursor.addEventListener('click', ()=>{ setTool('cursor'); window.redraw?.(); });
-      toolSelect.addEventListener('click', ()=>{ setTool('select'); window.redraw?.(); });
-      toolPicker.addEventListener('click', ()=>{ setTool('picker'); window.redraw?.(); });
-      toolEraser.addEventListener('click', ()=>{ setTool('eraser'); window.redraw?.(); });
+      toolCursor.addEventListener('click', () => { setTool('cursor'); window.redraw?.(); });
+      toolSelect.addEventListener('click', () => { setTool('select'); window.redraw?.(); });
+      toolPicker.addEventListener('click', () => { setTool('picker'); window.redraw?.(); });
+      toolEraser.addEventListener('click', () => { setTool('eraser'); window.redraw?.(); });
       setTool(window.__calendarTool ?? 'cursor');
       panel.append(backBtn, zoomMinus, zoomPlus, levelMinus, levelPlus, lbl, toolCursor, toolSelect, toolPicker, toolEraser);
       // Hover feedback for transparency
-      panel.addEventListener('mouseenter', ()=>{ panel.style.background = 'rgba(21,25,35,0.85)'; });
-      panel.addEventListener('mouseleave', ()=>{ panel.style.background = 'rgba(21,25,35,0.65)'; });
+      panel.addEventListener('mouseenter', () => { panel.style.background = 'rgba(21,25,35,0.85)'; });
+      panel.addEventListener('mouseleave', () => { panel.style.background = 'rgba(21,25,35,0.65)'; });
 
       // Make panel draggable (relative to its host container)
-      (function makeDraggable(box, parent){
-        function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
-        function loadPos(){ try { return JSON.parse(localStorage.getItem('calendarControlsPos')||'{}'); } catch { return {}; } }
-        function savePos(left, top){ try { localStorage.setItem('calendarControlsPos', JSON.stringify({left, top})); } catch {} }
-        function clampToBounds(){
-          try{
+      (function makeDraggable(box, parent) {
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+        function loadPos() { try { return JSON.parse(localStorage.getItem('calendarControlsPos') || '{}'); } catch { return {}; } }
+        function savePos(left, top) { try { localStorage.setItem('calendarControlsPos', JSON.stringify({ left, top })); } catch { } }
+        function clampToBounds() {
+          try {
             if (!parent) return;
             const parentRect = parent.getBoundingClientRect();
             if (!parentRect || !parentRect.width || !parentRect.height) return;
@@ -342,21 +429,21 @@ ready(async () => {
             const maxTop = Math.max(0, parentRect.height - height - 4);
             box.style.left = Math.round(clamp(left, 4, maxLeft)) + 'px';
             box.style.top = Math.round(clamp(top, 0, maxTop)) + 'px';
-          } catch {}
+          } catch { }
         }
         // Restore saved position if available
         try {
           const pos = loadPos();
-          if (typeof pos.left === 'number' && typeof pos.top === 'number'){
+          if (typeof pos.left === 'number' && typeof pos.top === 'number') {
             box.style.left = pos.left + 'px';
             box.style.top = pos.top + 'px';
           }
-        } catch {}
+        } catch { }
         setTimeout(clampToBounds, 0);
-        const onResize = ()=> clampToBounds();
+        const onResize = () => clampToBounds();
         window.addEventListener('resize', onResize);
-        try { box.__calendarClamp = onResize; } catch {}
-        box.addEventListener('pointerdown', (ev)=>{
+        try { box.__calendarClamp = onResize; } catch { }
+        box.addEventListener('pointerdown', (ev) => {
           if (ev.button !== 0) return; // left only
           ev.preventDefault(); ev.stopPropagation();
           box.style.cursor = 'grabbing';
@@ -364,7 +451,7 @@ ready(async () => {
           const parentRect = parent?.getBoundingClientRect();
           const offX = ev.clientX - rect.left;
           const offY = ev.clientY - rect.top;
-          function move(e){
+          function move(e) {
             const baseLeft = parentRect ? parentRect.left : 0;
             const baseTop = parentRect ? parentRect.top : 0;
             const boundsW = parentRect ? parentRect.width : window.innerWidth;
@@ -374,12 +461,12 @@ ready(async () => {
             box.style.left = Math.round(nx) + 'px';
             box.style.top = Math.round(ny) + 'px';
           }
-          function up(){
+          function up() {
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', up);
             box.style.cursor = 'grab';
             // Persist position
-            try { const l = parseInt(box.style.left||'10'); const t = parseInt(box.style.top||'10'); savePos(l, t); } catch {}
+            try { const l = parseInt(box.style.left || '10'); const t = parseInt(box.style.top || '10'); savePos(l, t); } catch { }
             clampToBounds();
           }
           window.addEventListener('pointermove', move);
@@ -388,22 +475,22 @@ ready(async () => {
       })(panel, host);
 
       // fx toggle for variable expansion in calendar labels
-      const fxWrap = document.createElement('label'); fxWrap.className='hint'; fxWrap.style.display='flex'; fxWrap.style.alignItems='center'; fxWrap.style.gap='6px';
-      const fx = document.createElement('input'); fx.type='checkbox'; fx.id='calendarFxToggle'; fx.checked = (window.__calendarFxExpand !== false);
+      const fxWrap = document.createElement('label'); fxWrap.className = 'hint'; fxWrap.style.display = 'flex'; fxWrap.style.alignItems = 'center'; fxWrap.style.gap = '6px';
+      const fx = document.createElement('input'); fx.type = 'checkbox'; fx.id = 'calendarFxToggle'; fx.checked = (window.__calendarFxExpand !== false);
       fxWrap.append(fx, document.createTextNode('fx'));
       panel.appendChild(fxWrap);
-      fx.addEventListener('change', ()=>{ window.__calendarFxExpand = fx.checked; try{ window.redraw?.(); }catch{} });
+      fx.addEventListener('change', () => { window.__calendarFxExpand = fx.checked; try { window.redraw?.(); } catch { } });
 
       host.appendChild(panel);
     } catch (e) { console.warn('[Chronos][app] Could not build calendar controls:', e); }
   }
 
-  async function openPane(name, label){
+  async function openPane(name, label) {
     if (!viewPanes) return;
     const existing = openPanes.find(v => v.name === name);
     if (existing) {
       existing.pane.classList.add('active');
-      setTimeout(()=> existing.pane.classList.remove('active'), 180);
+      setTimeout(() => existing.pane.classList.remove('active'), 180);
       return;
     }
     if (openPanes.length >= MAX_PANES) {
@@ -429,7 +516,7 @@ ready(async () => {
     content.appendChild(viewport);
     pane.append(tab, content);
     viewPanes.appendChild(pane);
-    close.addEventListener('click', (e)=>{ e.stopPropagation(); closePane(name); });
+    close.addEventListener('click', (e) => { e.stopPropagation(); closePane(name); });
     try {
       await mountView(viewport, name);
       if (name === 'Calendar') ensureCalendarControls(viewport);
@@ -445,7 +532,7 @@ ready(async () => {
     }
   }
 
-  function closePane(name){
+  function closePane(name) {
     const idx = openPanes.findIndex(v => v.name === name);
     if (idx === -1) return;
     const pane = openPanes[idx];
@@ -454,11 +541,11 @@ ready(async () => {
       if (viewApi && typeof viewApi.dispose === 'function') {
         viewApi.dispose();
       }
-    } catch {}
+    } catch { }
     if (name === 'Calendar') removeCalendarControls();
-    try { pane.pane.remove(); } catch {}
+    try { pane.pane.remove(); } catch { }
     openPanes.splice(idx, 1);
-    window.__currentView = openPanes.length ? openPanes[openPanes.length-1].name : null;
+    window.__currentView = openPanes.length ? openPanes[openPanes.length - 1].name : null;
     updateEmptyState();
     refreshViewMenuChecks();
     persistViewState();
@@ -474,24 +561,25 @@ ready(async () => {
   }
 
   // Simple topbar menus
-  function closeMenus(){ document.querySelectorAll('#topbar .dropdown').forEach(d=>d.classList.remove('open')); }
+  function closeMenus() { document.querySelectorAll('#topbar .dropdown').forEach(d => d.classList.remove('open')); }
   document.querySelectorAll('#topbar .menubtn').forEach(btn => {
-    btn.addEventListener('click', (e)=>{
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-menu');
       // Rebuild widgets menu each time it opens so checkmarks reflect current visibility
       if (id === 'widgets') buildWidgetsMenu();
       if (id === 'wizards') buildWizardsMenu();
       if (id === 'panels') buildPanelsMenu();
+      if (id === 'themes') buildThemesMenu();
       closeMenus();
-      const menu = document.getElementById('menu-'+id);
+      const menu = document.getElementById('menu-' + id);
       if (menu) menu.classList.add('open');
     });
   });
   document.addEventListener('click', closeMenus);
 
   // Build/rebuild widgets dropdown based on current visibility
-  function buildWidgetsMenu(){
+  function buildWidgetsMenu() {
     const widgetsMenu = document.getElementById('menu-widgets');
     if (!widgetsMenu) return;
     widgetsMenu.innerHTML = '';
@@ -515,7 +603,7 @@ ready(async () => {
         el.style.display = (el.style.display === 'none' ? '' : 'none');
         check.textContent = el.style.display === 'none' ? '' : '✓';
         closeMenus();
-        try { if (el.style.display !== 'none') window.ensureWidgetInView?.(el); } catch {}
+        try { if (el.style.display !== 'none') window.ensureWidgetInView?.(el); } catch { }
       });
       return item;
     };
@@ -538,14 +626,14 @@ ready(async () => {
   buildPanelsMenu();
   try {
     await Promise.all(panelLoaders.map(loader => loader()));
-  } catch {}
+  } catch { }
 
-  function buildPanelsMenu(){
+  function buildPanelsMenu() {
     const menu = document.getElementById('menu-panels');
     if (!menu) return;
     menu.innerHTML = '';
     const manager = window.CockpitPanels;
-    if (!manager || typeof manager.list !== 'function'){
+    if (!manager || typeof manager.list !== 'function') {
       const empty = document.createElement('div');
       empty.className = 'item disabled';
       empty.textContent = 'Open the Cockpit view to manage panels.';
@@ -553,7 +641,7 @@ ready(async () => {
       return;
     }
     const rawPanels = manager.list?.() || [];
-    if (!rawPanels.length){
+    if (!rawPanels.length) {
       const empty = document.createElement('div');
       empty.className = 'item disabled';
       empty.textContent = 'No panels registered.';
@@ -563,7 +651,7 @@ ready(async () => {
     const grouped = new Map();
     rawPanels.forEach(panel => {
       const key = panel.menuKey || panel.id;
-      if (!grouped.has(key)){
+      if (!grouped.has(key)) {
         grouped.set(key, {
           key,
           label: panel.menuLabel || panel.label || key,
@@ -573,7 +661,7 @@ ready(async () => {
       }
       const bucket = grouped.get(key);
       bucket.entries.push(panel);
-      if (!bucket.primary || panel.menuPrimary || panel.id === key){
+      if (!bucket.primary || panel.menuPrimary || panel.id === key) {
         bucket.primary = panel;
       }
     });
@@ -596,21 +684,21 @@ ready(async () => {
       const span = document.createElement('span');
       span.textContent = panel.label || panel.key;
       item.append(check, span);
-      item.addEventListener('click', ()=> {
+      item.addEventListener('click', () => {
         const entries = panel.entries || [];
-        if (!entries.length){
-          try { manager.toggle?.(panel.primary?.id || panel.key); } catch {}
-        } else if (entries.length === 1){
-          try { manager.toggle?.(entries[0].id); } catch {}
+        if (!entries.length) {
+          try { manager.toggle?.(panel.primary?.id || panel.key); } catch { }
+        } else if (entries.length === 1) {
+          try { manager.toggle?.(entries[0].id); } catch { }
         } else {
           const anyVisible = entries.some(entry => entry.visible);
-          if (anyVisible){
+          if (anyVisible) {
             entries.forEach(entry => {
-              try { manager.setVisible?.(entry.id, false); } catch {}
+              try { manager.setVisible?.(entry.id, false); } catch { }
             });
           } else {
             const target = panel.primary || entries[0];
-            try { manager.setVisible?.(target.id, true); } catch {}
+            try { manager.setVisible?.(target.id, true); } catch { }
           }
         }
         setTimeout(buildPanelsMenu, 0);
@@ -629,14 +717,14 @@ ready(async () => {
   }
 
   document.addEventListener('chronos:cockpit-panels', () => {
-    try { console.log('[Chronos][app] Panels event', window.CockpitPanels?.list?.()); } catch {}
+    try { console.log('[Chronos][app] Panels event', window.CockpitPanels?.list?.()); } catch { }
     buildPanelsMenu();
   });
 
-  async function startWizardFlow(wizard){
+  async function startWizardFlow(wizard) {
     if (!wizard) return;
     const moduleName = wizard.module || wizard.id;
-    if (!moduleName){
+    if (!moduleName) {
       console.warn('[Chronos][app] Wizard missing module name', wizard);
       return;
     }
@@ -658,17 +746,17 @@ ready(async () => {
         toast.style.borderRadius = '8px';
         toast.style.zIndex = '999';
         document.body.appendChild(toast);
-        setTimeout(()=> toast.remove(), 2200);
-      } catch {}
+        setTimeout(() => toast.remove(), 2200);
+      } catch { }
     }
   }
 
   // Wizard dropdown catalog (placeholder for future multi-step flows)
-  function buildWizardsMenu(){
+  function buildWizardsMenu() {
     const menu = document.getElementById('menu-wizards');
     if (!menu) return;
     menu.innerHTML = '';
-    if (!wizardCatalog.length){
+    if (!wizardCatalog.length) {
       const empty = document.createElement('div');
       empty.className = 'item disabled';
       empty.textContent = 'No wizards available yet';
@@ -686,13 +774,13 @@ ready(async () => {
       title.className = 'wizard-title';
       title.textContent = wizard.label;
       item.appendChild(title);
-      if (wizard.description){
+      if (wizard.description) {
         const desc = document.createElement('div');
         desc.className = 'wizard-desc';
         desc.textContent = wizard.description;
         item.appendChild(desc);
       }
-      if (wizard.enabled){
+      if (wizard.enabled) {
         item.addEventListener('click', () => startWizardFlow(wizard));
       }
       return item;
@@ -709,18 +797,43 @@ ready(async () => {
   }
 
   // Keep menu in sync when widgets close themselves
-  function hookWidgetCloseButtons(){
-    ['notesClose','statusClose','todayClose'].forEach(id => {
+  function hookWidgetCloseButtons() {
+    ['notesClose', 'statusClose', 'todayClose'].forEach(id => {
       const btn = document.getElementById(id);
       if (btn) btn.addEventListener('click', () => setTimeout(buildWidgetsMenu, 0));
     });
+  }
+
+  function buildThemesMenu() {
+    const themesMenu = document.getElementById('menu-themes');
+    if (!themesMenu) return;
+    themesMenu.innerHTML = '';
+    themeOptions.forEach(theme => {
+      const item = document.createElement('div');
+      item.className = 'item theme-item';
+      item.setAttribute('data-theme', theme.id);
+      item.innerHTML = `
+        <span class="check"></span>
+        <div class="theme-info">
+          <div class="theme-title">${theme.label}</div>
+          <div class="theme-desc">${theme.description}</div>
+        </div>
+        <span class="theme-swatch" style="background:${theme.accent};"></span>
+      `;
+      item.addEventListener('click', () => {
+        applyTheme(theme.id);
+        closeMenus();
+      });
+      themesMenu.appendChild(item);
+    });
+    refreshThemeMenuChecks(themeStylesheet?.dataset.themeId);
   }
   hookWidgetCloseButtons();
   // Also observe visibility changes as a fallback
   try {
     const mo = new MutationObserver(() => buildWidgetsMenu());
     widgetEls.forEach(el => mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));
-  } catch {}
+  } catch { }
 
   // View menu -> open/close panes (up to 3)
   const viewMenu = document.getElementById('menu-view');
@@ -764,31 +877,31 @@ ready(async () => {
   const saved = loadViewState();
   if (saved && saved.length) {
     for (const v of saved.slice(0, MAX_PANES)) {
-      try { await openPane(v.name, v.label); } catch {}
+      try { await openPane(v.name, v.label); } catch { }
     }
   }
   if (!openPanes.length) {
-    try { await openPane('Calendar','Calendar'); } catch {}
+    try { await openPane('Calendar', 'Calendar'); } catch { }
   }
   rebuildPaneResizers();
 
   console.log('[Chronos][app] Dashboard app ready');
   // Listen for widget:show to reveal/pulse a widget (e.g., ItemManager)
   try {
-    (window.__chronosBus = context?.bus)?.on('widget:show', (name)=>{
+    (window.__chronosBus = context?.bus)?.on('widget:show', (name) => {
       const el = document.querySelector(`[data-widget="${name}"]`);
       if (!el) return;
-      el.style.display='';
-      try { window.ensureWidgetInView?.(el); } catch {}
+      el.style.display = '';
+      try { window.ensureWidgetInView?.(el); } catch { }
       // Pulse
-      el.style.boxShadow='0 0 0 2px #7aa2f7, var(--shadow)';
-      setTimeout(()=>{ el.style.boxShadow='var(--shadow)'; }, 900);
+      el.style.boxShadow = '0 0 0 2px #7aa2f7, var(--shadow)';
+      setTimeout(() => { el.style.boxShadow = 'var(--shadow)'; }, 900);
     });
-  } catch {}
+  } catch { }
 });
 
-window.addEventListener('resize', ()=>{
-  try { applyPaneSizes(); } catch {}
+window.addEventListener('resize', () => {
+  try { applyPaneSizes(); } catch { }
 });
 
-export {};
+export { };

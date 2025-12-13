@@ -833,6 +833,35 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Milestones error: {e}"})
             return
+        if parsed.path == "/api/items":
+            # Return all items across all types (opt filterable by type query param)
+            try:
+                from Modules.ItemManager import list_all_items
+                qs = parse_qs(parsed.query or '')
+                filter_type = (qs.get('type') or [''])[0].strip().lower()
+                
+                # List of all known item types
+                item_types = ['goal', 'habit', 'commitment', 'task', 'project', 'routine', 'note', 'milestone', 'achievement', 'reward']
+                
+                all_items = []
+                for itype in item_types:
+                    if filter_type and itype != filter_type:
+                        continue
+                    try:
+                        rows = list_all_items(itype) or []
+                        for row in rows:
+                            if isinstance(row, dict):
+                                # Add type field if not present
+                                if 'type' not in row:
+                                    row['type'] = itype
+                                all_items.append(row)
+                    except Exception:
+                        continue
+                
+                self._write_json(200, {"ok": True, "items": all_items, "count": len(all_items)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Items error: {e}"})
+            return
         if parsed.path == "/api/goal":
             try:
                 from Modules.Milestone import main as MilestoneModule  # type: ignore

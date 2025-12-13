@@ -42,7 +42,7 @@ function injectStyles(){
       display: flex;
       flex-direction: column;
       height: 100%;
-      color: #f1f4ff;
+      color: var(--chronos-text);
       font-size: 13px;
       gap: 12px;
     }
@@ -56,12 +56,12 @@ function injectStyles(){
       font-size: 16px;
       font-weight: 600;
       margin: 0;
-      color: #ffffff;
+      color: var(--chronos-text);
     }
     .lists-panel-subtitle {
       margin: 2px 0 0 0;
       font-size: 12px;
-      color: #8f9abc;
+      color: var(--chronos-text-muted);
     }
     .lists-panel-actions {
       display: flex;
@@ -78,8 +78,8 @@ function injectStyles(){
       transition: transform 120ms ease, box-shadow 120ms ease;
     }
     .lists-panel-add {
-      background: linear-gradient(135deg, #5f7bff, #7f6bff);
-      color: #ffffff;
+      background: var(--chronos-accent-gradient);
+      color: var(--chronos-text);
     }
     .lists-panel-add:hover {
       transform: translateY(-1px);
@@ -87,8 +87,8 @@ function injectStyles(){
     }
     .lists-panel-remove {
       background: rgba(255, 255, 255, 0.06);
-      color: #dfe5ff;
-      border: 1px solid rgba(119, 132, 174, 0.6);
+      color: var(--chronos-text);
+      border: 1px solid rgba(255,255,255,0.12);
     }
     .lists-panel-remove:hover {
       transform: translateY(-1px);
@@ -102,8 +102,8 @@ function injectStyles(){
       gap: 12px;
     }
     .lists-card {
-      background: rgba(8, 12, 24, 0.92);
-      border: 1px solid rgba(82, 93, 137, 0.6);
+      background: var(--chronos-surface);
+      border: 1px solid rgba(255,255,255,0.06);
       border-radius: 16px;
       padding: 16px;
       display: flex;
@@ -126,11 +126,11 @@ function injectStyles(){
       text-transform: uppercase;
       font-size: 11px;
       letter-spacing: 1.4px;
-      color: #7c86ad;
+      color: var(--chronos-text-muted);
     }
     .lists-card-heading strong {
       font-size: 15px;
-      color: #ffffff;
+      color: var(--chronos-text);
     }
     .lists-card-actions {
       display: flex;
@@ -139,8 +139,8 @@ function injectStyles(){
     }
     .lists-card-refresh {
       border: none;
-      background: rgba(94, 245, 200, 0.15);
-      color: #64ffd2;
+      background: rgba(100,255,210,0.15);
+      color: var(--chronos-success);
       font-weight: 600;
       border-radius: 10px;
       padding: 6px 12px;
@@ -158,22 +158,22 @@ function injectStyles(){
       font-size: 11px;
       letter-spacing: 0.8px;
       text-transform: uppercase;
-      color: #8191ba;
+      color: var(--chronos-text-muted);
     }
     .lists-card-controls select,
     .lists-card-controls input {
-      background: rgba(13, 18, 32, 0.9);
-      border: 1px solid rgba(107, 121, 173, 0.8);
-      color: #f6f7ff;
+      background: var(--chronos-surface-soft);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--chronos-text);
       border-radius: 10px;
       padding: 7px 10px;
       font-size: 13px;
     }
     .lists-card-controls button {
       align-self: flex-end;
-      border: 1px dashed rgba(129, 143, 189, 0.8);
+      border: 1px dashed rgba(255,255,255,0.2);
       background: transparent;
-      color: #a5b5e0;
+      color: var(--chronos-text-muted);
       border-radius: 12px;
       padding: 8px 12px;
       cursor: pointer;
@@ -191,16 +191,16 @@ function injectStyles(){
       align-items: center;
     }
     .lists-filter-row input {
-      background: rgba(14, 18, 32, 0.85);
-      border: 1px solid rgba(80, 95, 149, 0.8);
+      background: var(--chronos-surface-soft);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 10px;
       padding: 6px 10px;
-      color: #eaf0ff;
+      color: var(--chronos-text);
     }
     .lists-filter-remove {
       border: none;
-      background: rgba(255, 107, 107, 0.15);
-      color: #ff8f9f;
+      background: var(--chronos-danger-soft);
+      color: var(--chronos-danger);
       border-radius: 10px;
       padding: 6px 10px;
       cursor: pointer;
@@ -208,15 +208,15 @@ function injectStyles(){
     }
     .lists-filter-empty {
       font-size: 12px;
-      color: #7f8ab3;
+      color: var(--chronos-text-muted);
       padding: 4px 0;
     }
     .lists-card-status {
       font-size: 12px;
-      color: #7f8ab3;
+      color: var(--chronos-text-muted);
     }
     .lists-card-status.error {
-      color: #ff99a8;
+      color: var(--chronos-danger);
     }
     .lists-card-results {
       min-height: 90px;
@@ -229,7 +229,7 @@ function injectStyles(){
     }
     .lists-results-empty {
       text-align: center;
-      color: #7d87ab;
+      color: var(--chronos-text-muted);
       font-size: 13px;
       padding: 20px 10px;
     }
@@ -248,17 +248,17 @@ function injectStyles(){
       justify-content: space-between;
       gap: 10px;
       font-weight: 600;
-      color: #fefefe;
+      color: var(--chronos-text);
     }
     .lists-item-name span:last-child {
       font-size: 11px;
       letter-spacing: 1.1px;
-      color: #8a96be;
+      color: var(--chronos-text-muted);
       text-transform: uppercase;
     }
     .lists-item-meta {
       font-size: 12px;
-      color: #aeb8dd;
+      color: var(--chronos-text-muted);
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
