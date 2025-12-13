@@ -1,0 +1,13 @@
+name: Honeycomb Lab beats
+description: Selected beats dropped into User/Media/MP3 for Chronos sessions.
+tracks:
+  - file: ambivalence/ambivalence.mp3
+    title: Ambivalence
+  - file: beatitude/beatitude.mp3
+    title: Beatitude
+  - file: digital-strings/digital-strings.mp3
+    title: Digital Strings
+  - file: gold/gold.mp3
+    title: Gold
+shuffle: true
+repeat: all

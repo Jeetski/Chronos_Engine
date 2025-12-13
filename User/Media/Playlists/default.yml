@@ -1,0 +1,7 @@
+name: All Tracks
+description: Auto playlist of every MP3 in User/Media/MP3.
+tracks:
+- file: ambivalence/ambivalence.mp3
+- file: beatitude/beatitude.mp3
+- file: digital-strings/digital-strings.mp3
+- file: gold/gold.mp3
