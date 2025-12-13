@@ -89,6 +89,7 @@ const HELP_TEXT = {
   DebugConsole: 'Debug: Inspect/debug data and actions.',
   Achievements: 'Achievements: Review milestones you\'ve unlocked and mark awards/archives.',
   Rewards: 'Rewards: Review point balance/history and redeem reward items.',
+  MP3Player: 'MP3 Player: Spin up playlists from User/Media/MP3, shuffle or repeat tracks, and manage uploads without leaving the dashboard.',
   Settings: 'Settings: View and edit YAML files under User/Settings via API.',
   Profile: 'Profile: View/Edit profile (nickname, theme, etc.).',
   Journal: 'Journal: Create/edit Journal or Dream entries. Autosaves; use Type/Date/Tags; Dream fields (lucid, signs, sleep) appear for dream type.',

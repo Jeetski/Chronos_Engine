@@ -7,7 +7,7 @@ import base64
 import threading
 from datetime import datetime, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote, quote
 
 import subprocess, shlex
 
@@ -179,6 +179,11 @@ STICKY_NOTE_COLORS = {
 }
 DEFAULT_STICKY_NOTE_COLOR = "amber"
 
+MEDIA_ROOT = os.path.join(ROOT_DIR, "User", "Media")
+MP3_DIR = os.path.join(MEDIA_ROOT, "MP3")
+PLAYLIST_DIR = os.path.join(MEDIA_ROOT, "Playlists")
+DEFAULT_PLAYLIST_SLUG = "default"
+
 
 def _normalize_bool(value):
     if isinstance(value, bool):
@@ -303,6 +308,279 @@ def _generate_sticky_name():
     return f"Sticky {datetime.now().strftime('%Y-%m-%d %H-%M-%S')}"
 
 
+def _normalize_track_path(path):
+    try:
+        s = str(path or "").strip()
+    except Exception:
+        s = ""
+    s = s.replace("\\", "/")
+    if s.startswith("./"):
+        s = s[2:]
+    return s
+
+
+def _read_track_metadata(mp3_path):
+    base = os.path.splitext(mp3_path)[0]
+    candidates = [
+        base + ".yml",
+        base + ".yaml",
+        os.path.join(os.path.dirname(mp3_path), "metadata.yml"),
+    ]
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            try:
+                with open(candidate, "r", encoding="utf-8") as fh:
+                    data = yaml.safe_load(fh) or {}
+                if isinstance(data, dict):
+                    return data
+            except Exception:
+                continue
+    return {}
+
+
+def _ensure_media_dirs():
+    try:
+        os.makedirs(MP3_DIR, exist_ok=True)
+        os.makedirs(PLAYLIST_DIR, exist_ok=True)
+    except Exception:
+        pass
+
+
+def _sanitize_media_filename(name):
+    base = os.path.basename(str(name or "track"))
+    safe = []
+    for ch in base:
+        if ch.isalnum() or ch in (" ", "-", "_", "."):
+            safe.append(ch)
+        else:
+            safe.append("_")
+    candidate = "".join(safe).strip() or "track.mp3"
+    if not candidate.lower().endswith(".mp3"):
+        candidate = candidate + ".mp3"
+    return candidate
+
+
+def _playlist_slug(name, existing=None):
+    base = "".join(ch.lower() if ch.isalnum() else "-" for ch in str(name or "playlist"))
+    base = base.strip("-") or "playlist"
+    base = base[:60]
+    cand = base
+    counter = 2
+    existing = existing or set()
+    while cand in existing:
+        cand = f"{base}-{counter}"
+        counter += 1
+    return cand
+
+
+def _playlist_path(slug):
+    safe = "".join(ch for ch in str(slug or DEFAULT_PLAYLIST_SLUG) if ch.isalnum() or ch in ("-", "_"))
+    if not safe:
+        safe = DEFAULT_PLAYLIST_SLUG
+    fname = f"{safe}.yml"
+    return os.path.abspath(os.path.join(PLAYLIST_DIR, fname))
+
+
+def _read_playlist(slug):
+    _ensure_media_dirs()
+    path = _playlist_path(slug)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        if not isinstance(data, dict):
+            data = {}
+        data.setdefault("name", slug)
+        data.setdefault("tracks", [])
+        return data
+    except Exception:
+        return None
+
+
+def _write_playlist(slug, data):
+    _ensure_media_dirs()
+    path = _playlist_path(slug)
+    safe_data = data or {}
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        yaml.safe_dump(safe_data, fh, allow_unicode=True, sort_keys=False)
+
+
+def _list_mp3_files():
+    _ensure_media_dirs()
+    files = []
+    mp3_root = os.path.abspath(MP3_DIR)
+    for root, _, filenames in os.walk(mp3_root):
+        for filename in filenames:
+            if not filename.lower().endswith(".mp3"):
+                continue
+            full = os.path.join(root, filename)
+            if not os.path.isfile(full):
+                continue
+            rel_path = os.path.relpath(full, mp3_root).replace("\\", "/")
+            safe_rel = _normalize_track_path(rel_path)
+            info = {
+                "id": safe_rel,
+                "file": safe_rel,
+                "title": os.path.splitext(filename)[0],
+                "artist": None,
+                "album": None,
+                "length": None,
+                "size": os.path.getsize(full),
+                "mtime": datetime.fromtimestamp(os.path.getmtime(full)).isoformat(timespec="seconds"),
+                "url": f"/media/mp3/{quote(safe_rel, safe='/')}",
+            }
+            meta = _read_id3_metadata(full)
+            for key, value in meta.items():
+                if value:
+                    info[key] = value
+            extra = _read_track_metadata(full)
+            if isinstance(extra, dict):
+                info.update(extra)
+            files.append(info)
+    files.sort(key=lambda row: (row.get("title") or row.get("file") or "").lower())
+    return files
+
+
+def _read_id3_metadata(path):
+    meta = {}
+    try:
+        from mutagen import File as MutagenFile  # type: ignore
+
+        audio = MutagenFile(path)
+        if audio is None:
+            return meta
+        if hasattr(audio, "info") and getattr(audio.info, "length", None):
+            meta["length"] = int(audio.info.length)
+        tags = getattr(audio, "tags", {}) or {}
+        title = _pick_tag(tags, ["TIT2", "title"])
+        artist = _pick_tag(tags, ["TPE1", "artist"])
+        album = _pick_tag(tags, ["TALB", "album"])
+        if title:
+            meta["title"] = title
+        if artist:
+            meta["artist"] = artist
+        if album:
+            meta["album"] = album
+    except Exception:
+        pass
+    return meta
+
+
+def _pick_tag(tags, keys):
+    try:
+        for key in keys:
+            if key in tags:
+                value = tags[key]
+                if isinstance(value, (list, tuple)):
+                    if value:
+                        return str(value[0])
+                else:
+                    return str(value)
+    except Exception:
+        return None
+    return None
+
+
+def _ensure_default_playlist(library=None):
+    _ensure_media_dirs()
+    lib = library if library is not None else _list_mp3_files()
+    if not lib:
+        return
+    default_path = _playlist_path(DEFAULT_PLAYLIST_SLUG)
+    if os.path.exists(default_path):
+        return
+    tracks = [{"file": track["file"]} for track in lib]
+    data = {
+        "name": "All Tracks",
+        "description": "Auto playlist of every MP3 in User/Media/MP3.",
+        "tracks": tracks,
+    }
+    _write_playlist(DEFAULT_PLAYLIST_SLUG, data)
+
+
+def _list_playlists():
+    _ensure_media_dirs()
+    results = []
+    try:
+        entries = sorted(os.listdir(PLAYLIST_DIR))
+    except FileNotFoundError:
+        entries = []
+    seen = set()
+    for entry in entries:
+        if not entry.lower().endswith((".yml", ".yaml")):
+            continue
+        slug = os.path.splitext(entry)[0]
+        seen.add(slug)
+        data = _read_playlist(slug) or {}
+        results.append({
+            "slug": slug,
+            "name": data.get("name") or slug,
+            "track_count": len(data.get("tracks") or []),
+            "description": data.get("description"),
+        })
+    if not results:
+        _ensure_default_playlist()
+        return _list_playlists()
+    return results
+
+
+def _serialize_playlist(slug, library=None):
+    playlist = _read_playlist(slug)
+    if not playlist:
+        return None
+    lib = library if library is not None else _list_mp3_files()
+    lib_map = {track["file"]: track for track in lib}
+    resolved = []
+    for entry in playlist.get("tracks") or []:
+        file_name = None
+        if isinstance(entry, dict):
+            file_name = entry.get("file")
+        elif isinstance(entry, str):
+            file_name = entry
+            entry = {"file": file_name}
+        file_name = _normalize_track_path(file_name)
+        if not file_name:
+            continue
+        merged = {"file": file_name}
+        lib_meta = lib_map.get(file_name)
+        if lib_meta:
+            merged.update(lib_meta)
+        merged.update({k: v for k, v in entry.items() if k not in {"file", "id", "url"}})
+        resolved.append(merged)
+    return {
+        "slug": slug,
+        "name": playlist.get("name") or slug,
+        "description": playlist.get("description"),
+        "tracks": resolved,
+        "raw": playlist,
+    }
+
+
+def _remove_track_from_playlists(file_name):
+    updated = False
+    target = _normalize_track_path(file_name)
+    playlists = _list_playlists()
+    for meta in playlists:
+        slug = meta["slug"]
+        data = _read_playlist(slug)
+        if not data:
+            continue
+        tracks = data.get("tracks") or []
+        new_tracks = []
+        for entry in tracks:
+            entry_file = _normalize_track_path(entry.get("file"))
+            if entry_file and entry_file == target:
+                continue
+            new_tracks.append(entry)
+        if len(new_tracks) != len(tracks):
+            data["tracks"] = new_tracks
+            _write_playlist(slug, data)
+            updated = True
+    return updated
+
+
 class DashboardHandler(SimpleHTTPRequestHandler):
     server_version = "ChronosDashboardServer/1.0"
 
@@ -340,6 +618,37 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data.encode("utf-8"))
             return
+        if parsed.path.startswith("/media/mp3/"):
+            try:
+                _ensure_media_dirs()
+                rel = parsed.path[len("/media/mp3/"):]
+                rel = unquote(rel)
+                rel = rel.strip("/\\")
+                target = os.path.abspath(os.path.join(MP3_DIR, rel))
+                mp3_root = os.path.abspath(MP3_DIR)
+                if not target.startswith(mp3_root):
+                    self.send_response(403)
+                    self._set_cors()
+                    self.end_headers()
+                    return
+                if not os.path.exists(target):
+                    self.send_response(404)
+                    self._set_cors()
+                    self.end_headers()
+                    return
+                with open(target, "rb") as fh:
+                    data = fh.read()
+                self.send_response(200)
+                self._set_cors()
+                self.send_header("Content-Type", "audio/mpeg")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception:
+                self.send_response(500)
+                self._set_cors()
+                self.end_headers()
+            return
         if parsed.path == "/api/profile":
             # Return profile as JSON map (nickname/theme/etc.)
             try:
@@ -353,6 +662,31 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "profile": data})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read profile: {e}"})
+            return
+        if parsed.path == "/api/media/mp3":
+            try:
+                tracks = _list_mp3_files()
+                self._write_json(200, {"ok": True, "files": tracks})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to list MP3 files: {e}"})
+            return
+        if parsed.path == "/api/media/playlists":
+            try:
+                qs = parse_qs(parsed.query or "")
+                slug = (qs.get("name") or qs.get("slug") or [""])[0].strip()
+                library = _list_mp3_files()
+                if slug:
+                    playlist = _serialize_playlist(slug, library)
+                    if not playlist:
+                        self._write_json(404, {"ok": False, "error": "Playlist not found"})
+                    else:
+                        payload = {"ok": True, "playlist": playlist}
+                        self._write_json(200, payload)
+                else:
+                    plist = _list_playlists()
+                    self._write_json(200, {"ok": True, "playlists": plist})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read playlists: {e}"})
             return
         if parsed.path == "/api/preferences":
             try:
@@ -1551,6 +1885,110 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._write_json(status, {"ok": ok, "stdout": out, "stderr": err})
             return
 
+        if parsed.path == "/api/media/mp3/upload":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                filename = _sanitize_media_filename(payload.get("filename") or payload.get("name") or "track.mp3")
+                data_field = payload.get("data")
+                if not data_field:
+                    self._write_json(400, {"ok": False, "error": "Missing base64 data"}); return
+                if "," in data_field:
+                    data_field = data_field.split(",", 1)[1]
+                try:
+                    file_bytes = base64.b64decode(data_field)
+                except Exception as e:
+                    self._write_json(400, {"ok": False, "error": f"Invalid base64 payload: {e}"}); return
+                overwrite = bool(payload.get("overwrite"))
+                _ensure_media_dirs()
+                path = os.path.join(MP3_DIR, filename)
+                if os.path.exists(path) and not overwrite:
+                    self._write_json(409, {"ok": False, "error": "File already exists"}); return
+                with open(path, "wb") as fh:
+                    fh.write(file_bytes)
+                tracks = _list_mp3_files()
+                track = next((t for t in tracks if t.get("file") == filename), {"file": filename})
+                self._write_json(200, {"ok": True, "track": track})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Upload failed: {e}"})
+            return
+
+        if parsed.path == "/api/media/mp3/delete":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                file_name = (payload.get("file") or payload.get("filename") or "").strip()
+                if not file_name:
+                    self._write_json(400, {"ok": False, "error": "Missing file name"}); return
+                target = os.path.abspath(os.path.join(MP3_DIR, file_name))
+                if not target.startswith(os.path.abspath(MP3_DIR)):
+                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
+                if not os.path.exists(target):
+                    self._write_json(404, {"ok": False, "error": "File not found"}); return
+                os.remove(target)
+                _remove_track_from_playlists(file_name)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Delete failed: {e}"})
+            return
+
+        if parsed.path == "/api/media/playlists/save":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                name = (payload.get("name") or "").strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing playlist name"}); return
+                existing = {p["slug"] for p in _list_playlists()}
+                slug = (payload.get("slug") or payload.get("name") or "").strip()
+                slug = slug if slug in existing else _playlist_slug(slug or name, existing if slug not in existing else None)
+                tracks_payload = payload.get("tracks") or []
+                tracks = []
+                for entry in tracks_payload:
+                    if isinstance(entry, str):
+                        tracks.append({"file": entry})
+                        continue
+                    if isinstance(entry, dict):
+                        file_name = entry.get("file") or entry.get("name")
+                        if not file_name:
+                            continue
+                        row = {"file": file_name}
+                        for key in ("title", "artist", "album", "length", "cover"):
+                            if entry.get(key) is not None:
+                                row[key] = entry.get(key)
+                        tracks.append(row)
+                payload_map = {
+                    "name": name,
+                    "description": payload.get("description"),
+                    "tracks": tracks,
+                }
+                if "shuffle" in payload:
+                    payload_map["shuffle"] = bool(payload.get("shuffle"))
+                if "repeat" in payload:
+                    payload_map["repeat"] = payload.get("repeat")
+                _write_playlist(slug, payload_map)
+                self._write_json(200, {"ok": True, "slug": slug})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Playlist save failed: {e}"})
+            return
+
+        if parsed.path == "/api/media/playlists/delete":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                slug = (payload.get("slug") or payload.get("name") or "").strip()
+                if not slug:
+                    self._write_json(400, {"ok": False, "error": "Missing playlist slug"}); return
+                if slug == DEFAULT_PLAYLIST_SLUG:
+                    self._write_json(400, {"ok": False, "error": "Cannot delete default playlist"}); return
+                path = _playlist_path(slug)
+                if not os.path.exists(path):
+                    self._write_json(404, {"ok": False, "error": "Playlist not found"}); return
+                os.remove(path)
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Playlist delete failed: {e}"})
+            return
         if parsed.path == "/api/sticky-notes":
             try:
                 if not isinstance(payload, dict):
