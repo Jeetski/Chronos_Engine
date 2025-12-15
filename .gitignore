@@ -49,6 +49,10 @@ Temp/
 tmp_*.js
 debug_*.txt
 
+# Project notes/backups
+IDEAS/
+backup/
+
 # User data: ignore everything under User, but allow empty directory placeholders, Settings, and Profile
 User/**
 !User/**/.gitkeep
