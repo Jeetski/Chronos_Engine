@@ -276,6 +276,6 @@ Troubleshooting
 ----------------------------------------
 
 Next Steps
-- Explore `Docs/Architecture.md` to extend commands and modules.
-- Review `Docs/Dashboard.md` for APIs and widget ideas.
+- Explore `Docs/Dev/Architecture.md` to extend commands and modules.
+- Review `Docs/Guides/Dashboard.md` for APIs and widget ideas.
 - Add your own templates and scripts to shape Chronos to your workflow.

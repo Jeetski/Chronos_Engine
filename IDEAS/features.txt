@@ -67,3 +67,15 @@ Chronos Feature Ideas
 - Lightweight MP3 player widget that lets users queue focus playlists (binaural beats, lofi, etc.) directly inside Chronos.
 - Supports custom uploads or linking to hosted tracks so creators can promote their own music or curated mixes.
 - Includes basic playback controls, volume, looping, and optional syncing with focus sessions or rituals.
+
+15. Timeline View
+- A new dashboard view that renders tasks/projects with concrete due dates on a horizontal timeline so you can see what's coming up at a glance.
+- Pull scheduled/due data from existing items and show colored markers/blocks; zoom controls (day/week/month) keep the lane readable.
+- Clicking a marker should open the underlying item or let you jump straight into rescheduling/editing without leaving the view.
+
+16. Terminal Autosuggest Dropdown
+- Enhance the dashboard Terminal widget with a dropdown autosuggest (commands + recent history + known item types). 
+- Should appear on typing with keyboard navigation; accept/insert suggestions without losing current input. 
+- Suggestions: Chronos commands, wizard names, dashboard shortcuts, and a few last typed lines (persisted).
+- Must respect existing keyboard shortcuts (Ctrl+L clear, Enter submit) and stay lightweight/offline.
+Missing commands to consider:\n- status presets/load: save/apply named status profiles (energy/focus/mood)\n- today log/history/undo: inspect manual overrides and undo last trim/change/cut\n- bulk item ops: bulk edit/move/rename helpers (beyond pipelines)\n- dashboard bridge: dashboard open <panel|widget> and dashboard theme <name> from CLI\n- template lint/validate and template export/import for sharing\n- sequence repair/diff: rebuild mirrors and compare mirror vs YAML sanity\n- listener status/restart: show running state/ports/alarms and restart wrapper\n- points set/import/export: admin set and ledger snapshots\n- habit streaks summary; goal due-soon/milestone due-soon helpers\n- inventory audit: find missing links/orphaned inventory_items/tools\n

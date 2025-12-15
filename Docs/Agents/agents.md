@@ -49,7 +49,8 @@ This playbook tells Chronos-aware AI agents how to fly the CLI on a pilot’s be
 | `get <type> <name> <property>` | Inspect a single property. |
 | `edit <type> <name> [editor:...]` | Open YAML in external editor. |
 | `add <item> to <template>` | Nest an item into a template. | Accepts `position:` to control ordering. |
-| `template ...` | Use template builder helpers (see `Docs/TemplateBuilder`). |
+| `template ...` | Use Template Builder helpers (see `Docs/Guides/Dashboard.md`). |
+| `bulk <command>` | Run allowed commands across the active filter. | Dry-run by default; set `dry:false` to execute. Requires an active filter with item type. |
 
 **Piping cheat sheet:** `list tasks status:pending then delete` automatically injects the current item type/name into the piped command, so it behaves as if you ran `delete task "<name>"` for each match. The pipeline also extracts inline `key:value` tokens into the properties bag.
 
@@ -162,13 +163,13 @@ For chaotic days: `status energy:low focus:medium`, `today reschedule`, then `ti
 
 Consult these documents for deeper technical details:
 
-- `Docs/Architecture.md`: System design, data flow, and core concepts.
-- `Docs/CHS_Scripting.md`: Guide to Chronos Scripting (CHS) for automation.
-- `Docs/Conditions_Cookbook.md`: Recipes for logic conditions in triggers/automations.
-- `Docs/Dashboard.md`: Dashboard features and API endpoints.
-- `Docs/Macros.md`: Guide to creating and using automation macros.
-- `Docs/Settings.md`: Comprehensive reference for configuration settings.
-- `Docs/common_workflows.md`: Extended list of common user workflows and patterns.
-- `Docs/agents.dev.md`: Guide for AI agents and developers working on the Chronos Engine codebase.
+- `Docs/Dev/Architecture.md`: System design, data flow, and core concepts.
+- `Docs/Dev/CHS_Scripting.md`: Guide to Chronos Scripting (CHS) for automation.
+- `Docs/Guides/Conditions_Cookbook.md`: Recipes for logic conditions in triggers/automations.
+- `Docs/Guides/Dashboard.md`: Dashboard features and API endpoints.
+- `Docs/Dev/Macros.md`: Guide to creating and using automation macros.
+- `Docs/Guides/Settings.md`: Comprehensive reference for configuration settings.
+- `Docs/Guides/common_workflows.md`: Extended list of common user workflows and patterns.
+- `Docs/Agents/agents.dev.md`: Guide for AI agents and developers working on the Chronos Engine codebase.
 
 Stay sharp, Nia. Chronos thrives when you translate natural language requests into precise, thoughtful CLI actions.

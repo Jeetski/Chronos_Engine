@@ -1,5 +1,7 @@
 # Cockpit Matrix Panel - Design Outline
 
+> Status: implemented. See `Utilities/Dashboard/Panels/Matrix/` for the shipping panel and `Docs/Guides/Cockpit.md` for current usage. Keep this doc as design context.
+
 The Matrix panel is a cockpit view that lets pilots juxtapose two dimensions of Chronos data (rows vs. columns) and inspect the intersections. Think of it as a Chronos-aware pivot table: you pick what each axis represents (e.g., item type vs. status, project vs. weekday), choose what the cells should display (counts, total minutes, lists), and the panel fills in the grid by reading the existing YAML datasets.
 
 ## Goals

@@ -50,7 +50,7 @@ Scripting (`.chs`) is one command per line (with inline comments via `#`). The e
 2. **Leverage `generic_handle_*`.** Import from `Modules.ItemManager`: `generic_handle_new`, `generic_handle_append`, `generic_handle_delete`. Call these from your `handle_command` for verbs you don’t override.
 3. **Add defaults.** Place `User/Settings/<type>_defaults.yml` for sensible starters.
 4. **Register dashboard support (optional).** If you expose data via the dashboard server, add endpoints under `/api/...` in `Utilities/Dashboard/server.py` and create widgets under `Utilities/Dashboard/Widgets/<Name>/`.
-5. **Document usage.** Update `Docs/*`, especially `Docs/agents.md` for operator guidance.
+5. **Document usage.** Update `Docs/*`, especially `Docs/Agents/agents.md` for operator guidance.
 
 Existing bespoke modules (commitments, rewards, achievements, goals, milestones, habits, routines, timer, etc.) illustrate full coverage for `handle_command` so CLI automation works uniformly.
 
@@ -147,7 +147,7 @@ When adding a widget:
 - Modules: `Modules/<Type>/main.py` plus shared modules (`Modules/Console.py`, `Modules/Today.py`, `Modules/Scheduler.py`, `Modules/Commitment/main.py`, etc.).
 - Utilities: `Utilities/points.py`, `Utilities/tracking.py`, `Utilities/Dashboard/*`, `Utilities/duration_parser.py`.
 - User data: `User/` directories for each item type, `User/Settings`, `User/Profile`, `User/Rewards`, etc.
-- Docs: `Docs/*.md` for user/agent instructions, `Docs/Architecture.md` for high-level diagrams, `Docs/Dashboard.md` for the SPA.
+- Docs: `Docs/*.md` for user/agent instructions, `Docs/Dev/Architecture.md` for high-level diagrams, `Docs/Guides/Dashboard.md` for the SPA.
 
 ---
 
@@ -157,7 +157,7 @@ When adding a widget:
 - Use lowercase type names (e.g., `task`, `goal`, `milestone`). `ItemManager` handles pluralization in paths.
 - When working inside `Modules/ItemManager`, guard against missing files and invalid YAML. Always log errors to `debug_delete.txt` or similar during development, but remove persistent noisy logging in production.
 - `dispatch_command` first looks for `handle_command`. If absent, it tries `handle_<verb>` functions (legacy modules). Finally it falls back to `generic_handle_*`. Ensure new modules implement `handle_command` for consistency.
-- Update docs (`Docs/agents.md`, `Docs/agents.dev.md`, `Docs/Dashboard.md`, etc.) whenever you add features that agents/operators rely on.
+- Update docs (`Docs/Agents/agents.md`, `Docs/Agents/agents.dev.md`, `Docs/Guides/Dashboard.md`, etc.) whenever you add features that agents/operators rely on.
 
 ---
 
@@ -168,10 +168,10 @@ When adding a widget:
 
 Consult these documents for deeper technical details:
 
-- `Docs/Architecture.md`: System design, data flow, and core concepts.
-- `Docs/Dashboard.md`: Dashboard features and API endpoints (for widget dev).
-- `Docs/Settings.md`: Configuration settings reference.
-- `Docs/agents.md`: The user-facing agent guide (context for how the engine is used).
-- `Docs/CHS_Scripting.md`: Guide to Chronos Scripting (CHS) for automation/testing.
+- `Docs/Dev/Architecture.md`: System design, data flow, and core concepts.
+- `Docs/Guides/Dashboard.md`: Dashboard features and API endpoints (for widget dev).
+- `Docs/Guides/Settings.md`: Configuration settings reference.
+- `Docs/Agents/agents.md`: The user-facing agent guide (context for how the engine is used).
+- `Docs/Dev/CHS_Scripting.md`: Guide to Chronos Scripting (CHS) for automation/testing.
 
 Chronos evolves fast-keep this guide up to date as you add new commands, modules, or dashboard capabilities. Stay modular, rely on ItemManager, and favor explicit APIs for everything you expect agents to automate.

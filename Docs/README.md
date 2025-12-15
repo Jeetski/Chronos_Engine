@@ -3,18 +3,27 @@
 Chronos is a YAML-first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight local dashboard. This document is your map: install, run, extend.
 
 Links
-- License: ../LICENSE.md
-- Commercial License: COMMERCIAL_LICENSE.md
-- Marketplace Terms: MARKETPLACE_TERMS.md
-- Trademark Policy: TRADEMARK_POLICY.md
-- Agent Guide: agents.md
-- Agent Dev Guide: agents.dev.md
-- Common Workflows: common_workflows.md
+- License: Legal/LICENSE.md
+- Commercial License: Legal/COMMERCIAL_LICENSE.md
+- Marketplace Terms: Legal/MARKETPLACE_TERMS.md
+- Trademark Policy: Legal/TRADEMARK_POLICY.md
+- Agent Guide: Agents/agents.md
+- Agent Dev Guide: Agents/agents.dev.md
+- Common Workflows: Guides/common_workflows.md
+- Cockpit Panels: Guides/Cockpit.md
+- Sequence Mirrors: Dev/Sequence.md
 
 Scripting & Automation Docs
-- CHS Scripting Guide: CHS_Scripting.md
-- Conditions Cookbook: Conditions_Cookbook.md
-- Macros (BEFORE/AFTER): Macros.md
+- CHS Scripting Guide: Dev/CHS_Scripting.md
+- Conditions Cookbook: Guides/Conditions_Cookbook.md
+- Macros (BEFORE/AFTER): Dev/Macros.md
+
+## Structure
+- Guides/ — user-facing how-tos (Dashboard, Settings, Workflows, Conditions, Cockpit).
+- Dev/ — engine and API docs (Architecture, CHS Scripting, Macros, Sequence mirrors).
+- Agents/ — agent persona and developer guides.
+- Designs/ — design notes/specs (may be aspirational; check Guides for current state).
+- Legal/ — licenses, trademarks, marketplace terms.
 
 ## Quickstart
 1) Prerequisites
@@ -98,10 +107,11 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `status [k:v ...]` — view or set energy/focus/mood/stress values that influence scheduling.
 - `timer start <profile> [bind_type:task bind_name:"Name"]`, `timer pause|resume|stop|cancel` — run focus sessions bound to items if desired.
 - `points balance|history|add|subtract` — inspect or adjust the points ledger.
-- `settings <file_shortcut> key value` — mutate `User/Settings/*.yml` files safely.
-- `sequence <subcommand>` — manage data mirrors (`status`, `sync <targets>`, `trends` to refresh the digest).
+- `settings <file_shortcut> key value` - mutate `User/Settings/*.yml` files safely.
+- `sequence <subcommand>` - manage data mirrors (`status`, `sync <targets>`, `trends` to refresh the digest).
 - Listener & reminders: `listener start|stop`, `dismiss|snooze|skip <alarm>`.
 - Templates & variables: `template ...`, `filter ...`, `variables` via dashboard or CLI helper commands.
+- Bulk executor: `bulk <command>` - run supported commands across the active filter (dry-run by default; use `dry:false` to execute).
 
 Variables
 - The console seeds `@nickname` from `User/Profile/profile.yml`. Use in scripts/messages.

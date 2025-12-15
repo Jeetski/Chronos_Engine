@@ -12,11 +12,13 @@ Quickstart
 
 Docs
 - Overview & Quickstart: `Docs/README.md`
-- Architecture: `Docs/Architecture.md`
-- Dashboard Guide: `Docs/Dashboard.md`
-- Settings Guide: `Docs/Settings.md`
-- Scripting: `Docs/CHS_Scripting.md`, `Docs/Conditions_Cookbook.md`
-- Agent Guides: `Docs/agents.md`, `Docs/agents.dev.md`
+- Architecture: `Docs/Dev/Architecture.md`
+- Dashboard Guide: `Docs/Guides/Dashboard.md`
+- Settings Guide: `Docs/Guides/Settings.md`
+- Scripting: `Docs/Dev/CHS_Scripting.md`, `Docs/Guides/Conditions_Cookbook.md`
+- Cockpit Panels: `Docs/Guides/Cockpit.md`
+- Sequence Mirrors: `Docs/Dev/Sequence.md`
+- Agent Guides: `Docs/Agents/agents.md`, `Docs/Agents/agents.dev.md`
 
 License
-- See `LICENSE.md`. Commercial terms in `Docs/COMMERCIAL_LICENSE.md`.
+- See `Docs/Legal/LICENSE.md`. Commercial terms in `Docs/Legal/COMMERCIAL_LICENSE.md`.
