@@ -79,10 +79,12 @@ def handle_list(sort_by, properties):
         print(f"📝 {name}  |  Description: {description}")
     print("──────────────────────────────\n")
 
-def handle_delete(name, force_value, properties):
+def handle_delete(name, properties):
     """
     Handles deleting a subroutine template item, with optional force confirmation.
     """
+    force_value = properties.get("force", False)
+
     if not get_item_path(ITEM_TYPE, name):
         print(f"❌ {ITEM_TYPE.capitalize()} template '{name}' does not exist.")
         return

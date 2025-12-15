@@ -174,4 +174,4 @@ Consult these documents for deeper technical details:
 - `Docs/agents.md`: The user-facing agent guide (context for how the engine is used).
 - `Docs/CHS_Scripting.md`: Guide to Chronos Scripting (CHS) for automation/testing.
 
-Chronos evolves fast—keep this guide up to date as you add new commands, modules, or dashboard capabilities. Stay modular, rely on ItemManager, and favor explicit APIs for everything you expect agents to automate.*** End Patch
+Chronos evolves fast-keep this guide up to date as you add new commands, modules, or dashboard capabilities. Stay modular, rely on ItemManager, and favor explicit APIs for everything you expect agents to automate.

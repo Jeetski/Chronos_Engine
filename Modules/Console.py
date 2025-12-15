@@ -179,9 +179,28 @@ def _load_exit_lines():
 LOADED_MODULES = {}
 
 # Command aliases (lowercase) -> canonical command name
+# Command aliases (lowercase) -> canonical command name
 COMMAND_ALIASES = {
     "dash": "dashboard",
 }
+
+def _load_aliases():
+    """Load aliases from User/Settings/aliases.yml"""
+    path = os.path.join(ROOT_DIR, 'User', 'Settings', 'aliases.yml')
+    aliases = {}
+    
+    # Load default map first
+    aliases.update(COMMAND_ALIASES)
+    
+    try:
+        data = _safe_load_yaml(path)
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, str):
+                    aliases[k.lower()] = v
+    except Exception:
+        pass
+    return aliases
 
 def resolve_command_alias(command_name):
     """
@@ -189,7 +208,9 @@ def resolve_command_alias(command_name):
     """
     if not isinstance(command_name, str):
         return command_name
-    return COMMAND_ALIASES.get(command_name.lower(), command_name)
+        
+    aliases = _load_aliases()
+    return aliases.get(command_name.lower(), command_name)
 
 def invoke_command(command_name, args, properties):
     """
@@ -355,6 +376,164 @@ def run_command(command_name, args, properties):
         except Exception:
             pass
 
+# --- Script Execution Logic ---
+def execute_script(script_path):
+    """
+    Parses and runs a .chs script file.
+    """
+    if not os.path.isfile(script_path):
+        print(f"❌ Script file not found: {script_path}")
+        return False
+
+    with open(script_path, 'r', encoding='utf-8') as script_file:
+        all_lines = [ln.rstrip('\n') for ln in script_file]
+
+    def exec_line(raw_line, line_no=None):
+        ln = raw_line.strip()
+        if not ln or ln.startswith('#'):
+            return
+        parts = shlex.split(ln)
+        command, args, properties = parse_input(parts)
+        if command:
+            # Set context line for single-line 'if' error reporting
+            if command.lower() == 'if' and line_no is not None:
+                try:
+                    import Modules.Conditions as Conditions
+                    Conditions.set_context_line(line_no)
+                except Exception:
+                    pass
+            invoke_command(command, args, properties.copy())
+            if command.lower() == 'if' and line_no is not None:
+                try:
+                    import Modules.Conditions as Conditions
+                    Conditions.clear_context_line()
+                except Exception:
+                    pass
+
+    def run_lines(lines):
+        import Modules.Conditions as Conditions
+        from Modules import Variables as _V
+        i = 0
+        L = len(lines)
+
+        def collect_if_block(start_idx):
+            depth = 0
+            j = start_idx
+            block = []
+            while j < L:
+                r = lines[j]
+                s = r.strip()
+                sl = s.lower()
+                if sl.startswith('if ') and sl.endswith(' then'):
+                    depth += 1
+                if sl == 'end':
+                    depth -= 1
+                    block.append(r)
+                    j += 1
+                    if depth == 0:
+                        break
+                    continue
+                block.append(r)
+                j += 1
+            return block, j
+
+        def collect_commands(start_idx):
+            cmds = []
+            j = start_idx
+            while j < L:
+                r = lines[j]
+                s = r.strip()
+                sl = s.lower()
+                if sl == 'end' or (sl.startswith('elseif ') and sl.endswith(' then')) or sl == 'else':
+                    break
+                if sl.startswith('if ') and sl.endswith(' then'):
+                    block, j2 = collect_if_block(j)
+                    cmds.append(('BLOCK', block))
+                    j = j2
+                    continue
+                if s and not s.startswith('#'):
+                    cmds.append(('LINE', r))
+                j += 1
+            return cmds, j
+
+        while i < L:
+            raw = lines[i]
+            stripped = raw.strip()
+            if not stripped or stripped.startswith('#'):
+                i += 1
+                continue
+            sl = stripped.lower()
+            if sl.startswith('if ') and sl.endswith(' then'):
+                header = stripped[3:-5].strip()
+                header_parts = shlex.split(header)
+                cond_tokens = _V.expand_list(header_parts)
+                cond_line_no = i + 1
+                blocks = [(cond_tokens, [], cond_line_no)]
+                i += 1
+                cmds, i = collect_commands(i)
+                blocks[0] = (blocks[0][0], cmds, blocks[0][2])
+
+                while i < L:
+                    s = lines[i].strip()
+                    sl2 = s.lower()
+                    if sl2.startswith('elseif ') and sl2.endswith(' then'):
+                        elif_header = s[7:-5].strip()
+                        parts2 = shlex.split(elif_header)
+                        cond2 = _V.expand_list(parts2)
+                        elif_line_no = i + 1
+                        i += 1
+                        cmds, i = collect_commands(i)
+                        blocks.append((cond2, cmds, elif_line_no))
+                    else:
+                        break
+
+                if i < L and lines[i].strip().lower() == 'else':
+                    else_line_no = i + 1
+                    i += 1
+                    else_cmds, i = collect_commands(i)
+                    blocks.append((None, else_cmds, else_line_no))
+
+                if not (i < L and lines[i].strip().lower() == 'end'):
+                    print("❌ Missing 'end' for if block.")
+                    break
+                i += 1
+
+                executed = False
+                for entry in blocks:
+                    # Support tuples with or without line numbers
+                    if len(entry) == 3:
+                        cond, cmdlist, line_no = entry
+                    else:
+                        cond, cmdlist = entry
+                        line_no = cond_line_no
+                    truth = False
+                    if cond is None:
+                        truth = not executed
+                    else:
+                        try:
+                            truth = Conditions.evaluate_cond_tokens(cond)
+                        except Exception as e:
+                            print(f"Condition error on line {line_no}: {e}")
+                            truth = False
+                    if truth and not executed:
+                        for kind, payload in cmdlist:
+                            if kind == 'LINE':
+                                exec_line(payload)
+                            elif kind == 'BLOCK':
+                                # Recursively run nested block
+                                run_lines(payload)
+                        executed = True
+                continue
+
+            # default single-line execution
+            # Mark line number for 'if' single-line error messages
+            exec_line(raw, i + 1)
+            i += 1
+
+    run_lines(all_lines)
+    return True
+
+
 if __name__ == "__main__":
     # Seed variables (e.g., @nickname from profile)
     try:
@@ -387,159 +566,9 @@ if __name__ == "__main__":
     # Check if a .chs script file is provided
     if len(sys.argv) > 1 and sys.argv[1].endswith('.chs'):
         script_path = os.path.join(ROOT_DIR, sys.argv[1])
-        if os.path.isfile(script_path):
-            with open(script_path, 'r', encoding='utf-8') as script_file:
-                all_lines = [ln.rstrip('\n') for ln in script_file]
+        success = execute_script(script_path)
+        sys.exit(0 if success else 1)
 
-            def exec_line(raw_line, line_no=None):
-                ln = raw_line.strip()
-                if not ln or ln.startswith('#'):
-                    return
-                parts = shlex.split(ln)
-                command, args, properties = parse_input(parts)
-                if command:
-                    # Set context line for single-line 'if' error reporting
-                    if command.lower() == 'if' and line_no is not None:
-                        try:
-                            import Modules.Conditions as Conditions
-                            Conditions.set_context_line(line_no)
-                        except Exception:
-                            pass
-                    invoke_command(command, args, properties.copy())
-                    if command.lower() == 'if' and line_no is not None:
-                        try:
-                            import Modules.Conditions as Conditions
-                            Conditions.clear_context_line()
-                        except Exception:
-                            pass
-
-            def run_lines(lines):
-                import Modules.Conditions as Conditions
-                from Modules import Variables as _V
-                i = 0
-                L = len(lines)
-
-                def collect_if_block(start_idx):
-                    depth = 0
-                    j = start_idx
-                    block = []
-                    while j < L:
-                        r = lines[j]
-                        s = r.strip()
-                        sl = s.lower()
-                        if sl.startswith('if ') and sl.endswith(' then'):
-                            depth += 1
-                        if sl == 'end':
-                            depth -= 1
-                            block.append(r)
-                            j += 1
-                            if depth == 0:
-                                break
-                            continue
-                        block.append(r)
-                        j += 1
-                    return block, j
-
-                def collect_commands(start_idx):
-                    cmds = []
-                    j = start_idx
-                    while j < L:
-                        r = lines[j]
-                        s = r.strip()
-                        sl = s.lower()
-                        if sl == 'end' or (sl.startswith('elseif ') and sl.endswith(' then')) or sl == 'else':
-                            break
-                        if sl.startswith('if ') and sl.endswith(' then'):
-                            block, j2 = collect_if_block(j)
-                            cmds.append(('BLOCK', block))
-                            j = j2
-                            continue
-                        if s and not s.startswith('#'):
-                            cmds.append(('LINE', r))
-                        j += 1
-                    return cmds, j
-
-                while i < L:
-                    raw = lines[i]
-                    stripped = raw.strip()
-                    if not stripped or stripped.startswith('#'):
-                        i += 1
-                        continue
-                    sl = stripped.lower()
-                    if sl.startswith('if ') and sl.endswith(' then'):
-                        header = stripped[3:-5].strip()
-                        header_parts = shlex.split(header)
-                        cond_tokens = _V.expand_list(header_parts)
-                        cond_line_no = i + 1
-                        blocks = [(cond_tokens, [], cond_line_no)]
-                        i += 1
-                        cmds, i = collect_commands(i)
-                        blocks[0] = (blocks[0][0], cmds, blocks[0][2])
-
-                        while i < L:
-                            s = lines[i].strip()
-                            sl2 = s.lower()
-                            if sl2.startswith('elseif ') and sl2.endswith(' then'):
-                                elif_header = s[7:-5].strip()
-                                parts2 = shlex.split(elif_header)
-                                cond2 = _V.expand_list(parts2)
-                                elif_line_no = i + 1
-                                i += 1
-                                cmds, i = collect_commands(i)
-                                blocks.append((cond2, cmds, elif_line_no))
-                            else:
-                                break
-
-                        if i < L and lines[i].strip().lower() == 'else':
-                            else_line_no = i + 1
-                            i += 1
-                            else_cmds, i = collect_commands(i)
-                            blocks.append((None, else_cmds, else_line_no))
-
-                        if not (i < L and lines[i].strip().lower() == 'end'):
-                            print("�?O Missing 'end' for if block.")
-                            break
-                        i += 1
-
-                        executed = False
-                        for entry in blocks:
-                            # Support tuples with or without line numbers
-                            if len(entry) == 3:
-                                cond, cmdlist, line_no = entry
-                            else:
-                                cond, cmdlist = entry
-                                line_no = cond_line_no
-                            truth = False
-                            if cond is None:
-                                truth = not executed
-                            else:
-                                try:
-                                    truth = Conditions.evaluate_cond_tokens(cond)
-                                except Exception as e:
-                                    print(f"Condition error on line {line_no}: {e}")
-                                    truth = False
-                            if truth and not executed:
-                                for kind, payload in cmdlist:
-                                    if kind == 'LINE':
-                                        exec_line(payload)
-                                    elif kind == 'BLOCK':
-                                        # Recursively run nested block
-                                        run_lines(payload)
-                                executed = True
-                        continue
-
-                    # default single-line execution
-                    # Mark line number for 'if' single-line error messages
-                    exec_line(raw, i + 1)
-                    i += 1
-
-            run_lines(all_lines)
-
-            # Exit after running the script
-            sys.exit(0)
-        else:
-            print(f"❌ Script file not found: {sys.argv[1]}")
-            sys.exit(1)
 
     # Check if command-line arguments are provided
     if len(sys.argv) > 1:

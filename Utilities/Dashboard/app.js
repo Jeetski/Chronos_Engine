@@ -44,6 +44,9 @@ const panelLoaders = [
   () => import(new URL('./Panels/Commitments/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load commitments panel module', err);
   }),
+  () => import(new URL('./Panels/MapOfHappiness/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load map of happiness panel module', err);
+  }),
   () => import(new URL('./Panels/Lists/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load lists panel module', err);
   }),
@@ -105,6 +108,20 @@ ready(async () => {
       module: 'SelfAuthoring',
       label: 'Self Authoring Suite',
       description: 'Comprehensive Past/Present/Future reflection exercises to generate goals, habits, and tasks.',
+      enabled: true,
+    },
+    {
+      id: 'futureSelfDialogue',
+      module: 'FutureSelfDialogue',
+      label: 'Future Self Dialogue (Vaknin)',
+      description: 'Speak as future-you to past-you, write to future-you, read through past/present/future lenses, save as a journal entry.',
+      enabled: true,
+    },
+    {
+      id: 'mapOfHappiness',
+      module: 'MapOfHappiness',
+      label: 'Map of Happiness Wizard',
+      description: 'Capture non-negotiables, cluster into needs, rank, and save map_of_happiness.yml.',
       enabled: true,
     },
   ];

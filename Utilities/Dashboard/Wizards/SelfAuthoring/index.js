@@ -636,6 +636,7 @@ function render(container) {
 
 function renderNav() {
   const nav = document.getElementById('sa-nav');
+  nav.innerHTML = ''; // Clear existing nav items
   let currentCategory = null;
 
   SECTIONS.forEach(section => {

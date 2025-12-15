@@ -970,6 +970,19 @@ def run(args, properties):
             print("Inserting buffers...")
             resolved_schedule = phase4_final_buffer_insertion(resolved_schedule, buffer_settings)
 
+        # Archive previous schedule before saving new one
+        if os.path.exists(TODAY_SCHEDULE_PATH):
+            try:
+                archive_dir = os.path.join(USER_DIR, "Archive", "Schedules")
+                os.makedirs(archive_dir, exist_ok=True)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                archive_path = os.path.join(archive_dir, f"today_schedule_{timestamp}.yml")
+                from shutil import copy2
+                copy2(TODAY_SCHEDULE_PATH, archive_path)
+                # prune old archives? maybe later
+            except Exception as e:
+                print(f"Warning: Failed to archive previous schedule: {e}")
+
         # Save the resolved schedule to today_schedule.yml
         with open(TODAY_SCHEDULE_PATH, 'w') as f:
             yaml.dump(resolved_schedule, f, default_flow_style=False)

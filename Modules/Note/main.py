@@ -103,16 +103,15 @@ def handle_append(name, text, properties):
     write_item_data(ITEM_TYPE, name, data)
     print(f"✅ Appended to {ITEM_TYPE}: {name}.yml")
 
-def handle_delete(name, force, properties):
+def handle_delete(name, properties):
     """
     Handles deleting a note item, with optional force confirmation.
     """
+    force = properties.get("force", False)
+    
     # Check if item exists before asking for confirmation
     if not get_item_path(ITEM_TYPE, name):
-        print(f"❌ {ITEM_TYPE.capitalize()} '{name}' does not exist.")
-        return
 
-    if not force:
         confirm = input(f"⚠️ Are you sure you want to delete '{name}'? (y/n): ").strip().lower()
         if confirm not in {"y", "yes"}:
             print("❌ Deletion cancelled.")
