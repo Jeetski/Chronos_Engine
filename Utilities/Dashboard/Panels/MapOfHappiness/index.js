@@ -114,7 +114,17 @@ function renderContent(mapEntries, coverage, metadata) {
   if (!mapEntries.length) {
     return `<div class="moh-panel-empty">No needs defined yet. Run the Map of Happiness wizard.</div>`;
   }
-  const avg = Math.round(mapEntries.reduce((acc, m) => acc + (Number(m.satisfaction || 0)), 0) / mapEntries.length);
+  const satisfactionFor = (entry) => {
+    const key = slugify(entry.key);
+    const tagged = coverage?.[key]?.items?.length || 0;
+    const essentialsCount = Array.isArray(entry.essentials) ? entry.essentials.length : 0;
+    if (typeof entry.satisfaction === 'number' && !isNaN(entry.satisfaction)) return Number(entry.satisfaction);
+    if (essentialsCount > 0) return Math.min(100, Math.round((tagged / essentialsCount) * 100));
+    return tagged > 0 ? 100 : 0;
+  };
+  const avg = mapEntries.length
+    ? Math.round(mapEntries.reduce((acc, m) => acc + satisfactionFor(m), 0) / mapEntries.length)
+    : 0;
   const totalTagged = Object.values(coverage || {}).reduce((acc, c) => acc + (c?.items?.length || 0), 0);
   const cards = mapEntries
     .slice()
@@ -122,7 +132,7 @@ function renderContent(mapEntries, coverage, metadata) {
     .map(entry => {
       const key = slugify(entry.key);
       const cov = coverage?.[key]?.items || [];
-      const bar = Math.max(0, Math.min(100, Number(entry.satisfaction || 0)));
+      const bar = Math.max(0, Math.min(100, satisfactionFor(entry)));
       const linkedList = Array.isArray(entry.linked_items) ? entry.linked_items : [];
       const essentials = Array.isArray(entry.essentials) ? entry.essentials : [];
       return `

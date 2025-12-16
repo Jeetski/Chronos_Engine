@@ -1010,11 +1010,13 @@ function mountOverlay() {
     body: overlayEl.querySelector('[data-body]'),
     statusEl: overlayEl.querySelector('[data-status]'),
     validationEl: overlayEl.querySelector('[data-validation]'),
+    closeBtn: overlayEl.querySelector('[data-close]'),
     cancelBtn: overlayEl.querySelector('[data-cancel]'),
     prevBtn: overlayEl.querySelector('[data-prev]'),
     nextBtn: overlayEl.querySelector('[data-next]'),
   };
 
+  overlayRefs.closeBtn?.addEventListener('click', closeWizard);
   overlayRefs.cancelBtn.addEventListener('click', closeWizard);
   overlayRefs.prevBtn.addEventListener('click', () => changeStep(-1));
   overlayRefs.nextBtn.addEventListener('click', async () => {

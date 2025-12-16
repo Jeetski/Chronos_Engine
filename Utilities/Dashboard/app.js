@@ -7,6 +7,35 @@ if (typeof window !== 'undefined' && !window.__cockpitPanelDefinitions) {
   window.__cockpitPanelDefinitions = [];
 }
 
+// Simple popup queue so multiple popups do not overlap
+if (typeof window !== 'undefined' && !window.ChronosPopupQueue) {
+  const queue = [];
+  let active = false;
+  const run = async () => {
+    if (active) return;
+    const next = queue.shift();
+    if (!next) return;
+    active = true;
+    try {
+      await next(() => {
+        active = false;
+        run();
+      });
+    } catch {
+      active = false;
+      run();
+    }
+  };
+  window.ChronosPopupQueue = {
+    enqueue(fn) {
+      if (typeof fn === 'function') {
+        queue.push(fn);
+        run();
+      }
+    },
+  };
+}
+
 function apiBase() {
   const o = window.location.origin;
   if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357';
@@ -47,8 +76,29 @@ const panelLoaders = [
   () => import(new URL('./Panels/MapOfHappiness/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load map of happiness panel module', err);
   }),
+  () => import(new URL('./Panels/Flashcards/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load flashcards panel module', err);
+  }),
+  () => import(new URL('./Panels/RandomPicker/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load random picker panel module', err);
+  }),
   () => import(new URL('./Panels/Lists/index.js', import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load lists panel module', err);
+  }),
+  () => import(new URL('./Panels/Checklist/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load checklist panel module', err);
+  }),
+];
+
+const popupLoaders = [
+  () => import(new URL('./Pop_Ups/StatusNudge/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load status nudge popup', err);
+  }),
+  () => import(new URL('./Pop_Ups/Welcome/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load welcome popup', err);
+  }),
+  () => import(new URL('./Pop_Ups/DueSoon/index.js', import.meta.url)).catch(err => {
+    console.error('[Chronos][app] Failed to load due soon popup', err);
   }),
 ];
 
@@ -71,6 +121,7 @@ ready(async () => {
   const availableViews = [
     { name: 'Cockpit', label: 'Cockpit' },
     { name: 'Calendar', label: 'Calendar' },
+    { name: 'Weekly', label: 'Weekly' },
     { name: 'TemplateBuilder', label: 'Template Builder' },
     { name: 'ProjectManager', label: 'Project Manager' },
   ];
@@ -643,6 +694,7 @@ ready(async () => {
   buildPanelsMenu();
   try {
     await Promise.all(panelLoaders.map(loader => loader()));
+    await Promise.all(popupLoaders.map(loader => loader()));
   } catch { }
 
   function buildPanelsMenu() {
@@ -791,12 +843,6 @@ ready(async () => {
       title.className = 'wizard-title';
       title.textContent = wizard.label;
       item.appendChild(title);
-      if (wizard.description) {
-        const desc = document.createElement('div');
-        desc.className = 'wizard-desc';
-        desc.textContent = wizard.description;
-        item.appendChild(desc);
-      }
       if (wizard.enabled) {
         item.addEventListener('click', () => startWizardFlow(wizard));
       }
@@ -831,10 +877,7 @@ ready(async () => {
       item.setAttribute('data-theme', theme.id);
       item.innerHTML = `
         <span class="check"></span>
-        <div class="theme-info">
-          <div class="theme-title">${theme.label}</div>
-          <div class="theme-desc">${theme.description}</div>
-        </div>
+        <span class="theme-title">${theme.label}</span>
         <span class="theme-swatch" style="background:${theme.accent};"></span>
       `;
       item.addEventListener('click', () => {

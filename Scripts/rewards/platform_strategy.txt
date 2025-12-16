@@ -1,0 +1,7 @@
+Chronos Platform Strategy Notes
+
+- **Mobile/Messenger Companion**: build a light “Nia” interface via Telegram (or similar chat client) that surfaces today’s schedule, lets users log quick statuses, and responds to commands/habits so Chronos is always within reach.
+- **Web/Cloud Frontend**: eventually expose the dashboard through a browser UI backed by the Chronos engine. Keep the backend stateless enough that it can run in trusted environments (self-hosted or encrypted cloud) to protect the sensitive data it holds.
+- **Local-first posture**: prioritize local data storage and encryption-first sync when exposing remote clients—consider optional peer-to-peer syncing, user-controlled servers, or desktop-first desktop experiences plus secure “client” apps on mobile/web.
+
+These notes capture how Chronos could extend beyond desktop while respecting privacy and giving users control over their data.

@@ -1,0 +1,69 @@
+Chronos Feature Ideas
+
+1. Narrative Timeline View
+- Dashboard layer that frames goals, projects, milestones, and commitments as “chapters” in a life story.
+- Visual timeline + cards that show how current tasks/habits feed into future chapters.
+- Allow collapsing/expanding phases and linking commitments to a larger story arc.
+
+2. Triggered Schedule Injections
+- Monitor user signals (low focus, fatigue, calendar gaps) to insert gentle nudges like meditation, movement, breathing breaks, or checklists.
+- Configurable triggers linked to statuses and manual override (accept/snooze/change).
+- Track impact to fine-tune what gets injected and when.
+
+3. Random Item Picker Widget
+- Panel/widget that pulls a random task, habit, or commitment, optionally filtered by category, priority, energy, or project.
+- Supports “re-roll,” “lock,” and maybe “discover a new focus” modes with contextual prompts.
+- Great for getting unstuck or remixing the day when too many choices feel draining.
+
+4. Theme Calendars
+- Let users define yearly/monthly/weekly/day-of-week themes with nicknames (e.g., “Year of the Dragon,” “Sober October,” “Grind Week,” “Mystic Monday”) that influence the tone or labels of their schedule and reminders.
+- Themes can suggest default commitments/habits or wiring to highlight certain tasks when that timeframe is active.
+- Allow chaining themes so users can declare a “Month of X” within a “Year of Y” and surface overlays in dashboards.
+
+5. Flashcard Panel
+- Widget that cycles through YAML-backed cards and displays the key/value pairs on screen.
+- Filters allow users to scope to certain items, tags, or priorities before flipping through.
+- Serves as a quick rehearsal surface for commitments, journal takeaways, or goals without leaving Chronos.
+
+6. New Year’s Resolution Wizard
+- Guided flow for clarifying the current year’s priorities, linking them to goals, habits, and commitments, and sealing them as a “resolution plan.”
+- Pulls from last year’s reflections and lets users break big resolutions into manageable weekly/monthly actions.
+- Offers ceremonial touches (e.g., affirmation, progress check-ins) and exports entries to journals so the dashboard can highlight them throughout the year.
+
+7. Installer Experience
+- Provide a polished MSI/EXE installer that sets up Chronos, runs dependency checks, and walks users through the configuration via a wizard.
+- Handles workspace initialization, optional feature packs selection, and creates shortcuts or services so Chronos is ready immediately after install.
+
+8. Cockpit Bays
+- Allow multiple named cockpit “views” (bays) so users can switch between different dashboard layouts quickly.
+- Each bay can expose a unique combination of widgets, timelines, focus tools, and themed highlights for different contexts (creative work, planning, recovery, etc.).
+- Provide easy controls for duplicating, renaming, rearranging, or sharing bays.
+
+9. Triggered Automations
+- “If (not) X (or Y) (and Z) (but not A), do Y” rule builder that responds to schedule/context signals with injections, reminders, or habit tweaks.
+- Use sequence commands or review workflows that compare trends (from SQLite/algos) to identify unscheduled commitments and output `suggestions.md` with actionable prompts.
+- Hook into invitation logic so automation suggestions can nudge the user to attach templates, deadlines, or habits to otherwise unassigned items.
+
+10. Story-Driven Analytics
+- Narrative-style recaps built from Chronos data (SQLite + sequence algorithms) that explain what worked, what shifted, and why each insight matters.
+- Sequence workflows can churn trends into contextual stories, highlight themes from bays, and connect reflections to future priorities.
+
+11. Character RPG Panel
+- RPG-style character panel with stats, armor, weapons, magic, and upgrade paths tied to commitments, habits, or streaks.
+- Passively buff your avatar by completing logged achievements and spend points to customize gear, unlock abilities, or trigger cosmetic effects.
+- Future collaborative mode could turn this into a shared MMO-like experience (raid bosses, PvP, co-op story missions) using the planned collaboration features so friends can quest together.
+
+12. Flexible List Galleries
+- Treat lists as todo-style commands but also as visual galleries for checklists, reading lists, wishlists, or any other curated collection.
+- Provide configurable card/row layouts, progress indicators, and quick add/complete actions so these lists feel tactile and expressive.
+- Allow pinning lists to bays or widgets, linking them to journals, and sharing them with collaborators for collective inspiration.
+
+13. Status Refresh Prompts
+- Detect when a user’s status hasn’t been updated for a long time (e.g., after running `today reschedule`) and treat it as stagnant.
+- Auto-reprompt the user to clarify their current status, optionally suggesting updates or letting them refresh focus blocks.
+- Use this signal to keep dashboards and automations aligned with what’s actually happening, rather than stale states.
+
+14. Embedded Audio Widget
+- Lightweight MP3 player widget that lets users queue focus playlists (binaural beats, lofi, etc.) directly inside Chronos.
+- Supports custom uploads or linking to hosted tracks so creators can promote their own music or curated mixes.
+- Includes basic playback controls, volume, looping, and optional syncing with focus sessions or rituals.

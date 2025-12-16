@@ -53,8 +53,9 @@ debug_*.txt
 IDEAS/
 backup/
 
-# User data: ignore everything under User, but allow empty directory placeholders, Settings, and Profile
+# User data: ignore everything under User, but allow empty directory placeholders, Settings, Profile, and example payloads
 User/**
 !User/**/.gitkeep
 !User/Settings/**
 !User/Profile/**
+!User/**/*_example.yml

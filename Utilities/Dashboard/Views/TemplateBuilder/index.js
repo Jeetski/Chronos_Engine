@@ -28,6 +28,7 @@
             <option value="item">item</option>
             <option value="goal">goal template</option>
             <option value="microroutine">microroutine</option>
+            <option value="habit_stack">habit stack</option>
             <option value="subroutine">subroutine</option>
             <option value="routine">routine</option>
             <option value="day">day</option>
@@ -53,6 +54,7 @@
              <option value="routine">routine</option>
              <option value="subroutine">subroutine</option>
              <option value="microroutine">microroutine</option>
+             <option value="habit_stack">habit stack</option>
              <option value="day">day</option>
             <option value="week">week</option>
           </select>
@@ -138,7 +140,19 @@
   const btnDel = el.querySelector('#btnDel');
   const btnUp = el.querySelector('#btnUp');
   const btnDown = el.querySelector('#btnDown');
+  let habitStackRow = null;
+  let propHabitStack = null;
+  let propCue = null;
+  let propFollowedBy = null;
   let propMode = null;
+  const HABIT_STACK_KEY = 'habit_stack';
+  function canonicalType(t){ const k=String(t||'').toLowerCase(); return k===HABIT_STACK_KEY ? 'microroutine' : k; }
+  function isHabitStackNode(node){ return !!(node && (node[HABIT_STACK_KEY] || String(node?.type||'').toLowerCase()===HABIT_STACK_KEY)); }
+  function displayTypeLabel(type, node){
+    const k = String(type||'').toLowerCase();
+    if (k===HABIT_STACK_KEY || (canonicalType(k)==='microroutine' && isHabitStackNode(node))) return 'habit stack';
+    return type;
+  }
   // Project-specific inspector fields
   const dependsRow = propDepends?.parentElement;
   let projectLinkRow = null;
@@ -245,6 +259,38 @@
     inventoryNotesRow.append(invNotesLabel, invNotesInput);
     inventoryQuantityRow.insertAdjacentElement('afterend', inventoryNotesRow);
     propInventoryNotes = invNotesInput;
+    // Habit stack metadata (cue / followed_by)
+    habitStackRow = document.createElement('div');
+    habitStackRow.className = 'row habit-stack-meta';
+    habitStackRow.style.marginTop = '10px';
+    habitStackRow.style.gap = '6px';
+    const hsLabel = document.createElement('label');
+    hsLabel.style.width = '100px';
+    hsLabel.textContent = 'Habit stack';
+    const hsToggle = document.createElement('input');
+    hsToggle.type = 'checkbox';
+    hsToggle.id = 'propHabitStack';
+    hsToggle.title = 'Mark this microroutine as a habit stack (habits-only bundle)';
+    const cueLabel = document.createElement('label');
+    cueLabel.style.width = '60px';
+    cueLabel.textContent = 'Cue';
+    const cueInput = document.createElement('input');
+    cueInput.id = 'propCue';
+    cueInput.className = 'input';
+    cueInput.placeholder = 'after coffee';
+    const nextLabel = document.createElement('label');
+    nextLabel.style.width = '90px';
+    nextLabel.textContent = 'Followed by';
+    const nextInput = document.createElement('input');
+    nextInput.id = 'propFollowedBy';
+    nextInput.className = 'input';
+    nextInput.placeholder = 'Deep Work';
+    habitStackRow.append(hsLabel, hsToggle, cueLabel, cueInput, nextLabel, nextInput);
+    const habitAnchor = inventoryNotesRow || inventoryQuantityRow || projectNotesRow || dependsRow;
+    habitAnchor.insertAdjacentElement('afterend', habitStackRow);
+    propHabitStack = hsToggle;
+    propCue = cueInput;
+    propFollowedBy = nextInput;
   }
   // Add indent/outdent buttons near Up/Down
   const indentBtn = document.createElement('button'); indentBtn.className='btn'; indentBtn.textContent='>>'; indentBtn.title='Indent (make child of previous)';
@@ -280,12 +326,13 @@
   let selPath = '';
   let expandFx = true;
   function maybeExpand(s){ try { if (!expandFx) return String(s||''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
-  function isInventoryTemplate(){ return String(tplType.value||'').toLowerCase() === 'inventory'; }
+  function isInventoryTemplate(){ return canonicalType(tplType.value||'') === 'inventory'; }
   try { expandToggle?.addEventListener('change', ()=>{ expandFx = !!expandToggle.checked; renderTree(); renderTreeNested?.(); }); } catch {}
   function refreshInspectorVisibility(){
     const tplKind = String(tplType.value||'').toLowerCase();
-    const isProject = tplKind === 'project';
-    const isInventory = tplKind === 'inventory';
+    const tplCanonical = canonicalType(tplKind);
+    const isProject = tplCanonical === 'project';
+    const isInventory = tplCanonical === 'inventory';
     [projectLinkRow, projectStageRow, projectNotesRow].forEach(row=>{
       if (row) row.style.display = isProject ? '' : 'none';
     });
@@ -303,6 +350,10 @@
     }
     if (propDepends){
       propDepends.disabled = !!isInventory;
+    }
+    if (habitStackRow){
+      const showHabitMeta = tplCanonical === 'microroutine';
+      habitStackRow.style.display = showHabitMeta ? '' : 'none';
     }
   }
 
@@ -350,7 +401,7 @@
 
   // --- Nesting rules (A): cannot nest a bigger template under a smaller one ---
   function typeRank(t){
-    const k = String(t||'').toLowerCase();
+    const k = canonicalType(t);
     if (k==='goal') return 2; // goal templates sit above milestone items
     if (k==='inventory') return 2;
     if (k==='project') return 2;
@@ -363,8 +414,8 @@
     return 0;
   }
   function canNest(parentType, childType){
-    const parentKey = String(parentType||'').toLowerCase();
-    const childKey = String(childType||'').toLowerCase();
+    const parentKey = canonicalType(parentType);
+    const childKey = canonicalType(childType);
     if (parentKey==='inventory_item' || parentKey==='tool') return false;
     const rp = typeRank(parentType);
     const rc = typeRank(childType);
@@ -374,22 +425,26 @@
   }
   // Allowed child types for a given parent template type
   function allowedChildTypesFor(parentType){
-    const k = String(parentType||'').toLowerCase();
+    const raw = String(parentType||'').toLowerCase();
+    const k = canonicalType(parentType);
     const leaves = ITEM_TYPES.filter(t => t !== 'project');
     if (k==='goal') return ['milestone'];
     if (k==='project') return ['milestone', ...leaves.filter(t => t!=='milestone')];
     if (k==='inventory') return ['inventory_item','tool'];
-    if (k==='week') return ['day','routine','subroutine','microroutine', ...leaves];
-    if (k==='day') return ['routine','subroutine','microroutine', ...leaves];
-    if (k==='routine') return ['subroutine','microroutine', ...leaves];
-    if (k==='subroutine') return ['microroutine', ...leaves];
+    if (k==='week') return ['day','routine','subroutine','microroutine','habit_stack', ...leaves];
+    if (k==='day') return ['routine','subroutine','microroutine','habit_stack', ...leaves];
+    if (k==='routine') return ['subroutine','microroutine','habit_stack', ...leaves];
+    if (k==='subroutine') return ['microroutine','habit_stack', ...leaves];
+    if (k==='microroutine' && raw===HABIT_STACK_KEY) return ['habit'];
     if (k==='microroutine') return [...leaves];
     return [...leaves];
   }
   function createNodePayload(nodeType, name){
-    const payload = { name, type: nodeType };
+    const isHabitStack = String(nodeType||'').toLowerCase() === HABIT_STACK_KEY;
+    const payload = { name, type: isHabitStack ? 'microroutine' : nodeType };
+    if (isHabitStack) payload[HABIT_STACK_KEY] = true;
     if (isInventoryTemplate()){
-      if (String(nodeType||'').toLowerCase() === 'inventory_item'){
+      if (canonicalType(nodeType) === 'inventory_item'){
         payload.quantity = 1;
       }
     } else {
@@ -440,12 +495,14 @@
     library
       .filter(it=> !q || String(it.name||'').toLowerCase().includes(q) || String(it.type||'').toLowerCase().includes(q))
       .filter(it=> sub==='all' || String(it.type||'').toLowerCase()===sub)
-      .forEach(({name,type}) =>{
+      .forEach((it) =>{
+      const {name,type} = it;
       const div = document.createElement('div');
       div.className = 'item';
       function __exp(s){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||''); } catch { return String(s||''); } }
       const dispName = __exp(name);
-      div.textContent = `${dispName} (${type})`;
+      const dispType = displayTypeLabel(type, it);
+      div.textContent = `${dispName} (${dispType})`;
       try { if (dispName !== String(name)) div.title = String(name); } catch {}
       div.title = 'Click to add to template (or inspect if incompatible)';
       div.addEventListener('click', async ()=>{
@@ -502,8 +559,10 @@
       const div = document.createElement('div');
       div.className = 'item' + (i===selIdx ? ' sel' : '');
       const __dn = (function(){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ch.name||'')) : String(ch.name||''); } catch { return String(ch.name||''); } })();
-      const meta = isInv ? describeInventoryMeta(ch) : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}`;
-      div.innerHTML = `<div><strong>${__dn||''}</strong> <span style=\"opacity:.7\">(${ch.type||''})</span></div>
+      const isStack = isHabitStackNode(ch);
+      const dispType = displayTypeLabel(ch.type||'', ch);
+      const meta = isInv ? describeInventoryMeta(ch) : (isStack ? `habit stack • cue: ${ch.cue||'none'} • next: ${ch.followed_by||'none'}` : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}`);
+      div.innerHTML = `<div><strong>${__dn||''}</strong> <span style=\"opacity:.7\">(${dispType||''})</span></div>
                        <div style="opacity:.8; font-size:12px;">${meta}</div>`;
       try { if (__dn !== String(ch.name||'')) div.title = String(ch.name||''); } catch {}
       div.addEventListener('click', ()=>{ selIdx = i; syncInspector(); renderTree(); });
@@ -557,6 +616,9 @@
       try{ propDuration.value=''; }catch{}
       try{ propStart.value=''; }catch{}
       try{ propEnd.value=''; }catch{}
+      if (propHabitStack) propHabitStack.checked = false;
+      if (propCue) propCue.value = '';
+      if (propFollowedBy) propFollowedBy.value = '';
       if (propInventoryQuantity) propInventoryQuantity.value = '';
       if (propInventoryNotes) propInventoryNotes.value = '';
       return;
@@ -564,7 +626,8 @@
     // Constrain available types based on parent
     try {
       const parentType = selPath ? getParentTypeForPath(selPath) : String(tplType.value||'');
-      if (typeof populateTypeOptions === 'function') populateTypeOptions(propType, parentType, ch.type||'');
+      const currentType = ch[HABIT_STACK_KEY] ? HABIT_STACK_KEY : (ch.type||'');
+      if (typeof populateTypeOptions === 'function') populateTypeOptions(propType, parentType, currentType);
       else propType.value = ch.type||'';
     } catch { try{ propType.value = ch.type||''; }catch{} }
     try{ propName.value = ch.name||''; }catch{}
@@ -575,12 +638,17 @@
     }catch{}
     try{ propStart.value = ch.ideal_start_time||''; }catch{}
     try{ propEnd.value = ch.ideal_end_time||''; }catch{}
+    const isHabitHost = canonicalType(ch.type) === 'microroutine';
+    if (habitStackRow) habitStackRow.style.display = isHabitHost ? '' : 'none';
+    if (propHabitStack) propHabitStack.checked = !!ch[HABIT_STACK_KEY];
+    if (propCue) propCue.value = ch.cue || '';
+    if (propFollowedBy) propFollowedBy.value = ch.followed_by || '';
     // Populate depends_on list from siblings/all nodes
     try {
       propDepends.innerHTML = '';
       const dep = Array.isArray(ch.depends_on) ? ch.depends_on.map(String) : [];
       const stack=[{arr:children, base:''}];
-      while(stack.length){ const {arr, base}=stack.pop(); (arr||[]).forEach((node, i)=>{ const p = base? base+'.'+i : String(i); if (p !== selPath){ const o=document.createElement('option'); o.value = node.name||''; o.textContent = `${node.name||''} (${node.type||''})`; if (dep.includes(String(node.name||''))) o.selected=true; propDepends.appendChild(o);} if(Array.isArray(node.children)&&node.children.length){ stack.push({arr:node.children, base:p}); } }); }
+      while(stack.length){ const {arr, base}=stack.pop(); (arr||[]).forEach((node, i)=>{ const p = base? base+'.'+i : String(i); if (p !== selPath){ const o=document.createElement('option'); o.value = node.name||''; const dispT = displayTypeLabel(node.type||'', node); o.textContent = `${node.name||''} (${dispT||''})`; if (dep.includes(String(node.name||''))) o.selected=true; propDepends.appendChild(o);} if(Array.isArray(node.children)&&node.children.length){ stack.push({arr:node.children, base:p}); } }); }
     } catch {}
     if (propProjectLink){
       const isProjectTpl = String(tplType.value||'').toLowerCase()==='project';
@@ -642,24 +710,33 @@
       const arr = Array.isArray(j?.templates) ? j.templates : [];
       library = arr.map(n=> ({ name: n, type: 'goal' }));
       if (libSubtype) libSubtype.style.display = 'none';
-    } else {
-      const j = await fetchJson(apiBase()+`/api/items?type=${encodeURIComponent(sel)}`);
+    } else if (sel === HABIT_STACK_KEY){
+      const j = await fetchJson(apiBase()+`/api/items?type=${encodeURIComponent('microroutine')}`);
       const arr = Array.isArray(j?.items) ? j.items : [];
-      library = arr.map(it=> ({ name: it?.name, type: sel })).filter(x=> x.name);
+      library = arr
+        .filter(it=> !!(it && (it[HABIT_STACK_KEY] || it.habit_stack)))
+        .map(it=> ({ name: it?.name, type: HABIT_STACK_KEY, habit_stack: true, cue: it?.cue, followed_by: it?.followed_by }));
+      if (libSubtype) libSubtype.style.display = 'none';
+    } else {
+      const apiType = canonicalType(sel);
+      const j = await fetchJson(apiBase()+`/api/items?type=${encodeURIComponent(apiType)}`);
+      const arr = Array.isArray(j?.items) ? j.items : [];
+      library = arr.map(it=> ({ name: it?.name, type: sel, habit_stack: !!it?.[HABIT_STACK_KEY] })).filter(x=> x.name);
       if (libSubtype) libSubtype.style.display = 'none';
     }
     renderLib();
   }
 
   async function loadNames(){
-    const j = await fetchJson(apiBase()+`/api/template/list?type=${encodeURIComponent(tplType.value)}`);
+    const apiType = canonicalType(tplType.value);
+    const j = await fetchJson(apiBase()+`/api/template/list?type=${encodeURIComponent(apiType)}`);
     const arr = Array.isArray(j?.templates) ? j.templates : [];
     tplName.innerHTML = '';
     arr.forEach(n=>{ const o=document.createElement('option'); o.value=o.textContent=n; tplName.appendChild(o); });
   }
 
   async function loadTemplate(){
-    const t = tplType.value, n = tplName.value;
+    const t = canonicalType(tplType.value), n = tplName.value;
     if(!t||!n) return;
     const j = await fetchJson(apiBase()+`/api/template?type=${encodeURIComponent(t)}&name=${encodeURIComponent(n)}`);
     children = Array.isArray(j?.children) ? j.children : [];
@@ -670,17 +747,19 @@
   }
 
   async function saveTemplate(){
-    const t = tplType.value, n = tplName.value;
+    const t = canonicalType(tplType.value), n = tplName.value;
     if(!t||!n) return;
     await postYaml(apiBase()+`/api/template`, { type:t, name:n, children });
     alert('Template saved.');
   }
   // New/Save As/Delete template helpers
   async function _createNewTemplate(){
-    const t = String(tplType.value||'');
-    const name = prompt(`New ${t} name:`,'');
+    const raw = String(tplType.value||'');
+    const t = canonicalType(raw);
+    const name = prompt(`New ${raw} name:`,'');
     if (!name) return;
     const props = { name, type:t };
+    if (raw.toLowerCase() === HABIT_STACK_KEY){ props[HABIT_STACK_KEY] = true; }
     if (t === 'inventory'){
       props.inventory_items = [];
       props.tools = [];
@@ -694,18 +773,20 @@
     syncInspector(); renderTreeNested();
   }
   async function _saveAsTemplate(){
-    const t = String(tplType.value||'');
+    const raw = String(tplType.value||'');
+    const t = canonicalType(raw);
     const src = String(tplName.value||'');
-    const name = prompt(`Save as new ${t} name:`, src ? src+" copy" : '');
+    const name = prompt(`Save as new ${raw} name:`, src ? src+" copy" : '');
     if (!name) return;
     await postYaml(apiBase()+`/api/item/copy`, { type:t, source:src, new_name:name });
     await postYaml(apiBase()+`/api/template`, { type:t, name, children });
     await loadNames(); tplName.value = name; alert('Saved as new template.');
   }
   async function _deleteTemplate(){
-    const t = String(tplType.value||'');
+    const raw = String(tplType.value||'');
+    const t = canonicalType(raw);
     const n = String(tplName.value||'');
-    if (!n) return; if (!confirm(`Delete ${t} '${n}'?`)) return;
+    if (!n) return; if (!confirm(`Delete ${raw} '${n}'?`)) return;
     await postYaml(apiBase()+`/api/item/delete`, { type:t, name:n });
     await loadNames(); tplName.value = tplName.querySelector('option')?.value || ''; await loadTemplate();
   }
@@ -755,12 +836,15 @@
   btnApply.addEventListener('click', ()=>{
     const ch = selPath ? getByPath(children, selPath).node : (selIdx>=0 ? children[selIdx] : null); if(!ch) return;
     const tplKind = String(tplType.value||'').toLowerCase();
-    const isInvTpl = tplKind === 'inventory';
+    const tplCanonical = canonicalType(tplKind);
+    const isInvTpl = tplCanonical === 'inventory';
     const newType = String((propType && propType.value) ? propType.value : (ch.type||'')).trim()||ch.type;
+    const normalizedType = canonicalType(newType);
+    const forceHabitStack = String(newType).toLowerCase() === HABIT_STACK_KEY;
     // Enforce nesting rule against current parent
     const parentType = selPath ? getParentTypeForPath(selPath) : String(tplType.value||'');
     if (!canNest(parentType, newType)) { try{ showToast(`Cannot set type '${newType}' under '${parentType}'.`);}catch{} return; }
-    ch.type = newType;
+    ch.type = normalizedType;
     ch.name = (propName?.value||'').trim()||ch.name;
     if (!isInvTpl){
       const mode = (typeof propMode !== 'undefined' && propMode) ? String(propMode.value||'sequential') : 'sequential';
@@ -808,7 +892,7 @@
     } else if (tplKind !== 'project'){
       delete ch.quantity;
     }
-    if (tplKind==='project'){
+    if (tplCanonical==='project'){
       if (propProjectLink) {
         ch.link_existing = String(propProjectLink.value||'create') === 'link';
       }
@@ -829,6 +913,20 @@
       delete ch.stage;
       delete ch.due;
       if (!isInvTpl) delete ch.notes;
+    }
+    // Habit stack metadata
+    if (canonicalType(ch.type) === 'microroutine'){
+      if (propHabitStack) propHabitStack.checked = forceHabitStack || !!propHabitStack.checked;
+      const enabled = forceHabitStack || (propHabitStack ? !!propHabitStack.checked : false);
+      if (enabled){
+        ch[HABIT_STACK_KEY] = true;
+        if (propCue) ch.cue = (propCue.value||'').trim() || undefined;
+        if (propFollowedBy) ch.followed_by = (propFollowedBy.value||'').trim() || undefined;
+      } else {
+        delete ch[HABIT_STACK_KEY];
+        delete ch.cue;
+        delete ch.followed_by;
+      }
     }
     renderTreeNested();
   });
@@ -852,8 +950,10 @@
         const eff = durMap.get(path) || 0;
         const modeIcon = isParallel(ch) ? '||' : 'sum';
         const __dn2 = (function(){ try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ch.name||'')) : String(ch.name||''); } catch { return String(ch.name||''); } })();
-        const detail = isInv ? describeInventoryMeta(ch) : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}`;
-        let inner = `<div><strong>${__dn2||''}</strong> <span style=\"opacity:.7\">(${ch.type||''})</span></div>
+        const isStack = isHabitStackNode(ch);
+        const dispType = displayTypeLabel(ch.type||'', ch);
+        const detail = isInv ? describeInventoryMeta(ch) : (isStack ? `habit stack • cue: ${ch.cue||'none'} • next: ${ch.followed_by||'none'}` : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time||''} end: ${ch.ideal_end_time||''}`);
+        let inner = `<div><strong>${__dn2||''}</strong> <span style=\"opacity:.7\">(${dispType||''})</span></div>
                      <div style=\"opacity:.8; font-size:12px;\">${detail}</div>`;
         if (!isInv){
           inner += `<span class=\"badge\" title=\"Computed duration\">${modeIcon} ${eff}m</span>`;

@@ -1,5 +1,6 @@
 const OVERLAY_TAG = 'chronos-map-of-happiness';
 const STYLE_ID = 'chronos-map-of-happiness-style';
+const STATE_STORAGE_KEY = 'chronos-map-of-happiness-state';
 
 const STEP_DEFS = [
   { id: 'intro', name: 'Orientation', hint: 'Why this matters', render: renderIntroStep },
@@ -36,6 +37,28 @@ const ITEM_TYPES = [
   'reward',
   'achievement',
   'note',
+  'appointment',
+  'reminder',
+  'alarm',
+  'plan',
+  'day',
+  'week',
+  'list',
+  'journal_entry',
+  'dream_diary_entry',
+  'idea',
+  'people',
+  'place',
+  'inventory',
+  'inventory_item',
+  'tool',
+  'day_template',
+  'week_template',
+  'routine_template',
+  'subroutine_template',
+  'microroutine_template',
+  'goal_template',
+  'project_template',
 ];
 
 let overlayEl = null;
@@ -107,7 +130,7 @@ function initialState() {
     metadata: {},
     saving: false,
     tagging: {
-      needKey: '',
+      needKeys: [],
       type: 'task',
       search: '',
       itemsByType: {},
@@ -116,6 +139,56 @@ function initialState() {
       error: '',
     },
   };
+}
+
+function loadStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(STATE_STORAGE_KEY);
+    if (!raw) return initialState();
+    const data = JSON.parse(raw);
+    const base = initialState();
+    base.step = Number.isInteger(data?.step) ? Math.min(Math.max(data.step, 0), STEP_DEFS.length - 1) : 0;
+    base.rawEntries = Array.isArray(data?.rawEntries) ? data.rawEntries : [];
+    base.assignments = data?.assignments || {};
+    base.clusters = Array.isArray(data?.clusters) ? data.clusters : [];
+    base.mapEntries = Array.isArray(data?.mapEntries) ? data.mapEntries : [];
+    base.metadata = data?.metadata || {};
+    base.tagging = {
+      ...base.tagging,
+      ...(data?.tagging || {}),
+      needKeys: Array.isArray(data?.tagging?.needKeys) ? data.tagging.needKeys : [],
+      selected: new Set(Array.isArray(data?.tagging?.selected) ? data.tagging.selected : []),
+    };
+    return base;
+  } catch (err) {
+    console.warn('[MapOfHappiness] failed to load saved state', err);
+    return initialState();
+  }
+}
+
+function persistStateToStorage() {
+  if (!wizardState) return;
+  try {
+    const serializable = {
+      ...wizardState,
+      tagging: {
+        ...(wizardState.tagging || {}),
+        selected: Array.from(wizardState.tagging?.selected || []),
+        needKeys: Array.from(wizardState.tagging?.needKeys || []),
+      },
+    };
+    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(serializable));
+  } catch (err) {
+    console.warn('[MapOfHappiness] failed to persist state', err);
+  }
+}
+
+function clearStateStorage() {
+  try {
+    localStorage.removeItem(STATE_STORAGE_KEY);
+  } catch (err) {
+    console.warn('[MapOfHappiness] failed to clear state', err);
+  }
 }
 
 function slugify(text) {
@@ -172,7 +245,7 @@ function mountOverlay(context) {
     nextBtn: overlayEl.querySelector('[data-next]'),
     context,
   };
-  wizardState = initialState();
+  wizardState = loadStateFromStorage();
 
   overlayRefs.cancelBtn.addEventListener('click', closeWizard);
   overlayRefs.prevBtn.addEventListener('click', () => changeStep(-1));
@@ -186,6 +259,7 @@ function mountOverlay(context) {
   refreshStepper();
   renderStepContent();
   updateNav();
+  persistStateToStorage();
 }
 
 function refreshStepper() {
@@ -214,6 +288,7 @@ function changeStep(delta) {
   refreshStepper();
   renderStepContent();
   updateNav();
+  persistStateToStorage();
 }
 
 function handleNext() {
@@ -227,6 +302,7 @@ function handleNext() {
     saveMap();
   } else {
     changeStep(1);
+    persistStateToStorage();
   }
 }
 
@@ -246,8 +322,6 @@ function validateStep(stepIndex) {
     const uniq = new Set(priorities);
     if (uniq.size !== priorities.length) return { valid: false, message: 'Priority ranks must be unique.' };
     if (priorities.some(p => isNaN(p) || p < 1)) return { valid: false, message: 'Priority ranks must be positive numbers.' };
-    const invalidSatisfaction = wizardState.mapEntries.find(e => isNaN(Number(e.satisfaction)) || Number(e.satisfaction) < 0 || Number(e.satisfaction) > 100);
-    if (invalidSatisfaction) return { valid: false, message: `Satisfaction for "${invalidSatisfaction.label || invalidSatisfaction.key}" must be between 0 and 100.` };
     const keys = wizardState.mapEntries.map(e => (e.key || '').trim().toLowerCase());
     const keySet = new Set(keys);
     if (keySet.size !== keys.length || keys.some(k => !k)) return { valid: false, message: 'Each entry needs a unique, non-empty key.' };
@@ -299,6 +373,7 @@ function renderIntroStep(container) {
     refreshStepper();
     renderStepContent();
     updateNav();
+    persistStateToStorage();
   });
 }
 
@@ -314,6 +389,10 @@ function renderCaptureStep(container) {
       <p class="moh-small">One entry per line. We'll consolidate and rank them next.</p>
     </div>
   `;
+  container.querySelector('[data-raw-list]')?.addEventListener('input', () => {
+    wizardState.rawEntries = collectRawEntries();
+    persistStateToStorage();
+  });
   container.querySelectorAll('[data-prompt]').forEach(chip => {
     chip.addEventListener('click', () => {
       const val = chip.dataset.prompt || '';
@@ -322,6 +401,8 @@ function renderCaptureStep(container) {
       const lines = collectRawEntries();
       if (!lines.includes(val)) lines.push(val);
       area.value = lines.join('\n');
+      wizardState.rawEntries = lines;
+      persistStateToStorage();
     });
   });
 }
@@ -386,6 +467,7 @@ function renderConsolidateStep(container) {
     if (!label) return;
     ensureCluster(label);
     input.value = '';
+    persistStateToStorage();
     renderStepContent();
     refreshStepper();
   });
@@ -395,6 +477,7 @@ function renderConsolidateStep(container) {
       const val = sel.value || '';
       wizardState.assignments[idx] = val;
       if (!val) delete wizardState.assignments[idx];
+      persistStateToStorage();
     });
   });
 }
@@ -410,58 +493,45 @@ function syncMapEntriesFromClusters() {
   const nextMap = [];
   wizardState.clusters.forEach((cluster, i) => {
     const existing = wizardState.mapEntries.find(e => e.clusterId === cluster.id) || {};
-    const key = existing.key || slugify(cluster.label || `need-${i+1}`);
+    const key = slugify(cluster.label || `need-${i + 1}`);
     nextMap.push({
       clusterId: cluster.id,
       key,
-      label: existing.label || cluster.label,
+      label: cluster.label,
       priority: existing.priority || (i + 1),
-      essentials: existing.essentials && existing.essentials.length ? existing.essentials : (essentialsByCluster[cluster.id] || []),
-      definition: existing.definition || '',
-      satisfaction: typeof existing.satisfaction === 'number' ? existing.satisfaction : 50,
-      linkedItems: Array.isArray(existing.linkedItems) ? existing.linkedItems : [],
+      essentials: essentialsByCluster[cluster.id] || [],
       notes: existing.notes || '',
     });
   });
   wizardState.mapEntries = nextMap;
+  persistStateToStorage();
 }
 
 function renderRankStep(container) {
   syncMapEntriesFromClusters();
+  const totalNeeds = wizardState.mapEntries.length;
+  const priorityOptions = (current) => Array.from({ length: totalNeeds }, (_, i) => i + 1)
+    .map(n => `<option value="${n}" ${current === n ? 'selected' : ''}>${n}</option>`)
+    .join('');
+
   const cards = wizardState.mapEntries.map((entry, idx) => {
-    const essentialsText = (entry.essentials || []).join('\n');
-    const linked = entry.linkedItems || [];
+    const essentials = (wizardState.rawEntries || []).filter((_, i) => wizardState.assignments[i] === entry.clusterId);
+    const currentPriority = Number(entry.priority || 0) || (idx + 1);
     return `
       <div class="moh-card" data-entry="${entry.clusterId}">
         <div class="moh-inline" style="justify-content: space-between;">
-          <div class="moh-badge">Priority #${entry.priority || idx + 1}</div>
+          <div class="moh-badge">Need</div>
           <div class="moh-small">Key: <code>${escapeHtml(entry.key || '')}</code></div>
         </div>
-        <label class="moh-label">Label</label>
-        <input class="moh-input" data-field="label" value="${escapeAttr(entry.label)}" placeholder="Freedom" />
-        <div class="moh-grid two">
-          <label class="moh-label">Key<input class="moh-input" data-field="key" value="${escapeAttr(entry.key)}" /></label>
-          <label class="moh-label">Priority (unique rank)<input class="moh-input" type="number" min="1" data-field="priority" value="${escapeAttr(entry.priority)}" /></label>
-        </div>
-        <label class="moh-label">Definition of sufficiency</label>
-        <textarea class="moh-textarea" data-field="definition" placeholder="What does 'enough' look like?">${escapeHtml(entry.definition)}</textarea>
-        <label class="moh-label">Essentials (one per line)</label>
-        <textarea class="moh-textarea" data-field="essentials">${escapeHtml(essentialsText)}</textarea>
-        <div class="moh-grid two">
-          <div>
-            <label class="moh-label">Current satisfaction (0-100)</label>
-            <input class="moh-input" type="number" min="0" max="100" data-field="satisfaction" value="${escapeAttr(entry.satisfaction)}" />
-          </div>
-          <div>
-            <label class="moh-label">Linked items (type:name per line)</label>
-            <textarea class="moh-textarea" data-field="linked">${escapeHtml(formatLinkedText(linked))}</textarea>
-          </div>
-        </div>
+        <div class="moh-label">Name</div>
+        <div class="moh-pill" style="margin-bottom:6px;">${escapeHtml(entry.label)}</div>
+        <label class="moh-label">Priority (unique rank)</label>
+        <select class="moh-select" data-field="priority">
+          ${priorityOptions(currentPriority)}
+        </select>
         <label class="moh-label">Notes (optional)</label>
-        <textarea class="moh-textarea" data-field="notes" placeholder="Consolidated from money + travel statements.">${escapeHtml(entry.notes || '')}</textarea>
-        <div class="moh-chiplist">
-          ${(wizardState.rawEntries || []).filter((_, i) => wizardState.assignments[i] === entry.clusterId).map(t => `<span class="moh-chip">${escapeHtml(t)}</span>`).join('')}
-        </div>
+        <textarea class="moh-textarea" data-field="notes" placeholder="Keep this brief and actionable.">${escapeHtml(entry.notes || '')}</textarea>
+        ${essentials.length ? `<div class="moh-chiplist">${essentials.map(t => `<span class="moh-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -469,7 +539,7 @@ function renderRankStep(container) {
   container.innerHTML = `
     <div class="moh-card">
       <h3>Rank and define each need</h3>
-      <p class="moh-help">Assign unique priority ranks (1 = most critical), define sufficiency, score current satisfaction (0-100), and link Chronos items/templates that protect this need.</p>
+      <p class="moh-help">Assign unique priority ranks (1 = most critical) and add a short note if helpful. Names/keys are locked to your consolidated needs.</p>
       <div class="moh-rank-grid">${cards}</div>
     </div>
   `;
@@ -479,27 +549,34 @@ function renderRankStep(container) {
     const entry = wizardState.mapEntries.find(e => e.clusterId === cid);
     if (!entry) return;
     card.querySelectorAll('[data-field]').forEach(el => {
-      el.addEventListener('input', () => {
+      const handler = () => {
         const field = el.dataset.field;
         const val = el.value;
         if (field === 'priority') entry.priority = Number(val);
-        else if (field === 'satisfaction') entry.satisfaction = Number(val);
-        else if (field === 'essentials') entry.essentials = (val || '').split('\n').map(s => s.trim()).filter(Boolean);
-        else if (field === 'linked') entry.linkedItems = parseLinkedText(val || '');
-        else if (field === 'key') entry.key = slugify(val || entry.label || '');
-        else entry[field] = val;
-      });
+        else if (field === 'notes') entry.notes = val;
+        persistStateToStorage();
+      };
+      el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', handler);
     });
   });
 }
 
 function renderTaggingStep(container) {
   const tagState = wizardState.tagging || {};
-  if (!tagState.needKey && wizardState.mapEntries.length) {
-    tagState.needKey = wizardState.mapEntries[0].key;
+  if (!Array.isArray(tagState.needKeys)) tagState.needKeys = [];
+  if (!tagState.needKeys.length && wizardState.mapEntries.length) {
+    tagState.needKeys = [wizardState.mapEntries[0].key];
   }
   const needs = wizardState.mapEntries.map(e => ({ key: e.key, label: e.label }));
-  const options = needs.map(n => `<option value="${escapeAttr(n.key)}" ${tagState.needKey === n.key ? 'selected' : ''}>${escapeHtml(n.label || n.key)}</option>`).join('');
+  const needChoices = needs.map(n => {
+    const checked = tagState.needKeys.includes(n.key);
+    return `
+      <label style="display:flex; gap:8px; align-items:center;">
+        <input type="checkbox" data-tag-need value="${escapeAttr(n.key)}" ${checked ? 'checked' : ''} />
+        <span>${escapeHtml(n.label || n.key)}</span>
+      </label>
+    `;
+  }).join('');
   const typeOptions = ITEM_TYPES.map(t => `<option value="${t}" ${tagState.type === t ? 'selected' : ''}>${t}</option>`).join('');
   const items = (tagState.itemsByType?.[tagState.type] || []);
   const filtered = items.filter(item => {
@@ -513,9 +590,12 @@ function renderTaggingStep(container) {
       <h3>Optionally tag existing items</h3>
       <p class="moh-help">Assign <code>happiness: [&lt;key&gt;]</code> to existing items/templates so the cockpit panel can show coverage. This step is optional.</p>
       <div class="moh-grid two" style="align-items:flex-end;">
-        <label class="moh-label">Need to tag<select class="moh-select" data-tag-need>${options}</select></label>
+        <div>
+          <div class="moh-label">Needs to add</div>
+          <div class="moh-card" style="max-height:160px; overflow:auto; border-style:dashed;">${needChoices}</div>
+        </div>
         <div class="moh-grid two">
-          <label class="moh-label">Item type<select class="moh-select" data-tag-type>${typeOptions}</select></label>
+          <label class="moh-label">Type<select class="moh-select" data-tag-type>${typeOptions}</select></label>
           <label class="moh-label">Search<input class="moh-input" data-tag-search placeholder="Filter names" value="${escapeAttr(tagState.search)}" /></label>
         </div>
       </div>
@@ -537,16 +617,27 @@ function renderTaggingStep(container) {
     </div>
   `;
 
-  container.querySelector('[data-tag-need]')?.addEventListener('change', (ev) => {
-    tagState.needKey = ev.target.value;
+  container.querySelectorAll('[data-tag-need]')?.forEach(cb => {
+    cb.addEventListener('change', (ev) => {
+      const val = ev.target.value;
+      if (!Array.isArray(tagState.needKeys)) tagState.needKeys = [];
+      if (ev.target.checked) {
+        if (!tagState.needKeys.includes(val)) tagState.needKeys.push(val);
+      } else {
+        tagState.needKeys = tagState.needKeys.filter(k => k !== val);
+      }
+      persistStateToStorage();
+    });
   });
   container.querySelector('[data-tag-type]')?.addEventListener('change', async (ev) => {
     tagState.type = ev.target.value;
+    persistStateToStorage();
     await ensureItemsLoaded(tagState.type);
     renderStepContent();
   });
   container.querySelector('[data-tag-search]')?.addEventListener('input', (ev) => {
     tagState.search = ev.target.value;
+    persistStateToStorage();
     renderStepContent();
   });
   container.querySelectorAll('[data-tag-item]')?.forEach(el => {
@@ -555,6 +646,7 @@ function renderTaggingStep(container) {
       if (!tagState.selected) tagState.selected = new Set();
       if (ev.target.checked) tagState.selected.add(val);
       else tagState.selected.delete(val);
+      persistStateToStorage();
     });
   });
 
@@ -618,15 +710,10 @@ function buildYamlPayload() {
       label: e.label || e.key || 'need',
       priority: Number(e.priority || 0),
       essentials: (e.essentials || []).filter(Boolean),
-      definition: (e.definition || '').trim(),
-      satisfaction: Number(isNaN(e.satisfaction) ? 0 : e.satisfaction),
-      linked_items: Array.isArray(e.linkedItems) ? e.linkedItems.filter(li => li.type && li.name).map(li => ({ type: li.type, name: li.name })) : [],
       notes: (e.notes || '').trim(),
     };
     if (!clean.essentials.length) delete clean.essentials;
-    if (!clean.definition) delete clean.definition;
     if (!clean.notes) delete clean.notes;
-    if (!clean.linked_items.length) delete clean.linked_items;
     return clean;
   });
   const payload = {
@@ -678,16 +765,14 @@ function formatPrimitive(v) {
 function renderReviewStep(container) {
   const yaml = buildYamlPayload();
   const mapCount = wizardState.mapEntries.length;
-  const avgSatisfaction = wizardState.mapEntries.length
-    ? Math.round(wizardState.mapEntries.reduce((acc, e) => acc + (Number(e.satisfaction) || 0), 0) / wizardState.mapEntries.length)
-    : 0;
+  const derivedNote = 'Satisfaction will be calculated by the panel based on tagged items.';
   container.innerHTML = `
     <div class="moh-card">
       <h3>Review & Save</h3>
       <p class="moh-help">We will archive the previous file to <code>map_of_happiness.archive.*.yml</code> in User/Settings, then replace <code>map_of_happiness.yml</code>. Items can reference needs via <code>happiness: [&lt;key&gt;]</code>.</p>
       <div class="moh-inline" style="margin-bottom:10px;">
         <span class="moh-badge">${mapCount} needs</span>
-        <span class="moh-badge">Avg satisfaction: ${avgSatisfaction}%</span>
+        <span class="moh-badge">${escapeHtml(derivedNote)}</span>
       </div>
       <div class="moh-yaml" data-preview>${escapeHtml(yaml)}</div>
       <p class="moh-small">Saving will emit <code>wizard:map_of_happiness:created</code> so panels can refresh.</p>
@@ -697,10 +782,10 @@ function renderReviewStep(container) {
 
 async function applyTags() {
   const tagState = wizardState.tagging || {};
-  const need = (tagState.needKey || '').trim();
-  if (!need || !tagState.selected || tagState.selected.size === 0) return;
+  const needs = Array.isArray(tagState.needKeys) ? tagState.needKeys.map(n => String(n).trim()).filter(Boolean) : [];
+  if (!needs.length || !tagState.selected || tagState.selected.size === 0) return;
   setStatus(`Tagging ${tagState.selected.size} item(s)...`, 'muted');
-  const needSlug = slugify(need);
+  const needSlugs = needs.map(n => slugify(n));
   const results = { ok: 0, fail: 0 };
 
   for (const entry of Array.from(tagState.selected)) {
@@ -718,9 +803,9 @@ async function applyTags() {
       if (Array.isArray(hRaw)) happiness = hRaw.map(v => String(v));
       else if (typeof hRaw === 'string') happiness = [hRaw];
       const normSet = new Set(happiness.map(v => slugify(v)));
-      if (!normSet.has(needSlug)) {
-        happiness.push(need);
-      }
+      needs.forEach((n, idx) => {
+        if (!normSet.has(needSlugs[idx])) happiness.push(n);
+      });
       const setResp = await fetch(`${apiBase()}/api/cli`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -782,6 +867,7 @@ async function saveMap() {
     if (!resp.ok) throw new Error(`Save failed (HTTP ${resp.status})`);
     await applyTags();
     setStatus('Saved map_of_happiness.yml', 'success');
+    clearStateStorage();
     try { overlayRefs?.context?.bus?.emit?.('wizard:map_of_happiness:created', { file: 'map_of_happiness.yml' }); } catch {}
   } catch (err) {
     console.error('[MapOfHappiness] save failed', err);

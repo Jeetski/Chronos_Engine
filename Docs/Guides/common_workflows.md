@@ -46,7 +46,7 @@ Templates, Routines, Subroutines
   - New routine: `new routine "Morning"`
   - Add items to routine template: `add "Have coffee" to "Morning"`
                                    `add "Read 10 min" to "Morning"`
-  - Open for fine‑tuning: `edit routine "Morning"`
+  - Open for fine-tuning: `edit routine "Morning"`
 
 - Nesting: subroutines & microroutines
   - Subroutine: `new subroutine "Warmup"`
@@ -56,6 +56,36 @@ Templates, Routines, Subroutines
 - Clone a template
   - Copy: `copy routine "Morning" "Morning (travel)"`
   - Rename inside: `rename routine "Morning (travel)" "Morning Travel"`
+
+----------------------------------------
+
+Habit Stacks (ordered habits as microroutines)
+
+- What they are
+  - A Habit Stack is an ordered bundle of habits (like a microroutine but habits-only) you can drop into routines/subroutines/day templates.
+  - Use a small marker on the container so agents/dashboards can explain it: `habit_stack: true`, plus optional `cue:` (anchor) and `followed_by:` (what happens next).
+
+- Example YAML (save as a microroutine)
+  ```yaml
+  name: Morning Prime (Habit Stack)
+  type: microroutine
+  habit_stack: true
+  cue: coffee
+  followed_by: Deep Work
+  tags: [habit_stack, morning]
+  children:
+    - type: habit
+      name: Hydrate
+    - type: habit
+      name: Stretch 5 min
+    - type: habit
+      name: Plan day
+  ```
+
+- Use it
+  - Add to another template: `add "Morning Prime (Habit Stack)" to routine "Morning"` or to a day template in the Template Builder.
+  - Schedule behavior stays the same: each habit is its own block; the stack just preserves order and intent.
+  - Tracking is per habit; if you want a single “stack complete” signal, add a helper habit and include it as the last child.
 
 ----------------------------------------
 

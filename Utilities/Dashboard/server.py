@@ -1175,7 +1175,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 filter_type = (qs.get('type') or [''])[0].strip().lower()
                 
                 # List of all known item types
-                item_types = ['goal', 'habit', 'commitment', 'task', 'project', 'routine', 'note', 'milestone', 'achievement', 'reward']
+                item_types = ['goal', 'habit', 'commitment', 'task', 'project', 'routine', 'subroutine', 'microroutine', 'note', 'milestone', 'achievement', 'reward']
                 
                 all_items = []
                 for itype in item_types:
@@ -1763,6 +1763,104 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_yaml(200, {"ok": True, "blocks": blocks})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Failed to read schedule: {e}"})
+            return
+        if parsed.path == "/api/week":
+            try:
+                qs = parse_qs(parsed.query or "")
+                days = int(qs.get('days', ['7'])[0])
+                days = max(1, min(14, days))
+                start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+                import re
+                def parse_hm(val):
+                    if not val:
+                        return None
+                    s = str(val)
+                    m = re.search(r"(\d{1,2}):(\d{2})", s)
+                    if not m:
+                        return None
+                    h = int(m.group(1))
+                    mnt = int(m.group(2))
+                    h = max(0, min(23, h))
+                    mnt = max(0, min(59, mnt))
+                    return f"{h:02d}:{mnt:02d}"
+
+                def is_parallel(it: dict) -> bool:
+                    try:
+                        if it.get('is_parallel_item'):
+                            return True
+                        orig = it.get('original_item_data') or {}
+                        return str(orig.get('duration', '')).strip().lower() == 'parallel'
+                    except Exception:
+                        return False
+
+                def flatten(schedule_data):
+                    blocks = []
+                    def walk(items, depth=0):
+                        if not items:
+                            return
+                        for order_idx, it in enumerate(items):
+                            if not isinstance(it, dict):
+                                continue
+                            name = it.get('name') or (it.get('original_item_data') or {}).get('name') or ''
+                            item_type = it.get('type') or (it.get('original_item_data') or {}).get('type') or ''
+                            st = it.get('start_time') or (it.get('original_item_data') or {}).get('start_time') or it.get('ideal_start_time')
+                            et = it.get('end_time') or it.get('ideal_end_time')
+                            start_s = parse_hm(st)
+                            end_s = parse_hm(et)
+                            if start_s and end_s:
+                                blocks.append({
+                                    'start': start_s,
+                                    'end': end_s,
+                                    'text': str(name),
+                                    'type': str(item_type).lower(),
+                                    'depth': int(depth),
+                                    'is_parallel': bool(is_parallel(it)),
+                                    'order': int(order_idx),
+                                })
+                            child_list = it.get('children') or it.get('items') or []
+                            if isinstance(child_list, list):
+                                walk(child_list, depth + 1)
+                    if isinstance(schedule_data, list):
+                        walk(schedule_data, depth=0)
+                    elif isinstance(schedule_data, dict):
+                        walk((schedule_data.get('items') or schedule_data.get('children') or []), depth=0)
+                    blocks.sort(key=lambda b: b.get('start') or "")
+                    return blocks
+
+                from Modules.Planner import build_preview_for_date
+
+                days_payload = []
+                for offset in range(days):
+                    date_obj = start_date + timedelta(days=offset)
+                    label = date_obj.strftime('%A')
+                    if offset == 0:
+                        user_dir = os.path.join(ROOT_DIR, 'User')
+                        candidate_paths = [
+                            os.path.join(user_dir, 'Schedules', 'today_schedule.yml'),
+                            os.path.join(user_dir, 'today_schedule.yml'),
+                        ]
+                        sched_path = next((p for p in candidate_paths if os.path.exists(p)), None)
+                        sched_data = []
+                        if sched_path and os.path.exists(sched_path):
+                            try:
+                                with open(sched_path, 'r', encoding='utf-8') as f:
+                                    sched_data = yaml.safe_load(f) or []
+                            except Exception:
+                                sched_data = []
+                        blocks = flatten(sched_data)
+                    else:
+                        preview, _conflicts = build_preview_for_date(date_obj, show_warnings=False)
+                        blocks = flatten(preview or [])
+                    days_payload.append({
+                        "date": date_obj.strftime('%Y-%m-%d'),
+                        "label": label,
+                        "blocks": blocks,
+                    })
+
+                self._write_json(200, {"ok": True, "days": days_payload})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to build week view: {e}"})
             return
         # Serve project Assets under /assets/ (case-insensitive URL segment)
         path_l = parsed.path.lower()
