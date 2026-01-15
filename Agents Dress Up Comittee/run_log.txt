@@ -1,0 +1,2 @@
+[ADUC] Entering run_aduc.bat
+The syntax of the command is incorrect.

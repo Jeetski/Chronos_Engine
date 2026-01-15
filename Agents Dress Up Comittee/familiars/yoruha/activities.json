@@ -1,0 +1,16 @@
+{
+  "activities": [
+    {
+      "id": "meditating",
+      "label": "meditating",
+      "avatar": "activities/meditating.png",
+      "background": "shinto_shrine.png"
+    },
+    {
+      "id": "studying",
+      "label": "studying",
+      "avatar": "activities/studying.png",
+      "background": "study.png"
+    }
+  ]
+}

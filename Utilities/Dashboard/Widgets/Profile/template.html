@@ -1,0 +1,42 @@
+<div class="header">
+  <span class="title">Profile</span>
+  <div class="controls">
+    <button class="icon-btn" id="profileClose" title="Close">✖</button>
+  </div>
+</div>
+<div class="content" style="display:flex; flex-direction:row; gap:12px; align-items:stretch; flex-wrap:nowrap; overflow:hidden;">
+  <div class="left" style="flex:1 1 50%; min-width:260px; display:flex; flex-direction:column; gap:8px;">
+    <div class="row">
+      <label for="nickname">Nickname:</label>
+      <input type="text" id="nickname" class="input">
+    </div>
+    <div class="row">
+      <label>Avatar:</label>
+      <div id="avatar-preview"></div>
+    </div>
+    <label>Welcome Message:</label>
+    <input type="text" id="welcome-line1" class="input" placeholder="Line 1">
+    <input type="text" id="welcome-line2" class="input" placeholder="Line 2">
+    <input type="text" id="welcome-line3" class="input" placeholder="Line 3">
+
+    <label>Exit Message:</label>
+    <input type="text" id="exit-line1" class="input" placeholder="Line 1">
+    <input type="text" id="exit-line2" class="input" placeholder="Line 2">
+
+    <div class="row" style="gap:8px; flex-wrap:wrap;">
+      <button id="save-profile" class="btn btn-primary">Save</button>
+      <button id="edit-preferences-md" class="btn">Edit Natural Language Preferences</button>
+      <button id="edit-pilot-brief" class="btn">Edit Pilot Brief</button>
+    </div>
+  </div>
+  <div class="right" style="flex:1 1 50%; min-width:260px; display:flex; flex-direction:column; gap:8px;">
+    <div class="row" style="justify-content:space-between; align-items:center;">
+      <label style="margin:0;">Agent Preferences</label>
+      <span class="hint" style="color:var(--text-dim);">from preferences.yml/yaml</span>
+    </div>
+    <div id="agent-preferences-container" style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:8px; padding:6px;"></div>
+  </div>
+  <div class="resizer e"></div>
+  <div class="resizer s"></div>
+  <div class="resizer se"></div>
+</div>

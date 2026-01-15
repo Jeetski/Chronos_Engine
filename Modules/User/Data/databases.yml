@@ -1,0 +1,81 @@
+databases:
+  core:
+    description: Structured mirror of YAML items plus relations for fast lookups.
+    filename: chronos_core.db
+    key: core
+    last_attempt: null
+    last_sync: null
+    name: Chronos Core
+    notes: null
+    path: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\User\Data\chronos_core.db
+    records: 0
+    status: pending
+    type: sqlite
+    version: 1
+  events:
+    description: Command/event log for automation triggers and retrospectives.
+    filename: chronos_events.db
+    key: events
+    last_attempt: null
+    last_sync: null
+    name: Event Log
+    notes: null
+    path: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\User\Data\chronos_events.db
+    records: 0
+    status: pending
+    type: sqlite
+    version: 1
+  matrix:
+    description: Lightweight cache for dashboard analytics and cockpit matrix presets.
+    filename: chronos_matrix.db
+    key: matrix
+    last_attempt: null
+    last_sync: null
+    name: Matrix Cache
+    notes: null
+    path: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\User\Data\chronos_matrix.db
+    records: 0
+    status: pending
+    type: sqlite
+    version: 1
+  memory:
+    description: Schedule adherence, status snapshots, and qualitative notes.
+    filename: chronos_memory.db
+    key: memory
+    last_attempt: null
+    last_sync: null
+    name: Behavioral Memory
+    notes: null
+    path: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\User\Data\chronos_memory.db
+    records: 0
+    status: pending
+    type: sqlite
+    version: 1
+  trends:
+    description: Aggregated metastudy metrics derived from memory/events.
+    filename: chronos_trends.db
+    key: trends
+    last_attempt: null
+    last_sync: null
+    name: Trends Warehouse
+    notes: null
+    path: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\User\Data\chronos_trends.db
+    records: 0
+    status: pending
+    type: sqlite
+    version: 1
+  trends_digest:
+    description: Human-readable summary consumed by pilots and agents.
+    filename: trends.md
+    key: trends_digest
+    last_attempt: null
+    last_sync: null
+    name: Behavior Trends Digest
+    notes: null
+    path: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\User\Data\trends.md
+    records: 0
+    status: pending
+    type: markdown
+    version: 1
+generated_at: '2025-12-04T17:12:16'
+version: 1

@@ -1,0 +1,116 @@
+{
+  "scale": 0.5,
+  "x": "0px",
+  "y": "0px",
+  "transform_origin": "center center",
+  "overrides": {
+    "nsfw/pajamas/focus.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/warm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/thinking.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/soft-sad.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/please.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/kiss.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/focus.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "nsfw/tee/calm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "warm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "soft-sad.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "kiss.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "focus.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "calm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "thinking.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "annoyed.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "0px",
+      "mirror": false
+    },
+    "blush.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "0px",
+      "mirror": false
+    },
+    "dance.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "0px",
+      "mirror": false
+    },
+    "feral.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "0px",
+      "mirror": false
+    }
+  }
+}

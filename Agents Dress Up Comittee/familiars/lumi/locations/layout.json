@@ -1,0 +1,64 @@
+{
+  "cabin_winter.png": {
+    "sitting.png": {
+      "x": "10%",
+      "y": "20%",
+      "scale": 0.8
+    },
+    "thinking.png": {
+      "scale": 0.95
+    }
+  },
+  "balet_practice_hall.png": {
+    "calm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "thinking.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "focus.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "kiss.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "soft-sad.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "warm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "please.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    }
+  },
+  "christmas/cabin_winter.png": {
+    "calm.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    }
+  }
+}

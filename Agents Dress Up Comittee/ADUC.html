@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agents Dress Up Committee</title>
+  <link rel="icon" href="/static/favicon.ico" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+
+<div class="app-container">
+  <!-- Sidebar Toggle Button (visible when sidebar hidden) -->
+  <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">☰</button>
+
+  <!-- LEFT SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <img class="sidebar-logo" src="/static/logo.png" alt="ADUC logo" />
+      <h2>ADUC</h2>
+      <input type="hidden" id="familiar" value="">
+    </div>
+
+    <!-- Familiar Switcher List -->
+    <nav id="familiarList" class="familiar-list"></nav>
+
+    <!-- Selected Familiar Metadata -->
+    <div id="familiarInfo" class="familiar-info hidden">
+      <h3 id="infoName" class="info-name"></h3>
+      <div id="infoHearts" class="info-hearts" aria-label="affection"></div>
+      <p id="infoAbout" class="info-about"></p>
+      <div class="info-stats">
+        <small id="infoStatsLine"></small>
+      </div>
+      <div class="info-lists">
+        <div class="info-col">
+          <strong>Likes</strong>
+          <ul id="infoLikes"></ul>
+        </div>
+        <div class="info-col">
+          <strong>Dislikes</strong>
+          <ul id="infoDislikes"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tools / Footer of Sidebar -->
+    <div class="sidebar-tools">
+      <button id="settingsBtn" class="tool-btn">Settings</button>
+      <!-- Pomodoro moved here or kept as compact module -->
+      <div class="pomodoro-compact" id="pomoCompact">
+        <span id="pomoMode" class="mode">Focus</span>
+        <span id="pomoTime" class="time">25:00</span>
+        <div class="pomo-controls">
+          <button id="pomoStart" title="Start/Pause">▶</button>
+          <button id="pomoReset" title="Reset">↺</button>
+        </div>
+      </div>
+      <!-- Hidden/Technical pomo fields to preserve logic without clutter -->
+      <div id="pomo" class="hidden-pomo-logic" style="display:none;">
+        <input id="pomoFocusMin" type="number" value="25" />
+        <input id="pomoBreakMin" type="number" value="5" />
+        <select id="pomoPreset">
+          <option value="custom">Custom</option>
+        </select>
+        <input id="pomoLongEnable" type="checkbox" checked />
+        <input id="pomoLongMin" type="number" value="15" />
+        <input id="pomoLongEvery" type="number" value="4" />
+        <div id="pomoProgress"></div>
+      </div>
+      <span id="agentStatus" class="status-tiny">Agent: ...</span>
+    </div>
+  </aside>
+
+  <!-- RIGHT MAIN STAGE -->
+  <main class="stage">
+    <!-- HERO: Background + Avatar -->
+    <div id="hero" class="hero">
+      <div id="avatarBg" class="avatar-bg"></div>
+      <div id="avatarGroup" class="avatar-group">
+        <img id="avatarImg" alt="avatar" src="/static/avatar-default.svg" />
+      </div>
+      <div id="awayBanner" class="away-banner hidden"></div>
+
+      <!-- Dev Tool Toggle Button -->
+      <button id="devToolToggle" class="dev-tool-toggle" title="Avatar Dev Tools">DEV</button>
+
+      <!-- Dev Tool Panel -->
+      <div id="devToolPanel" class="dev-tool-panel hidden">
+        <div class="dev-tool-header">
+          <span>Avatar Layout Editor</span>
+          <button id="devToolClose" class="icon-btn-sm">×</button>
+        </div>
+
+        <div class="dev-tool-content">
+          <!-- Target Familiar Selector -->
+          <label class="dev-row">
+            <span>Familiar:</span>
+            <select id="devTargetFamiliar"></select>
+          </label>
+
+          <!-- Avatar Selector -->
+          <label class="dev-row">
+            <span>Avatar:</span>
+            <select id="devAvatarSelect"></select>
+          </label>
+
+          <!-- Location Selector -->
+          <label class="dev-row">
+            <span>Location:</span>
+            <select id="devLocationSelect"></select>
+          </label>
+
+          <!-- Scale -->
+          <label class="dev-row">
+            <span>Scale:</span>
+            <input type="number" id="devScale" value="100" min="10" max="200" step="5" />
+            <span class="unit">%</span>
+          </label>
+
+          <!-- Position -->
+          <div class="dev-row pos-row">
+            <span>Position:</span>
+            <label class="pos-slider">
+              <span>X</span>
+              <input type="range" id="devPosX" min="-600" max="600" step="5" value="0" />
+              <span class="unit" id="devPosXVal">0px</span>
+            </label>
+            <label class="pos-slider">
+              <span>Y</span>
+              <input type="range" id="devPosY" min="-600" max="600" step="5" value="0" />
+              <span class="unit" id="devPosYVal">0px</span>
+            </label>
+          </div>
+
+          <!-- Mirror -->
+          <label class="dev-row checkbox-row">
+            <input type="checkbox" id="devMirror" />
+            <span>Mirror (Horizontal Flip)</span>
+          </label>
+
+          <!-- Snap to Grid -->
+          <div class="dev-row">
+            <label class="checkbox-row">
+              <input type="checkbox" id="devSnapGrid" />
+              <span>Snap to Grid</span>
+            </label>
+            <label>Size: <input type="number" id="devGridSize" value="20" min="5" max="100" step="5"
+                class="grid-input" />px</label>
+          </div>
+
+          <hr class="dev-divider" />
+
+          <div class="dev-scope-section">
+            <span class="scope-label">Layout Mode:</span>
+            <label class="checkbox-row">
+              <input type="radio" name="devLayoutMode" value="solo" checked />
+              <span>Solo</span>
+            </label>
+            <label class="checkbox-row">
+              <input type="radio" name="devLayoutMode" value="committee" />
+              <span>Committee</span>
+            </label>
+          </div>
+
+          <div class="dev-scope-section">
+            <span class="scope-label">Presets:</span>
+            <label class="dev-row">
+              <span>Name:</span>
+              <input type="text" id="devPresetName" placeholder="preset-name" />
+            </label>
+            <label class="dev-row">
+              <span>Load:</span>
+              <select id="devPresetSelect"></select>
+            </label>
+            <div class="dev-btn-row">
+              <button id="devPresetSave" class="dev-secondary-btn">Save Preset</button>
+              <button id="devPresetLoad" class="dev-secondary-btn">Load Preset</button>
+            </div>
+          </div>
+
+          <!-- Save Scope -->
+          <div class="dev-scope-section">
+            <span class="scope-label">Outfit Scope:</span>
+            <label class="checkbox-row">
+              <input type="radio" name="devOutfitScope" value="current" checked />
+              <span>This outfit only</span>
+            </label>
+            <label class="checkbox-row">
+              <input type="radio" name="devOutfitScope" value="all" />
+              <span>All outfits</span>
+            </label>
+          </div>
+
+          <div class="dev-scope-section">
+            <span class="scope-label">Location Scope:</span>
+            <label class="checkbox-row">
+              <input type="radio" name="devLocationScope" value="current" checked />
+              <span>This location only</span>
+            </label>
+            <label class="checkbox-row">
+              <input type="radio" name="devLocationScope" value="all" />
+              <span>All locations</span>
+            </label>
+          </div>
+
+          <hr class="dev-divider" />
+
+          <div class="dev-scope-section">
+            <span class="scope-label">Guest Offsets:</span>
+            <label class="checkbox-row">
+              <input type="checkbox" id="devGuestOffsetEnabled" checked />
+              <span>Enable offsets</span>
+            </label>
+            <label class="dev-row">
+              <span>Spacing:</span>
+              <input type="range" id="devGuestOffsetSpacing" min="50" max="180" step="5" value="100" />
+              <span class="unit" id="devGuestOffsetValue">100%</span>
+            </label>
+          </div>
+
+          <div class="dev-btn-row">
+            <button id="devCenterAvatar" class="dev-secondary-btn" title="Center avatar at 0,0">⊕ Center</button>
+            <button id="devResetDefaults" class="dev-secondary-btn" title="Reset to defaults">↺ Reset</button>
+          </div>
+
+          <button id="devSaveLayout" class="dev-save-btn">💾 Save Layout</button>
+        </div>
+      </div>
+</div>
+
+
+    <!-- CHAT OVERLAY -->
+    <div class="chat-overlay">
+      <!-- Chat Control -->
+      <button id="toggleChat" class="toggle-chat-btn" title="Show/Hide Chat">👁</button>
+
+      <div id="chatContainer" class="chat-container">
+        <div id="messages" class="messages"></div>
+        <div class="composer">
+          <textarea id="message" placeholder="Type a message..." rows="1"></textarea>
+          <button id="send">Send</button>
+          <button id="cancelBtn" style="display: none;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<section id="settingsPanel" class="settings hidden" aria-label="Settings">
+  <div class="settings-inner">
+    <div class="settings-header">
+      <h2>Preferences</h2>
+      <button id="settingsClose" class="icon-btn" title="Close">×</button>
+    </div>
+
+    <div class="settings-content">
+      <div class="settings-group">
+        <h3>NSFW & Limits</h3>
+        <label class="toggle-row">
+          <span>NSFW Enabled</span>
+          <input type="checkbox" id="nsfwEnabled" checked />
+        </label>
+        <label class="toggle-row">
+          <span>Dev Override (Force NSFW)</span>
+          <input type="checkbox" id="devNSFWOverride" />
+        </label>
+        <label class="input-row">
+          <span>Daily NSFW Cap (0 = None)</span>
+          <input type="number" id="dailyCap" min="0" step="1" value="0" />
+        </label>
+      </div>
+
+      <div class="settings-group">
+        <h3>Quiet Hours</h3>
+        <div class="row grid2">
+          <label>Start <input type="time" id="quietStart" value="23:00" /></label>
+          <label>End <input type="time" id="quietEnd" value="07:00" /></label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Developer</h3>
+        <label class="toggle-row">
+          <span>Instant Journey Return</span>
+          <input type="checkbox" id="devJourneyInstant" />
+        </label>
+        <label class="toggle-row">
+          <span>Bypass Familiar Doc Cache</span>
+          <input type="checkbox" id="devBypassFamCache" />
+        </label>
+        <label class="input-row">
+          <span>Test Avatar Layout</span>
+          <select id="devAvatarSelector"></select>
+        </label>
+        <div class="row actions-sm">
+          <button id="triggerBreak" class="secondary">Test Short Break</button>
+          <button id="triggerLongBreak" class="secondary">Test Long Break</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>User Preferences (Familiar Specific)</h3>
+        <p class="muted-sm" style="margin-bottom: 0.5rem; font-size: 0.85em; opacity: 0.8;">
+          Use this space to list specific preferences, likes, or rules for this familiar.
+          Use markdown bullets for best results.
+        </p>
+        <textarea id="prefEditor" rows="6"
+          style="width: 100%; resize: vertical; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main);"
+          placeholder="Loading..."></textarea>
+      </div>
+
+      <div class="settings-group">
+        <h3>Permanent Memories (Familiar Specific)</h3>
+        <p class="muted-sm" style="margin-bottom: 0.5rem; font-size: 0.85em; opacity: 0.8;">
+          Facts about you that this familiar should always remember, even if conversation history is cleared.
+        </p>
+        <textarea id="memEditor" rows="6"
+          style="width: 100%; resize: vertical; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main);"
+          placeholder="Loading..."></textarea>
+      </div>
+
+      <div class="settings-group danger-zone">
+        <h3>Danger Zone</h3>
+        <button id="clearCacheBtn" class="secondary-btn" style="margin-bottom: 0.5rem;">Clear Docs Cache</button>
+        <button id="clearConversationBtn" class="secondary-btn" style="margin-bottom: 0.5rem;">Clear Conversation
+          History</button>
+        <button id="clearMemoryBtn" class="danger-btn">Clear Active Familiar's Memory</button>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <span id="settingsStatus" class="muted"></span>
+      <button id="settingsSave" class="primary-btn">Save Changes</button>
+    </div>
+  </div>
+</section>
+
+<!-- Confirmation Modal -->
+<dialog id="confirmModal" class="modal">
+  <div class="modal-inner">
+    <h3 id="confirmTitle">Confirm Action</h3>
+    <p id="confirmText">Are you sure?</p>
+    <div class="modal-actions">
+      <button id="confirmCancel" class="secondary-btn">Cancel</button>
+      <button id="confirmYes" class="danger-btn">Yes, I'm Sure</button>
+    </div>
+  </div>
+</dialog>
+
+<footer>
+  <small>Local-first. No telemetry. MIT licensed.</small>
+</footer>
+
+<script src="/static/ui.js"></script>
+</body>
+
+</html>
+
+

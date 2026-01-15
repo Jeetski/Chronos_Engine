@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 160">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2230"/>
+      <stop offset="1" stop-color="#0f141e"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="160" fill="url(#g)"/>
+  <circle cx="64" cy="60" r="28" fill="#2b3548"/>
+  <rect x="24" y="98" width="80" height="44" rx="8" fill="#2b3548"/>
+  <text x="64" y="152" text-anchor="middle" font-family="monospace" font-size="10" fill="#6ea8fe">ADUC</text>
+</svg>
+

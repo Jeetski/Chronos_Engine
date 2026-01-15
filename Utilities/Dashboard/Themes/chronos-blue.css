@@ -1,0 +1,47 @@
+:root {
+  /* Legacy references used throughout dashboard.html */
+  --bg: #0f1115;
+  --panel: rgba(21, 25, 35, 0.85);
+  --border: #222835;
+  --text: #e6e8ef;
+  --text-dim: #a6adbb;
+  --accent: #7aa2f7;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  --radius: 12px;
+
+  /* Core surfaces */
+  --chronos-bg: #0f1115;
+  --chronos-surface: rgba(21, 25, 35, 0.92);
+  --chronos-surface-strong: #0b101a;
+  --chronos-surface-soft: rgba(11, 15, 25, 0.7);
+  --chronos-surface-highlight: rgba(30, 38, 58, 0.85);
+
+  /* Borders & shadows */
+  --chronos-border: #222835;
+  --chronos-border-strong: #3a4257;
+  --chronos-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+
+  /* Typography */
+  --chronos-text: #e6e8ef;
+  --chronos-text-muted: #a6adbb;
+  --chronos-text-soft: #8fa0c1;
+
+  /* Brand accents */
+  --chronos-accent: #7aa2f7;
+  --chronos-accent-strong: #2a55e0;
+  --chronos-accent-soft: rgba(122, 162, 247, 0.2);
+  --chronos-accent-gradient: linear-gradient(180deg, #2a5cff, #1f3fd1);
+  --chronos-accent-glow: 0 12px 30px rgba(74, 98, 255, 0.35);
+
+  /* Semantic colors */
+  --chronos-success: #22d7a5;
+  --chronos-success-soft: rgba(34, 215, 165, 0.16);
+  --chronos-warning: #f4c076;
+  --chronos-warning-soft: rgba(244, 192, 118, 0.2);
+  --chronos-danger: #ff9aa2;
+  --chronos-danger-soft: rgba(255, 154, 162, 0.2);
+
+  /* Overlay */
+  --chronos-overlay-gradient: radial-gradient(circle at 25% 20%, rgba(49, 76, 199, 0.25), rgba(5, 7, 15, 0.92));
+  --chronos-overlay-blur: blur(12px);
+}

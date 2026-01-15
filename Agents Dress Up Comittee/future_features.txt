@@ -1,0 +1,53 @@
+﻿Future Feature Concepts
+========================
+
+1. Contextual NSFW/Intimacy
+   - Tie flirtatious scenes to affection level, activity context, and prior dialogue so moments feel earned and opt-in.
+2. Enhanced Away System
+   - Familiars can go fully unavailable (hidden from dropdown) with status text like "Away-recording vocals".
+3. Shared Break Activities
+   - Offer guided activities during breaks (yoga, poetry, exercise, mini-games) that leverage cycle metadata.
+4. Chronos.md Integration
+   - Load Chronos productivity spec so familiars can act as life coaches/accountability partners for the companion project.
+5. Psychological Health Framework
+   - Research parasocial dynamics, transference/countertransference, etc., and bake the findings into safety prompts and UX.
+6. Affection Kiss Events
+   - When affection maxes out (and consent toggles allow), trigger a bespoke "shared kiss" scene using dedicated art.
+7. Pose/Avatar Cleanup
+   - Standardize pose sizing/placement and expand the asset pipeline for backgrounds, outfits, poses, accessories.
+8. Social Media-Inspired UI
+   - Explore feed-like layout, status cards, and reaction systems to give the GUI a social vibe without losing productivity focus.
+9. Familiar Committee Mode
+   - Enable multi-familiar banter sessions where they collaborate, tease each other, and lightly compete for the user (with tone guardrails).
+10. Post-Shower Greetings
+   - High-affection greeting variant where a familiar just stepped out of the shower (towel-clad, tasteful framing).
+11. Cooldown/Boundary System
+   - Detect abusive/gooner behavior and have familiars enforce breaks or safe resets.
+12. Agent/CLI Compatibility
+   - Broaden bridge support to other agent CLIs and local models via shared schema adapters.
+13. Consent/Safety Modes
+   - Provide granular romance/intimacy toggles, parental locks, and per-familiar comfort settings so suggestive beats stay user-gated.
+14. Analytics & Feedback
+   - Offer opt-in reflections or quick reactions to learn which activities or committee beats help, then tune pacing accordingly.
+15. Accessibility & Localization
+   - Ship text-to-speech, captions, keyboard-only navigation, high-contrast themes, and a translation pipeline for multilingual support.
+16. Creator Asset Pipeline
+   - Build submission tooling plus validation scripts so community artists can contribute backgrounds, outfits, or audio with auto QA on sizing/metadata.
+17. Chronos Sync Layer
+   - Sync focus-cycle logs back to Chronos and pull upcoming tasks or schedules in-session so familiars can manage timelines bi-directionally.
+18. Committee Moderation
+   - Add tone filters, "reset the room" commands, and reporting/flagging flows to keep multi-familiar banter playful but respectful.
+19. Companion Clients
+   - Launch lightweight mobile or web widgets so users can check in with familiars or shared activities away from the desktop app.
+20. Adaptive Audio Atmosphere
+   - Pair backgrounds or activities with mode-aware ambient music loops and volume cues (focus vs break) with user-level toggles.
+21. Procedural Story Arcs
+   - Let familiars spin multi-day narrative beats with callbacks and resolutions so relationships feel episodic and evolving.
+22. Plugin & Marketplace Ecosystem
+   - Open a safe extension system where third parties can ship mini-games, prompts, or wellness modules that plug into ADUC.
+23. Seasonal Events & Skins
+   - Roll out rotating seasonal content (winter festivals, summer beach packs) with auto-rotating backgrounds, outfits, and quests.
+24. Bundled Local Roleplay Model
+   - Include a small, instruction-following local model that excels at roleplay and long prompts so projects ship with an offline default companion.
+25. Dating Coach Redirects
+   - Let familiars acknowledge flirting/compliments and, at high affection, respond playfully before channeling libido into real-world goals (plan dates, self-care, fitness, better partner habits).

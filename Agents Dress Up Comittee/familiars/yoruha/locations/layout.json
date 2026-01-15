@@ -1,0 +1,134 @@
+{
+  "christmas/bedroom.png": {
+    "calm.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "thinking.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "blush.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "cold.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "focus.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "70px",
+      "mirror": true
+    },
+    "kiss.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "annoyed.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "warm.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    }
+  },
+  "bedroom.png": {
+    "focus.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "70px",
+      "mirror": true
+    },
+    "thinking.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "calm.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "blush.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "cold.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "kiss.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "warm.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "annoyed.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    },
+    "bridge.png": {
+      "scale": 0.5,
+      "x": "-50px",
+      "y": "-20px",
+      "mirror": false
+    },
+    "cat-pose.png": {
+      "scale": 0.5,
+      "x": "-50px",
+      "y": "-20px",
+      "mirror": false
+    },
+    "tree-pose.png": {
+      "scale": 0.5,
+      "x": "0px",
+      "y": "-50px",
+      "mirror": false
+    }
+  },
+  "grassy_meadow.png": {
+    "blush.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    },
+    "ask-for-forgiveness.png": {
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
+    }
+  }
+}

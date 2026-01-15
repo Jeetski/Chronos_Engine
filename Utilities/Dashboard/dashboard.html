@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chronos Dashboard</title>
+    <link rel="stylesheet" href="./Themes/theme-base.css" />
+    <link id="themeStylesheet" rel="stylesheet" href="./Themes/chronos-blue.css" data-theme-id="chronos-blue" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 1200px at 80% -10%, #151b26 0%, var(--bg) 45%);
+        color: var(--text);
+        font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        overflow: hidden;
+        padding-top: 36px;
+      }
+      #scaleRoot {
+        position: fixed;
+        inset: 0;
+        transform-origin: top left;
+        z-index: 1;
+      }
+      #topbar { position: fixed; top: 0; left: 0; right: 0; height: 28px; display:flex; align-items:center; gap: 6px; padding: 0 8px; background: rgba(15,17,21,0.85); border-bottom: 1px solid var(--border); z-index: 7; backdrop-filter: saturate(120%) blur(8px); -webkit-backdrop-filter: saturate(120%) blur(8px); }
+      .menubtn { background: transparent; color: var(--text); border: 1px solid transparent; border-radius: 6px; padding: 4px 6px; cursor: pointer; font-size: 12px; }
+      .menubtn:hover { background: #0b0f16; border-color: var(--border); transition: background 120ms ease, border-color 120ms ease; }
+      .menu { position: relative; }
+      .dropdown { position: absolute; top: 24px; left: 0; min-width: 200px; max-width: none; background: rgba(21,25,35,0.95); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); display: none; padding: 8px; z-index: 8; gap: 12px; overflow-x: auto; }
+      .dropdown.open { display: flex; align-items: flex-start; }
+      .dropdown .column { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+      .dropdown .item { display:flex; align-items:center; gap:8px; padding: 6px 10px; color: var(--text); cursor: pointer; border-radius: 6px; width: 100%; }
+      .dropdown .item:hover { background: #0f141d; }
+      .dropdown .item.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+      .dropdown .wizard-item { flex-direction: row; align-items: center; gap: 8px; }
+      .dropdown .wizard-title { font-weight: 600; }
+      .dropdown .theme-item { align-items: center; justify-content: space-between; gap: 10px; }
+      .dropdown .theme-title { font-weight: 600; }
+      .dropdown#menu-appearance { min-width: 240px; }
+      .theme-swatch { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.45); box-shadow: 0 0 0 2px rgba(0,0,0,0.25); }
+      .check { width: 14px; text-align: center; color: var(--accent); }
+      .titlebar { color: var(--text-dim); font-size: 11px; }
+      .titlebar img { height: 14px; vertical-align: middle; margin-right: 6px; opacity: 0.9; }
+      .spacer { flex: 1 1 auto; }
+      #view { position: fixed; inset: 48px 12px 12px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: radial-gradient(1400px 1400px at 20% 20%, rgba(32,38,52,0.35) 0, rgba(15,17,21,0.9) 55%), repeating-conic-gradient(from 45deg, #0e131c 0% 25%, #0b0f16 0% 50%) 50% / 26px 26px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; padding: 12px; overflow: hidden; z-index: 1; }
+      .view-panes { flex: 1 1 auto; display: flex; gap: 10px; align-items: stretch; min-height: 0; }
+      .view-pane { position: relative; flex: 1 1 0; min-width: 0; border: 1px solid var(--border); border-radius: 12px; background: linear-gradient(180deg, rgba(21,25,35,0.92), rgba(13,16,23,0.92)); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+      .pane-resizer { position: absolute; top: 8px; right: 0; bottom: 8px; width: 8px; cursor: col-resize; border-radius: 4px; background: linear-gradient(180deg, rgba(58,74,106,0.4), rgba(24,30,46,0.5)); opacity: 0.4; z-index: 4; }
+      .pane-resizer:hover { opacity: 0.85; background: linear-gradient(180deg, rgba(90,120,178,0.65), rgba(40,50,74,0.65)); }
+      .pane-tab { position: absolute; top: 8px; left: 8px; right: 8px; height: 32px; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; background: linear-gradient(180deg, rgba(32,40,56,0.9), rgba(18,22,32,0.9)); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 26px rgba(0,0,0,0.28); color: var(--text); z-index: 3; }
+      .pane-title { font-weight: 700; letter-spacing: 0.2px; }
+      .pane-close { margin-left: auto; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); background: #0f141d; color: var(--text-dim); cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+      .pane-close:hover { color: var(--text); border-color: #2b3343; background: #0b0f16; transition: all 120ms ease; }
+      .pane-content { position: absolute; inset: 48px 10px 10px 10px; border-radius: 10px; overflow: hidden; background: repeating-conic-gradient(from 45deg, #0e131c 0% 25%, #0b0f16 0% 50%) 50% / 26px 26px; display: flex; }
+      .pane-scroll { position: relative; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; border-radius: inherit; }
+      .pane-back { height: 28px; display: inline-flex; align-items: center; justify-content: center; color: var(--text); background: linear-gradient(180deg, #24324a, #1a2436); border: 1px solid #2f3b56; border-radius: 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.04); cursor: pointer; }
+      .pane-back:disabled, .pane-back[aria-disabled="true"] { opacity: 0.35; cursor: default; pointer-events: none; }
+      .view-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 10px; background: rgba(15,17,21,0.6); }
+      #backBtn { position: fixed; left: 20px; top: 40px; z-index: 6; background: rgba(21,25,35,0.85); color: #e6e8ef; border: 1px solid #222835; border-radius: 8px; padding: 6px 10px; cursor: pointer; display: none; }
+      .widget { position: fixed; top: 60px; right: 20px; width: 360px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); color: var(--text); display: flex; flex-direction: column; min-height: 0; min-width: 0; z-index: 5; backdrop-filter: saturate(120%) blur(8px); -webkit-backdrop-filter: saturate(120%) blur(8px); }
+      .widget:hover { box-shadow: 0 18px 60px rgba(0,0,0,0.45); transition: box-shadow 160ms ease; }
+      .widget.minimized .content { display: none; }
+      .widget .header { display:flex; align-items:center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: move; border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); background: linear-gradient(180deg, rgba(28,34,48,0.85), rgba(18,22,32,0.85)); }
+      .widget .title { font-weight: 700; letter-spacing: 0.2px; color: var(--text); }
+      .widget .controls { display: inline-flex; gap: 6px; }
+      .icon-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #0f141d; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; padding: 0; border-radius: 6px; }
+      .icon-btn:hover { color: var(--text); border-color: #2b3343; background: #0b0f16; transition: all 120ms ease; }
+      .wizard-help-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        font-weight: 700;
+        z-index: 30;
+      }
+      .widget .content { padding: 12px; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow: auto; }
+      .input, .textarea, select { width: 100%; background: #0f141d; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; outline: none; transition: border-color 120ms ease, box-shadow 120ms ease; }
+      .input:focus, .textarea:focus, select:focus { border-color: #3a4a6a; box-shadow: 0 0 0 3px rgba(122,162,247,0.15); }
+      .textarea { min-height: 120px; resize: vertical; }
+      .row { display:flex; gap: 10px; align-items:center; }
+      .hint { color: var(--text-dim); font-size: 12px; }
+      .btn { background: linear-gradient(180deg, #1a2130, #151b28); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: transform 60ms ease, background 120ms ease, border-color 120ms ease; }
+      .btn:hover { border-color: #2b3343; background: linear-gradient(180deg, #21293a, #181e2e); }
+      .btn:active { transform: translateY(1px); }
+      .btn-primary { background: linear-gradient(180deg, #2a5cff, #2048d6); border-color: #2a55e0; }
+      .btn-primary:hover { background: linear-gradient(180deg, #3466ff, #2850e6); border-color: #355eef; }
+      .btn-secondary { background: linear-gradient(180deg, #1a2130, #151b28); }
+      /* Resizer handles for all Widgets */
+      .widget { position: fixed; }
+      .widget .resizer { position: absolute; z-index: 3; }
+      .widget .resizer.e { right: -4px; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
+      .widget .resizer.s { left: 0; right: 0; bottom: -4px; height: 8px; cursor: ns-resize; }
+      .widget .resizer.se { right: -6px; bottom: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+      .widget .resizer:hover { background: rgba(255,255,255,0.03); border-radius: 6px; }
+      .widget.pulse { animation: widgetPulse 900ms ease; }
+      @keyframes widgetPulse {
+        0% { box-shadow: 0 0 0 0 rgba(122,162,247,0.0), var(--shadow); }
+        25% { box-shadow: 0 0 0 3px rgba(122,162,247,0.35), var(--shadow); }
+        70% { box-shadow: 0 0 0 2px rgba(122,162,247,0.2), var(--shadow); }
+        100% { box-shadow: var(--shadow); }
+      }
+    </style>
+    <script src="./generated/settings_bundle.js"></script>
+    <!-- Optional user temp script: served from project Temp/ if present. Use defer so DOM is ready. -->
+    <script src="/temp/tmp_dashboard_script.js" defer></script>
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div id="topbar">
+      <div class="menu">
+        <button class="menubtn" data-menu="appearance">Appearance &#9662;</button>
+        <div class="dropdown" id="menu-appearance"></div>
+      </div>
+      <div class="menu">
+        <button class="menubtn" data-menu="panels">Panels &#9662;</button>
+        <div class="dropdown" id="menu-panels"></div>
+      </div>
+      <div class="menu">
+        <button class="menubtn" data-menu="view">Views &#9662;</button>
+        <div class="dropdown" id="menu-view"></div>
+      </div>
+      <div class="menu">
+        <button class="menubtn" data-menu="widgets">Widgets &#9662;</button>
+        <div class="dropdown" id="menu-widgets"></div>
+      </div>
+      <div class="menu">
+        <button class="menubtn" data-menu="wizards">Wizards &#9662;</button>
+        <div class="dropdown" id="menu-wizards"></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="titlebar"><img id="chronosLogo" src="/assets/Logo_No_Background.png" alt="Chronos" />Chronos Dashboard</div>
+    </div>
+
+    <div id="scaleRoot">
+      <div id="view"></div>
+      <button id="backBtn" title="Back">Back</button>
+
+      <aside class="widget" id="notesWidget" style="display: none;" data-widget="Notes" data-label="Notes"></aside>
+      <aside class="widget" id="stickyNotesWidget" style="display: none; right: 20px; top: 1720px; width: 420px;" data-widget="StickyNotes" data-label="Sticky Notes"></aside>
+      <aside class="widget" id="statusWidget" style="display: none; right: 396px; top: 60px; width: 360px;" data-widget="Status" data-label="Status"></aside>
+      <aside class="widget" id="todayWidget" style="display: none; right: 20px; top: 440px; width: 420px;" data-widget="Today" data-label="Today"></aside>
+      <aside class="widget" id="clockWidget" style="display: none; right: 20px; top: 60px; width: 420px;" data-widget="Clock" data-label="Clock"></aside>
+      <aside class="widget" id="habitsWidget" style="display: none; right: 460px; top: 440px; width: 520px;" data-widget="HabitTracker" data-label="Habits"></aside>
+      <aside class="widget" id="debugWidget" style="display: none; right: 460px; top: 60px; width: 520px;" data-widget="DebugConsole" data-label="Debug"></aside>
+      <aside class="widget" id="itemManagerWidget" style="display: none; right: 900px; top: 60px; width: 760px;" data-widget="ItemManager" data-label="Items"></aside>
+      <aside class="widget" id="inventoryManagerWidget" style="display: none; right: 20px; top: 1720px; width: 760px;" data-widget="InventoryManager" data-label="Inventories"></aside>
+      <aside class="widget" id="timerWidget" style="display: none; right: 20px; top: 540px; width: 420px;" data-widget="Timer" data-label="Timer"></aside>
+      <aside class="widget" id="mp3Widget" style="display: none; right: 20px; top: 1080px; width: 420px;" data-widget="MP3Player" data-label="MP3 Player"></aside>
+      <aside class="widget" id="goalTrackerWidget" style="display: none; right: 460px; top: 540px; width: 520px;" data-widget="GoalTracker" data-label="Goals"></aside>
+      <aside class="widget" id="commitmentsWidget" style="display: none; right: 20px; top: 1320px; width: 520px;" data-widget="Commitments" data-label="Commitments"></aside>
+      <aside class="widget" id="rewardsWidget" style="display: none; right: 900px; top: 540px; width: 520px;" data-widget="Rewards" data-label="Rewards"></aside>
+      <aside class="widget" id="achievementsWidget" style="display: none; right: 20px; top: 940px; width: 520px;" data-widget="Achievements" data-label="Achievements"></aside>
+      <aside class="widget" id="milestonesWidget" style="display: none; right: 460px; top: 940px; width: 520px;" data-widget="Milestones" data-label="Milestones"></aside>
+      <aside class="widget" id="settingsWidget" style="display: none; right: 900px; top: 440px; width: 520px;" data-widget="Settings" data-label="Settings"></aside>
+      <aside class="widget" id="profileWidget" style="display: none; right: 20px; top: 60px; width: 420px;" data-widget="Profile" data-label="Profile"></aside>
+      <aside class="widget" id="journalWidget" style="display: none; right: 20px; top: 940px; width: 640px;" data-widget="Journal" data-label="Journal"></aside>
+      <aside class="widget" id="reviewWidget" style="display: none; right: 680px; top: 940px; width: 640px;" data-widget="Review" data-label="Review"></aside>
+      <aside class="widget" id="terminalWidget" style="display: none; right: 1320px; top: 940px; width: 640px; height: 360px;" data-widget="Terminal" data-label="Terminal"></aside>
+      <aside class="widget" id="variablesWidget" style="display: none; right: 20px; top: 1320px; width: 520px;" data-widget="Variables" data-label="Variables"></aside>
+      <aside class="widget" id="resolutionTrackerWidget" style="display: none; right: 560px; top: 940px; width: 640px;" data-widget="ResolutionTracker" data-label="Resolutions"></aside>
+      <aside class="widget" id="linkWidget" style="display: none; right: 20px; top: 1540px; width: 420px;" data-widget="Link" data-label="Link"></aside>
+    </div>
+      </body>
+    </html>

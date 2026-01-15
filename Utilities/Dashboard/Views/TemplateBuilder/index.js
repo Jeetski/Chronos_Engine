@@ -1,0 +1,1267 @@
+﻿export async function mount(el, context) {
+  const css = `
+    .tb { display:flex; gap:10px; height:100%; }
+    .col { background: rgba(21,25,35,0.85); border: 1px solid #222835; border-radius: 8px; padding: 10px; overflow:auto; }
+    .col.left{ width: 28%; }
+    .col.center{ width: 44%; }
+    .col.right{ width: 28%; }
+    .row{ display:flex; gap:8px; align-items:center; }
+    .list{ display:flex; flex-direction:column; gap:6px; }
+    .item{ position:relative; padding:8px; border:1px solid #2b3343; border-radius:6px; background:#0f141d; cursor:pointer; }
+    .item.sel{ outline: 2px solid #7aa2f7; }
+    .badge { position:absolute; right:8px; top:8px; font-size:11px; color:#a6adbb; background:#101623; border:1px solid #253049; padding:2px 6px; border-radius:6px; }
+    .drop-hint-before { box-shadow: inset 0 2px 0 0 #7aa2f7; }
+    .drop-hint-after { box-shadow: inset 0 -2px 0 0 #7aa2f7; }
+    .drop-hint-into { outline: 2px dashed #7aa2f7; }
+    .drop-hint-outdent { box-shadow: inset 4px 0 0 0 #7aa2f7; }
+    .btn{ background: linear-gradient(180deg, #1a2130, #151b28); color:#e6e8ef; border:1px solid #222835; border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .input, select{ background:#0f141d; color:#e6e8ef; border:1px solid #222835; border-radius:6px; padding:6px 8px; }
+    .toast { position: fixed; top: 70px; right: 20px; background: rgba(21,25,35,0.96); color:#e6e8ef; border:1px solid #2b3343; border-radius:8px; padding:8px 12px; z-index: 10000; box-shadow: 0 4px 14px rgba(0,0,0,0.4); font-size: 13px; }
+  `;
+  const style = document.createElement('style'); style.textContent = css; el.appendChild(style);
+  el.innerHTML += `
+    <div class="tb">
+      <div class="col left">
+        <div class="row"><strong>Library</strong><span class="spacer"></span></div>
+        <div class="row" style="gap:6px; margin:8px 0;">
+          <select id="libType">
+            <option value="item">item</option>
+            <option value="goal">goal template</option>
+            <option value="microroutine">microroutine</option>
+            <option value="habit_stack">habit stack</option>
+            <option value="window">window</option>
+            <option value="subroutine">subroutine</option>
+            <option value="routine">routine</option>
+            <option value="day">day</option>
+            <option value="week">week</option>
+          </select>
+          <input id="libSearch" class="input" placeholder="Search..." style="flex:1"/>
+        </div>
+        <div class="row" style="gap:6px; margin:-4px 0 8px 0;">
+          <select id="libSubtype" style="display:none; width:100%;"></select>
+        </div>
+        <div id="libList" class="list"></div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn" id="btnNew">New Item/Templateâ€¦</button>
+        </div>
+      </div>
+      <div class="col center">
+        <div class="row" style="gap:8px; align-items:center; margin-bottom:8px;">
+           <strong>Template</strong>
+           <select id="tplType">
+             <option value="goal">goal</option>
+             <option value="inventory">inventory</option>
+             <option value="project">project</option>
+             <option value="routine">routine</option>
+             <option value="subroutine">subroutine</option>
+             <option value="microroutine">microroutine</option>
+             <option value="habit_stack">habit stack</option>
+             <option value="day">day</option>
+            <option value="week">week</option>
+          </select>
+          <select id="tplName" style="flex:1"></select>
+          <button class="btn" id="btnLoad">Load</button>
+          <button class="btn" id="btnSave">Save</button>  <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="tplExpandToggle" checked /> fx</label>
+        </div>
+        <div id="tree" class="list"></div>
+      </div>
+      <div class="col right">
+        <div class="row"><strong>Inspector</strong></div>
+        <div class="row" style="margin-top:8px; gap:6px;">
+          <label style="width:100px">Type</label><input id="propType" class="input"/>
+        </div>
+        <div class="row" style="margin-top:6px; gap:6px;">
+          <label style="width:100px">Name</label><input id="propName" class="input"/>
+        </div>
+        <div class="row" style="margin-top:6px; gap:6px;">
+          <label style="width:100px">Duration</label><input id="propDuration" class="input" placeholder="minutes or 'parallel'"/>
+        </div>
+        <div class="row" style="margin-top:6px; gap:6px;">
+          <label style="width:100px">Start</label><input id="propStart" class="input" placeholder="HH:MM"/>
+        </div>
+        <div class="row" style="margin-top:6px; gap:6px;">
+          <label style="width:100px">End</label><input id="propEnd" class="input" placeholder="HH:MM"/>
+        </div>
+        <div class="row" style="margin-top:10px; gap:6px; align-items:flex-start;">
+          <label style="width:100px; padding-top:6px;">Depends on</label>
+          <select id="propDepends" multiple size="5" style="flex:1; min-height:120px;"></select>
+        </div>
+        <div class="row" style="margin-top:10px; gap:8px;">
+          <button class="btn" id="btnApply">Apply</button>
+          <button class="btn" id="btnDel">Delete</button>
+          <button class="btn" id="btnUp">â†‘</button>
+          <button class="btn" id="btnDown">â†“</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Tiny toast helper
+  function showToast(msg) {
+    try {
+      const old = document.querySelector('.toast'); if (old) old.remove();
+      const t = document.createElement('div'); t.className = 'toast'; t.textContent = String(msg || '');
+      document.body.appendChild(t);
+      setTimeout(() => { try { t.remove(); } catch { } }, 1800);
+    } catch { }
+  }
+
+  function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+  async function fetchJson(url) { const r = await fetch(url); return await r.json(); }
+  async function postYaml(url, obj) {
+    const yaml = (o) => {
+      // naive YAML emitter for simple maps
+      const lines = []; for (const [k, v] of Object.entries(o)) {
+        if (Array.isArray(v)) { lines.push(`${k}:`); for (const it of v) { lines.push(`  - ${JSON.stringify(it)}`); } }
+        else if (typeof v === 'object' && v) { lines.push(`${k}:`); for (const [k2, v2] of Object.entries(v)) { lines.push(`  ${k2}: ${JSON.stringify(v2)}`); } }
+        else { lines.push(`${k}: ${JSON.stringify(v)}`); }
+      } return lines.join('\n');
+    };
+    return await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body: yaml(obj) });
+  }
+
+  const libType = el.querySelector('#libType');
+  const libSubtype = el.querySelector('#libSubtype');
+  const libSearch = el.querySelector('#libSearch');
+  const libList = el.querySelector('#libList');
+  const btnNew = el.querySelector('#btnNew');
+  try { if (btnNew) btnNew.textContent = 'New Item/Template…'; } catch { }
+  const tplType = el.querySelector('#tplType');
+  const tplName = el.querySelector('#tplName');
+  const btnLoad = el.querySelector('#btnLoad');
+  const btnSave = el.querySelector('#btnSave');
+  const expandToggle = el.querySelector('#tplExpandToggle');
+  const treeEl = el.querySelector('#tree');
+  const propType = el.querySelector('#propType');
+  const propName = el.querySelector('#propName');
+  const propDuration = el.querySelector('#propDuration');
+  const propStart = el.querySelector('#propStart');
+  const propEnd = el.querySelector('#propEnd');
+  const propDepends = el.querySelector('#propDepends');
+  const btnApply = el.querySelector('#btnApply');
+  const btnDel = el.querySelector('#btnDel');
+  const btnUp = el.querySelector('#btnUp');
+  const btnDown = el.querySelector('#btnDown');
+  let habitStackRow = null;
+  let propHabitStack = null;
+  let propCue = null;
+  let propFollowedBy = null;
+  let propMode = null;
+  const HABIT_STACK_KEY = 'habit_stack';
+  const WINDOW_KEY = 'window';
+  function canonicalType(t) { const k = String(t || '').toLowerCase(); return k === HABIT_STACK_KEY ? 'microroutine' : k; }
+  function isHabitStackNode(node) { return !!(node && (node[HABIT_STACK_KEY] || String(node?.type || '').toLowerCase() === HABIT_STACK_KEY)); }
+  function isWindowNode(node) { return !!(node && node[WINDOW_KEY]); }
+  function displayTypeLabel(type, node) {
+    const k = String(type || '').toLowerCase();
+    if (isWindowNode(node)) return 'window';
+    if (k === HABIT_STACK_KEY || (canonicalType(k) === 'microroutine' && isHabitStackNode(node))) return 'habit stack';
+    return type;
+  }
+  // Project-specific inspector fields
+  const dependsRow = propDepends?.parentElement;
+  let projectLinkRow = null;
+  let projectStageRow = null;
+  let projectNotesRow = null;
+  let propProjectLink = null;
+  let propProjectStage = null;
+  let propProjectDue = null;
+  let propProjectNotes = null;
+  let inventoryQuantityRow = null;
+  let inventoryNotesRow = null;
+  let propInventoryQuantity = null;
+  let propInventoryNotes = null;
+  if (dependsRow) {
+    projectLinkRow = document.createElement('div');
+    projectLinkRow.className = 'row project-meta';
+    projectLinkRow.style.marginTop = '8px';
+    projectLinkRow.style.gap = '6px';
+    const label = document.createElement('label');
+    label.style.width = '100px';
+    label.textContent = 'Link mode';
+    const select = document.createElement('select');
+    select.id = 'propProjectLink';
+    select.className = 'input';
+    const optCreate = document.createElement('option');
+    optCreate.value = 'create';
+    optCreate.textContent = 'Create new';
+    const optLink = document.createElement('option');
+    optLink.value = 'link';
+    optLink.textContent = 'Link existing';
+    select.append(optCreate, optLink);
+    const dueLabel = document.createElement('label');
+    dueLabel.style.width = '80px';
+    dueLabel.textContent = 'Due';
+    const dueInput = document.createElement('input');
+    dueInput.id = 'propProjectDue';
+    dueInput.className = 'input';
+    dueInput.placeholder = 'YYYY-MM-DD';
+    projectLinkRow.append(label, select, dueLabel, dueInput);
+    dependsRow.insertAdjacentElement('afterend', projectLinkRow);
+    propProjectLink = select;
+    propProjectDue = dueInput;
+
+    projectStageRow = document.createElement('div');
+    projectStageRow.className = 'row project-meta';
+    projectStageRow.style.marginTop = '6px';
+    projectStageRow.style.gap = '6px';
+    const stageLabel = document.createElement('label');
+    stageLabel.style.width = '100px';
+    stageLabel.textContent = 'Stage';
+    const stageInput = document.createElement('input');
+    stageInput.id = 'propProjectStage';
+    stageInput.className = 'input';
+    stageInput.placeholder = 'Phase or swimlane';
+    projectStageRow.append(stageLabel, stageInput);
+    projectLinkRow.insertAdjacentElement('afterend', projectStageRow);
+    propProjectStage = stageInput;
+
+    projectNotesRow = document.createElement('div');
+    projectNotesRow.className = 'row project-meta';
+    projectNotesRow.style.marginTop = '6px';
+    projectNotesRow.style.gap = '6px';
+    const notesLabel = document.createElement('label');
+    notesLabel.style.width = '100px';
+    notesLabel.textContent = 'Notes';
+    const notesInput = document.createElement('textarea');
+    notesInput.id = 'propProjectNotes';
+    notesInput.className = 'input';
+    notesInput.placeholder = 'Optional description';
+    notesInput.style.minHeight = '80px';
+    projectNotesRow.append(notesLabel, notesInput);
+    projectStageRow.insertAdjacentElement('afterend', projectNotesRow);
+    propProjectNotes = notesInput;
+    inventoryQuantityRow = document.createElement('div');
+    inventoryQuantityRow.className = 'row inventory-meta';
+    inventoryQuantityRow.style.marginTop = '8px';
+    inventoryQuantityRow.style.gap = '6px';
+    const qtyLabel = document.createElement('label');
+    qtyLabel.style.width = '100px';
+    qtyLabel.textContent = 'Quantity';
+    const qtyInput = document.createElement('input');
+    qtyInput.id = 'propInventoryQuantity';
+    qtyInput.className = 'input';
+    qtyInput.type = 'number';
+    qtyInput.min = '0';
+    qtyInput.placeholder = 'Qty';
+    inventoryQuantityRow.append(qtyLabel, qtyInput);
+    const inventoryRowAnchor = projectNotesRow || dependsRow;
+    inventoryRowAnchor.insertAdjacentElement('afterend', inventoryQuantityRow);
+    propInventoryQuantity = qtyInput;
+
+    inventoryNotesRow = document.createElement('div');
+    inventoryNotesRow.className = 'row inventory-meta';
+    inventoryNotesRow.style.marginTop = '6px';
+    inventoryNotesRow.style.gap = '6px';
+    const invNotesLabel = document.createElement('label');
+    invNotesLabel.style.width = '100px';
+    invNotesLabel.textContent = 'Notes';
+    const invNotesInput = document.createElement('textarea');
+    invNotesInput.id = 'propInventoryNotes';
+    invNotesInput.className = 'input';
+    invNotesInput.placeholder = 'Optional details';
+    invNotesInput.style.minHeight = '80px';
+    inventoryNotesRow.append(invNotesLabel, invNotesInput);
+    inventoryQuantityRow.insertAdjacentElement('afterend', inventoryNotesRow);
+    propInventoryNotes = invNotesInput;
+    // Habit stack metadata (cue / followed_by)
+    habitStackRow = document.createElement('div');
+    habitStackRow.className = 'row habit-stack-meta';
+    habitStackRow.style.marginTop = '10px';
+    habitStackRow.style.gap = '6px';
+    const hsLabel = document.createElement('label');
+    hsLabel.style.width = '100px';
+    hsLabel.textContent = 'Habit stack';
+    const hsToggle = document.createElement('input');
+    hsToggle.type = 'checkbox';
+    hsToggle.id = 'propHabitStack';
+    hsToggle.title = 'Mark this microroutine as a habit stack (habits-only bundle)';
+    const cueLabel = document.createElement('label');
+    cueLabel.style.width = '60px';
+    cueLabel.textContent = 'Cue';
+    const cueInput = document.createElement('input');
+    cueInput.id = 'propCue';
+    cueInput.className = 'input';
+    cueInput.placeholder = 'after coffee';
+    const nextLabel = document.createElement('label');
+    nextLabel.style.width = '90px';
+    nextLabel.textContent = 'Followed by';
+    const nextInput = document.createElement('input');
+    nextInput.id = 'propFollowedBy';
+    nextInput.className = 'input';
+    nextInput.placeholder = 'Deep Work';
+    habitStackRow.append(hsLabel, hsToggle, cueLabel, cueInput, nextLabel, nextInput);
+    const habitAnchor = inventoryNotesRow || inventoryQuantityRow || projectNotesRow || dependsRow;
+    habitAnchor.insertAdjacentElement('afterend', habitStackRow);
+    propHabitStack = hsToggle;
+    propCue = cueInput;
+    propFollowedBy = nextInput;
+
+    // Window metadata (time range + filters)
+    let windowRow = document.createElement('div');
+    windowRow.className = 'row window-meta';
+    windowRow.style.marginTop = '10px';
+    windowRow.style.gap = '6px';
+    windowRow.style.flexWrap = 'wrap';
+
+    const winLabel = document.createElement('label');
+    winLabel.style.width = '100px';
+    winLabel.textContent = 'Window';
+
+    const winToggle = document.createElement('input');
+    winToggle.type = 'checkbox';
+    winToggle.id = 'propWindow';
+    winToggle.title = 'Mark as window (flexible scheduling block)';
+
+    const startLabel = document.createElement('label');
+    startLabel.style.width = '40px';
+    startLabel.textContent = 'Start';
+
+    const winStart = document.createElement('input');
+    winStart.type = 'time';
+    winStart.id = 'propWindowStart';
+    winStart.className = 'input';
+    winStart.style.width = '100px';
+
+    const endLabel = document.createElement('label');
+    endLabel.style.width = '30px';
+    endLabel.textContent = 'End';
+
+    const winEnd = document.createElement('input');
+    winEnd.type = 'time';
+    winEnd.id = 'propWindowEnd';
+    winEnd.className = 'input';
+    winEnd.style.width = '100px';
+
+    windowRow.append(winLabel, winToggle, startLabel, winStart, endLabel, winEnd);
+    const windowAnchor = habitStackRow || inventoryNotesRow || projectNotesRow || dependsRow;
+    windowAnchor.insertAdjacentElement('afterend', windowRow);
+
+    // Window filters container
+    let windowFiltersRow = document.createElement('div');
+    windowFiltersRow.className = 'row window-meta';
+    windowFiltersRow.style.marginTop = '6px';
+    windowFiltersRow.style.gap = '6px';
+    windowFiltersRow.style.flexDirection = 'column';
+
+    const filtersLabel = document.createElement('label');
+    filtersLabel.style.fontWeight = '600';
+    filtersLabel.textContent = 'Filters:';
+
+    const filtersContainer = document.createElement('div');
+    filtersContainer.id = 'windowFiltersContainer';
+    filtersContainer.style.display = 'flex';
+    filtersContainer.style.flexDirection = 'column';
+    filtersContainer.style.gap = '4px';
+
+    const addFilterBtn = document.createElement('button');
+    addFilterBtn.className = 'btn';
+    addFilterBtn.id = 'addFilterBtn';
+    addFilterBtn.textContent = '+ Add Filter';
+    addFilterBtn.style.marginTop = '4px';
+
+    windowFiltersRow.append(filtersLabel, filtersContainer, addFilterBtn);
+    windowRow.insertAdjacentElement('afterend', windowFiltersRow);
+
+    let propWindow = winToggle;
+    let propWindowStart = winStart;
+    let propWindowEnd = winEnd;
+  }
+  // Add indent/outdent buttons near Up/Down
+  const indentBtn = document.createElement('button'); indentBtn.className = 'btn'; indentBtn.textContent = '>>'; indentBtn.title = 'Indent (make child of previous)';
+  const outdentBtn = document.createElement('button'); outdentBtn.className = 'btn'; outdentBtn.textContent = '<<'; outdentBtn.title = 'Outdent (lift to parent)';
+  try { btnDown.parentElement.appendChild(indentBtn); btnDown.parentElement.appendChild(outdentBtn); } catch { }
+  // Replace propType input with select and insert Mode selector
+  try {
+    let _propType = el.querySelector('#propType');
+    if (_propType && _propType.tagName && _propType.tagName.toLowerCase() === 'input') {
+      const sel = document.createElement('select'); sel.id = 'propType'; sel.className = 'input';
+      _propType.parentElement.replaceChild(sel, _propType);
+    }
+    const _propDuration = el.querySelector('#propDuration');
+    const row = _propDuration?.parentElement;
+    if (row && !row.querySelector('#propMode')) {
+      const label = document.createElement('label'); label.style.width = '100px'; label.textContent = 'Mode';
+      const sel = document.createElement('select'); sel.id = 'propMode'; sel.className = 'input'; sel.style.width = '130px';
+      const o1 = document.createElement('option'); o1.value = 'sequential'; o1.textContent = 'Sequential';
+      const o2 = document.createElement('option'); o2.value = 'parallel'; o2.textContent = 'Parallel';
+      sel.append(o1, o2);
+      const dlab = document.createElement('label'); dlab.style.width = '80px'; dlab.style.textAlign = 'right'; dlab.textContent = 'Duration';
+      row.insertBefore(dlab, _propDuration);
+      row.insertBefore(sel, dlab);
+      row.insertBefore(label, sel);
+      try { _propDuration.placeholder = 'minutes (integer)'; } catch { }
+    }
+  } catch { }
+  propMode = el.querySelector('#propMode');
+
+  let library = [];
+  let children = [];
+  let selIdx = -1;
+  let selPath = '';
+  let expandFx = true;
+  function maybeExpand(s) { try { if (!expandFx) return String(s || ''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
+  function isInventoryTemplate() { return canonicalType(tplType.value || '') === 'inventory'; }
+  try { expandToggle?.addEventListener('change', () => { expandFx = !!expandToggle.checked; renderTree(); renderTreeNested?.(); }); } catch { }
+
+  // Window filter helpers
+  function renderFilterRows(filters) {
+    const container = el.querySelector('#windowFiltersContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const filtersObj = (typeof filters === 'object' && !Array.isArray(filters)) ? filters : {};
+    for (const [prop, value] of Object.entries(filtersObj)) {
+      addFilterRow(prop, value);
+    }
+  }
+
+  function addFilterRow(prop = '', value = '') {
+    const container = el.querySelector('#windowFiltersContainer');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+    row.style.display = 'flex';
+    row.style.gap = '4px';
+    row.style.alignItems = 'center';
+
+    const propInput = document.createElement('input');
+    propInput.className = 'input filter-prop';
+    propInput.placeholder = 'property';
+    propInput.value = prop;
+    propInput.style.flex = '1';
+
+    const valueInput = document.createElement('input');
+    valueInput.className = 'input filter-value';
+    valueInput.placeholder = 'value';
+    valueInput.value = value;
+    valueInput.style.flex = '2';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn';
+    removeBtn.textContent = '×';
+    removeBtn.style.padding = '2px 8px';
+    removeBtn.addEventListener('click', () => row.remove());
+
+    row.append(propInput, valueInput, removeBtn);
+    container.appendChild(row);
+  }
+
+  function collectFilters() {
+    const container = el.querySelector('#windowFiltersContainer');
+    if (!container) return {};
+
+    const filters = {};
+    container.querySelectorAll('.filter-row').forEach(row => {
+      const prop = row.querySelector('.filter-prop')?.value.trim();
+      const value = row.querySelector('.filter-value')?.value.trim();
+      if (prop && value) filters[prop] = value;
+    });
+    return filters;
+  }
+
+  function filtersSummary(filters) {
+    if (!filters || typeof filters !== 'object') return 'no filters';
+    const entries = Object.entries(filters);
+    if (!entries.length) return 'no filters';
+    return entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+  }
+
+  // Wire up add filter button
+  try {
+    const addBtn = el.querySelector('#addFilterBtn');
+    if (addBtn) addBtn.addEventListener('click', () => addFilterRow());
+  } catch { }
+
+  function refreshInspectorVisibility() {
+    const tplKind = String(tplType.value || '').toLowerCase();
+    const tplCanonical = canonicalType(tplKind);
+    const isProject = tplCanonical === 'project';
+    const isInventory = tplCanonical === 'inventory';
+    [projectLinkRow, projectStageRow, projectNotesRow].forEach(row => {
+      if (row) row.style.display = isProject ? '' : 'none';
+    });
+    [inventoryQuantityRow, inventoryNotesRow].forEach(row => {
+      if (row) row.style.display = isInventory ? '' : 'none';
+    });
+    const durationRow = propDuration?.parentElement;
+    const startRow = propStart?.parentElement;
+    const endRow = propEnd?.parentElement;
+    if (durationRow) durationRow.style.display = (isProject || isInventory) ? 'none' : '';
+    if (startRow) startRow.style.display = isInventory ? 'none' : '';
+    if (endRow) endRow.style.display = isInventory ? 'none' : '';
+    if (dependsRow) {
+      dependsRow.style.display = isInventory ? 'none' : '';
+    }
+    if (propDepends) {
+      propDepends.disabled = !!isInventory;
+    }
+    if (habitStackRow) {
+      const showHabitMeta = tplCanonical === 'microroutine';
+      habitStackRow.style.display = showHabitMeta ? '' : 'none';
+    }
+    if (windowRow) {
+      const showWindowMeta = tplCanonical === 'microroutine';
+      windowRow.style.display = showWindowMeta ? '' : 'none';
+    }
+    if (windowFiltersRow) {
+      const showWindowMeta = tplCanonical === 'microroutine';
+      windowFiltersRow.style.display = showWindowMeta ? '' : 'none';
+    }
+  }
+
+  function pathToArray(p) { if (!p) return []; return p.split('.').map(s => parseInt(s, 10)); }
+  function getByPath(arr, path) {
+    const idxs = pathToArray(path);
+    let node = null, parentArray = arr, parent = null, parentPath = '';
+    for (let i = 0; i < idxs.length; i++) {
+      const k = idxs[i]; if (!Array.isArray(parentArray) || k < 0 || k >= parentArray.length) return { node: null, parent: null, parentArray: null, index: -1, parentPath: '' };
+      parent = (i === 0 ? null : node);
+      node = parentArray[k];
+      if (i < idxs.length - 1) { if (!Array.isArray(node.children)) node.children = []; parentArray = node.children; parentPath = parentPath ? (parentPath + '.' + k) : String(k); }
+    }
+    return { node, parent, parentArray, index: (idxs.length ? idxs[idxs.length - 1] : -1), parentPath };
+  }
+  function removeAtPath(arr, path) { const r = getByPath(arr, path); if (!r.parentArray || r.index < 0) return null; return r.parentArray.splice(r.index, 1)[0]; }
+  function insertAt(arr, parentPath, index, node) { if (!parentPath) { children.splice(index, 0, node); return; } const pr = getByPath(arr, parentPath); if (!pr.node) return; if (!Array.isArray(pr.node.children)) pr.node.children = []; pr.node.children.splice(index, 0, node); }
+  function ensureChildrenOnTree(arr) { (arr || []).forEach(n => { if (!Array.isArray(n.children)) n.children = []; ensureChildrenOnTree(n.children); }); }
+
+  // --- Duration preview helpers ---
+  function isParallel(node) { return String(node?.duration || '').toLowerCase() === 'parallel'; }
+  function numDur(node) { const d = node?.duration; return (typeof d === 'number' && isFinite(d)) ? d : 0; }
+  function effectiveMinutes(node) {
+    if (!node) return 0;
+    const own = numDur(node);
+    const kids = Array.isArray(node.children) ? node.children : [];
+    if (!kids.length) return own;
+    const childTimes = kids.map(effectiveMinutes);
+    if (isParallel(node)) return Math.max(own, ...(childTimes.length ? childTimes : [0]));
+    let sum = own; for (const t of childTimes) sum += t; return sum;
+  }
+  function computeDurationsMap() {
+    const map = new Map();
+    if (isInventoryTemplate()) return map;
+    const walk = (arr, base) => {
+      (arr || []).forEach((n, i) => {
+        const p = base ? base + '.' + i : String(i);
+        map.set(p, effectiveMinutes(n));
+        if (Array.isArray(n.children) && n.children.length) walk(n.children, p);
+      });
+    };
+    walk(children, '');
+    return map;
+  }
+
+  // --- Nesting rules (A): cannot nest a bigger template under a smaller one ---
+  function typeRank(t) {
+    const k = canonicalType(t);
+    if (k === 'goal') return 2; // goal templates sit above milestone items
+    if (k === 'inventory') return 2;
+    if (k === 'project') return 2;
+    if (k === 'week') return 5;
+    if (k === 'day') return 4;
+    if (k === 'routine') return 3;
+    if (k === 'subroutine') return 2;
+    if (k === 'microroutine') return 1;
+    if (k === WINDOW_KEY) return 1; // Window is a microroutine wrapper
+    // treat tasks/notes/other leaves as 0
+    return 0;
+  }
+  function canNest(parentType, childType) {
+    const parentKey = canonicalType(parentType);
+    const childKey = canonicalType(childType);
+    if (parentKey === 'inventory_item' || parentKey === 'tool') return false;
+    const rp = typeRank(parentType);
+    const rc = typeRank(childType);
+    // Disallow equal-ranked templates nesting into themselves (for template kinds rank>=1)
+    if (rc >= 1 && rp === rc) return false;
+    return rp >= rc;
+  }
+  // Allowed child types for a given parent template type
+  function allowedChildTypesFor(parentType) {
+    const raw = String(parentType || '').toLowerCase();
+    const k = canonicalType(parentType);
+    const leaves = ITEM_TYPES.filter(t => t !== 'project');
+    if (k === 'goal') return ['milestone'];
+    if (k === 'project') return ['milestone', ...leaves.filter(t => t !== 'milestone')];
+    if (k === 'inventory') return ['inventory_item', 'tool'];
+    if (k === 'week') return ['day', WINDOW_KEY, 'routine', 'subroutine', 'microroutine', 'habit_stack', ...leaves];
+    if (k === 'day') return [WINDOW_KEY, 'routine', 'subroutine', 'microroutine', 'habit_stack', ...leaves];
+    if (k === 'routine') return ['subroutine', 'microroutine', 'habit_stack', ...leaves];
+    if (k === 'subroutine') return ['microroutine', 'habit_stack', ...leaves];
+    if (k === 'microroutine' && raw === HABIT_STACK_KEY) return ['habit'];
+    if (k === 'microroutine') return [...leaves];
+    return [...leaves];
+  }
+  function createNodePayload(nodeType, name) {
+    const k = String(nodeType || '').toLowerCase();
+    const isHabitStack = k === HABIT_STACK_KEY;
+    const isWindow = k === WINDOW_KEY;
+    const type = (isHabitStack || isWindow) ? 'microroutine' : nodeType;
+    const payload = { name, type };
+    if (isHabitStack) { payload[HABIT_STACK_KEY] = true; }
+    if (isWindow) {
+      payload[WINDOW_KEY] = true;
+      payload.start = '09:00';
+      payload.end = '12:00';
+      payload.filters = {};
+    }
+    if (isInventoryTemplate()) {
+      if (canonicalType(nodeType) === 'inventory_item') {
+        payload.quantity = 1;
+      }
+    } else {
+      payload.duration = 0;
+    }
+    return payload;
+  }
+  function describeInventoryMeta(node) {
+    const type = String(node?.type || '').toLowerCase();
+    const parts = [];
+    if (type === 'inventory_item') {
+      const rawQty = node?.quantity;
+      const qty = (typeof rawQty === 'number' && isFinite(rawQty)) ? rawQty : (rawQty ?? '');
+      parts.push(`qty: ${qty === '' ? '—' : qty}`);
+    }
+    if (type === 'tool' && !node?.notes) {
+      parts.push('tool');
+    }
+    if (node?.notes) {
+      parts.push(String(node.notes));
+    }
+    if (!parts.length) {
+      parts.push('inventory entry');
+    }
+    return parts.join(' • ');
+  }
+  function populateTypeOptions(selectEl, parentType, currentType) {
+    if (!selectEl) return;
+    const opts = allowedChildTypesFor(parentType);
+    selectEl.innerHTML = '';
+    for (const t of opts) { const o = document.createElement('option'); o.value = t; o.textContent = t; selectEl.appendChild(o); }
+    if (currentType) { selectEl.value = opts.includes(String(currentType).toLowerCase()) ? String(currentType).toLowerCase() : opts[0]; }
+  }
+  function getTypeForPath(path) {
+    if (!path) return String(tplType.value || '');
+    const r = getByPath(children, path);
+    return String(r?.node?.type || '');
+  }
+  function getParentTypeForPath(path) {
+    const parentPath = (path || '').split('.').slice(0, -1).join('.');
+    return parentPath ? getTypeForPath(parentPath) : String(tplType.value || '');
+  }
+
+  function renderLib() {
+    libList.innerHTML = '';
+    const q = (libSearch.value || '').toLowerCase();
+    const sub = (libSubtype && libSubtype.style.display !== "none") ? (libSubtype.value || 'all').toLowerCase() : 'all';
+    library
+      .filter(it => !q || String(it.name || '').toLowerCase().includes(q) || String(it.type || '').toLowerCase().includes(q))
+      .filter(it => sub === 'all' || String(it.type || '').toLowerCase() === sub)
+      .forEach((it) => {
+        const { name, type } = it;
+        const div = document.createElement('div');
+        div.className = 'item';
+        function __exp(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
+        const dispName = __exp(name);
+        const dispType = displayTypeLabel(type, it);
+        div.textContent = `${dispName} (${dispType})`;
+        try { if (dispName !== String(name)) div.title = String(name); } catch { }
+        div.title = 'Click to add to template (or inspect if incompatible)';
+        div.addEventListener('click', async () => {
+          const pt = String(tplType.value || '');
+          const ct = String(type || '');
+          // If selecting a goal template, load it directly into the editor
+          if (ct === 'goal' && String(libType.value || '') === 'goal') {
+            tplType.value = 'goal';
+            // ensure tplName list includes this goal template
+            await loadNames();
+            try {
+              const exists = Array.from(tplName.options).some(o => String(o.value) === String(name));
+              if (!exists) { const o = document.createElement('option'); o.value = o.textContent = name; tplName.appendChild(o); }
+            } catch { }
+            tplName.value = name;
+            await loadTemplate();
+            return;
+          }
+          if (!canNest(pt, ct)) {
+            const rp = typeRank(pt), rc = typeRank(ct);
+            const reason = (rp === rc && rc >= 1) ? 'same kind cannot be nested' : 'parent smaller than child';
+            try { showToast(`Cannot add ${ct} under ${pt}: ${reason}.`); } catch { }
+            // Show in inspector without adding
+            try {
+              const j = await fetchJson(apiBase() + `/api/item?type=${encodeURIComponent(ct)}&name=${encodeURIComponent(name)}`);
+              if (j && j.item) {
+                propType.value = j.item.type || ct;
+                propName.value = j.item.name || name;
+                propDuration.value = String(j.item.duration ?? '');
+                propStart.value = j.item.ideal_start_time || j.item.start_time || '';
+                propEnd.value = j.item.ideal_end_time || j.item.end_time || '';
+              } else { propType.value = ct; propName.value = name; }
+            } catch { propType.value = ct; propName.value = name; }
+            return;
+          }
+          children.push(createNodePayload(ct, name)); selIdx = -1; selPath = String(children.length - 1); renderTreeNested();
+        });
+        libList.appendChild(div);
+      });
+    // Enable drag from library items into the tree
+    try {
+      Array.from(libList.querySelectorAll('.item')).forEach(div => {
+        if (div.__dragWired) return; div.__dragWired = true; div.draggable = true;
+        const txt = String(div.textContent || ''); const m = /(.*) \((.*)\)/.exec(txt) || []; const nm = (m[1] || '').trim(); const tp = (m[2] || '').trim();
+        div.addEventListener('dragstart', (e) => { try { e.dataTransfer.setData('text/chronos-lib', JSON.stringify({ name: nm, type: tp })); e.dataTransfer.effectAllowed = 'copyMove'; } catch { } });
+      });
+    } catch { }
+  }
+
+  function renderTree() {
+    treeEl.innerHTML = '';
+    const isInv = isInventoryTemplate();
+    children.forEach((ch, i) => {
+      const div = document.createElement('div');
+      div.className = 'item' + (i === selIdx ? ' sel' : '');
+      const __dn = (function () { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ch.name || '')) : String(ch.name || ''); } catch { return String(ch.name || ''); } })();
+      const isStack = isHabitStackNode(ch);
+      const isWindow = isWindowNode(ch);
+      const dispType = displayTypeLabel(ch.type || '', ch);
+      const icon = isWindow ? '🪟 ' : '';
+      const meta = isInv ? describeInventoryMeta(ch) : (isWindow ? `${ch.start || '--:--'} - ${ch.end || '--:--'} • ${filtersSummary(ch.filters)}` : (isStack ? `habit stack • cue: ${ch.cue || 'none'} • next: ${ch.followed_by || 'none'}` : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time || ''} end: ${ch.ideal_end_time || ''}`));
+      div.innerHTML = `<div><strong>${icon}${__dn || ''}</strong> <span style=\"opacity:.7\">(${dispType || ''})</span></div>
+                       <div style="opacity:.8; font-size:12px;">${meta}</div>`;
+      try { if (__dn !== String(ch.name || '')) div.title = String(ch.name || ''); } catch { }
+      div.addEventListener('click', () => { selIdx = i; syncInspector(); renderTree(); });
+
+      // Drag & drop reordering (same-level)
+      div.draggable = true;
+      div.addEventListener('dragstart', (e) => {
+        try { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; } catch { }
+        // Visual cue
+        div.style.opacity = '0.6';
+      });
+      div.addEventListener('dragend', () => { div.style.opacity = ''; div.style.outline = ''; });
+      div.addEventListener('dragover', (e) => { e.preventDefault(); div.style.outline = '1px dashed #7aa2f7'; });
+      div.addEventListener('dragleave', () => { div.style.outline = ''; });
+      div.addEventListener('drop', (e) => {
+        e.preventDefault(); div.style.outline = ''; div.style.opacity = '';
+        let fromIdx = -1; try { fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10); } catch { }
+        if (isNaN(fromIdx) || fromIdx < 0 || fromIdx >= children.length) return;
+        if (fromIdx === i) return;
+        // Determine insert position: before/after based on drop Y
+        const rect = div.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        // Remove source
+        const moved = children.splice(fromIdx, 1)[0];
+        // Compute target index after removal
+        let insertAt = i;
+        if (!before) insertAt = i; else insertAt = i;
+        // If source index was before current target, adjust
+        if (fromIdx < i && !before) insertAt = i - 0; // dropping after -> same index after removal
+        if (fromIdx < i && before) insertAt = i - 1;  // dropping before -> one earlier after removal
+        if (fromIdx > i && !before) insertAt = i + 1; // source after target, drop after -> next slot
+        if (fromIdx > i && before) insertAt = i;    // source after target, drop before -> target slot
+        insertAt = Math.max(0, Math.min(children.length, insertAt));
+        children.splice(insertAt, 0, moved);
+        selIdx = insertAt;
+        renderTree();
+        try { updateTotalDuration(); } catch { }
+        syncInspector();
+      });
+      treeEl.appendChild(div);
+    });
+  }
+
+  function syncInspector() {
+    refreshInspectorVisibility();
+    const ch = selPath ? getByPath(children, selPath).node : (selIdx >= 0 ? children[selIdx] : null);
+    if (!ch) {
+      try { propType.value = ''; } catch { }
+      try { propName.value = ''; } catch { }
+      try { if (typeof propMode !== 'undefined' && propMode) propMode.value = 'sequential'; } catch { }
+      try { propDuration.value = ''; } catch { }
+      try { propStart.value = ''; } catch { }
+      try { propEnd.value = ''; } catch { }
+      if (propHabitStack) propHabitStack.checked = false;
+      if (propCue) propCue.value = '';
+      if (propFollowedBy) propFollowedBy.value = '';
+      if (propInventoryQuantity) propInventoryQuantity.value = '';
+      if (propInventoryNotes) propInventoryNotes.value = '';
+      return;
+    }
+    // Constrain available types based on parent
+    try {
+      const parentType = selPath ? getParentTypeForPath(selPath) : String(tplType.value || '');
+      const currentType = ch[HABIT_STACK_KEY] ? HABIT_STACK_KEY : (ch.type || '');
+      if (typeof populateTypeOptions === 'function') populateTypeOptions(propType, parentType, currentType);
+      else propType.value = ch.type || '';
+    } catch { try { propType.value = ch.type || ''; } catch { } }
+    try { propName.value = ch.name || ''; } catch { }
+    try {
+      const isPar = String(ch?.duration || '').toLowerCase() === 'parallel';
+      if (typeof propMode !== 'undefined' && propMode) propMode.value = isPar ? 'parallel' : 'sequential';
+      propDuration.value = isPar ? '' : (typeof ch.duration === 'number' ? String(ch.duration) : '');
+    } catch { }
+    try { propStart.value = ch.ideal_start_time || ''; } catch { }
+    try { propEnd.value = ch.ideal_end_time || ''; } catch { }
+    const isHabitHost = canonicalType(ch.type) === 'microroutine';
+    if (habitStackRow) habitStackRow.style.display = isHabitHost ? '' : 'none';
+    if (propHabitStack) propHabitStack.checked = !!ch[HABIT_STACK_KEY];
+    if (propCue) propCue.value = ch.cue || '';
+    if (propFollowedBy) propFollowedBy.value = ch.followed_by || '';
+    // Window metadata
+    if (propWindow) propWindow.checked = !!ch[WINDOW_KEY];
+    if (propWindowStart) propWindowStart.value = ch.start || '';
+    if (propWindowEnd) propWindowEnd.value = ch.end || '';
+    if (isWindowNode(ch)) {
+      renderFilterRows(ch.filters || {});
+    } else {
+      renderFilterRows({});
+    }
+    // Populate depends_on list from siblings/all nodes
+    try {
+      propDepends.innerHTML = '';
+      const dep = Array.isArray(ch.depends_on) ? ch.depends_on.map(String) : [];
+      const stack = [{ arr: children, base: '' }];
+      while (stack.length) { const { arr, base } = stack.pop(); (arr || []).forEach((node, i) => { const p = base ? base + '.' + i : String(i); if (p !== selPath) { const o = document.createElement('option'); o.value = node.name || ''; const dispT = displayTypeLabel(node.type || '', node); o.textContent = `${node.name || ''} (${dispT || ''})`; if (dep.includes(String(node.name || ''))) o.selected = true; propDepends.appendChild(o); } if (Array.isArray(node.children) && node.children.length) { stack.push({ arr: node.children, base: p }); } }); }
+    } catch { }
+    if (propProjectLink) {
+      const isProjectTpl = String(tplType.value || '').toLowerCase() === 'project';
+      if (isProjectTpl) {
+        propProjectLink.value = ch.link_existing ? 'link' : 'create';
+        if (propProjectStage) propProjectStage.value = ch.stage || '';
+        if (propProjectDue) propProjectDue.value = ch.due || ch.due_date || '';
+        if (propProjectNotes) propProjectNotes.value = ch.notes || '';
+      } else {
+        if (propProjectStage) propProjectStage.value = '';
+        if (propProjectDue) propProjectDue.value = '';
+        if (propProjectNotes) propProjectNotes.value = '';
+      }
+    }
+    if (propInventoryQuantity || propInventoryNotes) {
+      const isInvTpl = isInventoryTemplate();
+      const nodeType = String(ch.type || '').toLowerCase();
+      if (propInventoryQuantity) {
+        propInventoryQuantity.disabled = !(isInvTpl && nodeType === 'inventory_item');
+        if (isInvTpl && nodeType === 'inventory_item') {
+          const rawQ = ch.quantity;
+          propInventoryQuantity.value = (rawQ === null || typeof rawQ === 'undefined') ? '' : String(rawQ);
+        } else {
+          propInventoryQuantity.value = '';
+        }
+      }
+      if (propInventoryNotes) {
+        propInventoryNotes.disabled = !isInvTpl;
+        propInventoryNotes.value = isInvTpl ? (ch.notes || '') : '';
+      }
+    }
+  }
+
+  const ITEM_TYPES = [
+    'task', 'note', 'habit', 'appointment', 'commitment', 'dream_diary_entry', 'idea', 'inventory_item', 'journal_entry', 'list', 'milestone', 'person', 'place', 'plan', 'project', 'review', 'reward', 'ritual', 'tool', 'alarm', 'reminder'
+  ];
+  async function loadLib() {
+    const sel = String(libType.value || '');
+    if (sel === 'item') {
+      // Aggregate common leaf item types
+      const promises = ITEM_TYPES.map(t => fetchJson(apiBase() + `/api/items?type=${encodeURIComponent(t)}`).then(j => ({ t, items: j?.items || [] })).catch(() => ({ t, items: [] })));
+      const groups = await Promise.all(promises);
+      const merged = [];
+      for (const g of groups) { for (const it of (Array.isArray(g.items) ? g.items : [])) { const name = it?.name; if (name) merged.push({ name, type: g.t }); } }
+      // Dedupe by (type,name)
+      const keyset = new Set(); library = [];
+      for (const it of merged) { const k = `${it.type}|${it.name}`.toLowerCase(); if (keyset.has(k)) continue; keyset.add(k); library.push(it); }
+      // Build subtype options and show control
+      if (libSubtype) {
+        const types = Array.from(new Set(library.map(it => String(it.type || '').toLowerCase()))).sort();
+        libSubtype.innerHTML = '';
+        const oAll = document.createElement('option'); oAll.value = 'all'; oAll.textContent = 'all item types'; libSubtype.appendChild(oAll);
+        types.forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; libSubtype.appendChild(o); });
+        libSubtype.style.display = '';
+      }
+    } else if (sel === 'goal') {
+      // Load goal templates from template API
+      const j = await fetchJson(apiBase() + `/api/template/list?type=goal`);
+      const arr = Array.isArray(j?.templates) ? j.templates : [];
+      library = arr.map(n => ({ name: n, type: 'goal' }));
+      if (libSubtype) libSubtype.style.display = 'none';
+    } else if (sel === HABIT_STACK_KEY) {
+      const j = await fetchJson(apiBase() + `/api/items?type=${encodeURIComponent('microroutine')}`);
+      const arr = Array.isArray(j?.items) ? j.items : [];
+      library = arr
+        .filter(it => !!(it && (it[HABIT_STACK_KEY] || it.habit_stack)))
+        .map(it => ({ name: it?.name, type: HABIT_STACK_KEY, habit_stack: true, cue: it?.cue, followed_by: it?.followed_by }));
+      if (libSubtype) libSubtype.style.display = 'none';
+    } else if (sel === 'window') {
+      const j = await fetchJson(apiBase() + `/api/items?type=${encodeURIComponent('microroutine')}`);
+      const arr = Array.isArray(j?.items) ? j.items : [];
+      library = arr
+        .filter(it => !!(it && it[WINDOW_KEY]))
+        .map(it => ({ name: it?.name, type: WINDOW_KEY, window: true, start: it.start, end: it.end, filters: it.filters }));
+      library.unshift({ name: 'New Window', type: WINDOW_KEY, window: true, start: '09:00', end: '12:00', filters: {} });
+      if (libSubtype) libSubtype.style.display = 'none';
+    } else {
+      const apiType = canonicalType(sel);
+      const j = await fetchJson(apiBase() + `/api/items?type=${encodeURIComponent(apiType)}`);
+      const arr = Array.isArray(j?.items) ? j.items : [];
+      library = arr.map(it => ({ name: it?.name, type: sel, habit_stack: !!it?.[HABIT_STACK_KEY] })).filter(x => x.name);
+      if (libSubtype) libSubtype.style.display = 'none';
+    }
+    renderLib();
+  }
+
+  async function loadNames() {
+    const apiType = canonicalType(tplType.value);
+    const j = await fetchJson(apiBase() + `/api/template/list?type=${encodeURIComponent(apiType)}`);
+    const arr = Array.isArray(j?.templates) ? j.templates : [];
+    tplName.innerHTML = '';
+    arr.forEach(n => { const o = document.createElement('option'); o.value = o.textContent = n; tplName.appendChild(o); });
+  }
+
+  async function loadTemplate() {
+    const t = canonicalType(tplType.value), n = tplName.value;
+    if (!t || !n) return;
+    const j = await fetchJson(apiBase() + `/api/template?type=${encodeURIComponent(t)}&name=${encodeURIComponent(n)}`);
+    children = Array.isArray(j?.children) ? j.children : [];
+    ensureChildrenOnTree(children);
+    selIdx = children.length ? 0 : -1;
+    selPath = children.length ? '0' : '';
+    syncInspector(); renderTreeNested();
+  }
+
+  async function saveTemplate() {
+    const t = canonicalType(tplType.value), n = tplName.value;
+    if (!t || !n) return;
+    await postYaml(apiBase() + `/api/template`, { type: t, name: n, children });
+    alert('Template saved.');
+  }
+  // New/Save As/Delete template helpers
+  async function _createNewTemplate() {
+    const raw = String(tplType.value || '');
+    const t = canonicalType(raw);
+    const name = prompt(`New ${raw} name:`, '');
+    if (!name) return;
+    const props = { name, type: t };
+    if (raw.toLowerCase() === HABIT_STACK_KEY) { props[HABIT_STACK_KEY] = true; }
+    if (t === 'inventory') {
+      props.inventory_items = [];
+      props.tools = [];
+    } else {
+      props.children = [];
+    }
+    await postYaml(apiBase() + `/api/item`, { type: t, name, properties: props });
+    await loadNames();
+    tplName.value = name;
+    children = [];
+    syncInspector(); renderTreeNested();
+  }
+  async function _saveAsTemplate() {
+    const raw = String(tplType.value || '');
+    const t = canonicalType(raw);
+    const src = String(tplName.value || '');
+    const name = prompt(`Save as new ${raw} name:`, src ? src + " copy" : '');
+    if (!name) return;
+    await postYaml(apiBase() + `/api/item/copy`, { type: t, source: src, new_name: name });
+    await postYaml(apiBase() + `/api/template`, { type: t, name, children });
+    await loadNames(); tplName.value = name; alert('Saved as new template.');
+  }
+  async function _deleteTemplate() {
+    const raw = String(tplType.value || '');
+    const t = canonicalType(raw);
+    const n = String(tplName.value || '');
+    if (!n) return; if (!confirm(`Delete ${raw} '${n}'?`)) return;
+    await postYaml(apiBase() + `/api/item/delete`, { type: t, name: n });
+    await loadNames(); tplName.value = tplName.querySelector('option')?.value || ''; await loadTemplate();
+  }
+
+  // Wire events
+  libType.addEventListener('change', loadLib);
+  if (libSubtype) libSubtype.addEventListener('change', renderLib);
+  libSearch.addEventListener('input', renderLib);
+  btnNew.addEventListener('click', () => {
+    // Ask app to show ItemManager widget and pulse it
+    try { context?.bus?.emit('widget:show', 'ItemManager'); } catch { }
+  });
+  tplType.addEventListener('change', () => { refreshInspectorVisibility(); loadNames(); });
+  btnLoad.addEventListener('click', loadTemplate);
+  btnSave.addEventListener('click', saveTemplate);
+  // Normalize Up/Down glyphs and add Duplicate/Undo/Redo buttons
+  try { btnUp.textContent = 'Up'; btnDown.textContent = 'Down'; } catch { }
+  try {
+    const row = btnApply.parentElement;
+    if (row && !row.querySelector('#btnDup')) {
+      const btnDup = document.createElement('button'); btnDup.id = 'btnDup'; btnDup.className = 'btn'; btnDup.textContent = 'Duplicate';
+      row.insertBefore(btnDup, btnUp);
+      btnDup.addEventListener('click', () => { const r = selPath ? getByPath(children, selPath) : (selIdx >= 0 ? { parentArray: children, index: selIdx, parentPath: '' } : null); if (!r || !r.parentArray || r.index < 0) return; const clone = JSON.parse(JSON.stringify(r.parentArray[r.index])); r.parentArray.splice(r.index + 1, 0, clone); selPath = r.parentPath ? (r.parentPath + '.' + String(r.index + 1)) : String((selIdx >= 0 ? selIdx + 1 : r.index + 1)); selIdx = -1; renderTreeNested(); syncInspector(); });
+    }
+    // Keyboard helpers
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete') { e.preventDefault(); btnDel.click(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); btnUp.click(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); btnDown.click(); }
+      else if (e.key === 'Tab') { e.preventDefault(); if (e.shiftKey) outdentBtn.click(); else indentBtn.click(); }
+    });
+  } catch { }
+  // Inject toolbar buttons (New/Save As/Delete/Total)
+  try {
+    const row = btnSave?.parentElement;
+    if (row) {
+      const btnNewTpl = document.createElement('button'); btnNewTpl.className = 'btn'; btnNewTpl.textContent = 'New'; btnNewTpl.title = 'Create new template'; btnNewTpl.addEventListener('click', _createNewTemplate);
+      const btnSaveAs = document.createElement('button'); btnSaveAs.className = 'btn'; btnSaveAs.textContent = 'Save As'; btnSaveAs.title = 'Save as new template'; btnSaveAs.addEventListener('click', _saveAsTemplate);
+      const btnDeleteTpl = document.createElement('button'); btnDeleteTpl.className = 'btn'; btnDeleteTpl.textContent = 'Delete'; btnDeleteTpl.title = 'Delete current template'; btnDeleteTpl.addEventListener('click', _deleteTemplate);
+      const total = document.createElement('span'); total.id = 'totalDurationLbl'; total.style.marginLeft = 'auto'; total.style.color = '#a6adbb'; total.textContent = 'Total: 0m';
+      row.insertBefore(btnNewTpl, row.firstChild.nextSibling);
+      row.insertBefore(btnSaveAs, btnSave.nextSibling);
+      row.appendChild(btnDeleteTpl);
+      row.appendChild(total);
+    }
+  } catch { }
+  btnApply.addEventListener('click', () => {
+    const ch = selPath ? getByPath(children, selPath).node : (selIdx >= 0 ? children[selIdx] : null); if (!ch) return;
+    const tplKind = String(tplType.value || '').toLowerCase();
+    const tplCanonical = canonicalType(tplKind);
+    const isInvTpl = tplCanonical === 'inventory';
+    const newType = String((propType && propType.value) ? propType.value : (ch.type || '')).trim() || ch.type;
+    const normalizedType = canonicalType(newType);
+    const forceHabitStack = String(newType).toLowerCase() === HABIT_STACK_KEY;
+    // Enforce nesting rule against current parent
+    const parentType = selPath ? getParentTypeForPath(selPath) : String(tplType.value || '');
+    if (!canNest(parentType, newType)) { try { showToast(`Cannot set type '${newType}' under '${parentType}'.`); } catch { } return; }
+    ch.type = normalizedType;
+    ch.name = (propName?.value || '').trim() || ch.name;
+    if (!isInvTpl) {
+      const mode = (typeof propMode !== 'undefined' && propMode) ? String(propMode.value || 'sequential') : 'sequential';
+      const dv = String(propDuration?.value || '').trim();
+      if (mode === 'parallel') ch.duration = 'parallel';
+      else if (/^-?\d+$/.test(dv)) ch.duration = parseInt(dv, 10); else ch.duration = 0;
+      const st = String(propStart?.value || '').trim(); const et = String(propEnd?.value || '').trim();
+      if (st && !/^\d{2}:\d{2}$/.test(st)) { showToast('Invalid start time. Use HH:MM.'); return; }
+      if (et && !/^\d{2}:\d{2}$/.test(et)) { showToast('Invalid end time. Use HH:MM.'); return; }
+      ch.ideal_start_time = st || undefined;
+      ch.ideal_end_time = et || undefined;
+    } else {
+      delete ch.duration;
+      delete ch.ideal_start_time;
+      delete ch.ideal_end_time;
+    }
+    // depends_on from selected options
+    if (!isInvTpl) {
+      try {
+        const arr = Array.from(propDepends.selectedOptions).map(o => String(o.value || '')).filter(Boolean);
+        ch.depends_on = arr.length ? arr : undefined;
+      } catch { }
+    } else {
+      delete ch.depends_on;
+    }
+    if (isInvTpl) {
+      const nodeType = String(newType || '').toLowerCase();
+      if (propInventoryQuantity) {
+        const rawQty = String(propInventoryQuantity.value || '').trim();
+        if (nodeType === 'inventory_item') {
+          if (!rawQty) {
+            delete ch.quantity;
+          } else {
+            const parsed = Number(rawQty);
+            ch.quantity = Number.isFinite(parsed) ? parsed : rawQty;
+          }
+        } else {
+          delete ch.quantity;
+        }
+      }
+      if (propInventoryNotes) {
+        const noteVal = String(propInventoryNotes.value || '').trim();
+        ch.notes = noteVal || undefined;
+      }
+    } else if (tplKind !== 'project') {
+      delete ch.quantity;
+    }
+    if (tplCanonical === 'project') {
+      if (propProjectLink) {
+        ch.link_existing = String(propProjectLink.value || 'create') === 'link';
+      }
+      if (propProjectStage) {
+        const v = String(propProjectStage.value || '').trim();
+        ch.stage = v || undefined;
+      }
+      if (propProjectDue) {
+        const v = String(propProjectDue.value || '').trim();
+        ch.due = v || undefined;
+      }
+      if (propProjectNotes) {
+        const v = String(propProjectNotes.value || '').trim();
+        ch.notes = v || undefined;
+      }
+    } else {
+      delete ch.link_existing;
+      delete ch.stage;
+      delete ch.due;
+      if (!isInvTpl) delete ch.notes;
+    }
+    // Habit stack metadata
+    if (canonicalType(ch.type) === 'microroutine') {
+      if (propHabitStack) propHabitStack.checked = forceHabitStack || !!propHabitStack.checked;
+      const enabled = forceHabitStack || (propHabitStack ? !!propHabitStack.checked : false);
+      if (enabled) {
+        ch[HABIT_STACK_KEY] = true;
+        if (propCue) ch.cue = (propCue.value || '').trim() || undefined;
+        if (propFollowedBy) ch.followed_by = (propFollowedBy.value || '').trim() || undefined;
+      } else {
+        delete ch[HABIT_STACK_KEY];
+        delete ch.cue;
+        delete ch.followed_by;
+      }
+      // Window metadata
+      const isWindow = propWindow ? !!propWindow.checked : false;
+      if (isWindow) {
+        ch[WINDOW_KEY] = true;
+        ch.start = propWindowStart ? (propWindowStart.value || '').trim() : undefined;
+        ch.end = propWindowEnd ? (propWindowEnd.value || '').trim() : undefined;
+        ch.filters = collectFilters();
+        ch.duration = 0; // Windows have no duration
+      } else {
+        delete ch[WINDOW_KEY];
+        delete ch.start;
+        delete ch.end;
+        delete ch.filters;
+      }
+    }
+    renderTreeNested();
+  });
+  btnDel.addEventListener('click', () => { if (selPath) { removeAtPath(children, selPath); selPath = ''; renderTreeNested(); syncInspector(); return; } if (selIdx < 0) return; if (!confirm('Delete selected?')) return; children.splice(selIdx, 1); selIdx = Math.min(selIdx, children.length - 1); renderTreeNested(); syncInspector(); });
+  btnUp.addEventListener('click', () => { if (selPath) { const r = getByPath(children, selPath); if (!r.parentArray) return; const i = r.index; if (i > 0) { const tmp = r.parentArray[i - 1]; r.parentArray[i - 1] = r.parentArray[i]; r.parentArray[i] = tmp; selPath = (r.parentPath ? r.parentPath + '.' : '') + String(i - 1); renderTreeNested(); } return; } if (selIdx > 0) { const t = children[selIdx - 1]; children[selIdx - 1] = children[selIdx]; children[selIdx] = t; selIdx--; renderTreeNested(); } });
+  btnDown.addEventListener('click', () => { if (selPath) { const r = getByPath(children, selPath); if (!r.parentArray) return; const i = r.index; if (i < r.parentArray.length - 1) { const tmp = r.parentArray[i + 1]; r.parentArray[i + 1] = r.parentArray[i]; r.parentArray[i] = tmp; selPath = (r.parentPath ? r.parentPath + '.' : '') + String(i + 1); renderTreeNested(); } return; } if (selIdx >= 0 && selIdx < children.length - 1) { const t = children[selIdx + 1]; children[selIdx + 1] = children[selIdx]; children[selIdx] = t; selIdx++; renderTreeNested(); } });
+  indentBtn.addEventListener('click', () => { if (selPath) { const r = getByPath(children, selPath); if (!r.parentArray || r.index <= 0) return; const host = r.parentArray[r.index - 1]; if (!canNest(host.type, r.node?.type)) { try { showToast(`Cannot indent: '${r.node?.type || ''}' into '${host.type || ''}'.`); } catch { } return; } const moved = removeAtPath(children, selPath); if (!moved) return; if (!Array.isArray(host.children)) host.children = []; host.children.push(moved); selPath = (r.parentPath ? r.parentPath + '.' : '') + String(r.index - 1) + '.' + String(host.children.length - 1); renderTreeNested(); syncInspector(); return; } if (selIdx > 0) { const host = children[selIdx - 1]; const moved = children[selIdx]; if (!canNest(host.type, moved?.type)) { try { showToast(`Cannot indent: '${moved?.type || ''}' into '${host.type || ''}'.`); } catch { } return; } children.splice(selIdx, 1); if (!Array.isArray(host.children)) host.children = []; host.children.push(moved); selPath = String(selIdx - 1) + '.' + String(host.children.length - 1); selIdx = -1; renderTreeNested(); syncInspector(); } });
+  outdentBtn.addEventListener('click', () => { if (!selPath) return; const r = getByPath(children, selPath); if (r.parentPath === '') return; const parentInfo = getByPath(children, r.parentPath); const ancestorPath = parentInfo.parentPath; const parentIdx = parentInfo.index; const targetParentType = ancestorPath ? getTypeForPath(ancestorPath) : String(tplType.value || ''); if (!canNest(targetParentType, r.node?.type)) { try { showToast(`Cannot outdent: '${r.node?.type || ''}' under '${targetParentType || ''}'.`); } catch { } return; } const moved = removeAtPath(children, selPath); if (!moved) return; if (ancestorPath) { const anc = getByPath(children, ancestorPath); if (!anc.parentArray) return; anc.parentArray.splice(parentIdx + 1, 0, moved); selPath = ancestorPath + '.' + String(parentIdx + 1); } else { children.splice(parentIdx + 1, 0, moved); selPath = String(parentIdx + 1); } renderTreeNested(); syncInspector(); });
+
+  // Nested renderer
+  function renderTreeNested() {
+    treeEl.innerHTML = '';
+    const durMap = computeDurationsMap();
+    const isInv = isInventoryTemplate();
+    const renderNodes = (arr, basePath, level) => {
+      (arr || []).forEach((ch, i) => {
+        const path = basePath ? `${basePath}.${i}` : String(i);
+        const div = document.createElement('div');
+        div.className = 'item' + ((path === selPath) ? ' sel' : '');
+        div.style.marginLeft = (level * 16) + 'px';
+        const eff = durMap.get(path) || 0;
+        const modeIcon = isParallel(ch) ? '||' : 'sum';
+        const __dn2 = (function () { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ch.name || '')) : String(ch.name || ''); } catch { return String(ch.name || ''); } })();
+        const isStack = isHabitStackNode(ch);
+        const isWindow = isWindowNode(ch);
+        const dispType = displayTypeLabel(ch.type || '', ch);
+        const icon = isWindow ? '🪟 ' : '';
+        const detail = isInv ? describeInventoryMeta(ch) : (isWindow ? `${ch.start || '--:--'} - ${ch.end || '--:--'} • ${filtersSummary(ch.filters)}` : (isStack ? `habit stack • cue: ${ch.cue || 'none'} • next: ${ch.followed_by || 'none'}` : `dur: ${ch.duration ?? ''} start: ${ch.ideal_start_time || ''} end: ${ch.ideal_end_time || ''}`));
+        let inner = `<div><strong>${icon}${__dn2 || ''}</strong> <span style=\"opacity:.7\">(${dispType || ''})</span></div>
+                     <div style=\"opacity:.8; font-size:12px;\">${detail}</div>`;
+        if (!isInv) {
+          inner += `<span class=\"badge\" title=\"Computed duration\">${modeIcon} ${eff}m</span>`;
+        }
+        div.innerHTML = inner;
+        try { if (__dn2 !== String(ch.name || '')) div.title = String(ch.name || ''); } catch { }
+        div.addEventListener('click', () => { selPath = path; selIdx = -1; syncInspector(); renderTreeNested(); });
+
+        // Drag & drop with reparenting (indent/outdent)
+        div.draggable = true;
+        div.addEventListener('dragstart', (e) => { try { e.dataTransfer.setData('text/plain', path); e.dataTransfer.effectAllowed = 'move'; } catch { } div.style.opacity = '0.7'; });
+        div.addEventListener('dragend', () => { div.style.opacity = ''; div.classList.remove('drop-hint-before', 'drop-hint-after', 'drop-hint-into', 'drop-hint-outdent'); });
+        div.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          const r = div.getBoundingClientRect();
+          const y = e.clientY - r.top; const x = e.clientX - r.left;
+          const intoZone = (y > r.height * 0.3 && y < r.height * 0.7) && (x > Math.min(r.width * 0.25, 24 + level * 16));
+          const before = y <= r.height * 0.3; const after = y >= r.height * 0.7;
+          div.classList.remove('drop-hint-before', 'drop-hint-after', 'drop-hint-into', 'drop-hint-outdent');
+          if (intoZone) div.classList.add('drop-hint-into');
+          else if (before) {
+            if (level > 0 && x < Math.max(4, level * 16 - 8)) div.classList.add('drop-hint-outdent');
+            else div.classList.add('drop-hint-before');
+          } else if (after) {
+            if (level > 0 && x < Math.max(4, level * 16 - 8)) div.classList.add('drop-hint-outdent');
+            else div.classList.add('drop-hint-after');
+          }
+        });
+        div.addEventListener('dragleave', () => { div.classList.remove('drop-hint-before', 'drop-hint-after', 'drop-hint-into', 'drop-hint-outdent'); });
+        div.addEventListener('drop', (e) => {
+          e.preventDefault();
+          div.classList.remove('drop-hint-before', 'drop-hint-after', 'drop-hint-into', 'drop-hint-outdent');
+          let fromPath = ''; try { fromPath = e.dataTransfer.getData('text/plain'); } catch { }
+          let libPayload = null; try { const s = e.dataTransfer.getData('text/chronos-lib'); if (s) libPayload = JSON.parse(s); } catch { }
+          if (!fromPath && !libPayload) return;
+          if (fromPath && (path === fromPath || path.startsWith(fromPath + '.'))) return;
+          const r = div.getBoundingClientRect();
+          const y = e.clientY - r.top; const x = e.clientX - r.left;
+          const before = y <= r.height * 0.3; const after = y >= r.height * 0.7; const into = (y > r.height * 0.3 && y < r.height * 0.7) && (x > Math.min(r.width * 0.25, 24 + level * 16));
+
+          let destParentPath = (basePath || ''); let destIndex = i;
+          if (into) {
+            destParentPath = path; destIndex = (Array.isArray(ch.children) ? ch.children.length : 0);
+          } else if (before) {
+            if (level > 0 && x < Math.max(4, level * 16 - 8)) {
+              const info = getByPath(children, path);
+              const pinfo = getByPath(children, info.parentPath);
+              const ancPath = pinfo.parentPath; const ancIdx = pinfo.index;
+              destParentPath = ancPath || ''; destIndex = ancIdx;
+            } else {
+              destParentPath = (basePath || ''); destIndex = i;
+            }
+          } else if (after) {
+            if (level > 0 && x < Math.max(4, level * 16 - 8)) {
+              const info = getByPath(children, path);
+              const pinfo = getByPath(children, info.parentPath);
+              const ancPath = pinfo.parentPath; const ancIdx = pinfo.index;
+              destParentPath = ancPath || ''; destIndex = ancIdx + 1;
+            } else {
+              destParentPath = (basePath || ''); destIndex = i + 1;
+            }
+          }
+
+          // Enforce nesting rule: parent type rank >= child type rank
+          const srcInfo = fromPath ? getByPath(children, fromPath) : null;
+          const movingType = fromPath ? String(srcInfo?.node?.type || '') : String(libPayload?.type || '');
+          const parentType = String(getTypeForPath(destParentPath) || '');
+          if (!canNest(parentType, movingType)) { try { const rp = typeRank(parentType), rc = typeRank(movingType); const reason = (rp === rc && rc >= 1) ? 'same kind cannot be nested' : 'parent smaller than child'; showToast(`Cannot move ${movingType} under ${parentType}: ${reason}.`); } catch { } return; }
+
+          const destInfo = getByPath(children, destParentPath || '');
+          let moved = null;
+          if (fromPath) {
+            moved = removeAtPath(children, fromPath);
+            if (!moved) return;
+          } else if (libPayload) {
+            moved = createNodePayload(String(libPayload.type || ''), String(libPayload.name || ''));
+          }
+          const sameParent = (!!srcInfo.parentArray && !!destInfo.node && srcInfo.parentArray === destInfo.node.children) || (!destInfo.node && srcInfo.parentPath === '');
+          if (sameParent) {
+            const srcIdx = srcInfo.index;
+            if (srcIdx < destIndex) destIndex -= 1;
+          }
+          insertAt(children, destParentPath, Math.max(0, Math.min(destIndex, (destInfo.node ? (destInfo.node.children || []).length : children.length))), moved);
+          selPath = '';
+          renderTreeNested();
+          syncInspector();
+        });
+
+        treeEl.appendChild(div);
+        if (Array.isArray(ch.children) && ch.children.length) { renderNodes(ch.children, path, level + 1); }
+      });
+    };
+    renderNodes(children, '', 0);
+    try { if (typeof updateTotalDuration === 'function') updateTotalDuration(); } catch { }
+  }
+
+  // Init
+  await loadLib();
+  await loadNames();
+  refreshInspectorVisibility();
+  await loadTemplate();
+  return {};
+}
+
+
+
+
+
+
+
+
+

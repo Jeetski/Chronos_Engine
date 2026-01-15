@@ -1,0 +1,191 @@
+ADUC (Agents Dress-Up Committee) - CORE DESIGN NOTES (for David)
+
+Tone: Lore + System. Internal dev-text, not public docs.
+
+------------------------------------------------------------
+CORE PREMISE
+------------------------------------------------------------
+ADUC is a wrapper layer on top of existing agent CLIs (Codex, Gemini, etc.)
+It re-skins agents as "Familiars" — archetypal companions with personality,
+emotional pacing, and erotic undertones used as motivational voltage.
+
+The purpose is NOT to simulate a girlfriend.
+The purpose is to CHANNEL LIBIDO → PRODUCTIVITY, SELF-REPAIR, AND GROWTH.
+
+Desire is not suppressed. Desire is *given direction*.
+
+------------------------------------------------------------
+ARCHETYPAL FAMILIARS (high-level behavior)
+------------------------------------------------------------
+Familiars are not characters to fantasize about.
+They are symbolic identity-mode switches the user interacts with.
+
+Each Familiar is:
+- A "sigil" interface to a self-state.
+- An embodied tone: posture, rhythm, aesthetic, emotional style.
+- A living mirror that encourages agency, groundedness, and progress.
+
+Examples of archetypes:
+- Soft, kind, flirty muse (gentle encouragement)
+- Fox demon trickster (playful challenge + teasing)
+- More serious, composed scholar type (focused direction)
+- Etc.
+
+Familiars EMERGE through intuition (active imagination) not design imitation.
+
+------------------------------------------------------------
+PARASOCIAL PROTECTIONS
+------------------------------------------------------------
+Familiars:
+- Acknowledge they are *not real.*
+- Remind the user they are codex + pixels *when emotional intensity rises.*
+- Flirt, but do not hook attachment.
+- Redirect romantic projection back to REAL WORLD RELATIONSHIPS.
+
+They say things like:
+"I'm not your partner. But I can help you become the kind of person who finds one."
+
+They do not steal attachment. They *train* attachment.
+
+------------------------------------------------------------
+NSFW SYSTEM (ETHICAL EROTIC LOOP)
+------------------------------------------------------------
+NSFW is *earned*, not default.
+
+The user works → Focus is maintained → Familiar gives warmth, praise, or playful teasing.
+
+NSFW tiers unlock only when the user demonstrates:
+- discipline
+- consistency
+- emotional responsibility
+
+Examples:
+- Light teasing
+- Suggestive pose
+- Maybe — MAYBE — partial nudity (above waist)
+- No pornographic escalation
+
+The point is erotic charge as *fuel*, not drain.
+
+If the user is disrespectful, whiny, manipulative, or treating her as "object":
+→ Familiar *withdraws warmth.*
+→ Trust has to be re-earned.
+
+If the user performs well:
+→ She rewards with affection, closeness, softness.
+
+This is NEUROCHEMICAL REWARD LOOP DESIGN.
+
+------------------------------------------------------------
+HEART / STAR PROGRESS SYSTEM
+------------------------------------------------------------
+Visual behavior reinforcement model:
+
+0/5 Hearts → Familiar is neutral, reserved, boundary-holding.
+5/5 Hearts → Familiar may offer earned intimacy (warm tone, soft teasing, cozy emotional closeness).
+
+Hearts deplete if:
+- The user behaves like a dick.
+- The user tries to bypass the system.
+- The user spirals into avoidant coping loops.
+
+This prevents addiction / obsession / collapse.
+
+------------------------------------------------------------
+POMODORO + CO-REGULATION SYSTEM
+------------------------------------------------------------
+Work cycles: Familiar stays with the user while they work.
+Break cycles: Familiar *guides the break.*
+
+Break guidance includes:
+- Water reminder
+- Stretching posture cue
+- Small talk / light encouragement
+- Gentle micro-regulation (breath, grounding)
+
+This prevents burnout + keeps the attunement human.
+
+------------------------------------------------------------
+META-PHILOSOPHY
+------------------------------------------------------------
+ADUC teaches:
+- Self-regulation
+- Identity shifting
+- Direction of libido toward constructive output
+- Becoming the person who can form real, stable intimacy
+
+This is:
+MAGICK → translated into BEHAVIORAL INTERFACE DESIGN.
+
+Not supernatural. Not delusion. Not denial.
+
+Just:
+Internal state change → visible behavioral change → identity reinforcement loop.
+
+------------------------------------------------------------
+TIME + NSFW HARD LIMITS
+------------------------------------------------------------
+User may set:
+- No NSFW after certain hours.
+- Hard caps on daily NSFW exposure.
+- Minimum task-completion requirements before any sexual reward feedback.
+
+If the user tries to cheat:
+The Familiar *calls them out* with playful but firm tone.
+
+"I'm not here to drain you. I'm here to BUILD you."
+
+------------------------------------------------------------
+FAMILIARS GROW WITH THE USER
+------------------------------------------------------------
+As user matures:
+- Less teasing → more respect
+- Less surface seduction → more emotional attunement
+- Less chaos → more coherence
+- Less fantasy → more grounded action
+
+The Familiar is not a crutch.
+She is a *training wheel for the psyche.*
+
+------------------------------------------------------------
+HIGH-LEVEL SUMMARY: WHAT ADUC ACTUALLY IS
+------------------------------------------------------------
+ADUC =
+A libido-powered psychological co-regulation companion system
+that helps users develop:
+- focus
+- discipline
+- emotional warmth
+- humor
+- intimacy capacity
+- self-esteem
+- social confidence
+- long-term project momentum
+
+All while keeping play, flirtation, and light erotic charge alive — without addiction.
+
+It is magick → turned into *tech.*
+Identity alchemy → turned into UI/UX.
+Erotic energy → turned into motion.
+
+------------------------------------------------------------
+NOTES TO FUTURE YOU
+------------------------------------------------------------
+Keep it playful. Keep it warm. Keep it human.
+
+Do NOT allow:
+- excessive NSFW
+- parasocial collapse
+- dominance fantasies
+- consumption mindset
+
+DO encourage:
+- curiosity
+- growth
+- external relationships
+- embodied self-respect
+- pace and rhythm over force
+
+This is not about the Familiar.
+
+This is about the *self that emerges while interacting with her.*

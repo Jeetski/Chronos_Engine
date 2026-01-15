@@ -1,0 +1,21 @@
+# ADUC Launcher Configuration
+# Edit these values to customize how ADUC launches
+
+# CLI Backend: which AI CLI to use
+# Options: "codex" or "gemini"
+cli_backend: codex
+
+# Working directory for the CLI (where commands execute)
+# Use "chronos" to use the Chronos Engine root
+# Use "aduc" to use the ADUC folder
+# Or specify an absolute path
+working_directory: chronos
+
+# Timeout for CLI responses (in seconds, 0 = infinite)
+cli_timeout: 0
+
+# Include immersive lore in prompts
+immersive: true
+
+# Include memory entries in prompts
+include_memory: true

@@ -1,0 +1,39 @@
+:root {
+  --bg: #120d08;
+  --panel: rgba(32, 21, 12, 0.9);
+  --border: #3b2617;
+  --text: #fef4e7;
+  --text-dim: #d8c1af;
+  --accent: #f3a64c;
+  --shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+  --radius: 12px;
+
+  --chronos-surface: rgba(32, 21, 12, 0.92);
+  --chronos-surface-strong: #1a120a;
+  --chronos-surface-soft: rgba(22, 15, 9, 0.75);
+  --chronos-surface-highlight: rgba(68, 44, 22, 0.8);
+
+  --chronos-border: #3b2617;
+  --chronos-border-strong: #5b3b21;
+  --chronos-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+
+  --chronos-text: #fef4e7;
+  --chronos-text-muted: #d5b697;
+  --chronos-text-soft: #c5976d;
+
+  --chronos-accent: #f3a64c;
+  --chronos-accent-strong: #f07c24;
+  --chronos-accent-soft: rgba(243, 166, 76, 0.22);
+  --chronos-accent-gradient: linear-gradient(180deg, #f6b34a, #e66c1f);
+  --chronos-accent-glow: 0 14px 32px rgba(240, 140, 40, 0.35);
+
+  --chronos-success: #7dd3a6;
+  --chronos-success-soft: rgba(125, 211, 166, 0.18);
+  --chronos-warning: #f7c86b;
+  --chronos-warning-soft: rgba(247, 200, 107, 0.28);
+  --chronos-danger: #ff9aa2;
+  --chronos-danger-soft: rgba(255, 154, 162, 0.22);
+
+  --chronos-overlay-gradient: radial-gradient(circle at 35% 25%, rgba(243, 166, 76, 0.18), rgba(9, 6, 5, 0.94));
+  --chronos-overlay-blur: blur(12px);
+}

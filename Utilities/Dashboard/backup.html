@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Productivity Monolith</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #151923;
+        --panel-2: #10131a;
+        --muted: #1b2230;
+        --border: #222835;
+        --text: #e6e8ef;
+        --text-dim: #a6adbb;
+        --accent: #7aa2f7;
+        --accent-2: #23b5d3;
+        --danger: #ef6a6a;
+        --ok: #5bdc82;
+        --shadow: 0 10px 30px rgba(0,0,0,0.35);
+        --radius: 12px;
+        --left: 180px;
+        --right: 220px;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 1200px at 80% -10%, #151b26 0%, var(--bg) 45%);
+        color: var(--text);
+        font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        display: grid;
+        grid-template-columns: var(--left) minmax(0,1fr) var(--right);
+        grid-template-rows: 100vh;
+        gap: 10px;
+        padding: 12px;
+        overflow: hidden;
+      }
+      body.collapse-right { grid-template-columns: var(--left) minmax(0,1fr); }
+      body.collapse-left { grid-template-columns: minmax(0,1fr) var(--right); }
+      body.collapse-left.collapse-right { grid-template-columns: 1fr; }
+      body.collapse-right #right { display: none; }
+      body.collapse-left #left { display: none; }
+      /* Explicit grid placement to avoid overlap when toggling columns */
+      #left { grid-column: 1; }
+      #center { grid-column: 2; }
+      #right { grid-column: 3; }
+      body.collapse-left #center { grid-column: 1; }
+      body.collapse-right #center { grid-column: 2; }
+      body.collapse-left.collapse-right #center { grid-column: 1; }
+
+      .panel {
+        background: linear-gradient(180deg, var(--panel), var(--panel-2));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        min-height: 0; /* allow children to scroll */
+        position: relative;
+        z-index: 1;
+      }
+
+      .panel .header {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .title {
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .subtle { color: var(--text-dim); }
+
+      .panel .content {
+        padding: 10px;
+        overflow: auto;
+        gap: 12px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Center canvas area */
+      .center {
+        background: linear-gradient(180deg, #0e121a, #0b0f16);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 0;
+        position: relative;
+        z-index: 0;
+      }
+      .toolbar {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .canvas-wrap {
+        position: relative;
+        min-height: 0;
+      }
+      canvas#board {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: repeating-conic-gradient(from 45deg, #0e131c 0% 25%, #0b0f16 0% 50%) 50% / 26px 26px;
+      }
+
+      /* Controls */
+      .btn {
+        background: linear-gradient(180deg, #1a2130, #151b28);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+        transition: transform .05s ease, border-color .15s ease, background .15s ease;
+        user-select: none;
+      }
+      .btn:hover { border-color: var(--accent); }
+      .btn:active { transform: translateY(1px); }
+      .btn.primary {
+        background: linear-gradient(180deg, color-mix(in oklab, var(--accent), black 20%), color-mix(in oklab, var(--accent), black 35%));
+        border-color: color-mix(in oklab, var(--accent), black 30%);
+      }
+      .btn.danger {
+        background: linear-gradient(180deg, color-mix(in oklab, var(--danger), black 25%), color-mix(in oklab, var(--danger), black 40%));
+        border-color: color-mix(in oklab, var(--danger), black 30%);
+      }
+      .seg {
+        display: inline-flex; overflow: hidden; border-radius: 8px;
+        border: 1px solid var(--border);
+      }
+      .seg .btn { border: 0; border-right: 1px solid var(--border); }
+      .seg .btn:last-child { border-right: 0; }
+      .seg .btn.active { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+      .input, .textarea {
+        width: 100%;
+        background: #0f141d;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .textarea { min-height: 200px; resize: vertical; }
+      .row { display:flex; gap:10px; align-items:center; }
+      .spacer { flex: 1 1 auto; }
+      .hint { color: var(--text-dim); font-size: 12px; }
+
+      /* Tasks */
+      .task-input { display:flex; gap:8px; }
+      .task-list { list-style: none; margin: 0; padding: 0; display:flex; flex-direction: column; gap: 6px; }
+      .task {
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        background: #0f141d;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 8px 8px 6px;
+      }
+      .task.done .text { color: var(--text-dim); text-decoration: line-through; }
+      .task .text { outline: none; }
+      .icon-btn { background: transparent; border: 0; color: var(--text-dim); cursor:pointer; padding:6px; border-radius:6px; }
+      .icon-btn:hover { color: var(--text); background: #0b0f16; }
+      .task .icon-btn { }
+
+      input[type="color"] {
+        background: #0f141d; border: 1px solid var(--border); border-radius: 6px; height: 32px;
+      }
+      input[type="range"] { accent-color: var(--accent); }
+
+      /* Scrollbar (WebKit/Chromium) */
+      *::-webkit-scrollbar { width: 10px; height: 10px; }
+      *::-webkit-scrollbar-thumb { background: #222a39; border-radius: 10px; border: 2px solid #0d121a; }
+      *::-webkit-scrollbar-thumb:hover { background: #2a3347; }
+
+      /* Splitters */
+      .splitter {
+        position: absolute;
+        top: 0; bottom: 0;
+        width: 10px;
+        background: transparent;
+        cursor: col-resize;
+        z-index: 10;
+      }
+      .splitter.left { left: -5px; }
+      .splitter.right { right: -5px; }
+      .splitter::after {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0; left: 4px; width: 2px;
+        background: #1e2533; opacity: 0.6;
+        border-radius: 2px;
+      }
+      .splitter:hover::after { opacity: 1; background: #2a3447; }
+
+      /* Reopen tabs */
+      .reopen-tab {
+        position: absolute;
+        top: 50%; transform: translateY(-50%);
+        background: #0f141d;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        padding: 6px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        display: none;
+        user-select: none;
+      }
+      .reopen-tab:hover { color: var(--text); background: #0b0f16; }
+      #reopenLeft { left: -6px; }
+      #reopenRight { right: -6px; }
+      body.collapse-left #reopenLeft { display: block; }
+      body.collapse-right #reopenRight { display: block; }
+
+      @media (max-width: 1100px) {
+        body { grid-template-columns: var(--left,160px) minmax(0,1fr) var(--right,200px); }
+        body.collapse-right { grid-template-columns: var(--left,160px) minmax(0,1fr); }
+        body.collapse-left { grid-template-columns: minmax(0,1fr) var(--right,200px); }
+        body.collapse-left.collapse-right { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 900px) {
+        body { overflow: auto; height: auto; }
+        .panel, .center { min-height: 0; }
+      }
+      /* Floating overlay override */
+      body { display: block; height: 100vh; overflow: hidden; }
+      #center { position: fixed; top: 12px; left: 12px; right: 12px; bottom: 12px; z-index: 1; }
+      #left, #right {
+        position: fixed;
+        top: 12px;
+        width: 280px;
+        height: 48vh;
+        background: rgba(18,22,31,0.78);
+        backdrop-filter: saturate(120%) blur(10px);
+        -webkit-backdrop-filter: saturate(120%) blur(10px);
+        z-index: 5;
+      }
+      #left { left: 12px; }
+      #right { right: 12px; }
+      #left .header, #right .header { cursor: move; }
+      #left.collapsed, #right.collapsed { height: auto; width: auto; opacity: 0.92; }
+      #left.collapsed .content, #right.collapsed .content { display: none; }
+      .resizer { position: absolute; background: transparent; z-index: 6; }
+      #left .resizer.e, #right .resizer.e { top: 0; right: -4px; width: 8px; height: 100%; cursor: ew-resize; }
+      #left .resizer.s, #right .resizer.s { left: 0; bottom: -4px; width: 100%; height: 8px; cursor: ns-resize; }
+      #left .resizer.se, #right .resizer.se { right: -6px; bottom: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+    </style>
+  </head>
+  <body>
+    <!-- Left: Tasks -->
+    <aside class="panel" id="left">
+      <div class="header">
+        <div class="title">Tasks</div>
+        <div class="row" style="gap:6px; align-items:center;">
+          <div class="subtle hint">Quick to-dos</div>
+          <button id="collapseLeft" class="icon-btn" title="Collapse left">⟨</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="task-input">
+          <input id="newTask" class="input" placeholder="Add a task and press Enter" />
+          <button id="addTaskBtn" class="btn">Add</button>
+        </div>
+        <ul id="taskList" class="task-list"></ul>
+        <div class="row">
+          <button id="clearDone" class="btn">Clear Completed</button>
+          <div class="spacer"></div>
+          <span class="hint" id="taskCount">0 tasks</span>
+        </div>
+      </div>
+      <div class="resizer e"></div>
+      <div class="resizer s"></div>
+      <div class="resizer se"></div>
+    </aside>
+
+    <!-- Center: Canvas -->
+    <section class="center" id="center">
+      <div class="toolbar">
+        <div class="seg" id="toolSeg">
+          <button class="btn active" data-tool="view" title="View (V)">View</button>
+          <button class="btn" data-tool="pen" title="Pen (P)">Pen</button>
+          <button class="btn" data-tool="eraser" title="Eraser (E)">Erase</button>
+        </div>
+        <button id="backYear" class="btn" title="Back to Year" style="display:none">Year</button>
+        <div class="row">
+          <label class="hint" for="color">Color</label>
+          <input id="color" type="color" value="#7aa2f7" />
+        </div>
+        <div class="row" style="min-width:170px;">
+          <label class="hint" for="size">Size</label>
+          <input id="size" type="range" min="1" max="40" value="4" />
+        </div>
+        <div class="spacer"></div>
+        <button id="undoBtn" class="btn" title="Undo (Ctrl+Z)">Undo</button>
+        <button id="clearBtn" class="btn danger" title="Clear Canvas">Clear</button>
+        <button id="saveBtn" class="btn primary" title="Save PNG">Save PNG</button>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="board"></canvas>
+      </div>
+    </section>
+
+    <!-- Right: Notes -->
+    <aside class="panel" id="right">
+      <div class="header">
+        <div class="title">Notes</div>
+        <div class="row" style="gap:6px; align-items:center;">
+          <div class="subtle hint">Scratchpad</div>
+          <button id="collapseRight" class="icon-btn" title="Collapse right">⟩</button>
+        </div>
+      </div>
+      <div class="content">
+        <textarea id="notes" class="textarea" placeholder="Write notes here..."></textarea>
+        <div class="row">
+          <span class="hint">Autosaves locally</span>
+          <div class="spacer"></div>
+          <button id="copyNotes" class="btn">Copy</button>
+        </div>
+      </div>
+      <div class="resizer e"></div>
+      <div class="resizer s"></div>
+      <div class="resizer se"></div>
+    </aside>
+
+    <script>
+      // --- Utilities ---
+      const $ = (sel, root=document) => root.querySelector(sel);
+      const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+      const store = {
+        get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
+        set(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+      };
+      // CSS var helpers
+      function getPxVar(name, fallback) {
+        const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : fallback;
+      }
+      function setPxVar(name, px) { document.documentElement.style.setProperty(name, Math.round(px) + 'px'); }
+
+      // --- Tasks ---
+      const taskListEl = $('#taskList');
+      const newTaskEl = $('#newTask');
+      const addTaskBtn = $('#addTaskBtn');
+      const clearDoneBtn = $('#clearDone');
+      const taskCountEl = $('#taskCount');
+
+      let tasks = store.get('pm_tasks', []);
+
+      function renderTasks() {
+        taskListEl.innerHTML = '';
+        tasks.forEach((t, idx) => {
+          const li = document.createElement('li');
+          li.className = 'task' + (t.done ? ' done' : '');
+          li.dataset.idx = idx;
+          li.innerHTML = `
+            <input type="checkbox" ${t.done ? 'checked' : ''} />
+            <div class="text" contenteditable="true">${escapeHtml(t.text)}</div>
+            <button class="icon-btn" title="Delete">✕</button>
+          `;
+          const [checkbox, textEl, delBtn] = li.children;
+          checkbox.addEventListener('change', () => {
+            t.done = checkbox.checked;
+            li.classList.toggle('done', t.done);
+            persistTasks();
+            updateCounts();
+          });
+          textEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); textEl.blur(); }
+          });
+          textEl.addEventListener('blur', () => {
+            const newText = textEl.textContent.trim();
+            if (!newText) { return; }
+            t.text = newText;
+            persistTasks();
+          });
+          delBtn.addEventListener('click', () => {
+            tasks.splice(idx, 1);
+            persistTasks();
+            renderTasks();
+            updateCounts();
+          });
+          taskListEl.appendChild(li);
+        });
+        updateCounts();
+      }
+      function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+      function persistTasks() { store.set('pm_tasks', tasks); }
+      function updateCounts() {
+        const n = tasks.length, d = tasks.filter(t=>t.done).length;
+        taskCountEl.textContent = n ? `${n} task${n!==1?'s':''} • ${d} done` : 'No tasks';
+      }
+      function addTask(text) {
+        const t = text.trim();
+        if (!t) return;
+        tasks.unshift({ text: t, done: false });
+        persistTasks();
+        newTaskEl.value = '';
+        renderTasks();
+      }
+      newTaskEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { addTask(newTaskEl.value); }
+      });
+      addTaskBtn.addEventListener('click', () => addTask(newTaskEl.value));
+      clearDoneBtn.addEventListener('click', () => {
+        tasks = tasks.filter(t => !t.done);
+        persistTasks();
+        renderTasks();
+      });
+
+      // --- Notes ---
+      const notesEl = $('#notes');
+      notesEl.value = store.get('pm_notes', '');
+      let notesSaveTimer = null;
+      notesEl.addEventListener('input', () => {
+        clearTimeout(notesSaveTimer);
+        notesSaveTimer = setTimeout(() => store.set('pm_notes', notesEl.value), 250);
+      });
+      $('#copyNotes').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(notesEl.value);
+          flash('Notes copied');
+        } catch { flash('Copy failed'); }
+      });
+
+      function flash(msg) {
+        const el = document.createElement('div');
+        el.textContent = msg;
+        el.style.position = 'fixed';
+        el.style.bottom = '16px';
+        el.style.left = '50%';
+        el.style.transform = 'translateX(-50%)';
+        el.style.background = 'rgba(17,22,30,0.9)';
+        el.style.border = '1px solid var(--border)';
+        el.style.color = 'var(--text)';
+        el.style.padding = '10px 14px';
+        el.style.borderRadius = '10px';
+        el.style.boxShadow = 'var(--shadow)';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1200);
+      }
+
+      // --- Canvas Drawing ---
+      const canvas = document.getElementById('board');
+      const ctx = canvas.getContext('2d');
+      const colorEl = document.getElementById('color');
+      const sizeEl = document.getElementById('size');
+      const clearBtn = document.getElementById('clearBtn');
+      const saveBtn = document.getElementById('saveBtn');
+      const undoBtn = document.getElementById('undoBtn');
+      const toolSeg = document.getElementById('toolSeg');
+      const backYearBtn = document.getElementById('backYear');
+      const collapseLeftBtn = document.getElementById('collapseLeft');
+      const collapseRightBtn = document.getElementById('collapseRight');
+
+      let tool = 'view';
+      let viewMode = 'year'; // 'year' | 'month' | 'week' | 'day'
+      let selectedMonth = null; // 0-11 when in month view
+      let selectedYear = new Date().getFullYear();
+      let monthRects = []; // for hit-testing in year view
+      let weekRects = []; // for hit-testing in month view (rows)
+      let selectedWeekStart = null; // Date object (Monday)
+      let dayRects = []; // for hit-testing in week view (columns)
+      let dayCellRects = []; // for hit-testing in month view (individual days)
+      let selectedDayDate = null; // Date object for day view
+      let dayDrag = null; // {y0, y1} during block creation in day view
+      let dayBlocksStore = store.get('pm_day_blocks', {}); // {YYYY-MM-DD: [{start,end,text}]} 
+      let drawing = false;
+      let last = null;
+      let history = [];
+      const MAX_HISTORY = 50;
+
+      function setTool(next) {
+        tool = next;
+        $$('.seg .btn', toolSeg).forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+        if (tool === 'view') {
+          redrawCurrentView();
+        }
+      }
+      toolSeg.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        setTool(btn.dataset.tool);
+      });
+
+      function resizeCanvas() {
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
+        const prev = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // Redraw previous image scaled to new size if exists
+        if (prev.width && prev.height) {
+          const tmp = document.createElement('canvas');
+          tmp.width = prev.width; tmp.height = prev.height;
+          tmp.getContext('2d').putImageData(prev, 0, 0);
+          ctx.drawImage(tmp, 0, 0, rect.width, rect.height);
+        } else {
+          ctx.fillStyle = 'transparent';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      const debouncedResize = debounce(() => {
+        pushHistory();
+        resizeCanvas();
+        if (tool === 'view') redrawCurrentView();
+      }, 120);
+      const immediateResize = () => { requestAnimationFrame(() => { resizeCanvas(); if (tool === 'view') redrawCurrentView(); }); };
+      window.addEventListener('resize', debouncedResize);
+      // Also observe center size changes (e.g., when splitters drag)
+      try { new ResizeObserver(() => debouncedResize()).observe(document.getElementById('center')); } catch {}
+
+      function startDraw(x, y) {
+        if (!(tool === 'pen' || tool === 'eraser')) return;
+        drawing = true;
+        last = { x, y };
+        pushHistory();
+      }
+      function drawLine(x, y) {
+        if (!drawing || !last) return;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = Number(sizeEl.value);
+        if (tool === 'eraser') {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.strokeStyle = 'rgba(0,0,0,1)';
+        } else {
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = colorEl.value;
+        }
+        ctx.beginPath();
+        ctx.moveTo(last.x, last.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        last = { x, y };
+      }
+      function endDraw() { drawing = false; last = null; ctx.globalCompositeOperation = 'source-over'; }
+
+      // Pointer events
+      canvas.addEventListener('pointerdown', (e) => {
+        const pt = getPos(e);
+        if (tool === 'view') {
+          if (handleViewPointerDown(e, pt.x, pt.y)) return;
+          handleViewClick(pt.x, pt.y);
+          return;
+        }
+        if (!(tool === 'pen' || tool === 'eraser')) return;
+        canvas.setPointerCapture(e.pointerId);
+        startDraw(pt.x, pt.y);
+      });
+      canvas.addEventListener('pointermove', (e) => {
+        const pt = getPos(e);
+        if (tool === 'view') { handleViewPointerMove(e, pt.x, pt.y); return; }
+        if (!drawing) return;
+        drawLine(pt.x, pt.y);
+      });
+      canvas.addEventListener('pointerup', (e) => {
+        if (tool === 'view') { handleViewPointerUp(e); return; }
+        endDraw();
+      });
+      canvas.addEventListener('pointercancel', () => endDraw());
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      function pushHistory() {
+        try {
+          if (history.length >= MAX_HISTORY) history.shift();
+          history.push(canvas.toDataURL('image/png'));
+        } catch {}
+      }
+      function undo() {
+        const prev = history.pop();
+        if (!prev) return;
+        const img = new Image();
+        img.onload = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.clientWidth, canvas.clientHeight); };
+        img.src = prev;
+      }
+
+      clearBtn.addEventListener('click', () => {
+        if (confirm('Clear the canvas?')) {
+          pushHistory();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (tool === 'view') redrawCurrentView();
+        }
+      });
+      saveBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `canvas-${new Date().toISOString().replace(/[:.]/g,'-')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+      undoBtn.addEventListener('click', undo);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+        if (e.key.toLowerCase() === 'v') setTool('view');
+        if (e.key.toLowerCase() === 'p') setTool('pen');
+        if (e.key.toLowerCase() === 'e') setTool('eraser');
+        if (e.key === 'Escape' && tool === 'view') {
+          // Navigate up one level
+          if (viewMode === 'day') {
+            viewMode = 'week';
+            drawWeekGrid(selectedWeekStart || weekMonday(selectedDayDate || new Date()));
+            backYearBtn.textContent = 'Month';
+          } else if (viewMode === 'week') {
+            viewMode = 'month';
+            drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear);
+            backYearBtn.textContent = 'Year';
+          } else if (viewMode === 'month') {
+            viewMode = 'year';
+            selectedMonth = null;
+            selectedWeekStart = null;
+            drawYearGrid();
+          }
+        }
+      });
+
+      backYearBtn.addEventListener('click', () => {
+        if (viewMode === 'day') {
+          viewMode = 'week';
+          drawWeekGrid(selectedWeekStart || weekMonday(selectedDayDate || new Date()));
+          backYearBtn.textContent = 'Month';
+        } else if (viewMode === 'week') {
+          // Back to month
+          viewMode = 'month';
+          drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear);
+          backYearBtn.textContent = 'Year';
+        } else {
+          // Back to year
+          viewMode = 'year';
+          selectedMonth = null;
+          selectedWeekStart = null;
+          drawYearGrid();
+        }
+      });
+
+      // Collapse/expand floating panels via header buttons
+      if (collapseLeftBtn) collapseLeftBtn.addEventListener('click', () => {
+        document.getElementById('left').classList.toggle('collapsed');
+      });
+      if (collapseRightBtn) collapseRightBtn.addEventListener('click', () => {
+        document.getElementById('right').classList.toggle('collapsed');
+      });
+
+      function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+      // Year grid rendering
+      function drawYearGrid() {
+        const now = new Date();
+        const year = selectedYear || now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-11
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        // Clear background
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0b0f16';
+        ctx.fillRect(0, 0, w, h);
+
+        const cols = 4, rows = 3;
+        const pad = 14;
+        const cellW = (w - pad * (cols + 1)) / cols;
+        const cellH = (h - pad * (rows + 1)) / rows;
+
+        ctx.save();
+        ctx.lineWidth = 2;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.font = '600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+
+        monthRects = [];
+        for (let i = 0; i < 12; i++) {
+          const r = Math.floor(i / cols);
+          const c = i % cols;
+          const x = pad + c * (cellW + pad);
+          const y = pad + r * (cellH + pad);
+
+          let fill;
+          if (year < now.getFullYear() || (year === now.getFullYear() && i < currentMonth)) fill = getCss('--danger', '#ef6a6a');
+          else if (year === now.getFullYear() && i === currentMonth) fill = getCss('--accent', '#7aa2f7');
+          else fill = getCss('--ok', '#5bdc82');
+
+          // Background with transparency
+          ctx.fillStyle = withAlpha(fill, 0.18);
+          roundRect(ctx, x, y, cellW, cellH, 10);
+          ctx.fill();
+          // Border
+          ctx.strokeStyle = withAlpha(fill, 0.55);
+          roundRect(ctx, x, y, cellW, cellH, 10);
+          ctx.stroke();
+          // Label
+          ctx.fillStyle = '#e6e8ef';
+          ctx.fillText(`${months[i]} ${year}`, x + cellW/2, y + cellH/2);
+
+          monthRects.push({ i, x, y, w: cellW, h: cellH });
+        }
+
+        ctx.restore();
+        backYearBtn.style.display = 'none';
+        viewMode = 'year';
+      }
+
+      function roundRect(ctx, x, y, w, h, r) {
+        const rr = Math.min(r, w/2, h/2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+      }
+
+      function getCss(varName, fallback) {
+        const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+        return val || fallback;
+      }
+      function withAlpha(color, a) {
+        if (/^#([0-9a-f]{6})$/i.test(color)) {
+          const r = parseInt(color.slice(1,3),16);
+          const g = parseInt(color.slice(3,5),16);
+          const b = parseInt(color.slice(5,7),16);
+          return `rgba(${r},${g},${b},${a})`;
+        }
+        return color;
+      }
+
+      // Floating panels: drag + resize
+      function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+      function px(n) { return Math.round(n) + 'px'; }
+      function makeDraggable(panel) {
+        const header = panel.querySelector('.header');
+        if (!header) return;
+        header.addEventListener('pointerdown', (ev) => {
+          if (panel.classList.contains('collapsed')) return; // optional: still allow move when collapsed
+          const rect = panel.getBoundingClientRect();
+          const startX = ev.clientX, startY = ev.clientY;
+          const offX = startX - rect.left;
+          const offY = startY - rect.top;
+          function onMove(e) {
+            const x = clamp(e.clientX - offX, 6, window.innerWidth - 60);
+            const y = clamp(e.clientY - offY, 6, window.innerHeight - 40);
+            panel.style.left = px(x);
+            panel.style.top = px(y);
+          }
+          function onUp() { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); }
+          window.addEventListener('pointermove', onMove);
+          window.addEventListener('pointerup', onUp);
+        });
+      }
+      function makeResizable(panel) {
+        const e = panel.querySelector('.resizer.e');
+        const s = panel.querySelector('.resizer.s');
+        const se = panel.querySelector('.resizer.se');
+        function resizeEW(ev, startRect) {
+          const w = clamp(ev.clientX - startRect.left, 200, window.innerWidth - 24);
+          panel.style.width = px(w);
+        }
+        function resizeNS(ev, startRect) {
+          const h = clamp(ev.clientY - startRect.top, 150, window.innerHeight - 24);
+          panel.style.height = px(h);
+        }
+        function onDownEdge(handler) {
+          return (ev) => {
+            ev.preventDefault();
+            const rect = panel.getBoundingClientRect();
+            function onMove(e) { handler(e, rect); }
+            function onUp() { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); }
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+          };
+        }
+        if (e) e.addEventListener('pointerdown', onDownEdge(resizeEW));
+        if (s) s.addEventListener('pointerdown', onDownEdge(resizeNS));
+        if (se) se.addEventListener('pointerdown', onDownEdge((ev, r)=>{ resizeEW(ev, r); resizeNS(ev, r); }));
+      }
+      function initFloating(panel, init) {
+        // Convert right-anchored to left position if needed
+        Object.assign(panel.style, init || {});
+        // If right was provided, compute left
+        if (panel.style.right) {
+          const rect = panel.getBoundingClientRect();
+          panel.style.left = px(rect.left);
+          panel.style.right = '';
+        }
+        makeDraggable(panel);
+        makeResizable(panel);
+      }
+
+      // --- Date helpers and coloring ---
+      function dateAtMidnight(d) {
+        const n = new Date(d); n.setHours(0,0,0,0); return n;
+      }
+      function weekMonday(d) {
+        const n = dateAtMidnight(d);
+        const dowSun0 = n.getDay();
+        const offset = (dowSun0 + 6) % 7; // 0 for Mon, 6 for Sun
+        n.setDate(n.getDate() - offset);
+        return n;
+      }
+      function cmpDays(a, b) {
+        const aa = dateAtMidnight(a).getTime();
+        const bb = dateAtMidnight(b).getTime();
+        return aa === bb ? 0 : (aa < bb ? -1 : 1);
+      }
+      function cmpWeeks(aMon, bMon) {
+        return cmpDays(weekMonday(aMon), weekMonday(bMon));
+      }
+      function colorForDay(d, today = dateAtMidnight(new Date())) {
+        const cmp = cmpDays(d, today);
+        if (cmp < 0) return getCss('--danger', '#ef6a6a');
+        if (cmp === 0) return getCss('--accent', '#7aa2f7');
+        return getCss('--ok', '#5bdc82');
+      }
+      function colorForWeek(mondayDate, currentMonday = weekMonday(new Date())) {
+        const cmp = cmpWeeks(mondayDate, currentMonday);
+        if (cmp < 0) return getCss('--danger', '#ef6a6a');
+        if (cmp === 0) return getCss('--accent', '#7aa2f7');
+        return getCss('--ok', '#5bdc82');
+      }
+
+      // --- Day view rendering ---
+      function drawDayGrid(day = dateAtMidnight(new Date()), previewDrag = false) {
+        selectedDayDate = dateAtMidnight(day);
+        selectedWeekStart = weekMonday(selectedDayDate);
+
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0b0f16';
+        ctx.fillRect(0, 0, w, h);
+
+        const headerH = 36;
+        const pad = 14;
+        const gutter = 60; // time labels
+        const gridTop = pad + headerH + pad;
+        const gridLeft = pad + gutter;
+        const gridRight = w - pad;
+        const gridBottom = h - pad;
+        const gridW = gridRight - gridLeft;
+        const gridH = gridBottom - gridTop;
+
+        ctx.save();
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+
+        // Title
+        const monthsLong = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const dowsLong = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const title = `${dowsLong[day.getDay()]}, ${monthsLong[day.getMonth()]} ${day.getDate()}, ${day.getFullYear()}`;
+        ctx.fillStyle = '#e6e8ef';
+        ctx.fillText(title, pad, pad + headerH/2);
+
+        // Background tint by day status
+        const dayCol = colorForDay(day, dateAtMidnight(new Date()));
+        ctx.fillStyle = withAlpha(dayCol, 0.10);
+        roundRect(ctx, gridLeft, gridTop, gridW, gridH, 10);
+        ctx.fill();
+
+        // Hour lines and labels
+        ctx.strokeStyle = '#222835';
+        ctx.lineWidth = 1;
+        ctx.fillStyle = '#a6adbb';
+        for (let hr = 0; hr <= 24; hr++) {
+          const y = gridTop + gridH * (hr / 24);
+          ctx.beginPath();
+          ctx.moveTo(gridLeft, Math.round(y) + 0.5);
+          ctx.lineTo(gridRight, Math.round(y) + 0.5);
+          ctx.stroke();
+          if (hr < 24) {
+            const label = String(hr).padStart(2, '0') + ':00';
+            ctx.fillText(label, pad, y + 0);
+          }
+        }
+
+        // Render existing blocks
+        const key = dayKey(day);
+        const blocks = Array.isArray(dayBlocksStore[key]) ? dayBlocksStore[key] : [];
+        for (const b of blocks) {
+          const y0 = gridTop + gridH * (b.start / (24*60));
+          const y1 = gridTop + gridH * (b.end / (24*60));
+          const x = gridLeft + 8; const wBlock = gridW - 16;
+          ctx.fillStyle = withAlpha(getCss('--accent', '#7aa2f7'), 0.25);
+          roundRect(ctx, x, y0, wBlock, Math.max(8, y1 - y0), 8);
+          ctx.fill();
+          ctx.strokeStyle = withAlpha(getCss('--accent', '#7aa2f7'), 0.6);
+          roundRect(ctx, x, y0, wBlock, Math.max(8, y1 - y0), 8);
+          ctx.stroke();
+        }
+
+        // Preview drag selection
+        if (previewDrag && dayDrag) {
+          const y0 = Math.min(dayDrag.y0, dayDrag.y1);
+          const y1 = Math.max(dayDrag.y0, dayDrag.y1);
+          const x = gridLeft + 8; const wBlock = gridW - 16;
+          ctx.fillStyle = withAlpha(getCss('--ok', '#5bdc82'), 0.25);
+          roundRect(ctx, x, y0, wBlock, Math.max(8, y1 - y0), 8);
+          ctx.fill();
+          ctx.strokeStyle = withAlpha(getCss('--ok', '#5bdc82'), 0.6);
+          roundRect(ctx, x, y0, wBlock, Math.max(8, y1 - y0), 8);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+
+        viewMode = 'day';
+        backYearBtn.style.display = '';
+        backYearBtn.textContent = 'Week';
+      }
+
+      function drawMonthGrid(month = (new Date()).getMonth(), year = (new Date()).getFullYear()) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0b0f16';
+        ctx.fillRect(0, 0, w, h);
+
+        const headerH = 36;
+        const pad = 14;
+        const cols = 7;
+        // Monday-first: compute rows (min 5, else 6)
+        const firstDowSun0 = new Date(year, month, 1).getDay(); // 0 Sun..6 Sat
+        const firstDowMon0 = (firstDowSun0 + 6) % 7; // 0 Mon..6 Sun
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const neededRows = Math.ceil((firstDowMon0 + daysInMonth) / 7);
+        const rows = Math.max(5, neededRows);
+
+        const gridTop = pad + headerH + pad;
+        const cellW = (w - pad * (cols + 1)) / cols;
+        const cellH = (h - gridTop - pad) / rows;
+
+        ctx.save();
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+
+        // Title
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        ctx.fillStyle = '#e6e8ef';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${months[month]} ${year}`, pad, pad + headerH/2);
+
+        // DOW header (Mon-Sun)
+        ctx.textAlign = 'center';
+        const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        for (let c = 0; c < cols; c++) {
+          const x = pad + c * (cellW + pad) + cellW/2;
+          const y = pad + headerH/2 + pad;
+          ctx.fillStyle = '#a6adbb';
+          ctx.fillText(dows[c], x, y);
+        }
+
+        // Weeks and cells
+        weekRects = [];
+        ctx.lineWidth = 1.5;
+        const today = dateAtMidnight(new Date());
+        const currentWeekMon = weekMonday(today);
+        dayCellRects = [];
+        for (let r = 0; r < rows; r++) {
+          const mondayDate = new Date(year, month, 1 - firstDowMon0 + r * 7);
+          const weekColor = colorForWeek(mondayDate, currentWeekMon);
+          // Draw week row background/tint
+          const rowX = pad;
+          const rowY = gridTop + r * (cellH + pad);
+          const rowW = cols * cellW + (cols - 1) * pad;
+          const rowH = cellH;
+          ctx.fillStyle = withAlpha(weekColor, 0.10);
+          roundRect(ctx, rowX, rowY, rowW, rowH, 10);
+          ctx.fill();
+          ctx.strokeStyle = withAlpha(weekColor, 0.35);
+          roundRect(ctx, rowX, rowY, rowW, rowH, 10);
+          ctx.stroke();
+          weekRects.push({ x: rowX, y: rowY, w: rowW, h: rowH, monday: dateAtMidnight(mondayDate) });
+
+          // Draw days (Mon..Sun)
+          for (let c = 0; c < cols; c++) {
+            const x = pad + c * (cellW + pad);
+            const y = gridTop + r * (cellH + pad);
+            const cellDate = new Date(mondayDate);
+            cellDate.setDate(mondayDate.getDate() + c);
+
+            const dayColor = colorForDay(cellDate, today);
+            ctx.fillStyle = withAlpha(dayColor, 0.18);
+            roundRect(ctx, x, y, cellW, cellH, 8);
+            ctx.fill();
+            ctx.strokeStyle = withAlpha(dayColor, 0.45);
+            roundRect(ctx, x, y, cellW, cellH, 8);
+            ctx.stroke();
+
+            // Day number (always draw, including spillover days)
+            ctx.fillStyle = '#e6e8ef';
+            ctx.textAlign = 'right';
+            ctx.fillText(String(cellDate.getDate()), x + cellW - 8, y + 14);
+            ctx.textAlign = 'center';
+
+            dayCellRects.push({ x, y, w: cellW, h: cellH, date: dateAtMidnight(cellDate) });
+          }
+        }
+        ctx.restore();
+
+        viewMode = 'month';
+        backYearBtn.style.display = '';
+        backYearBtn.textContent = 'Year';
+      }
+
+      function drawWeekGrid(weekStart = selectedWeekStart || weekMonday(new Date())) {
+        // Ensure Monday date
+        const monday = weekMonday(weekStart);
+        selectedWeekStart = monday;
+
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0b0f16';
+        ctx.fillRect(0, 0, w, h);
+
+        const headerH = 36;
+        const pad = 14;
+        const cols = 7;
+        const gridTop = pad + headerH + pad;
+        const cellW = (w - pad * (cols + 1)) / cols;
+        const cellH = (h - gridTop - pad);
+
+        ctx.save();
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+
+        // Title
+        const monthsLong = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const title = `Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}, ${monday.getFullYear()}`;
+        ctx.fillStyle = '#e6e8ef';
+        ctx.fillText(title, pad, pad + headerH/2);
+
+        // Columns (Mon..Sun)
+        const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        const today = dateAtMidnight(new Date());
+        dayRects = [];
+        for (let c = 0; c < cols; c++) {
+          const x = pad + c * (cellW + pad);
+          const y = gridTop;
+          const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + c);
+          const dayColor = colorForDay(dayDate, today);
+
+          // Background
+          ctx.fillStyle = withAlpha(dayColor, 0.18);
+          roundRect(ctx, x, y, cellW, cellH, 10);
+          ctx.fill();
+          ctx.strokeStyle = withAlpha(dayColor, 0.45);
+          roundRect(ctx, x, y, cellW, cellH, 10);
+          ctx.stroke();
+
+          // Header in each column
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#a6adbb';
+          ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x + cellW/2, y + 14);
+          ctx.textAlign = 'left';
+
+          dayRects.push({ x, y, w: cellW, h: cellH, date: dateAtMidnight(dayDate) });
+        }
+
+        ctx.restore();
+
+        viewMode = 'week';
+        backYearBtn.style.display = '';
+        backYearBtn.textContent = 'Month';
+      }
+
+      function redrawCurrentView() {
+        if (viewMode === 'year') drawYearGrid();
+        else if (viewMode === 'month') drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear);
+        else if (viewMode === 'week') drawWeekGrid(selectedWeekStart);
+        else if (viewMode === 'day') drawDayGrid(selectedDayDate);
+      }
+
+      function handleViewClick(x, y) {
+        if (viewMode === 'year') {
+          const hit = monthRects.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+          if (hit) { selectedMonth = hit.i; drawMonthGrid(selectedMonth, selectedYear); }
+        } else if (viewMode === 'month') {
+          const hitDay = dayCellRects.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+          if (hitDay) { selectedDayDate = hitDay.date; drawDayGrid(selectedDayDate); return; }
+          const hitW = weekRects.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+          if (hitW) { selectedWeekStart = hitW.monday; drawWeekGrid(selectedWeekStart); }
+        } else if (viewMode === 'week') {
+          const hitD = dayRects.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+          if (hitD) { selectedDayDate = hitD.date; drawDayGrid(selectedDayDate); }
+        }
+      }
+
+      function handleViewPointerDown(e, x, y) {
+        if (viewMode !== 'day') return false;
+        const pad = 14; const headerH = 36; const gutter = 60;
+        const gridTop = pad + headerH + pad;
+        if (y < gridTop) return false;
+        if (x < pad + gutter) return false;
+        dayDrag = { y0: y, y1: y };
+        canvas.setPointerCapture(e.pointerId);
+        return true;
+      }
+      function handleViewPointerMove(e, x, y) {
+        if (!dayDrag) return;
+        dayDrag.y1 = y;
+        if (viewMode === 'day') drawDayGrid(selectedDayDate, true);
+      }
+      function handleViewPointerUp(e) {
+        if (!dayDrag) return;
+        const pad = 14; const headerH = 36; const gutter = 60;
+        const gridTop = pad + headerH + pad;
+        const h = canvas.clientHeight;
+        const heightAvail = h - gridTop - pad;
+        const minPerPx = 24 * 60 / Math.max(1, heightAvail);
+        let y0 = Math.min(dayDrag.y0, dayDrag.y1);
+        let y1 = Math.max(dayDrag.y0, dayDrag.y1);
+        y0 = Math.max(gridTop, y0); y1 = Math.min(h - pad, y1);
+        let startMin = Math.round((y0 - gridTop) * minPerPx);
+        let endMin = Math.round((y1 - gridTop) * minPerPx);
+        if (endMin - startMin < 15) endMin = startMin + 15;
+        const key = dayKey(selectedDayDate);
+        if (!dayBlocksStore[key]) dayBlocksStore[key] = [];
+        dayBlocksStore[key].push({ start: startMin, end: endMin, text: '' });
+        store.set('pm_day_blocks', dayBlocksStore);
+        dayDrag = null;
+        drawDayGrid(selectedDayDate);
+      }
+
+      function dayKey(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
+      }
+
+      // Init
+      renderTasks();
+      setTool('view');
+      resizeCanvas();
+      drawYearGrid();
+      pushHistory();
+      // Init floating panels
+      try {
+        initFloating(document.getElementById('left'), { left: '12px', top: '12px', width: '280px', height: '48vh' });
+        initFloating(document.getElementById('right'), { right: '12px', top: '12px', width: '320px', height: '48vh' });
+      } catch {}
+
+      // Ensure canvas fills available space after fonts/layout settle
+      window.addEventListener('load', () => { resizeCanvas(); drawYearGrid(); });
+      // Mutation observer to catch layout changes (e.g., mobile stacking)
+      new ResizeObserver(() => debouncedResize()).observe(document.body);
+    </script>
+  </body>
+</html>

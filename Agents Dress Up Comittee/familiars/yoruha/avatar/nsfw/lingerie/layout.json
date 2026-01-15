@@ -1,0 +1,10 @@
+{
+  "overrides": {
+    "calm.png": {
+      "scale": 0.55,
+      "x": "50px",
+      "y": "0px",
+      "mirror": false
+    }
+  }
+}

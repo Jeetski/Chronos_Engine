@@ -1,0 +1,38 @@
+{
+  "christmas/bedroom.png": {
+    "focus.png": {
+      "scale": 0.3,
+      "x": "-50%",
+      "y": "50px",
+      "mirror": true
+    }
+  },
+  "bedroom.png": {
+    "focus.png": {
+      "scale": 0.3,
+      "x": "-50%",
+      "y": "50px",
+      "mirror": true
+    }
+  },
+  "balet_practice_hall.png": {
+    "calm.png": {
+      "scale": 0.5,
+      "x": "50px",
+      "y": "0px",
+      "mirror": false
+    },
+    "annoyed.png": {
+      "scale": 0.5,
+      "x": "50px",
+      "y": "0px",
+      "mirror": false
+    },
+    "blush.png": {
+      "scale": 0.35,
+      "x": "50px",
+      "y": "100px",
+      "mirror": false
+    }
+  }
+}

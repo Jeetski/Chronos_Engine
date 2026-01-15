@@ -1,0 +1,185 @@
+.chronos-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--chronos-overlay-gradient);
+  backdrop-filter: var(--chronos-overlay-blur);
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.chronos-shell {
+  width: min(960px, 95vw);
+  max-height: 94vh;
+  background: linear-gradient(180deg, var(--chronos-surface-strong), var(--chronos-surface));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: var(--chronos-shadow);
+  color: var(--chronos-text);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(20px, 3vw, 32px);
+  position: relative;
+  overflow: hidden;
+}
+
+.chronos-card {
+  background: var(--chronos-surface-soft);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.chronos-stepper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.chronos-stepper .step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chronos-stepper .step .bullet {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--chronos-text);
+}
+
+.chronos-stepper .step.active {
+  border-color: var(--chronos-accent);
+  background: var(--chronos-accent-soft);
+}
+
+.chronos-stepper .step.active .bullet {
+  border-color: var(--chronos-accent);
+  color: #cbd6ff;
+}
+
+.chronos-stepper .step.done {
+  border-color: var(--chronos-success);
+  background: var(--chronos-success-soft);
+}
+
+.chronos-stepper .step.done .bullet {
+  border-color: var(--chronos-success);
+  color: #b9ffe2;
+}
+
+.chronos-btn {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 10px 18px;
+  font-size: 15px;
+  cursor: pointer;
+  background: rgba(12, 16, 28, 0.9);
+  color: var(--chronos-text);
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.chronos-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.chronos-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chronos-btn.primary {
+  background: var(--chronos-accent-gradient);
+  border-color: rgba(122, 162, 247, 0.6);
+  color: #fff;
+  box-shadow: var(--chronos-accent-glow);
+}
+
+.chronos-btn.ghost {
+  background: rgba(12, 16, 28, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.chronos-btn.subtle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--chronos-text-muted);
+}
+
+.chronos-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--chronos-text-soft);
+  background: var(--chronos-accent-soft);
+}
+
+.chronos-status-text[data-tone="success"] {
+  color: var(--chronos-success);
+}
+
+.chronos-status-text[data-tone="warn"] {
+  color: var(--chronos-warning);
+}
+
+.chronos-status-text[data-tone="error"] {
+  color: var(--chronos-danger);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]),
+textarea,
+select {
+  background: var(--chronos-surface-soft);
+  color: var(--chronos-text);
+  border: 1px solid var(--chronos-border);
+  border-radius: 8px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--chronos-border-strong);
+  box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.15);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--chronos-text-muted);
+}
+
+select option,
+select optgroup {
+  background: var(--chronos-surface-strong);
+  color: var(--chronos-text);
+}
+
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+progress {
+  accent-color: var(--accent);
+}

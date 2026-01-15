@@ -1,0 +1,690 @@
+﻿export function mount(el, context) {
+  console.log('[Chronos][Today] Mounting Today widget');
+  el.innerHTML = `
+    <div class="header" id="todayHeader">
+      <div class="title">Today</div>
+      <div class="controls">
+        <button class="icon-btn" id="todayMin" title="Minimize">_</button>
+        <button class="icon-btn" id="todayClose" title="Close">x</button>
+      </div>
+    </div>
+    <div class="content">
+      <!-- Scheduling Controls Panel (NEW) -->
+      <details id="schedControls" style="margin-bottom:12px;">
+        <summary style="cursor:pointer; font-weight:700; padding:8px; background:rgba(32,40,56,0.5); border:1px solid var(--border); border-radius:8px; user-select:none;">
+          Scheduling Controls
+        </summary>
+        <div style="padding:12px 8px; display:flex; flex-direction:column; gap:10px; background:rgba(15,17,21,0.4); border:1px solid var(--border); border-radius:8px; margin-top:4px;">
+          <!-- Priority Sliders -->
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div class="hint" style="font-weight:600;">Priority Weights (1-10)</div>
+            <div class="slider-row">
+              <label for="sliderEnvironment" style="flex:1;">Environment:</label>
+              <input type="range" id="sliderEnvironment" min="1" max="10" value="7" style="flex:2;" />
+              <span id="valEnvironment" style="width:24px; text-align:center;">7</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderCategory" style="flex:1;">Category:</label>
+              <input type="range" id="sliderCategory" min="1" max="10" value="6" style="flex:2;" />
+              <span id="valCategory" style="width:24px; text-align:center;">6</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderHappiness" style="flex:1;">Happiness:</label>
+              <input type="range" id="sliderHappiness" min="1" max="10" value="5" style="flex:2;" />
+              <span id="valHappiness" style="width:24px; text-align:center;">5</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderDueDate" style="flex:1;">Due Date:</label>
+              <input type="range" id="sliderDueDate" min="1" max="10" value="4" style="flex:2;" />
+              <span id="valDueDate" style="width:24px; text-align:center;">4</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderDeadline" style="flex:1;">Deadline:</label>
+              <input type="range" id="sliderDeadline" min="1" max="10" value="5" style="flex:2;" />
+              <span id="valDeadline" style="width:24px; text-align:center;">5</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderStatus" style="flex:1;">Status Align:</label>
+              <input type="range" id="sliderStatus" min="1" max="10" value="3" style="flex:2;" />
+              <span id="valStatus" style="width:24px; text-align:center;">3</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderPriority" style="flex:1;">Priority Prop:</label>
+              <input type="range" id="sliderPriority" min="1" max="10" value="2" style="flex:2;" />
+              <span id="valPriority" style="width:24px; text-align:center;">2</span>
+            </div>
+            <div class="slider-row">
+              <label for="sliderTemplate" style="flex:1;">Template:</label>
+              <input type="range" id="sliderTemplate" min="1" max="10" value="1" style="flex:2;" />
+              <span id="valTemplate" style="width:24px; text-align:center;">1</span>
+            </div>
+          </div>
+          <!-- Quick Toggles -->
+          <div style="display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid var(--border);">
+            <div class="hint" style="font-weight:600;">Quick Toggles</div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="toggleCutting" />
+              Allow Item Cutting (Phase 3e)
+            </label>
+          </div>
+        </div>
+      </details>
+      
+      
+
+      <div id="calendarContext" style="display:none; flex-direction:column; gap:10px;">
+        <div class="row" style="align-items:center; gap:8px;">
+          <span class="hint" id="calendarDayLabel">Calendar day selected.</span>
+          <span class="hint" id="calendarDayNote"></span>
+        </div>
+        <div class="row" style="gap:8px; align-items:center;">
+          <input class="input" id="selectedItemInput" list="todayItemList" placeholder="Selected block or search" />
+          <datalist id="todayItemList"></datalist>
+        </div>
+        <div class="hint" id="selSummary">Select a block in the calendar.</div>
+        <details id="actionControls">
+          <summary style="cursor:pointer; font-weight:700; padding:8px; background:rgba(32,40,56,0.5); border:1px solid var(--border); border-radius:8px; user-select:none;">
+            Actions
+          </summary>
+          <div style="padding:12px 8px; display:flex; flex-direction:column; gap:12px; background:rgba(15,17,21,0.4); border:1px solid var(--border); border-radius:8px; margin-top:4px;">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="hint" style="font-weight:600;">Quick Status</div>
+              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+                <button class="btn" id="markDone">Done (Today)</button>
+                <button class="btn" id="markSkipped">Skipped</button>
+                <button class="btn" id="markDelayed">Delayed</button>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="hint" style="font-weight:600;">Schedule Edits</div>
+              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+                <button class="btn" id="trim5" title="Trim 5 minutes">Trim -5</button>
+                <button class="btn" id="trim10" title="Trim 10 minutes">Trim -10</button>
+                <input class="input" id="trimCustom" placeholder="min" style="width:72px;" />
+                <button class="btn" id="trimGo">Trim</button>
+              </div>
+              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+                <input class="input" id="changeTime" type="time" step="60" style="width:110px;" />
+                <button class="btn" id="changeGo">Change</button>
+                <button class="btn" id="cutGo">Cut</button>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="hint" style="font-weight:600;">Actuals (Did)</div>
+              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+                <input class="input" id="didStart" type="time" step="60" style="width:110px;" placeholder="Start" />
+                <input class="input" id="didEnd" type="time" step="60" style="width:110px;" placeholder="End" />
+                <select class="input" id="didStatus" style="width:130px;">
+                  <option value="completed">completed</option>
+                  <option value="partial">partial</option>
+                  <option value="skipped">skipped</option>
+                </select>
+                <input class="input" id="didNote" placeholder="note" style="min-width:140px;" />
+                <button class="btn" id="didGo">Did</button>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="hint" style="font-weight:600;">Item State</div>
+              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+                <button class="btn" id="completeItem">Complete (Item)</button>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+<!-- Existing Controls -->
+      <div class="row" style="align-items: center; gap: 8px;">
+        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="todayFxToggle" checked /> fx</label>
+        <span class="hint" id="selHint">Select a day in Calendar to activate actions.</span>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" id="todayRefresh">Refresh</button>
+        <button class="btn btn-primary" id="todayStartDay">Start Day</button>
+        <button class="btn btn-secondary" id="todayReschedule">Reschedule</button>
+      </div>
+      <div class="hint">Select a block in Calendar, then use Actions. Apply edits with Reschedule.</div>
+    </div>
+    <div class="resizer e"></div>
+    <div class="resizer s"></div>
+    <div class="resizer se"></div>
+  `;
+
+  function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+
+  function safeParseYaml(text) {
+    if (typeof window !== 'undefined' && typeof window.parseYaml === 'function') {
+      try {
+        const parsed = window.parseYaml(text);
+        if (parsed && Array.isArray(parsed.blocks) && parsed.blocks.length) {
+          return parsed;
+        }
+      } catch { }
+    }
+    const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    const res = { blocks: [] };
+    let inBlocks = false, cur = null;
+    for (let raw of lines) {
+      const line = raw.replace(/#.*$/, '');
+      if (!line.trim()) continue;
+      if (!inBlocks) { if (/^\s*blocks\s*:/.test(line)) { inBlocks = true; } continue; }
+      if (/^\s*-\s*/.test(line)) { if (cur) res.blocks.push(cur); cur = {}; continue; }
+      const m = line.match(/^\s*(\w+)\s*:\s*(.+)$/); if (m && cur) { cur[m[1]] = m[2].trim(); }
+    }
+    if (cur) res.blocks.push(cur);
+    return res;
+  }
+
+  async function fetchToday() {
+    console.log('[Chronos][Today] fetchToday()');
+    try {
+      const r = await fetch(apiBase() + '/api/today');
+      const t = await r.text();
+      const data = safeParseYaml(t) || {};
+      const blocks = Array.isArray(data.blocks) ? data.blocks : [];
+      function toMin(s) { const m = String(s || '').match(/(\d{1,2}):(\d{2})/); if (!m) return null; return parseInt(m[1], 10) * 60 + parseInt(m[2], 10); }
+      const blockRecords = blocks.map(b => ({
+        start: toMin(b.start),
+        end: toMin(b.end),
+        text: b.text || '',
+        type: b.type || '',
+      }));
+      updateItemList(blockRecords);
+
+      const key = (function () { const d = new Date(); const y = d.getFullYear(), m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2); return `${y}-${m}-${dd}`; })();
+      const store = (function () { try { return JSON.parse(localStorage.getItem('pm_day_blocks')) || {} } catch { return {} } })();
+            store[key] = blocks.map(b => ({ start: toMin(b.start) || 0, end: toMin(b.end) || 0, text: b.text || '' }));
+      try { localStorage.setItem('pm_day_blocks', JSON.stringify(store)); } catch { }
+      try { window.dayBlocksStore = store; } catch { }
+      try { if (typeof window.redraw === 'function') window.redraw(); } catch { }
+      console.log('[Chronos][Today] Loaded blocks:', blocks.length);
+      alert("Loaded today's schedule.");
+    } catch (e) { console.error('[Chronos][Today] fetch error:', e); alert('Failed to load schedule.'); }
+  }
+
+  // NEW: Initialize & Persist Scheduling Controls
+  const sliders = {
+    environment: el.querySelector('#sliderEnvironment'),
+    category: el.querySelector('#sliderCategory'),
+    happiness: el.querySelector('#sliderHappiness'),
+    dueDate: el.querySelector('#sliderDueDate'),
+    deadline: el.querySelector('#sliderDeadline'),
+    status: el.querySelector('#sliderStatus'),
+    priority: el.querySelector('#sliderPriority'),
+    template: el.querySelector('#sliderTemplate'),
+  };
+  const vals = {
+    environment: el.querySelector('#valEnvironment'),
+    category: el.querySelector('#valCategory'),
+    happiness: el.querySelector('#valHappiness'),
+    dueDate: el.querySelector('#valDueDate'),
+    deadline: el.querySelector('#valDeadline'),
+    status: el.querySelector('#valStatus'),
+    priority: el.querySelector('#valPriority'),
+    template: el.querySelector('#valTemplate'),
+  };
+  const toggleCutting = el.querySelector('#toggleCutting');
+
+  const priorityNameMap = {
+    "Environment": "environment",
+    "Category": "category",
+    "Happiness": "happiness",
+    "Due Date": "dueDate",
+    "Deadline": "deadline",
+    "Status Alignment": "status",
+    "Priority Property": "priority",
+    "Template Membership": "template",
+  };
+  const sliderNameMap = Object.fromEntries(Object.entries(priorityNameMap).map(([name, key]) => [key, name]));
+  let schedulingPrioritiesRaw = null;
+  let schedulingPrioritiesData = null;
+  let saveTimer = null;
+
+  function setSliderValue(key, value) {
+    const slider = sliders[key];
+    if (!slider || value === undefined || value === null) return;
+    slider.value = String(value);
+    if (vals[key]) vals[key].textContent = slider.value;
+  }
+
+  function syncSliderLabels() {
+    for (const [key, slider] of Object.entries(sliders)) {
+      if (!slider) continue;
+      if (vals[key]) vals[key].textContent = slider.value;
+    }
+  }
+
+  function getControlSnapshot() {
+    return {
+      environment: sliders.environment?.value,
+      category: sliders.category?.value,
+      happiness: sliders.happiness?.value,
+      dueDate: sliders.dueDate?.value,
+      deadline: sliders.deadline?.value,
+      status: sliders.status?.value,
+      priority: sliders.priority?.value,
+      template: sliders.template?.value,
+      allowCutting: toggleCutting?.checked,
+    };
+  }
+
+  function saveLocalControls() {
+    try {
+      localStorage.setItem('chronos_sched_controls', JSON.stringify(getControlSnapshot()));
+    } catch { }
+  }
+
+  function loadLocalControls() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('chronos_sched_controls') || '{}');
+      if (saved.environment) sliders.environment.value = saved.environment;
+      if (saved.category) sliders.category.value = saved.category;
+      if (saved.happiness) sliders.happiness.value = saved.happiness;
+      if (saved.dueDate) sliders.dueDate.value = saved.dueDate;
+      if (saved.deadline) sliders.deadline.value = saved.deadline;
+      if (saved.status) sliders.status.value = saved.status;
+      if (saved.priority) sliders.priority.value = saved.priority;
+      if (saved.template) sliders.template.value = saved.template;
+      if (saved.allowCutting !== undefined) toggleCutting.checked = saved.allowCutting;
+      syncSliderLabels();
+    } catch { }
+  }
+
+  async function loadSchedulingPriorities() {
+    try {
+      const resp = await fetch(apiBase() + '/api/settings?file=Scheduling_Priorities.yml');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) return;
+      schedulingPrioritiesRaw = typeof data.content === 'string' ? data.content : null;
+      schedulingPrioritiesData = (data.data && typeof data.data === 'object') ? data.data : null;
+      const factors = schedulingPrioritiesData?.Scheduling_Priorities;
+      if (Array.isArray(factors)) {
+        factors.forEach(entry => {
+          const name = String(entry?.Name || '').trim();
+          const key = priorityNameMap[name];
+          if (!key) return;
+          const rank = entry?.Rank;
+          if (rank !== undefined && rank !== null) setSliderValue(key, rank);
+        });
+        saveLocalControls();
+      }
+    } catch { }
+  }
+
+  function buildSchedulingPrioritiesRaw() {
+    if (!schedulingPrioritiesRaw) return null;
+    const snapshot = getControlSnapshot();
+    const targetRanks = {};
+    for (const [key, name] of Object.entries(sliderNameMap)) {
+      if (snapshot[key] !== undefined && snapshot[key] !== null) {
+        targetRanks[name] = snapshot[key];
+      }
+    }
+    const newline = schedulingPrioritiesRaw.includes('\r\n') ? '\r\n' : '\n';
+    const lines = schedulingPrioritiesRaw.split(/\r\n|\n/);
+    let currentName = null;
+    const updated = lines.map(line => {
+      const nameMatch = line.match(/^\s*-\s*Name:\s*(.+)\s*$/);
+      if (nameMatch) {
+        currentName = nameMatch[1].trim();
+        return line;
+      }
+      const rankMatch = line.match(/^(\s*Rank:\s*)(\d+)(\s*)$/);
+      if (rankMatch && currentName && targetRanks[currentName] !== undefined) {
+        return `${rankMatch[1]}${targetRanks[currentName]}${rankMatch[3] || ''}`;
+      }
+      return line;
+    });
+    return updated.join(newline);
+  }
+
+  function buildSchedulingPrioritiesData() {
+    const snapshot = getControlSnapshot();
+    const payload = schedulingPrioritiesData && typeof schedulingPrioritiesData === 'object'
+      ? JSON.parse(JSON.stringify(schedulingPrioritiesData))
+      : { Scheduling_Priorities: [] };
+    const list = Array.isArray(payload.Scheduling_Priorities) ? payload.Scheduling_Priorities : [];
+    const lookup = {};
+    list.forEach(entry => {
+      if (entry && entry.Name) lookup[String(entry.Name).trim()] = entry;
+    });
+    for (const [key, name] of Object.entries(sliderNameMap)) {
+      if (!lookup[name]) continue;
+      lookup[name].Rank = Number(snapshot[key] || lookup[name].Rank || 0);
+    }
+    payload.Scheduling_Priorities = list;
+    return payload;
+  }
+
+  async function saveSchedulingPriorities() {
+    try {
+      const raw = buildSchedulingPrioritiesRaw();
+      let body = raw;
+      let headers = { 'Content-Type': 'text/yaml' };
+      if (!raw) {
+        const data = buildSchedulingPrioritiesData();
+        body = JSON.stringify({ file: 'Scheduling_Priorities.yml', data });
+        headers = { 'Content-Type': 'application/json' };
+      }
+      const resp = await fetch(apiBase() + '/api/settings?file=Scheduling_Priorities.yml', {
+        method: 'POST',
+        headers,
+        body,
+      });
+      await resp.text().catch(() => '');
+    } catch { }
+  }
+
+  function queueSettingsSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      saveSchedulingPriorities();
+    }, 500);
+  }
+
+  loadLocalControls();
+  loadSchedulingPriorities();
+
+  for (const [key, slider] of Object.entries(sliders)) {
+    if (!slider) continue;
+    slider.addEventListener('input', () => {
+      if (vals[key]) vals[key].textContent = slider.value;
+      saveLocalControls();
+      queueSettingsSave();
+    });
+  }
+  toggleCutting?.addEventListener('change', () => saveLocalControls());
+
+  const content = el.querySelector('.content') || el;
+  const btnRefresh = content.querySelector('#todayRefresh');
+  const btnResched = content.querySelector('#todayReschedule');
+  const btnStartDay = content.querySelector('#todayStartDay');
+  const selSummary = content.querySelector('#selSummary');
+  const selHint = content.querySelector('#selHint');
+  const calendarContext = content.querySelector('#calendarContext');
+  const calendarDayLabel = content.querySelector('#calendarDayLabel');
+  const calendarDayNote = content.querySelector('#calendarDayNote');
+  const selectedItemInput = content.querySelector('#selectedItemInput');
+  const todayItemList = content.querySelector('#todayItemList');
+  const btnTrim5 = content.querySelector('#trim5');
+  const btnTrim10 = content.querySelector('#trim10');
+  const inputTrim = content.querySelector('#trimCustom');
+  const btnTrimGo = content.querySelector('#trimGo');
+  const inputChange = content.querySelector('#changeTime');
+  const btnChangeGo = content.querySelector('#changeGo');
+  const btnCutGo = content.querySelector('#cutGo');
+  const btnMarkDone = content.querySelector('#markDone');
+  const btnMarkSkipped = content.querySelector('#markSkipped');
+  const btnMarkDelayed = content.querySelector('#markDelayed');
+  const btnCompleteItem = content.querySelector('#completeItem');
+  const inputDidStart = content.querySelector('#didStart');
+  const inputDidEnd = content.querySelector('#didEnd');
+  const selectDidStatus = content.querySelector('#didStatus');
+  const inputDidNote = content.querySelector('#didNote');
+  const btnDidGo = content.querySelector('#didGo');
+
+  let selected = null;
+  let todayBlocks = [];
+  let calendarOpen = false;
+  let calendarDaySelected = false;
+  let calendarDayIsToday = false;
+  let calendarDayKey = null;
+  let calendarDayDate = null;
+
+  if (btnRefresh) btnRefresh.addEventListener('click', () => { console.log('[Chronos][Today] Refresh clicked'); fetchToday(); });
+  if (btnResched) btnResched.addEventListener('click', async () => {
+    console.log('[Chronos][Today] Reschedule clicked');
+    try {
+      const resp = await fetch(apiBase() + '/api/today/reschedule', { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body: 'reschedule: true' });
+      const text = await resp.text();
+      console.log('[Chronos][Today] Reschedule response:', text);
+    } catch (e) { console.error('[Chronos][Today] Reschedule error:', e); }
+    fetchToday();
+  });
+  if (btnStartDay) btnStartDay.addEventListener('click', () => startDay());
+
+  const fxChk = content.querySelector('#todayFxToggle');
+  let fxEnabled = (fxChk ? fxChk.checked : true);
+  fxChk?.addEventListener('change', () => {
+    fxEnabled = !!fxChk.checked;
+    refreshSelectionSummary();
+  });
+
+  function pulseWidget() {
+    try {
+      el.classList.remove('pulse');
+      void el.offsetWidth;
+      el.classList.add('pulse');
+      setTimeout(() => el.classList.remove('pulse'), 1000);
+    } catch { }
+  }
+
+  function isTodayKey(key) {
+    if (!key) return false;
+    const d = new Date();
+    const y = d.getFullYear(), m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2);
+    return key === `${y}-${m}-${dd}`;
+  }
+
+  function updateCalendarContextVisibility() {
+    const show = calendarOpen && calendarDaySelected;
+    if (calendarContext) calendarContext.style.display = show ? 'flex' : 'none';
+    if (!show) return;
+    if (calendarDayLabel) {
+      calendarDayLabel.textContent = calendarDayDate
+        ? `Calendar Day: ${calendarDayDate.toDateString()}`
+        : 'Calendar Day: (unknown)';
+    }
+    const canAct = calendarDayIsToday;
+    if (calendarDayNote) {
+      calendarDayNote.textContent = canAct ? '' : 'Actions are available for today only.';
+    }
+    if (canAct) {
+      try {
+        const globalBlocks = Array.isArray(window.__todayBlocks) ? window.__todayBlocks : null;
+        if (globalBlocks && globalBlocks.length) updateItemList(globalBlocks);
+      } catch { }
+    }
+    setActionsEnabled(canAct);
+  }
+
+  function setActionsEnabled(enabled) {
+    const controls = [
+      selectedItemInput, btnTrim5, btnTrim10, inputTrim, btnTrimGo,
+      inputChange, btnChangeGo, btnCutGo, btnMarkDone, btnMarkSkipped,
+      btnMarkDelayed, btnCompleteItem, inputDidStart, inputDidEnd,
+      selectDidStatus, inputDidNote, btnDidGo
+    ];
+    controls.forEach(ctrl => { if (ctrl) ctrl.disabled = !enabled; });
+  }
+
+  function hm(m) {
+    const h = Math.floor((m || 0) / 60) % 24;
+    const n = (m || 0) % 60;
+    return String(h).padStart(2, '0') + ':' + String(n).padStart(2, '0');
+  }
+
+  function refreshSelectionSummary() {
+    if (!selected) {
+      if (selSummary) selSummary.textContent = 'Select a block in the calendar.';
+      return;
+    }
+    const disp = (fxEnabled && window.ChronosVars && window.ChronosVars.expand)
+      ? window.ChronosVars.expand(String(selected.text || ''))
+      : String(selected.text || '');
+    if (selSummary) selSummary.textContent = `${disp} (${hm(selected.start)}-${hm(selected.end || selected.start)})`;
+  }
+
+  function setSelected(item) {
+    selected = item || null;
+    if (!selected) {
+      if (selectedItemInput) selectedItemInput.value = '';
+      if (selSummary) selSummary.textContent = 'Select a block in the calendar.';
+      return;
+    }
+    if (selectedItemInput) selectedItemInput.value = String(selected.text || '');
+    refreshSelectionSummary();
+    try { inputChange.value = hm(selected.start); } catch { }
+  }
+
+  function updateItemList(blocks) {
+    todayBlocks = blocks || [];
+    if (!todayItemList) return;
+    todayItemList.innerHTML = '';
+    todayBlocks.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = String(b.text || '');
+      opt.label = b.start != null ? hm(b.start) : '';
+      todayItemList.appendChild(opt);
+    });
+  }
+
+  function findBlockByText(text) {
+    if (!text) return null;
+    const raw = String(text);
+    const matches = todayBlocks.filter(b => String(b.text || '') === raw);
+    if (!matches.length) return null;
+    matches.sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+    const pick = matches[0];
+    return { text: pick.text, type: pick.type, start: pick.start, end: pick.end };
+  }
+
+  selectedItemInput?.addEventListener('change', () => {
+    const match = findBlockByText(selectedItemInput.value);
+    if (match) setSelected(match);
+  });
+  selectedItemInput?.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      const match = findBlockByText(selectedItemInput.value);
+      if (match) setSelected(match);
+    }
+  });
+
+  try {
+    context?.bus?.on('calendar:open', () => {
+      calendarOpen = true;
+      updateCalendarContextVisibility();
+    });
+    context?.bus?.on('calendar:close', () => {
+      calendarOpen = false;
+      calendarDaySelected = false;
+      calendarDayIsToday = false;
+      calendarDayKey = null;
+      calendarDayDate = null;
+      setSelected(null);
+      updateCalendarContextVisibility();
+    });
+    context?.bus?.on('calendar:day-selected', (payload) => {
+      const nextKey = payload?.key || null;
+      if (calendarDayKey && nextKey && nextKey !== calendarDayKey) setSelected(null);
+      calendarDaySelected = true;
+      calendarDayKey = nextKey;
+      calendarDayDate = payload?.date ? new Date(payload.date) : null;
+      calendarDayIsToday = isTodayKey(calendarDayKey);
+      updateCalendarContextVisibility();
+      if (calendarDaySelected && calendarOpen) pulseWidget();
+    });
+    context?.bus?.on('calendar:day-cleared', () => {
+      calendarDaySelected = false;
+      calendarDayIsToday = false;
+      calendarDayKey = null;
+      calendarDayDate = null;
+      setSelected(null);
+      updateCalendarContextVisibility();
+    });
+    context?.bus?.on('calendar:selected', (payload) => {
+      if (!payload) { setSelected(null); return; }
+      setSelected(payload || null);
+    });
+  } catch { }
+
+  async function runCli(command, args, properties) {
+    const propLines = Object.entries(properties || {}).map(([k, v]) => `  ${k}: ${String(v)}`).join('\n');
+    const body = `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n${propLines ? 'properties:\n' + propLines + '\n' : ''}`;
+    const resp = await fetch(apiBase() + '/api/cli', { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body });
+    const text = await resp.text();
+    return { ok: resp.ok, text };
+  }
+
+  function ensureSel() {
+    if (!calendarDayIsToday) { alert('Actions are available for today only.'); return false; }
+    if (!selected) { alert('Select an item in the calendar first.'); return false; }
+    return true;
+  }
+
+  btnTrim5?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('trim', [selected.text, '5'], {}); });
+  btnTrim10?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('trim', [selected.text, '10'], {}); });
+  btnTrimGo?.addEventListener('click', async () => { if (!ensureSel()) return; const val = parseInt(inputTrim?.value || ''); if (!val || val <= 0) { alert('Enter minutes'); return; } await runCli('trim', [selected.text, String(val)], {}); });
+  btnChangeGo?.addEventListener('click', async () => { if (!ensureSel()) return; const t = inputChange?.value || ''; if (!/^\d{2}:\d{2}$/.test(t)) { alert('Enter time HH:MM'); return; } await runCli('change', [selected.text, t], {}); });
+  btnCutGo?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('cut', [selected.text], {}); });
+  btnMarkDone?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('mark', [`${selected.text}:completed`], {}); });
+  btnMarkSkipped?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('mark', [`${selected.text}:skipped`], {}); });
+  btnMarkDelayed?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('mark', [`${selected.text}:delayed`], {}); });
+  btnCompleteItem?.addEventListener('click', async () => {
+    if (!ensureSel()) return;
+    if (!selected.type) { alert('Selected item type is unknown.'); return; }
+    await runCli('complete', [selected.type, selected.text], {});
+  });
+  btnDidGo?.addEventListener('click', async () => {
+    if (!ensureSel()) return;
+    const props = {};
+    const st = inputDidStart?.value || '';
+    const en = inputDidEnd?.value || '';
+    const status = selectDidStatus?.value || '';
+    const note = inputDidNote?.value || '';
+    if (st) props.start_time = st;
+    if (en) props.end_time = en;
+    if (status) props.status = status;
+    if (note) props.note = note;
+    await runCli('did', [selected.text], props);
+  });
+
+  // Dragging/min/close
+  const header = el.querySelector('#todayHeader');
+  const btnMin = el.querySelector('#todayMin');
+  const btnClose = el.querySelector('#todayClose');
+  if (header && btnMin && btnClose) {
+    header.addEventListener('pointerdown', (ev) => {
+      const r = el.getBoundingClientRect(); const offX = ev.clientX - r.left, offY = ev.clientY - r.top;
+      function move(e) { el.style.left = Math.max(6, e.clientX - offX) + 'px'; el.style.top = Math.max(6, e.clientY - offY) + 'px'; el.style.right = 'auto'; }
+      function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+    });
+    btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
+    btnClose.addEventListener('click', () => el.style.display = 'none');
+  }
+
+  // Resizers
+  function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
+  const re = el.querySelector('.resizer.e'); const rs = el.querySelector('.resizer.s'); const rse = el.querySelector('.resizer.se');
+  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; })(ev); });
+  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
+  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
+
+  async function startDay() {
+    if (!btnStartDay) return;
+    if (btnStartDay.disabled) return;
+    btnStartDay.disabled = true;
+    const prev = btnStartDay.textContent;
+    btnStartDay.textContent = 'Starting...';
+    try {
+      if (typeof window.ChronosStartDay === 'function') {
+        await window.ChronosStartDay({ source: 'today-widget', target: 'day' });
+      } else {
+        const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'day' }) });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
+      }
+      fetchToday();
+      try { window.ChronosBus?.emit?.('timer:show', { source: 'today-widget' }); } catch { }
+    } catch (err) {
+      console.error('[Chronos][Today] start failed', err);
+      alert(`Failed to start day: ${err?.message || err}`);
+    } finally {
+      btnStartDay.disabled = false;
+      btnStartDay.textContent = prev;
+    }
+  }
+
+  console.log('[Chronos][Today] Widget ready');
+  return {};
+}

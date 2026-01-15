@@ -1,0 +1,16 @@
+{
+  "activities": [
+    {
+      "id": "riding",
+      "label": "riding",
+      "avatar": "activities/riding.png",
+      "background": "cycle_lane.png"
+    },
+    {
+      "id": "balet",
+      "label": "dancing",
+      "avatar": "activities/balet.png",
+      "background": "balet_practice_hall.png"
+    }
+  ]
+}

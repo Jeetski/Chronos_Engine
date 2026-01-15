@@ -1,0 +1,14 @@
+{
+  "scale": 0.5,
+  "x": "0px",
+  "y": "0px",
+  "transform_origin": "center center",
+  "overrides": {
+    "calm.png": {
+      "scale": 0.55,
+      "x": "50px",
+      "y": "0px",
+      "mirror": false
+    }
+  }
+}
