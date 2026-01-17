@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "notes": "Declarative prompt merge map for this familiar. This file is documentation only and does not change runtime behavior.",
+  "first_prompt": {
+    "static_files": [
+      "docs/agent.md",
+      "docs/personality.md",
+      "docs/coding.md",
+      "meta.json",
+      "docs/locations.md",
+      "docs/greet.md",
+      "docs/affection.md",
+      "docs/preferences.md",
+      "docs/memories.md",
+      "profile.json",
+      "../docs/agents/affection_system.md",
+      "docs/outfits.md",
+      "avatar/**/avatars.md"
+    ],
+    "dynamic_blocks": [
+      "familiar_docs_update_note",
+      "current_date_time",
+      "current_state",
+      "focus_cycle_status_and_guidance",
+      "agents_policy_summary",
+      "nsfw_policy",
+      "affection_style_policy",
+      "milestones",
+      "journey_status",
+      "subtle_innuendo_policy",
+      "present_activity_if_greet",
+      "conversation_history",
+      "memory_snippet_if_enabled"
+    ]
+  },
+  "per_message": {
+    "static_files": [
+      "docs/preferences.md",
+      "docs/memories.md",
+      "profile.json"
+    ],
+    "dynamic_blocks": [
+      "current_date_time",
+      "current_state",
+      "focus_cycle_status_and_guidance",
+      "agents_policy_summary",
+      "nsfw_policy",
+      "affection_style_policy",
+      "milestones",
+      "journey_status",
+      "subtle_innuendo_policy",
+      "conversation_history",
+      "memory_snippet_if_enabled"
+    ]
+  },
+  "optional": {
+    "immersive_lore": {
+      "path": "docs/lore.md",
+      "tag": "[Immersive Lore Enabled]",
+      "enabled_by": ["settings.json:immersive", "env:ADUC_IMMERSIVE=1", "turn:immersive=true"]
+    },
+    "chronos_mode": {
+      "config": "docs/chronos-merge.json",
+      "enabled_by": ["env:ADUC_EXTERNAL_CONTEXT_FILE"]
+    }
+  }
+}

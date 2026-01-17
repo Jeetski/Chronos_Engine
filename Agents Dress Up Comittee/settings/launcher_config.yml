@@ -3,7 +3,7 @@
 
 # CLI Backend: which AI CLI to use
 # Options: "codex" or "gemini"
-cli_backend: codex
+cli_backend: gemini
 
 # Working directory for the CLI (where commands execute)
 # Use "chronos" to use the Chronos Engine root

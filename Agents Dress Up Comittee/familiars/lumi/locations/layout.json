@@ -6,7 +6,10 @@
       "scale": 0.8
     },
     "thinking.png": {
-      "scale": 0.95
+      "scale": 0.3,
+      "x": "0px",
+      "y": "50px",
+      "mirror": false
     }
   },
   "balet_practice_hall.png": {

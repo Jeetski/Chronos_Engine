@@ -78,7 +78,7 @@ const HELP_TEXT = {
   Notes: 'Notes: Create quick notes. Fill Title/Category/Priority/Tags/Content and click Create. Load opens from API or YAML file.',
   StickyNotes: 'Sticky Notes: Capture Chronos note items tagged sticky, set colors, pin favorites, and spin up reminders from the dashboard.',
   Status: 'Status: View and adjust indicators (energy, focus, mood, etc.).',
-  Today: 'Today: View and manage today\'s schedule. Select blocks to trim, change time, cut, mark, then reschedule.',
+  Today: 'Scheduler: Preview schedules by day and manage today\'s blocks. Select blocks to trim, change time, cut, mark, then reschedule.',
   ItemManager: 'Item Manager: Browse, search, create, rename, delete, and edit items.',
   InventoryManager: 'Inventory Manager: Inspect inventories, linked items, and tools; add/remove or copy kits without memorizing commands.',
   Timer: 'Timer: Start, pause, resume, stop timers; choose profiles; view status.',

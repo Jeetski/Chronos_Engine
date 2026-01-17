@@ -2,7 +2,7 @@
   console.log('[Chronos][Today] Mounting Today widget');
   el.innerHTML = `
     <div class="header" id="todayHeader">
-      <div class="title">Today</div>
+      <div class="title">Scheduler</div>
       <div class="controls">
         <button class="icon-btn" id="todayMin" title="Minimize">_</button>
         <button class="icon-btn" id="todayClose" title="Close">x</button>
@@ -135,13 +135,13 @@
 <!-- Existing Controls -->
       <div class="row" style="align-items: center; gap: 8px;">
         <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="todayFxToggle" checked /> fx</label>
-        <span class="hint" id="selHint">Select a day in Calendar to activate actions.</span>
+        <span class="hint" id="selHint">Select a day in Calendar to preview the schedule.</span>
         <div class="spacer"></div>
         <button class="btn btn-secondary" id="todayRefresh">Refresh</button>
         <button class="btn btn-primary" id="todayStartDay">Start Day</button>
         <button class="btn btn-secondary" id="todayReschedule">Reschedule</button>
       </div>
-      <div class="hint">Select a block in Calendar, then use Actions. Apply edits with Reschedule.</div>
+      <div class="hint">Select a block in Calendar, then use Actions (today only). Apply edits with Reschedule.</div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -150,54 +150,125 @@
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
-  function safeParseYaml(text) {
-    if (typeof window !== 'undefined' && typeof window.parseYaml === 'function') {
-      try {
+  function parseScheduleYaml(text) {
+    try {
+      if (typeof window !== 'undefined' && typeof window.parseYaml === 'function') {
         const parsed = window.parseYaml(text);
         if (parsed && Array.isArray(parsed.blocks) && parsed.blocks.length) {
           return parsed;
         }
-      } catch { }
-    }
-    const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
-    const res = { blocks: [] };
-    let inBlocks = false, cur = null;
-    for (let raw of lines) {
-      const line = raw.replace(/#.*$/, '');
+      }
+    } catch { }
+    const result = { blocks: [] };
+    if (!text) return result;
+    const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+    let inBlocks = false;
+    let current = null;
+    const pushCurrent = () => {
+      if (current) {
+        result.blocks.push(current);
+        current = null;
+      }
+    };
+    const applyLine = (line) => {
+      const match = line.match(/^\s*([A-Za-z0-9_]+)\s*:\s*(.+)$/);
+      if (!match) {
+        if (/^\s*-\s*$/.test(line.trim())) {
+          pushCurrent();
+          current = {};
+        }
+        return;
+      }
+      const key = match[1];
+      const value = match[2].trim();
+      const normalized = value === '' ? '' : value;
+      if (inBlocks) {
+        if (!current) current = {};
+        current[key] = normalized;
+      } else {
+        result[key] = normalized;
+      }
+    };
+    for (const rawLine of lines) {
+      const line = rawLine.replace(/#.*$/, '');
       if (!line.trim()) continue;
-      if (!inBlocks) { if (/^\s*blocks\s*:/.test(line)) { inBlocks = true; } continue; }
-      if (/^\s*-\s*/.test(line)) { if (cur) res.blocks.push(cur); cur = {}; continue; }
-      const m = line.match(/^\s*(\w+)\s*:\s*(.+)$/); if (m && cur) { cur[m[1]] = m[2].trim(); }
+      if (!inBlocks) {
+        if (/^\s*blocks\s*:/i.test(line)) {
+          inBlocks = true;
+          continue;
+        }
+        applyLine(line);
+        continue;
+      }
+      const dashMatch = line.match(/^\s*-\s*(.*)$/);
+      if (dashMatch) {
+        pushCurrent();
+        current = {};
+        const remainder = dashMatch[1];
+        if (remainder) {
+          const kv = remainder.match(/^([A-Za-z0-9_]+)\s*:\s*(.+)$/);
+          if (kv) {
+            current[kv[1]] = kv[2].trim();
+          }
+        }
+        continue;
+      }
+      applyLine(line);
     }
-    if (cur) res.blocks.push(cur);
-    return res;
+    pushCurrent();
+    return result;
   }
 
-  async function fetchToday() {
+  function extractTimeParts(value) {
+    if (!value) return { minutes: null };
+    const match = String(value).match(/(\d{1,2}):(\d{2})/);
+    if (!match) return { minutes: null };
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return { minutes: null };
+    return { minutes: hours * 60 + minutes };
+  }
+
+  function normalizeScheduleBlocks(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((block, idx) => {
+      const startParts = extractTimeParts(block.start ?? block.start_time);
+      const endParts = extractTimeParts(block.end ?? block.end_time);
+      return {
+        start: startParts.minutes,
+        end: endParts.minutes,
+        text: block.text || block.name || `Block ${idx + 1}`,
+        type: block.type || block.item_type || '',
+      };
+    });
+  }
+
+  async function fetchToday({ silent = true } = {}) {
     console.log('[Chronos][Today] fetchToday()');
     try {
       const r = await fetch(apiBase() + '/api/today');
       const t = await r.text();
-      const data = safeParseYaml(t) || {};
+      const data = parseScheduleYaml(t) || {};
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
-      function toMin(s) { const m = String(s || '').match(/(\d{1,2}):(\d{2})/); if (!m) return null; return parseInt(m[1], 10) * 60 + parseInt(m[2], 10); }
-      const blockRecords = blocks.map(b => ({
-        start: toMin(b.start),
-        end: toMin(b.end),
-        text: b.text || '',
-        type: b.type || '',
-      }));
+      const blockRecords = normalizeScheduleBlocks(blocks);
       updateItemList(blockRecords);
 
       const key = (function () { const d = new Date(); const y = d.getFullYear(), m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2); return `${y}-${m}-${dd}`; })();
       const store = (function () { try { return JSON.parse(localStorage.getItem('pm_day_blocks')) || {} } catch { return {} } })();
-            store[key] = blocks.map(b => ({ start: toMin(b.start) || 0, end: toMin(b.end) || 0, text: b.text || '' }));
+      store[key] = blocks.map(b => {
+        const startParts = extractTimeParts(b.start);
+        const endParts = extractTimeParts(b.end);
+        return { start: startParts.minutes || 0, end: endParts.minutes || 0, text: b.text || '' };
+      });
       try { localStorage.setItem('pm_day_blocks', JSON.stringify(store)); } catch { }
       try { window.dayBlocksStore = store; } catch { }
       try { if (typeof window.redraw === 'function') window.redraw(); } catch { }
       console.log('[Chronos][Today] Loaded blocks:', blocks.length);
-      alert("Loaded today's schedule.");
-    } catch (e) { console.error('[Chronos][Today] fetch error:', e); alert('Failed to load schedule.'); }
+      if (!silent) alert("Loaded today's schedule.");
+    } catch (e) {
+      console.error('[Chronos][Today] fetch error:', e);
+      if (!silent) alert('Failed to load schedule.');
+    }
   }
 
   // NEW: Initialize & Persist Scheduling Controls
@@ -429,8 +500,12 @@
   let calendarDayIsToday = false;
   let calendarDayKey = null;
   let calendarDayDate = null;
+  let lastPreviewKey = null;
 
-  if (btnRefresh) btnRefresh.addEventListener('click', () => { console.log('[Chronos][Today] Refresh clicked'); fetchToday(); });
+  if (btnRefresh) btnRefresh.addEventListener('click', () => {
+    console.log('[Chronos][Today] Refresh clicked');
+    refreshScheduleForTarget({ force: true });
+  });
   if (btnResched) btnResched.addEventListener('click', async () => {
     console.log('[Chronos][Today] Reschedule clicked');
     try {
@@ -438,7 +513,7 @@
       const text = await resp.text();
       console.log('[Chronos][Today] Reschedule response:', text);
     } catch (e) { console.error('[Chronos][Today] Reschedule error:', e); }
-    fetchToday();
+    fetchToday({ silent: true });
   });
   if (btnStartDay) btnStartDay.addEventListener('click', () => startDay());
 
@@ -465,26 +540,45 @@
     return key === `${y}-${m}-${dd}`;
   }
 
+  function dayKeyFromDate(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  function dateAtMidnight(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function daysBetween(a, b) {
+    const aa = dateAtMidnight(a).getTime();
+    const bb = dateAtMidnight(b).getTime();
+    return Math.round((bb - aa) / (24 * 60 * 60 * 1000));
+  }
+
   function updateCalendarContextVisibility() {
     const show = calendarOpen && calendarDaySelected;
     if (calendarContext) calendarContext.style.display = show ? 'flex' : 'none';
-    if (!show) return;
-    if (calendarDayLabel) {
-      calendarDayLabel.textContent = calendarDayDate
-        ? `Calendar Day: ${calendarDayDate.toDateString()}`
-        : 'Calendar Day: (unknown)';
-    }
     const canAct = calendarDayIsToday;
-    if (calendarDayNote) {
-      calendarDayNote.textContent = canAct ? '' : 'Actions are available for today only.';
+    if (show) {
+      if (calendarDayLabel) {
+        calendarDayLabel.textContent = calendarDayDate
+          ? `Calendar Day: ${calendarDayDate.toDateString()}`
+          : 'Calendar Day: (unknown)';
+      }
+      if (calendarDayNote) {
+        calendarDayNote.textContent = canAct ? '' : 'Actions are available for today only.';
+      }
+      setActionsEnabled(canAct);
     }
-    if (canAct) {
-      try {
-        const globalBlocks = Array.isArray(window.__todayBlocks) ? window.__todayBlocks : null;
-        if (globalBlocks && globalBlocks.length) updateItemList(globalBlocks);
-      } catch { }
-    }
-    setActionsEnabled(canAct);
+    const allowTodayActions = calendarDaySelected ? calendarDayIsToday : true;
+    if (btnResched) btnResched.disabled = !allowTodayActions;
+    if (btnStartDay) btnStartDay.disabled = !allowTodayActions;
   }
 
   function setActionsEnabled(enabled) {
@@ -559,6 +653,57 @@
     }
   });
 
+  async function runCliPreview(command, args) {
+    const body = `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n`;
+    const resp = await fetch(apiBase() + '/api/cli', { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body });
+    const text = await resp.text();
+    return { ok: resp.ok, text };
+  }
+
+  async function fetchSchedulePreview(date) {
+    if (!date) return { ok: false, blocks: [] };
+    const today = new Date();
+    if (dateAtMidnight(date).getTime() < dateAtMidnight(today).getTime()) {
+      return { ok: false, blocks: [], error: 'Past dates are not previewable yet.' };
+    }
+    const delta = daysBetween(today, date);
+    if (delta <= 0) {
+      return { ok: true, blocks: null };
+    }
+    const args = delta > 1 ? [`days:${delta}`] : [];
+    const result = await runCliPreview('tomorrow', args);
+    if (!result.ok) {
+      return { ok: false, blocks: [], error: 'Preview unavailable.' };
+    }
+    const parsed = parseScheduleYaml(result.text || '');
+    const blocks = normalizeScheduleBlocks(parsed.blocks);
+    return { ok: true, blocks };
+  }
+
+  async function refreshScheduleForTarget({ force = false } = {}) {
+    const targetDate = (calendarDaySelected && calendarDayDate) ? calendarDayDate : null;
+    const targetKey = targetDate ? dayKeyFromDate(targetDate) : dayKeyFromDate(new Date());
+    if (!force && targetKey && targetKey === lastPreviewKey) return;
+    lastPreviewKey = targetKey;
+    if (!targetDate || calendarDayIsToday) {
+      await fetchToday({ silent: true });
+      if (selHint) selHint.textContent = 'Select a day in Calendar to preview the schedule.';
+      return;
+    }
+    const preview = await fetchSchedulePreview(targetDate);
+    if (!preview.ok) {
+      updateItemList([]);
+      setSelected(null);
+      if (selHint) selHint.textContent = preview.error || 'Preview unavailable for this day.';
+      return;
+    }
+    if (Array.isArray(preview.blocks)) {
+      updateItemList(preview.blocks);
+      setSelected(null);
+      if (selHint) selHint.textContent = `Previewing ${targetDate.toDateString()} (read-only).`;
+    }
+  }
+
   try {
     context?.bus?.on('calendar:open', () => {
       calendarOpen = true;
@@ -572,6 +717,7 @@
       calendarDayDate = null;
       setSelected(null);
       updateCalendarContextVisibility();
+      refreshScheduleForTarget({ force: true });
     });
     context?.bus?.on('calendar:day-selected', (payload) => {
       const nextKey = payload?.key || null;
@@ -581,6 +727,7 @@
       calendarDayDate = payload?.date ? new Date(payload.date) : null;
       calendarDayIsToday = isTodayKey(calendarDayKey);
       updateCalendarContextVisibility();
+      refreshScheduleForTarget({ force: true });
       if (calendarDaySelected && calendarOpen) pulseWidget();
     });
     context?.bus?.on('calendar:day-cleared', () => {
@@ -590,6 +737,7 @@
       calendarDayDate = null;
       setSelected(null);
       updateCalendarContextVisibility();
+      refreshScheduleForTarget({ force: true });
     });
     context?.bus?.on('calendar:selected', (payload) => {
       if (!payload) { setSelected(null); return; }
@@ -674,7 +822,7 @@
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
       }
-      fetchToday();
+      fetchToday({ silent: true });
       try { window.ChronosBus?.emit?.('timer:show', { source: 'today-widget' }); } catch { }
     } catch (err) {
       console.error('[Chronos][Today] start failed', err);
@@ -685,6 +833,7 @@
     }
   }
 
+  refreshScheduleForTarget({ force: true });
   console.log('[Chronos][Today] Widget ready');
   return {};
 }

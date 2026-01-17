@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "notes": "Chronos-mode prompt merge map for this familiar. Documentation only; runtime behavior unchanged.",
+  "enabled_by": ["env:ADUC_EXTERNAL_CONTEXT_FILE"],
+  "static_files": [
+    "docs/chronos.md",
+    "Docs/INDEX.md"
+  ],
+  "dynamic_blocks": [
+    "system_context_from:env:ADUC_EXTERNAL_CONTEXT_FILE",
+    "chronos_docs_update_note"
+  ],
+  "chronos_docs_watch": [
+    "Docs/INDEX.md",
+    "Docs/README.md",
+    "Docs/Dev/Architecture.md",
+    "Docs/Reference/CLI_Commands.md",
+    "Docs/Dev/CHS_Scripting.md",
+    "Docs/Guides/Conditions_Cookbook.md",
+    "Docs/Guides/common_workflows.md",
+    "Docs/Guides/Dashboard.md",
+    "Docs/Guides/Cockpit.md",
+    "Docs/Agents/agents.md",
+    "Docs/Agents/agents.dev.md",
+    "Docs/Guides/Settings.md",
+    "Docs/Dev/Sequence.md"
+  ]
+}

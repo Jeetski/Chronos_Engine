@@ -126,14 +126,14 @@ Server
 UI
 - `Utilities/Dashboard/dashboard.html` + `app.js` load all views and widgets.
 - Views:
-  - **Calendar** (year/month/week/day canvas, draggable overlay for zoom/level/tool controls). Selecting a block in Day view targets Today widget actions.
+- **Calendar** (year/month/week/day canvas with a Day List tree). Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable).
   - **Template Builder** (drag/drop week/day/routine trees plus goal/project/inventory builders with duration badges, nesting inspector, and POST `/api/template` saves).
 - **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree), **Matrix** (pivot-style grid for Chronos data), and **Status Strip** (color-coded horizontal strip of your current status indicators) can be arranged into a personal flight deck, with more panels on the way.
-- Widgets: Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
+- Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 
 Selected endpoints (JSON unless noted)
 - Health: `GET /health`.
-- Today: `GET /api/today`, `POST /api/today/reschedule`.
+- Today API: `GET /api/today`, `POST /api/today/reschedule`.
 - CLI Bridge: `POST /api/cli` (`{ command, args: [], properties: {} }`).
 - Items: `GET /api/items`, `GET /api/item`, `POST /api/item`, `POST /api/item/copy|rename|delete`, bulk `POST /api/items/delete|setprop|copy|export`.
 - Habits & Goals: `GET /api/habits`, `GET /api/goals`, `GET /api/goal?name=...`.

@@ -20,6 +20,11 @@ export function mount(el) {
           Smart Form Mode
         </label>
       </div>
+      <div class="row" style="gap:8px; align-items:center;">
+        <button id="addSectionBtn" class="btn btn-secondary">Add Section</button>
+        <button id="addFieldBtn" class="btn btn-secondary">Add Field</button>
+        <span class="hint" style="font-size:11px;">Form mode adds simple keys and sections.</span>
+      </div>
       <!-- Dynamic content container (form or YAML editor) -->
       <div id="dynamicContent" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
       <div class="row" style="gap:8px; align-items:center; justify-content:flex-end;">
@@ -39,6 +44,8 @@ export function mount(el) {
   const btnReload = content.querySelector('#reloadBtn');
   const status = content.querySelector('#settingsStatus');
   const formModeToggle = content.querySelector('#formModeToggle');
+  const addSectionBtn = content.querySelector('#addSectionBtn');
+  const addFieldBtn = content.querySelector('#addFieldBtn');
 
   let currentMode = 'form';
   let parsedData = {};
@@ -155,13 +162,16 @@ export function mount(el) {
 
     await Promise.all([...fieldsToPrefetch].map(f => fetchAutocompleteOptions(f)));
 
+    await renderFormFromParsed();
+  }
+
+  async function renderFormFromParsed() {
     dynamicContent.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:14px; padding:6px;">
         ${await generateSmartFields(parsedData)}
       </div>
     `;
 
-    // Attach listeners
     dynamicContent.querySelectorAll('input, select, textarea').forEach(input => {
       input.addEventListener('input', () => updateParsedData(input));
       input.addEventListener('change', () => updateParsedData(input));
@@ -275,6 +285,11 @@ export function mount(el) {
     const id = `field_${sectionName}_${field.key}`.replace(/[^a-zA-Z0-9_]/g, '_');
     const dataPath = `${sectionName}.${field.key}`;
     const datalistId = `datalist_${id}`;
+    const escapeAttr = (val) => String(val ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
 
     // Check if this field has autocomplete options
     const autocompleteOptions = await fetchAutocompleteOptions(field.key);
@@ -295,14 +310,14 @@ export function mount(el) {
       const listAttr = autocompleteOptions ? `list="${datalistId}"` : '';
       const datalist = autocompleteOptions ? `
         <datalist id="${datalistId}">
-          ${autocompleteOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+          ${autocompleteOptions.map(opt => `<option value="${escapeAttr(opt)}">${opt}</option>`).join('')}
         </datalist>
       ` : '';
 
       inputHtml = `
         <div style="display:flex; flex-direction:column; gap:4px;">
           <label for="${id}" style="font-weight:600; color:var(--text);">${field.key}</label>
-          <input type="${inputType}" id="${id}" data-path="${dataPath}" value="${field.value}" class="input" ${listAttr} autocomplete="off" />
+          <input type="${inputType}" id="${id}" data-path="${dataPath}" value="${escapeAttr(field.value)}" class="input" ${listAttr} autocomplete="off" />
           ${datalist}
           ${field.comment ? `<span class="hint" style="font-size:11px;">${field.comment}</span>` : ''}
           ${autocompleteOptions ? `<span class="hint" style="font-size:10px; color:#7aa2f7;">💡 Autocomplete from ${AUTOCOMPLETE_MAP[field.key.toLowerCase()]}</span>` : ''}
@@ -381,6 +396,38 @@ export function mount(el) {
   sel?.addEventListener('change', () => { if (sel.value) loadFile(sel.value); });
   formModeToggle?.addEventListener('change', () => {
     if (sel.value) loadFile(sel.value);
+  });
+  addSectionBtn?.addEventListener('click', async () => {
+    if (currentMode !== 'form') { setStatus('Switch to Smart Form Mode to add sections.', false); return; }
+    const name = (window.prompt('Section name:') || '').trim();
+    if (!name) return;
+    if (parsedData.sections.find(s => s.name === name)) {
+      setStatus('Section already exists.', false);
+      return;
+    }
+    parsedData.sections.push({ name, comment: '', fields: [] });
+    await renderFormFromParsed();
+    setStatus(`Added section ${name}`);
+  });
+  addFieldBtn?.addEventListener('click', async () => {
+    if (currentMode !== 'form') { setStatus('Switch to Smart Form Mode to add fields.', false); return; }
+    const key = (window.prompt('Field key:') || '').trim();
+    if (!key) return;
+    const value = (window.prompt('Field value (blank allowed):') || '').trim();
+    const sectionNameInput = (window.prompt('Section name (blank for root):') || '').trim();
+    const sectionName = sectionNameInput || '__root__';
+    let section = parsedData.sections.find(s => s.name === sectionName);
+    if (!section) {
+      section = { name: sectionName, comment: '', fields: [] };
+      parsedData.sections.push(section);
+    }
+    if (section.fields.find(f => f.key === key)) {
+      setStatus('Field already exists in that section.', false);
+      return;
+    }
+    section.fields.push({ key, value, type: detectType(value), comment: '' });
+    await renderFormFromParsed();
+    setStatus(`Added field ${key}`);
   });
 
   el.querySelector('#settingsMin')?.addEventListener('click', () => el.classList.toggle('minimized'));

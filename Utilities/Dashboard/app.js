@@ -442,169 +442,6 @@ ready(async () => {
     });
   }
 
-  function removeCalendarControls() {
-    const panel = document.getElementById('calendarControls');
-    if (panel) {
-      if (panel.__calendarClamp) {
-        try { window.removeEventListener('resize', panel.__calendarClamp); } catch { }
-        try { delete panel.__calendarClamp; } catch { }
-      }
-      panel.remove();
-    }
-    try { delete window.__calendarRefreshBack; } catch { }
-  }
-
-  function ensureCalendarControls(host) {
-    try {
-      if (!host) return;
-      const existing = document.getElementById('calendarControls');
-      if (existing) {
-        if (existing.parentElement === host) return;
-        existing.remove();
-      }
-      const panel = document.createElement('div');
-      panel.id = 'calendarControls';
-      panel.style.position = 'absolute';
-      panel.style.top = '10px';
-      panel.style.left = '10px';
-      panel.style.right = '';
-      panel.style.display = 'flex';
-      panel.style.gap = '6px';
-      panel.style.zIndex = '12';
-      panel.style.background = 'rgba(21,25,35,0.65)'; // semi-transparent
-      panel.style.border = '1px solid #222835';
-      panel.style.borderRadius = '8px';
-      panel.style.padding = '6px';
-      panel.style.backdropFilter = 'blur(2px)';
-      panel.style.cursor = 'grab';
-      panel.style.userSelect = 'none';
-      const mkBtn = (label) => { const b = document.createElement('button'); b.textContent = label; b.className = 'btn'; b.style.padding = '4px 8px'; return b; };
-      const mkIconBtn = (glyph, title) => { const b = document.createElement('button'); b.className = 'btn'; b.style.padding = '4px 8px'; b.textContent = glyph; if (title) b.title = title; return b; };
-      const lbl = document.createElement('span'); lbl.style.color = '#a6adbb'; lbl.style.padding = '4px 6px';
-      function updateLevel() { const map = ['Routines', 'Subroutines', 'Microroutines', 'Items']; lbl.textContent = map[Math.max(0, Math.min(3, (window.__calendarLevel ?? 0)))] || 'Items'; }
-      const zoomMinus = mkIconBtn('-', 'Zoom out');
-      const zoomPlus = mkIconBtn('+', 'Zoom in');
-      const levelMinus = mkIconBtn('Lv-', 'Level up');
-      const levelPlus = mkIconBtn('Lv+', 'Level down');
-      const backBtn = mkIconBtn('Back', 'Back');
-      zoomMinus.addEventListener('click', () => { window.__calendarPxPerMin = Math.max(0.25, (window.__calendarPxPerMin ?? 1) - 0.25); window.redraw?.(); });
-      zoomPlus.addEventListener('click', () => { window.__calendarPxPerMin = Math.min(4, (window.__calendarPxPerMin ?? 1) + 0.25); window.redraw?.(); });
-      levelMinus.addEventListener('click', () => { window.__calendarLevel = Math.max(0, (window.__calendarLevel ?? 0) - 1); updateLevel(); window.redraw?.(); });
-      levelPlus.addEventListener('click', () => { window.__calendarLevel = Math.min(3, (window.__calendarLevel ?? 0) + 1); updateLevel(); window.redraw?.(); });
-      function refreshBack(force) {
-        try {
-          const can = typeof force === 'boolean'
-            ? force
-            : (window.__calendarHasHistory ?? (window.__calendarCanGoBack ? window.__calendarCanGoBack() : false));
-          backBtn.style.opacity = can ? '' : '0.6';
-          backBtn.style.pointerEvents = 'auto'; // always clickable; goBack will no-op if empty
-        } catch { }
-      }
-      try { window.__calendarRefreshBack = refreshBack; } catch { }
-      backBtn.addEventListener('click', () => { window.__calendarGoBack?.(); refreshBack(); });
-      backBtn.addEventListener('mouseenter', refreshBack);
-      refreshBack();
-      updateLevel();
-      // Toolstrip
-      const toolCursor = mkIconBtn('Cursor', 'Cursor');
-      const toolSelect = mkIconBtn('Select', 'Select');
-      const toolPicker = mkIconBtn('Pick', 'Picker');
-      const toolEraser = mkIconBtn('Erase', 'Eraser');
-      function setTool(t) {
-        window.__calendarTool = t;
-        [toolCursor, toolSelect, toolPicker, toolEraser].forEach(b => b.classList.remove('btn-primary'));
-        if (t === 'cursor') toolCursor.classList.add('btn-primary');
-        if (t === 'select') toolSelect.classList.add('btn-primary');
-        if (t === 'picker') toolPicker.classList.add('btn-primary');
-        if (t === 'eraser') toolEraser.classList.add('btn-primary');
-      }
-      toolCursor.addEventListener('click', () => { setTool('cursor'); window.redraw?.(); });
-      toolSelect.addEventListener('click', () => { setTool('select'); window.redraw?.(); });
-      toolPicker.addEventListener('click', () => { setTool('picker'); window.redraw?.(); });
-      toolEraser.addEventListener('click', () => { setTool('eraser'); window.redraw?.(); });
-      setTool(window.__calendarTool ?? 'cursor');
-      panel.append(backBtn, zoomMinus, zoomPlus, levelMinus, levelPlus, lbl, toolCursor, toolSelect, toolPicker, toolEraser);
-      // Hover feedback for transparency
-      panel.addEventListener('mouseenter', () => { panel.style.background = 'rgba(21,25,35,0.85)'; });
-      panel.addEventListener('mouseleave', () => { panel.style.background = 'rgba(21,25,35,0.65)'; });
-
-      // Make panel draggable (relative to its host container)
-      (function makeDraggable(box, parent) {
-        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-        function loadPos() { try { return JSON.parse(localStorage.getItem('calendarControlsPos') || '{}'); } catch { return {}; } }
-        function savePos(left, top) { try { localStorage.setItem('calendarControlsPos', JSON.stringify({ left, top })); } catch { } }
-        function clampToBounds() {
-          try {
-            if (!parent) return;
-            const parentRect = parent.getBoundingClientRect();
-            if (!parentRect || !parentRect.width || !parentRect.height) return;
-            const rect = box.getBoundingClientRect();
-            const width = rect.width || box.offsetWidth || 0;
-            const height = rect.height || box.offsetHeight || 0;
-            let left = parseFloat(box.style.left || '10');
-            let top = parseFloat(box.style.top || '10');
-            if (!Number.isFinite(left)) left = 10;
-            if (!Number.isFinite(top)) top = 10;
-            const maxLeft = Math.max(4, parentRect.width - width - 4);
-            const maxTop = Math.max(0, parentRect.height - height - 4);
-            box.style.left = Math.round(clamp(left, 4, maxLeft)) + 'px';
-            box.style.top = Math.round(clamp(top, 0, maxTop)) + 'px';
-          } catch { }
-        }
-        // Restore saved position if available
-        try {
-          const pos = loadPos();
-          if (typeof pos.left === 'number' && typeof pos.top === 'number') {
-            box.style.left = pos.left + 'px';
-            box.style.top = pos.top + 'px';
-          }
-        } catch { }
-        setTimeout(clampToBounds, 0);
-        const onResize = () => clampToBounds();
-        window.addEventListener('resize', onResize);
-        try { box.__calendarClamp = onResize; } catch { }
-        box.addEventListener('pointerdown', (ev) => {
-          if (ev.button !== 0) return; // left only
-          ev.preventDefault(); ev.stopPropagation();
-          box.style.cursor = 'grabbing';
-          const rect = box.getBoundingClientRect();
-          const parentRect = parent?.getBoundingClientRect();
-          const offX = ev.clientX - rect.left;
-          const offY = ev.clientY - rect.top;
-          function move(e) {
-            const baseLeft = parentRect ? parentRect.left : 0;
-            const baseTop = parentRect ? parentRect.top : 0;
-            const boundsW = parentRect ? parentRect.width : window.innerWidth;
-            const boundsH = parentRect ? parentRect.height : window.innerHeight;
-            const nx = clamp(e.clientX - offX - baseLeft, 4, boundsW - rect.width - 4);
-            const ny = clamp(e.clientY - offY - baseTop, 0, boundsH - rect.height - 4);
-            box.style.left = Math.round(nx) + 'px';
-            box.style.top = Math.round(ny) + 'px';
-          }
-          function up() {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            box.style.cursor = 'grab';
-            // Persist position
-            try { const l = parseInt(box.style.left || '10'); const t = parseInt(box.style.top || '10'); savePos(l, t); } catch { }
-            clampToBounds();
-          }
-          window.addEventListener('pointermove', move);
-          window.addEventListener('pointerup', up);
-        });
-      })(panel, host);
-
-      // fx toggle for variable expansion in calendar labels
-      const fxWrap = document.createElement('label'); fxWrap.className = 'hint'; fxWrap.style.display = 'flex'; fxWrap.style.alignItems = 'center'; fxWrap.style.gap = '6px';
-      const fx = document.createElement('input'); fx.type = 'checkbox'; fx.id = 'calendarFxToggle'; fx.checked = (window.__calendarFxExpand !== false);
-      fxWrap.append(fx, document.createTextNode('fx'));
-      panel.appendChild(fxWrap);
-      fx.addEventListener('change', () => { window.__calendarFxExpand = fx.checked; try { window.redraw?.(); } catch { } });
-
-      host.appendChild(panel);
-    } catch (e) { console.warn('[Chronos][app] Could not build calendar controls:', e); }
-  }
-
   async function openPane(name, label) {
     if (!viewPanes) return;
     const existing = openPanes.find(v => v.name === name);
@@ -641,7 +478,51 @@ ready(async () => {
     close.addEventListener('click', (e) => { e.stopPropagation(); closePane(name); });
     try {
       await mountView(viewport, name);
-      if (name === 'Calendar') ensureCalendarControls(viewport);
+      if (name === 'Calendar') {
+        try {
+          window.__calendarTitleEl = title;
+          window.__calendarUpdateTitle = () => {
+            try {
+              const base = label || name;
+              const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              const mode = window.__calendarViewMode || 'year';
+              const day = window.__calendarSelectedDay ? new Date(window.__calendarSelectedDay) : null;
+              const weekStart = window.__calendarSelectedWeekStart ? new Date(window.__calendarSelectedWeekStart) : null;
+              const year = day?.getFullYear()
+                || weekStart?.getFullYear()
+                || window.__calendarSelectedYear
+                || (new Date()).getFullYear();
+              let text = `${base} · ${year}`;
+              if (mode === 'month') {
+                const m = window.__calendarSelectedMonth;
+                const monthName = Number.isFinite(m) ? months[m] : null;
+                if (monthName) text += ` · ${monthName}`;
+              } else if (mode === 'week') {
+                const d = weekStart;
+                if (d) text += ` · Week of ${months[d.getMonth()]} ${d.getDate()}`;
+              } else if (mode === 'day') {
+                const d = day;
+                if (d) {
+                  const dows = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                  const dow = dows[d.getDay()] || '';
+                  text += ` · ${dow}, ${months[d.getMonth()]} ${d.getDate()}`;
+                }
+              }
+              title.textContent = text;
+            } catch {
+              title.textContent = label || name;
+            }
+          };
+          window.__calendarUpdateTitle();
+        } catch {}
+        try {
+          const todayWidget = document.querySelector('[data-widget="Today"]');
+          if (todayWidget) {
+            todayWidget.style.display = '';
+            window.ChronosFocusWidget?.(todayWidget);
+          }
+        } catch {}
+      }
       openPanes.push({ name, label: label || name, pane, content, viewport });
       window.__currentView = name;
       try { window.ChronosBus?.emit?.('view:changed', { current: name, open: openPanes.map(p => p.name) }); } catch { }
@@ -665,7 +546,9 @@ ready(async () => {
         viewApi.dispose();
       }
     } catch { }
-    if (name === 'Calendar') removeCalendarControls();
+    if (name === 'Calendar') {
+      try { delete window.__calendarTitleEl; delete window.__calendarUpdateTitle; } catch {}
+    }
     try { pane.pane.remove(); } catch { }
     openPanes.splice(idx, 1);
     window.__currentView = openPanes.length ? openPanes[openPanes.length - 1].name : null;

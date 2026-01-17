@@ -176,6 +176,11 @@ async function maybePrompt(done) {
         }
       },
       onReschedule: async (el) => {
+        const btn = el.querySelector('[data-action="reschedule"]');
+        if (btn) {
+          btn.textContent = 'Rescheduling...';
+          btn.disabled = true;
+        }
         try {
           await fetch(apiBase() + '/api/cli', {
             method: 'POST',
@@ -213,13 +218,18 @@ async function maybePrompt(done) {
         done?.();
       }
     },
-    onReschedule: async (el) => {
-      try {
-        await fetch(apiBase() + '/api/cli', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: 'today', args: ['reschedule'], properties: {} })
-        });
+      onReschedule: async (el) => {
+        const btn = el.querySelector('[data-action="reschedule"]');
+        if (btn) {
+          btn.textContent = 'Rescheduling...';
+          btn.disabled = true;
+        }
+        try {
+          await fetch(apiBase() + '/api/cli', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: 'today', args: ['reschedule'], properties: {} })
+          });
         snooze(2 * 60 * 60 * 1000);
         el.remove();
         done?.();

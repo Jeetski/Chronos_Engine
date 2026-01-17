@@ -3,9 +3,154 @@
 let activeTool = window.__calendarTool ?? 'cursor';
 let selectRect = null;
 let navDepth = 0;
+const DAYLIST_STYLE_ID = 'calendar-daylist-style';
+
+function injectDayListStyles() {
+  if (document.getElementById(DAYLIST_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = DAYLIST_STYLE_ID;
+  style.textContent = `
+    .calendar-daylist {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 12px;
+      gap: 10px;
+      flex-direction: column;
+      color: var(--chronos-text, var(--text));
+    }
+    .calendar-daylist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .calendar-daylist-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--chronos-text, var(--text));
+    }
+    .calendar-daylist-actions {
+      display: inline-flex;
+      gap: 8px;
+    }
+    .calendar-daylist-table {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: var(--chronos-surface, rgba(15,17,21,0.85));
+      overflow: hidden;
+      min-height: 0;
+    }
+    .calendar-daylist-head {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      padding: 10px 18px;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--chronos-text-soft, #9aa4b7);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .calendar-daylist-tree {
+      flex: 1;
+      overflow: auto;
+      padding: 8px 0;
+    }
+    .calendar-daylist-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      padding: 6px 18px;
+      align-items: center;
+      cursor: pointer;
+    }
+    .calendar-daylist-row:nth-child(even) {
+      background: rgba(255,255,255,0.02);
+    }
+    .calendar-daylist-row.is-selected {
+      background: rgba(122,162,247,0.16);
+    }
+    .calendar-daylist-time {
+      font-family: "IBM Plex Mono", "Cascadia Code", monospace;
+      color: var(--calendar-time-color, #a5b1d5);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.2;
+    }
+    .calendar-daylist-time::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .calendar-daylist-time--past { --calendar-time-color: #ff6b6b; }
+    .calendar-daylist-time--present { --calendar-time-color: #6bb7ff; }
+    .calendar-daylist-time--future { --calendar-time-color: #6bff95; }
+    .calendar-daylist-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .calendar-daylist-node-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .calendar-daylist-toggle {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: var(--chronos-surface-soft, rgba(20,25,35,0.9));
+      color: var(--chronos-text, #e6e8ef);
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .calendar-daylist-toggle-spacer {
+      width: 24px;
+      height: 24px;
+    }
+    .calendar-daylist-node-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--chronos-text, #e6e8ef);
+    }
+    .calendar-daylist-node-type {
+      font-size: 12px;
+      color: var(--chronos-text-muted, #9aa4b7);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .calendar-daylist-message {
+      font-size: 13px;
+      color: var(--chronos-text-muted, #9aa4b7);
+      min-height: 18px;
+    }
+    .calendar-daylist-message.error {
+      color: var(--chronos-danger, #ef6a6a);
+    }
+    .calendar-daylist-empty {
+      padding: 30px 18px;
+      font-size: 14px;
+      color: var(--chronos-text-muted, #9aa4b7);
+      text-align: center;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 export function mount(el, context) {
   try { el.style.position = 'relative'; } catch {}
+  injectDayListStyles();
   const container = document.createElement('div');
   container.style.position = 'relative';
   container.style.height = '100%';
@@ -17,6 +162,26 @@ export function mount(el, context) {
   canvas.style.background = 'repeating-conic-gradient(from 45deg, #0e131c 0% 25%, #0b0f16 0% 50%) 50% / 26px 26px';
   container.appendChild(canvas);
   el.appendChild(container);
+
+  const dayList = document.createElement('div');
+  dayList.className = 'calendar-daylist';
+  dayList.innerHTML = `
+    <div class="calendar-daylist-header">
+      <div class="calendar-daylist-title">Day</div>
+      <div class="calendar-daylist-actions">
+        <button type="button" class="btn calendar-daylist-refresh">Refresh</button>
+      </div>
+    </div>
+    <div class="calendar-daylist-table" aria-live="polite">
+      <div class="calendar-daylist-head">
+        <span>Time</span>
+        <span>Routine</span>
+      </div>
+      <div class="calendar-daylist-tree" role="tree"></div>
+    </div>
+    <div class="calendar-daylist-message"></div>
+  `;
+  container.appendChild(dayList);
 
   const ctx = canvas.getContext('2d');
 
@@ -45,20 +210,109 @@ export function mount(el, context) {
   try { if (window.__calendarPxPerMin == null) window.__calendarPxPerMin = pxPerMinute; } catch {}
   let hierarchyLevel = (window.__calendarLevel ?? 0); // 0=routines,1=subroutines,2=microroutines,3=items
 
+  const dayListTitleEl = dayList.querySelector('.calendar-daylist-title');
+  const dayListTreeEl = dayList.querySelector('.calendar-daylist-tree');
+  const dayListMessageEl = dayList.querySelector('.calendar-daylist-message');
+  const dayListRefreshBtn = dayList.querySelector('.calendar-daylist-refresh');
+  let dayListTreeData = [];
+  let dayListExpanded = new Set();
+  let dayListExpandedInitialized = false;
+  let dayListLoading = false;
+
   // API helpers for /api/today
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
-  function parseBlocksYaml(text){
-    const lines = String(text||'').replace(/\r\n?/g,'\n').split('\n');
-    const blocks = []; let cur=null; let inBlocks=false;
-    for (let raw of lines){
-      const line = raw.replace(/#.*$/,'');
+  function parseScheduleYaml(text){
+    try {
+      if (typeof window !== 'undefined' && typeof window.parseYaml === 'function'){
+        const parsed = window.parseYaml(text);
+        if (parsed && Array.isArray(parsed.blocks) && parsed.blocks.length){
+          return parsed;
+        }
+      }
+    } catch {}
+    const result = { blocks: [] };
+    if (!text) return result;
+    const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+    let inBlocks = false;
+    let current = null;
+    const pushCurrent = ()=>{
+      if (current){
+        result.blocks.push(current);
+        current = null;
+      }
+    };
+    const applyLine = (line)=>{
+      const match = line.match(/^\s*([A-Za-z0-9_]+)\s*:\s*(.+)$/);
+      if (!match){
+        if (/^\s*-\s*$/.test(line.trim())){
+          pushCurrent();
+          current = {};
+        }
+        return;
+      }
+      const key = match[1];
+      const value = match[2].trim();
+      const normalized = value === '' ? '' : value;
+      if (inBlocks){
+        if (!current) current = {};
+        current[key] = normalized;
+      } else {
+        result[key] = normalized;
+      }
+    };
+    for (const rawLine of lines){
+      const line = rawLine.replace(/#.*$/, '');
       if (!line.trim()) continue;
-      if (!inBlocks) { if (/^\s*blocks\s*:/i.test(line)) { inBlocks=true; } continue; }
-      if (/^\s*-\s*/.test(line)) { if (cur) blocks.push(cur); cur={}; continue; }
-      const m = line.match(/^\s*(\w+)\s*:\s*(.+)$/); if (m && cur) { cur[m[1].toLowerCase()] = m[2].trim(); }
+      if (!inBlocks){
+        if (/^\s*blocks\s*:/i.test(line)){
+          inBlocks = true;
+          continue;
+        }
+        applyLine(line);
+        continue;
+      }
+      const dashMatch = line.match(/^\s*-\s*(.*)$/);
+      if (dashMatch){
+        pushCurrent();
+        current = {};
+        const remainder = dashMatch[1];
+        if (remainder){
+          const kv = remainder.match(/^([A-Za-z0-9_]+)\s*:\s*(.+)$/);
+          if (kv){
+            current[kv[1]] = kv[2].trim();
+          }
+        }
+        continue;
+      }
+      applyLine(line);
     }
-    if (cur) blocks.push(cur);
-    return blocks;
+    pushCurrent();
+    return result;
+  }
+  function extractTimeParts(value){
+    if (!value) return { minutes: null };
+    const match = String(value).match(/(\d{1,2}):(\d{2})/);
+    if (!match) return { minutes: null };
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return { minutes: null };
+    return { minutes: hours * 60 + minutes };
+  }
+  function normalizeScheduleBlocks(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.map((block, idx)=>{
+      const startParts = extractTimeParts(block.start ?? block.start_time);
+      const endParts = extractTimeParts(block.end ?? block.end_time);
+      return {
+        start: startParts.minutes,
+        end: endParts.minutes,
+        text: String(block.text || block.name || `Block ${idx + 1}`),
+        type: String(block.type || block.item_type || '').toLowerCase(),
+        depth: Number(block.depth ?? 0) || 0,
+        is_parallel: /^true$/i.test(String(block.is_parallel || '')),
+        order: (block.order != null ? parseInt(block.order, 10) : 0),
+      };
+    });
   }
   let todayBlocks = null; let todayLoadedAt = 0;
   const completionsCache = new Map(); // key: 'YYYY-MM-DD' -> Set(names)
@@ -67,17 +321,8 @@ export function mount(el, context) {
     try{
       const resp = await fetch(apiBase()+"/api/today");
       const text = await resp.text();
-      const parsed = parseBlocksYaml(text);
-      function toMin(s){ const m=String(s||'').match(/(\d{1,2}):(\d{2})/); if(!m) return null; return parseInt(m[1],10)*60 + parseInt(m[2],10); }
-      todayBlocks = parsed.map(b=>({
-        start: toMin(b.start),
-        end: toMin(b.end),
-        text: String(b.text||''),
-        type: String(b.type||'').toLowerCase(),
-        depth: (b.depth!=null? parseInt(b.depth,10):0),
-        is_parallel: /^true$/i.test(String(b.is_parallel||'')),
-        order: (b.order!=null? parseInt(b.order,10):0),
-      }));
+      const parsed = parseScheduleYaml(text);
+      todayBlocks = normalizeScheduleBlocks(parsed.blocks);
       todayLoadedAt = Date.now();
       try { window.__todayBlocks = todayBlocks; } catch {}
     } catch (e){ todayBlocks = []; }
@@ -113,17 +358,240 @@ export function mount(el, context) {
   function withAlpha(color,a){ if(/^#([0-9a-f]{6})$/i.test(color)){ const r=parseInt(color.slice(1,3),16), g=parseInt(color.slice(3,5),16), b=parseInt(color.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; } return color; }
   function roundRect(ctx,x,y,w,h,r){ const rr=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.arcTo(x+w,y,x+w,y+h,rr); ctx.arcTo(x+w,y+h,x,y+h,rr); ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath(); }
   function colorForDay(dayDate,today){ if(dayDate<today) return getCss('--danger','#ef6a6a'); if(sameDay(dayDate,today)) return getCss('--accent','#7aa2f7'); return getCss('--ok','#5bdc82'); }
+  function minToHM(min){ const h=Math.floor(min/60)%24; const m=min%60; return String(h).padStart(2,'0')+":"+String(m).padStart(2,'0'); }
+  function formatDayTitle(day){
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${months[day.getMonth()]} ${day.getDate()}, ${day.getFullYear()}`;
+  }
+  function setDayListVisible(visible){
+    dayList.style.display = visible ? 'flex' : 'none';
+    canvas.style.display = visible ? 'none' : 'block';
+  }
+  function setDayListMessage(text, isError=false){
+    if (!dayListMessageEl) return;
+    dayListMessageEl.textContent = text || '';
+    dayListMessageEl.classList.toggle('error', !!isError);
+  }
+  function buildTreeFromBlocks(blocks){
+    const root = [];
+    const stack = [];
+    blocks.forEach(block => {
+      const node = { ...block, children: [] };
+      while (stack.length > block.depth){
+        stack.pop();
+      }
+      if (stack.length === 0){
+        root.push(node);
+      } else {
+        stack[stack.length - 1].children.push(node);
+      }
+      stack[block.depth] = node;
+    });
+    return root;
+  }
+  function classifyRelativeTime(node, dayDate){
+    if (!node || node.startMinutes == null) return null;
+    const today = dateAtMidnight(new Date());
+    const target = dateAtMidnight(dayDate);
+    if (target < today) return 'past';
+    if (target > today) return 'future';
+    const nowMinutes = (new Date()).getHours() * 60 + (new Date()).getMinutes();
+    const endMinutes = node.endMinutes == null ? node.startMinutes : node.endMinutes;
+    if (endMinutes < nowMinutes) return 'past';
+    if (node.startMinutes <= nowMinutes && nowMinutes <= endMinutes) return 'present';
+    return 'future';
+  }
+  function updateDayListTitle(dayDate){
+    if (dayListTitleEl) dayListTitleEl.textContent = formatDayTitle(dayDate);
+  }
+  function normalizeDayListBlocks(blocks){
+    return (blocks || []).map((block, idx) => {
+      const startMinutes = typeof block.start === 'number' ? block.start : null;
+      const endMinutes = typeof block.end === 'number' ? block.end : null;
+      return {
+        key: `block-${idx}`,
+        text: String(block.text || 'Untitled block'),
+        type: String(block.type || 'item'),
+        depth: Number(block.depth || 0),
+        startMinutes,
+        endMinutes,
+        start: startMinutes != null ? minToHM(startMinutes) : '',
+        end: endMinutes != null ? minToHM(endMinutes) : '',
+        is_parallel: !!block.is_parallel,
+      };
+    });
+  }
+  function collectExpandableKeys(nodes, prefix){
+    const keys = [];
+    nodes.forEach((node, idx) => {
+      const key = `${prefix}.${idx}`;
+      if (node.children && node.children.length){
+        keys.push(key);
+        keys.push(...collectExpandableKeys(node.children, key));
+      }
+    });
+    return keys;
+  }
+  function collectRootExpandableKeys(nodes, prefix){
+    const keys = [];
+    nodes.forEach((node, idx) => {
+      if (node.children && node.children.length){
+        keys.push(`${prefix}.${idx}`);
+      }
+    });
+    return keys;
+  }
+  function getNodeByKey(key){
+    if (!key) return null;
+    const parts = key.split('.').slice(1);
+    let nodes = dayListTreeData;
+    let node = null;
+    for (const part of parts){
+      const idx = Number(part);
+      if (!Number.isFinite(idx) || !nodes || !nodes[idx]) return null;
+      node = nodes[idx];
+      nodes = node.children || [];
+    }
+    return node;
+  }
+  function renderDayListTree(){
+    if (!dayListTreeEl) return;
+    dayListTreeEl.innerHTML = '';
+    if (!dayListTreeData.length){
+      const empty = document.createElement('div');
+      empty.className = 'calendar-daylist-empty';
+      empty.textContent = dayListLoading ? 'Loading schedule...' : 'No scheduled routines for this day.';
+      dayListTreeEl.appendChild(empty);
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    const walk = (nodes, depth, prefix) => {
+      nodes.forEach((node, idx) => {
+        const key = `${prefix}.${idx}`;
+        const row = document.createElement('div');
+        row.className = 'calendar-daylist-row';
+        row.setAttribute('role', 'treeitem');
+        row.setAttribute('aria-level', String(depth + 1));
+        row.dataset.nodeKey = key;
+        row.dataset.nodeIndex = String(idx);
+
+        if (selectedStartMin != null && node.startMinutes === selectedStartMin){
+          row.classList.add('is-selected');
+        }
+
+        const time = document.createElement('div');
+        time.className = 'calendar-daylist-time';
+        time.textContent = node.start && node.end ? `${node.start} - ${node.end}` : (node.start || '');
+        const relativeState = classifyRelativeTime(node, selectedDayDate || new Date());
+        if (relativeState){
+          time.classList.add(`calendar-daylist-time--${relativeState}`);
+        }
+
+        const nodeCell = document.createElement('div');
+        nodeCell.className = 'calendar-daylist-node';
+        nodeCell.style.paddingLeft = `${depth * 16}px`;
+        const hasChildren = node.children && node.children.length;
+        if (hasChildren){
+          const toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'calendar-daylist-toggle';
+          toggle.dataset.toggle = key;
+          toggle.textContent = dayListExpanded.has(key) ? 'v' : '>';
+          toggle.setAttribute('aria-label', 'Toggle children');
+          nodeCell.appendChild(toggle);
+        } else {
+          const spacer = document.createElement('span');
+          spacer.className = 'calendar-daylist-toggle-spacer';
+          nodeCell.appendChild(spacer);
+        }
+        const label = document.createElement('div');
+        label.className = 'calendar-daylist-node-label';
+        const name = document.createElement('span');
+        name.className = 'calendar-daylist-node-name';
+        const labelText = expandText(node.text || 'Untitled block');
+        name.textContent = labelText;
+        const type = document.createElement('span');
+        type.className = 'calendar-daylist-node-type';
+        type.textContent = node.type || 'item';
+        label.append(name, type);
+        nodeCell.appendChild(label);
+
+        row.append(time, nodeCell);
+        fragment.appendChild(row);
+
+        if (hasChildren && dayListExpanded.has(key)){
+          walk(node.children, depth + 1, key);
+        }
+      });
+    };
+    walk(dayListTreeData, 0, 'root');
+    dayListTreeEl.appendChild(fragment);
+  }
+  async function refreshDayList(force=false){
+    if (!selectedDayDate) return;
+    const today = dateAtMidnight(new Date());
+    const target = dateAtMidnight(selectedDayDate);
+    updateDayListTitle(selectedDayDate);
+    if (target.getTime() !== today.getTime()){
+      dayListTreeData = [];
+      dayListExpanded = new Set();
+      setDayListMessage('Only today\'s timeline is available right now. Select today to see live data.');
+      renderDayListTree();
+      return;
+    }
+    dayListLoading = true;
+    setDayListMessage('');
+    renderDayListTree();
+    try {
+      const blocks = await loadTodayBlocks(force);
+      const normalized = normalizeDayListBlocks(blocks);
+      dayListTreeData = buildTreeFromBlocks(normalized);
+      const expandableKeys = new Set(collectExpandableKeys(dayListTreeData, 'root'));
+      const rootExpandable = new Set(collectRootExpandableKeys(dayListTreeData, 'root'));
+      if (!dayListExpandedInitialized) {
+        dayListExpanded = new Set(rootExpandable);
+        dayListExpandedInitialized = true;
+      } else {
+        dayListExpanded = new Set([...dayListExpanded].filter(key => expandableKeys.has(key)));
+        rootExpandable.forEach(key => dayListExpanded.add(key));
+      }
+      if (!dayListTreeData.length){
+        setDayListMessage('No routines scheduled yet. Try running "today reschedule" from the console.');
+      }
+    } catch (err) {
+      console.error('[Chronos][Calendar] Failed to load day list', err);
+      dayListTreeData = [];
+      dayListExpanded = new Set();
+      setDayListMessage('Unable to load today\'s schedule. Try again in a moment.', true);
+    } finally {
+      dayListLoading = false;
+      renderDayListTree();
+    }
+  }
+  function expandAllDayList(){
+    dayListExpanded = new Set(collectExpandableKeys(dayListTreeData, 'root'));
+    renderDayListTree();
+  }
+  function collapseAllDayList(){
+    dayListExpanded = new Set();
+    renderDayListTree();
+  }
+  try {
+    window.__calendarExpandAll = expandAllDayList;
+    window.__calendarCollapseAll = collapseAllDayList;
+    window.__calendarRefreshDayList = () => refreshDayList(true);
+  } catch {}
   function syncGlobals(extra = {}){
     try {
       window.__calendarViewMode = viewMode;
       window.__calendarSelectedMonth = selectedMonth;
       window.__calendarSelectedYear = selectedYear;
       window.__calendarSelectedDay = selectedDayDate ? new Date(selectedDayDate) : null;
+      window.__calendarSelectedWeekStart = selectedWeekStart ? new Date(selectedWeekStart) : null;
       window.__calendarNavDepth = navDepth = navStack.length;
-      if (typeof window.__calendarRefreshBack === 'function') window.__calendarRefreshBack(navDepth > 0);
       Object.assign(window, extra);
     } catch {}
-    try { window.__calendarUpdateStartButton?.(); } catch {}
+    try { window.__calendarUpdateTitle?.(); } catch {}
   }
 
   function snapshotState(){
@@ -181,184 +649,22 @@ export function mount(el, context) {
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
-  function drawYearGrid(){ const now=new Date(); const year=selectedYear||now.getFullYear(); const currentMonth=now.getMonth(); const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,w,h); const cols=4,rows=3,pad=14; const cellW=(w-pad*(cols+1))/cols; const cellH=(h-pad*(rows+1))/rows; ctx.save(); ctx.lineWidth=2; ctx.textBaseline='middle'; ctx.textAlign='center'; ctx.font='600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; monthRects=[]; for(let i=0;i<12;i++){ const r=Math.floor(i/cols), c=i%cols; const x=pad+c*(cellW+pad), y=pad+r*(cellH+pad); let fill; if(year<now.getFullYear()||(year===now.getFullYear()&&i<currentMonth)) fill=getCss('--danger','#ef6a6a'); else if(year===now.getFullYear()&&i===currentMonth) fill=getCss('--accent','#7aa2f7'); else fill=getCss('--ok','#5bdc82'); ctx.fillStyle=withAlpha(fill,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(fill,0.55); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.fillStyle='#e6e8ef'; ctx.fillText(`${months[i]} ${year}`, x+cellW/2, y+cellH/2); monthRects.push({i,x,y,w:cellW,h:cellH}); } ctx.restore(); viewMode='year'; syncGlobals(); notifyDayCleared(); }
+  function drawYearGrid(){ setDayListVisible(false); const now=new Date(); const year=selectedYear||now.getFullYear(); const currentMonth=now.getMonth(); const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); ctx.fillStyle='#0b0f16'; ctx.fillRect(0,0,w,h); const cols=4,rows=3,pad=14; const cellW=(w-pad*(cols+1))/cols; const cellH=(h-pad*(rows+1))/rows; ctx.save(); ctx.lineWidth=2; ctx.textBaseline='middle'; ctx.textAlign='center'; ctx.font='600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; monthRects=[]; for(let i=0;i<12;i++){ const r=Math.floor(i/cols), c=i%cols; const x=pad+c*(cellW+pad), y=pad+r*(cellH+pad); let fill; if(year<now.getFullYear()||(year===now.getFullYear()&&i<currentMonth)) fill=getCss('--danger','#ef6a6a'); else if(year===now.getFullYear()&&i===currentMonth) fill=getCss('--accent','#7aa2f7'); else fill=getCss('--ok','#5bdc82'); ctx.fillStyle=withAlpha(fill,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(fill,0.55); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.fillStyle='#e6e8ef'; ctx.fillText(`${months[i]}`, x+cellW/2, y+cellH/2); monthRects.push({i,x,y,w:cellW,h:cellH}); } ctx.restore(); viewMode='year'; syncGlobals(); notifyDayCleared(); }
 
-  function drawMonthGrid(month=(new Date()).getMonth(), year=(new Date()).getFullYear()){ selectedMonth=month; selectedYear=year; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const colW=(w-pad*8)/7; const rowH=(h-gridTop-pad*6)/6; ctx.save(); ctx.textBaseline='middle'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const title=`${monthsLong[month]} ${year}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; ctx.fillStyle='#a6adbb'; for(let i=0;i<7;i++){ ctx.fillText(dows[i], pad+i*(colW+pad)+colW/2, gridTop-10); } const first=new Date(year,month,1); const start=weekMonday(first); dayCellRects=[]; const today=dateAtMidnight(new Date()); for(let r=0;r<6;r++){ for(let c=0;c<7;c++){ const x=pad+c*(colW+pad); const y=gridTop+r*(rowH+pad); const d=new Date(start); d.setDate(start.getDate()+r*7+c); const inMonth=d.getMonth()===month; const dayColor=colorForDay(d,today); ctx.fillStyle=withAlpha(dayColor, inMonth?0.18:0.06); roundRect(ctx,x,y,colW,rowH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor, inMonth?0.45:0.2); roundRect(ctx,x,y,colW,rowH,10); ctx.stroke(); ctx.fillStyle=inMonth?'#e6e8ef':'#6b7382'; ctx.textAlign='right'; ctx.fillText(String(d.getDate()), x+colW-6, y+14); ctx.textAlign='left'; dayCellRects.push({ x,y,w:colW,h:rowH,date:dateAtMidnight(d) }); } } ctx.restore(); viewMode='month'; syncGlobals(); notifyDayCleared(); }
+  function drawMonthGrid(month=(new Date()).getMonth(), year=(new Date()).getFullYear()){ setDayListVisible(false); selectedMonth=month; selectedYear=year; const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const colW=(w-pad*8)/7; const rowH=(h-gridTop-pad*6)/6; ctx.save(); ctx.textBaseline='middle'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const title=`${monthsLong[month]}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; ctx.fillStyle='#a6adbb'; for(let i=0;i<7;i++){ ctx.fillText(dows[i], pad+i*(colW+pad)+colW/2, gridTop-10); } const first=new Date(year,month,1); const start=weekMonday(first); dayCellRects=[]; const today=dateAtMidnight(new Date()); for(let r=0;r<6;r++){ for(let c=0;c<7;c++){ const x=pad+c*(colW+pad); const y=gridTop+r*(rowH+pad); const d=new Date(start); d.setDate(start.getDate()+r*7+c); const inMonth=d.getMonth()===month; const dayColor=colorForDay(d,today); ctx.fillStyle=withAlpha(dayColor, inMonth?0.18:0.06); roundRect(ctx,x,y,colW,rowH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor, inMonth?0.45:0.2); roundRect(ctx,x,y,colW,rowH,10); ctx.stroke(); ctx.fillStyle=inMonth?'#e6e8ef':'#6b7382'; ctx.textAlign='right'; ctx.fillText(String(d.getDate()), x+colW-6, y+14); ctx.textAlign='left'; dayCellRects.push({ x,y,w:colW,h:rowH,date:dateAtMidnight(d) }); } } ctx.restore(); viewMode='month'; syncGlobals(); notifyDayCleared(); }
 
-  function drawWeekGrid(weekStart=selectedWeekStart||weekMonday(new Date())){ selectedWeekStart=new Date(weekStart); const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const cols=7; const cellW=(w-pad*(cols+1))/cols; const cellH=h-gridTop-pad; ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const monday=weekMonday(weekStart); const title=`Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}, ${monday.getFullYear()}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; const today=dateAtMidnight(new Date()); dayRects=[]; for(let c=0;c<cols;c++){ const x=pad+c*(cellW+pad); const y=gridTop; const dayDate=new Date(monday); dayDate.setDate(monday.getDate()+c); const dayColor=colorForDay(dayDate,today); ctx.fillStyle=withAlpha(dayColor,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor,0.45); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.textAlign='center'; ctx.fillStyle='#a6adbb'; ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x+cellW/2, y+14); ctx.textAlign='left'; dayRects.push({ x,y,w:cellW,h:cellH,date:dateAtMidnight(dayDate) }); } ctx.restore(); viewMode='week'; syncGlobals(); notifyDayCleared(); }
+  function drawWeekGrid(weekStart=selectedWeekStart||weekMonday(new Date())){ setDayListVisible(false); selectedWeekStart=new Date(weekStart); const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h); const pad=14, headerH=36; const gridTop=pad+headerH+pad; const cols=7; const cellW=(w-pad*(cols+1))/cols; const cellH=h-gridTop-pad; ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const monday=weekMonday(weekStart); const title=`Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2); const dows=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; const today=dateAtMidnight(new Date()); dayRects=[]; for(let c=0;c<cols;c++){ const x=pad+c*(cellW+pad); const y=gridTop; const dayDate=new Date(monday); dayDate.setDate(monday.getDate()+c); const dayColor=colorForDay(dayDate,today); ctx.fillStyle=withAlpha(dayColor,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(dayColor,0.45); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke(); ctx.textAlign='center'; ctx.fillStyle='#a6adbb'; ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x+cellW/2, y+14); ctx.textAlign='left'; dayRects.push({ x,y,w:cellW,h:cellH,date:dateAtMidnight(dayDate) }); } ctx.restore(); viewMode='week'; syncGlobals(); notifyDayCleared(); }
 
   function drawDayGrid(day=dateAtMidnight(new Date()), previewDrag=false){
     selectedDayDate=new Date(day);
+    selectedStartMin = null;
+    selectedItem = null;
     notifyDaySelected(day);
-    // Preload completions for this day only if not cached; then repaint once
-    try{
-      const k = dayKey(selectedDayDate);
-      if (!completionsCache.has(k)){
-        loadCompletions(selectedDayDate).then(()=>{ try{ if (dayKey(selectedDayDate)===k) redrawCurrentView(); }catch{} });
-      }
-    }catch{}
-    // Refresh blocks from window/localStorage to reflect Today widget updates
-    try { if (window.dayBlocksStore) dayBlocksStore = window.dayBlocksStore; else dayBlocksStore = load('pm_day_blocks', dayBlocksStore||{}); } catch { dayBlocksStore = load('pm_day_blocks', dayBlocksStore||{}); }
-    const w=canvas.clientWidth,h=canvas.clientHeight; ctx.clearRect(0,0,w,h);
-    const pad=14, headerH=36, gutter=60; const gridTop=pad+headerH+pad; const heightAvail=Math.max(1, h-gridTop-pad); ctx.save(); ctx.textBaseline='middle'; ctx.font='600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
-    const monthsLong=['January','February','March','April','May','June','July','August','September','October','November','December']; const title=`${monthsLong[day.getMonth()]} ${day.getDate()}, ${day.getFullYear()}`; ctx.fillStyle='#e6e8ef'; ctx.fillText(title, pad, pad+headerH/2);
-    // Time ticks based on zoom (every 60 or 30 minutes)
-    const stepMin = (pxPerMinute >= 2 ? 30 : 60);
-    ctx.fillStyle='#a6adbb';
-    for(let m=0; m<=24*60; m+=stepMin){ const y=gridTop + m*pxPerMinute; const label=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); ctx.fillText(label, pad, y); }
-    const colX=pad+gutter; const colW=w-colX-pad; ctx.fillStyle=withAlpha(getCss('--accent','#7aa2f7'),0.08); roundRect(ctx,colX,gridTop,colW,heightAvail,10); ctx.fill(); ctx.strokeStyle=withAlpha(getCss('--accent','#7aa2f7'),0.25); roundRect(ctx,colX,gridTop,colW,heightAvail,10); ctx.stroke();
-    // Text-only timeline from today's schedule (via API)
-    const key=dayKey(day);
-    const now = new Date();
-    const todayMidnight = dateAtMidnight(now);
-    const dayMidnight = dateAtMidnight(day);
-    const isToday = dayMidnight.getTime() === todayMidnight.getTime();
-    const isPastDay = dayMidnight.getTime() < todayMidnight.getTime();
-    const nowMinutes = now.getHours()*60 + now.getMinutes();
-    const elapsedColor = getCss('--danger','#ef6a6a');
-    const currentColor = getCss('--accent','#7aa2f7');
-    const futureColor = getCss('--ok','#5bdc82');
-    function slotColor(startMin, endMin){
-      if (!isToday){
-        return isPastDay ? elapsedColor : futureColor;
-      }
-      const hasStart = typeof startMin === 'number';
-      const hasEnd = typeof endMin === 'number';
-      if (!hasStart && !hasEnd) return futureColor;
-      if (hasEnd && nowMinutes >= endMin) return elapsedColor;
-      if (hasStart && nowMinutes < startMin) return futureColor;
-      if (hasStart && hasEnd && nowMinutes >= startMin && nowMinutes < endMin) return currentColor;
-      if (!hasEnd && hasStart){
-        return nowMinutes >= startMin ? elapsedColor : futureColor;
-      }
-      if (hasEnd && !hasStart){
-        return nowMinutes < endMin ? currentColor : elapsedColor;
-      }
-      return currentColor;
-    }
-    function minToHM(min){ const h=Math.floor(min/60)%24; const m=min%60; return String(h).padStart(2,'0')+":"+String(m).padStart(2,'0'); }
-    const drawTextBlocks = (arr)=>{
-      ctx.fillStyle = '#e6e8ef';
-      ctx.font = '600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
-      const padX = 8;
-      const ell = '…';
-      function fitTextToWidth(text, maxW){
-        try{
-          if (maxW <= 0) return ell;
-          if (ctx.measureText(text).width <= maxW) return text;
-          let lo = 1, hi = Math.max(1, text.length);
-          while (lo < hi){
-            const mid = (lo + hi) >> 1;
-            const s = text.slice(0, mid) + ell;
-            if (ctx.measureText(s).width <= maxW) lo = mid + 1; else hi = mid;
-          }
-          const cut = Math.max(1, lo - 1);
-          return text.slice(0, cut) + ell;
-        }catch{return text;}
-      }
-      // Resolve completions for this day (if any)
-      const completeSet = completionsCache.get(dayKey(day)) || new Set();
-      // Type-based hierarchy filter:
-      // 0 => routines only, 1 => subroutines only, 2 => microroutines only, 3 => leaf items (non-templates)
-      const containerTypes = new Set(['routine','subroutine','microroutine']);
-      let allowSet = null;
-      if (hierarchyLevel === 0) allowSet = new Set(['routine']);
-      else if (hierarchyLevel === 1) allowSet = new Set(['subroutine']);
-      else if (hierarchyLevel === 2) allowSet = new Set(['microroutine']);
-      // hierarchyLevel === 3 -> leaf items (not in containerTypes)
-      const filtered = (arr||[]).filter(b => {
-        if (typeof b.start !== 'number') return false;
-        const t = String(b.type||'').toLowerCase();
-        if (allowSet) return allowSet.has(t);
-        return !containerTypes.has(t);
-      });
-      // Render groups of entries that share the same start time on a single line, separated by semicolons
-      // Visible window culling to avoid drawing offscreen content when many items
-      const viewTop = container.scrollTop|0;
-      const viewH = container.clientHeight|0;
-      const visStart = Math.max(0, Math.floor(((viewTop - gridTop) - 120) / pxPerMinute));
-      const visEnd = Math.min(24*60, Math.ceil(((viewTop + viewH - gridTop) + 120) / pxPerMinute));
-      try {
-        const sorted = [...filtered].sort((a,b)=> (a.start-b.start) || ((a.order??0)-(b.order??0)) || String(a.text||'').localeCompare(String(b.text||'')) );
-        const groups = new Map();
-        for (const b of sorted){
-          const k = b.start|0; // minute precision
-          if (!groups.has(k)) groups.set(k, []);
-          groups.get(k).push(b);
-        }
-        const starts = Array.from(groups.keys()).sort((a,b)=>a-b);
-        starts.forEach(startMin => {
-          if (startMin < visStart || startMin > visEnd) return;
-          const items = groups.get(startMin) || [];
-          const y0 = gridTop + (startMin*pxPerMinute); const lineY = y0 + 12;
-          const pieces = items.map(it => expandText(String(it.text||'')));
-          const full = minToHM(startMin) + '  ' + pieces.join('; ');
-          let groupEnd = null;
-          items.forEach(it => {
-            const blockEnd = typeof it.end === 'number' ? it.end : (typeof it.start === 'number' ? it.start : null);
-            if (blockEnd == null) return;
-            groupEnd = groupEnd == null ? blockEnd : Math.max(groupEnd, blockEnd);
-          });
-          const allDone = items.length && items.every(it => completeSet.has(String(it.text||'')));
-          const baseColor = slotColor(startMin, groupEnd);
-          ctx.fillStyle = allDone ? withAlpha(baseColor, 0.75) : baseColor;
-          const clipped = fitTextToWidth(full, colW - padX*2);
-          ctx.fillText(clipped, colX + padX, lineY);
-        });
-        return;
-      } catch {}
-      filtered.sort((a,b)=> (a.start-b.start) || ((a.order??0)-(b.order??0)) || String(a.text||'').localeCompare(String(b.text||'')) );
-      filtered.forEach(b=>{
-        if (b.start < visStart || b.start > visEnd) return;
-        const y0=gridTop + (b.start*pxPerMinute); const lineY = y0 + 12;
-        const prefix = b.is_parallel ? '∥ ' : '';
-        // Per-item color follows time buckets; completed entries soften color slightly
-        const endMin = typeof b.end === 'number' ? b.end : b.start;
-        const baseColor = slotColor(b.start, endMin);
-        ctx.fillStyle = completeSet.has(String(b.text||'')) ? withAlpha(baseColor, 0.75) : baseColor;
-        const full = minToHM(b.start) + '  ' + prefix + String(b.text||'');
-        const clipped = fitTextToWidth(full, colW - padX*2);
-        ctx.fillText(clipped, colX + padX, lineY);
-      });
-    };
-    if (!todayBlocks) {
-      // Load once asynchronously, then redraw
-      loadTodayBlocks().then(()=>{ try{ redrawCurrentView(); }catch{} });
-    }
-    drawTextBlocks(todayBlocks);
-    // Build groups for hit-testing based on current hierarchy filter
-    try {
-      const containerTypes = new Set(['routine','subroutine','microroutine']);
-      let allowSet = null;
-      if (hierarchyLevel === 0) allowSet = new Set(['routine']);
-      else if (hierarchyLevel === 1) allowSet = new Set(['subroutine']);
-      else if (hierarchyLevel === 2) allowSet = new Set(['microroutine']);
-      const filtered = (todayBlocks||[]).filter(b => {
-        if (typeof b.start !== 'number') return false;
-        const t = String(b.type||'').toLowerCase();
-        if (allowSet) return allowSet.has(t);
-        return !containerTypes.has(t);
-      });
-      const sorted = [...filtered].sort((a,b)=> (a.start-b.start) || ((a.order??0)-(b.order??0)) || String(a.text||'').localeCompare(String(b.text||'')) );
-      const groups = new Map();
-      for (const b of sorted){ const k=b.start|0; if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(b); }
-      dayGroups = [];
-      Array.from(groups.keys()).sort((a,b)=>a-b).forEach(startMin => {
-        const y0 = gridTop + (startMin*pxPerMinute);
-        dayGroups.push({ startMin, y0, y1: y0+24, items: groups.get(startMin)||[] });
-      });
-      // Draw selection highlight overlay if any
-      if (selectedStartMin != null){
-        const y0 = gridTop + (selectedStartMin*pxPerMinute);
-        ctx.save();
-        ctx.fillStyle = withAlpha(getCss('--accent','#7aa2f7'), 0.12);
-        roundRect(ctx, colX+2, y0+2, colW-4, 20, 6);
-        ctx.fill();
-        ctx.restore();
-      }
-    } catch {}
-    if(previewDrag&&dayDrag){ let y0=Math.min(dayDrag.y0,dayDrag.y1); let y1=Math.max(dayDrag.y0,dayDrag.y1); y0=Math.max(gridTop,y0); y1=Math.min(canvas.clientHeight- pad,y1); ctx.fillStyle=withAlpha(getCss('--accent','#7aa2f7'),0.25); roundRect(ctx,colX,y0,colW,Math.max(8,y1-y0),8); ctx.fill(); }
-    ctx.restore(); viewMode='day'; syncGlobals();
+    setDayListVisible(true);
+    updateDayListTitle(selectedDayDate);
+    refreshDayList();
+    viewMode='day';
+    syncGlobals();
   }
 
 
@@ -391,7 +697,14 @@ export function mount(el, context) {
   }
   try { window.redraw = redrawCurrentView; } catch {}
 
-  function getPos(e){ const rect=canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+  function getPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const scale = getScaleFactor() || 1;
+    return {
+      x: (e.clientX - rect.left) / scale,
+      y: (e.clientY - rect.top) / scale,
+    };
+  }
 
   function goToYear(){ selectedMonth=null; selectedWeekStart=null; selectedDayDate=null; drawYearGrid(); navStack.length = 0; updateBackBtn(); }
   function goToMonth(month, year){
@@ -444,12 +757,35 @@ export function mount(el, context) {
   backBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.04)';
   backBtn.style.borderRadius = '7px';
   backBtn.style.display = '';
-  backBtn.style.position = 'absolute';
-  backBtn.style.top = '10px';
-  backBtn.style.right = '52px'; // sit just left of the view help button (typically right:10px + ~32px)
   backBtn.style.zIndex = '13';
   backBtn.addEventListener('click', (e)=>{ e.stopPropagation(); goBack(); });
-  el.appendChild(backBtn);
+  const viewControls = document.createElement('div');
+  viewControls.style.position = 'absolute';
+  viewControls.style.top = '10px';
+  viewControls.style.right = '10px';
+  viewControls.style.display = 'flex';
+  viewControls.style.gap = '8px';
+  viewControls.style.alignItems = 'center';
+  viewControls.style.zIndex = '13';
+
+  const fxWrap = document.createElement('label');
+  fxWrap.className = 'hint';
+  fxWrap.style.display = 'flex';
+  fxWrap.style.alignItems = 'center';
+  fxWrap.style.gap = '6px';
+  fxWrap.title = 'Expand variables in calendar labels';
+  const fx = document.createElement('input');
+  fx.type = 'checkbox';
+  fx.id = 'calendarFxToggle';
+  fx.checked = (window.__calendarFxExpand !== false);
+  fxWrap.append(fx, document.createTextNode('fx'));
+  fx.addEventListener('change', () => {
+    window.__calendarFxExpand = fx.checked;
+    renderDayListTree();
+  });
+
+  viewControls.append(backBtn, fxWrap);
+  el.appendChild(viewControls);
   function updateBackBtn(){
     const hasHistory = navStack.length > 0;
     backBtn.style.display = '';
@@ -457,7 +793,7 @@ export function mount(el, context) {
     backBtn.style.opacity = hasHistory ? '1' : '0.6';
     backBtn.style.pointerEvents = 'auto';
     backBtn.style.cursor = 'pointer';
-    try { window.__calendarHasHistory = hasHistory; window.__calendarRefreshBack?.(hasHistory); } catch {}
+    try { window.__calendarHasHistory = hasHistory; } catch {}
   }
 
   function handleViewClick(x,y, ev){
@@ -475,25 +811,6 @@ export function mount(el, context) {
       return;
     }
     if(viewMode==='day'){
-      if (activeTool === 'select'){
-        // Click elsewhere clears selection in select mode
-        selectRect = null; selectedItem = null; selectedStartMin = null;
-        try { context?.bus?.emit('calendar:selected', null); } catch {}
-        redrawCurrentView();
-        return;
-      }
-      const hit = dayGroups.find(g => y >= g.y0 && y <= g.y1);
-      if (!hit) return;
-      selectedStartMin = hit.startMin|0;
-      if (activeTool === 'picker' && hit.items && hit.items.length > 1) {
-        return showGroupPicker(ev, hit.items);
-      }
-      const it = (hit.items && hit.items[0]) || null;
-      if (it){
-        selectedItem = { text: String(it.text||''), type: String(it.type||''), start: it.start, end: it.end };
-        try { if (context && context.bus) context.bus.emit('calendar:selected', selectedItem); } catch {}
-      }
-      redrawCurrentView();
       return;
     }
   }
@@ -538,6 +855,27 @@ export function mount(el, context) {
   function handleViewPointerMove(e,x,y){ return; }
   function handleViewPointerUp(e){ return; }
 
+  function onDayListClick(ev){
+    const toggle = ev.target?.closest?.('[data-toggle]');
+    if (toggle){
+      const key = toggle.getAttribute('data-toggle');
+      if (!key) return;
+      if (dayListExpanded.has(key)) dayListExpanded.delete(key);
+      else dayListExpanded.add(key);
+      renderDayListTree();
+      return;
+    }
+    const row = ev.target?.closest?.('.calendar-daylist-row');
+    if (!row) return;
+    const key = row.getAttribute('data-node-key');
+    const node = getNodeByKey(key);
+    if (!node) return;
+    selectedStartMin = node.startMinutes;
+    selectedItem = { text: String(node.text || ''), type: String(node.type || ''), start: node.startMinutes, end: node.endMinutes };
+    try { context?.bus?.emit('calendar:selected', selectedItem); } catch {}
+    renderDayListTree();
+  }
+
   function onPointerDown(e){ const pt=getPos(e); if(handleViewPointerDown(e, pt.x, pt.y)) return; handleViewClick(pt.x, pt.y, e); }
   function onPointerMove(e){ const pt=getPos(e); handleViewPointerMove(e, pt.x, pt.y); }
   function onPointerUp(e){ handleViewPointerUp(e); }
@@ -557,6 +895,8 @@ export function mount(el, context) {
   resizeCanvas();
   drawYearGrid();
   updateBackBtn();
+  dayListTreeEl?.addEventListener('click', onDayListClick);
+  dayListRefreshBtn?.addEventListener('click', () => refreshDayList(true));
   canvas.addEventListener('pointerdown', onPointerDown);
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
@@ -568,6 +908,7 @@ export function mount(el, context) {
     unmount(){
       try { context?.bus?.emit('calendar:close', { source: 'calendar' }); } catch {}
       try { context?.bus?.emit('calendar:day-cleared'); } catch {}
+      dayListTreeEl?.removeEventListener('click', onDayListClick);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
@@ -578,98 +919,4 @@ export function mount(el, context) {
     }
   };
 }
-
-// Overlay controls for zoom and hierarchy (mounted outside module for simplicity)
-try {
-  (function addCalendarControls(){
-    const root = document.getElementById('view');
-    if (!root) return;
-    let panel = document.getElementById('calendarControls');
-    if (panel) return;
-    panel = document.createElement('div');
-    panel.id = 'calendarControls';
-    panel.style.position = 'absolute';
-    panel.style.top = '10px';
-    panel.style.right = '10px';
-    panel.style.display = 'flex';
-    panel.style.gap = '6px';
-    panel.style.zIndex = '6';
-    panel.style.background = 'rgba(21,25,35,0.85)';
-    panel.style.border = '1px solid #222835';
-    panel.style.borderRadius = '8px';
-    panel.style.padding = '6px';
-    const mkBtn = (label)=>{ const b=document.createElement('button'); b.textContent=label; b.className='btn'; b.style.padding='4px 8px'; return b; };
-    const timeMinus = mkBtn('Zoom -'); const timePlus = mkBtn('Zoom +');
-    const levelMinus = mkBtn('Level -'); const levelPlus = mkBtn('Level +');
-    const levelLabel = document.createElement('span'); levelLabel.style.color='#a6adbb'; levelLabel.style.padding='4px 6px';
-    function updateLabel(){ const map=['Routines','Subroutines','Microroutines','Items']; levelLabel.textContent = map[Math.max(0, Math.min(3, (window.__calendarLevel??0)))] || 'Items'; }
-    updateLabel();
-    timeMinus.addEventListener('click', ()=>{ window.__calendarPxPerMin = Math.max(0.25, (window.__calendarPxPerMin??1) - 0.25); if (typeof window.redraw==='function'){ window.redraw(); } });
-    timePlus.addEventListener('click', ()=>{ window.__calendarPxPerMin = Math.min(4, (window.__calendarPxPerMin??1) + 0.25); if (typeof window.redraw==='function'){ window.redraw(); } });
-    levelMinus.addEventListener('click', ()=>{ window.__calendarLevel = Math.max(0, (window.__calendarLevel??0) - 1); updateLabel(); if (typeof window.redraw==='function'){ window.redraw(); } });
-    levelPlus.addEventListener('click', ()=>{ window.__calendarLevel = Math.min(3, (window.__calendarLevel??0) + 1); updateLabel(); if (typeof window.redraw==='function'){ window.redraw(); } });
-    // Toolstrip controls
-    const toolCursor = mkBtn('Cursor');
-    const toolSelect = mkBtn('Select');
-    const toolPicker = mkBtn('Picker');
-    const toolEraser = mkBtn('Eraser');
-    function setTool(t){
-      activeTool = t; window.__calendarTool = t;
-      [toolCursor, toolSelect, toolPicker, toolEraser].forEach(b=> b.classList.remove('btn-primary'));
-      if (t==='cursor') toolCursor.classList.add('btn-primary');
-      if (t==='select') toolSelect.classList.add('btn-primary');
-      if (t==='picker') toolPicker.classList.add('btn-primary');
-      if (t==='eraser') toolEraser.classList.add('btn-primary');
-      try{ window.redraw(); }catch{}
-    }
-    toolCursor.addEventListener('click', ()=> setTool('cursor'));
-    toolSelect.addEventListener('click', ()=> setTool('select'));
-    toolPicker.addEventListener('click', ()=> setTool('picker'));
-    toolEraser.addEventListener('click', ()=> setTool('eraser'));
-    setTool(window.__calendarTool ?? 'cursor');
-    const startDayBtn = mkBtn('Start Day');
-    startDayBtn.id = 'calendarStartDayBtn';
-    startDayBtn.style.background = 'linear-gradient(135deg, #2ec27e, #3ec4f5)';
-    startDayBtn.style.color = '#0b0f16';
-    async function triggerStartDay(){
-      if (startDayBtn.disabled) return;
-      startDayBtn.disabled = true;
-      const prev = startDayBtn.textContent;
-      startDayBtn.textContent = 'Starting...';
-      try {
-        if (typeof window.ChronosStartDay === 'function'){
-          await window.ChronosStartDay({ source: 'calendar', target: 'day' });
-        } else {
-          const resp = await fetch((window.location.origin && !window.location.origin.startsWith('file:')? window.location.origin : 'http://127.0.0.1:7357') + '/api/day/start', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target: 'day' }) });
-          const data = await resp.json().catch(()=> ({}));
-          if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
-          try { window.ChronosBus?.emit?.('timer:show', { source: 'calendar' }); } catch {}
-        }
-      } catch (err) {
-        console.error('[Chronos][Calendar] start day failed', err);
-        alert(`Failed to start day: ${err?.message || err}`);
-      } finally {
-        startDayBtn.textContent = prev;
-        startDayBtn.disabled = false;
-        updateStartButton();
-      }
-    }
-    startDayBtn.addEventListener('click', triggerStartDay);
-    function updateStartButton(){
-      try {
-        const isDayView = (window.__calendarViewMode === 'day');
-        const selDay = window.__calendarSelectedDay ? new Date(window.__calendarSelectedDay) : null;
-        const today = new Date(); today.setHours(0,0,0,0);
-        const selKey = selDay ? selDay.setHours(0,0,0,0) : null;
-        const enabled = !!(isDayView && selDay && selDay.getTime() === today.getTime());
-        startDayBtn.disabled = !enabled;
-        startDayBtn.title = enabled ? 'Run today + start timer' : 'Open today in Day view to start';
-      } catch {}
-    }
-    window.__calendarUpdateStartButton = updateStartButton;
-    updateStartButton();
-    panel.append(timeMinus, timePlus, levelMinus, levelPlus, levelLabel, toolCursor, toolSelect, toolPicker, toolEraser, startDayBtn);
-    root.appendChild(panel);
-  })();
-} catch {}
 

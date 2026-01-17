@@ -415,8 +415,8 @@ Scripts (Automation)
 
 Dashboard Essentials
 
-- Calendar + Today widget
-  - Select a block in Day view; use Today to Trim/Change/Cut/Mark; press Reschedule.
+- Calendar + Scheduler (Today widget)
+  - Select a block in Day view; use Scheduler to Trim/Change/Cut/Mark (today only); press Reschedule.
 
 - Settings widget
   - Browse and edit `User/Settings/*.yml` with YAML validation and preserved formatting.

@@ -18,14 +18,14 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 ## Views & Widgets
 
 ### Views
-- **Calendar** - Year/Month/Week/Day canvas with a draggable overlay panel for zoom, hierarchy level (Routines → Items), and tool selection (cursor / select / picker / eraser). Selecting a block in Day view targets Today widget actions.
+- **Calendar** - Year/Month/Week/Day canvas with a Day List tree for the selected day. Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable).
 - **Template Builder** - Drag-and-drop editing for week/day/routine/subroutine/microroutine templates plus goal/project/inventory builders. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
 - **Cockpit** - A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, and **Deadlines**. See `Docs/Guides/Cockpit.md` for panel details and troubleshooting.
   - The Matrix panel ships with curated presets (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category) so you can load a meaningful pivot immediately before saving your own variations.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 
 ### Widgets (mounted via `data-widget="Name"`)
-- **Today** - Trim (-5/-10/custom), change start time, cut, mark complete, reschedule. Optional `fx` toggle expands variables in labels.
+- **Scheduler (Today widget)** - Trim (-5/-10/custom), change start time, cut, mark complete, reschedule. Selecting a Calendar date loads a read-only preview for that day; actions remain today-only. Optional `fx` toggle expands variables in labels.
 - **Item Manager** - Search/browse by type (defaults include every registered item type). YAML editor, copy/rename/delete, bulk delete/setprop/copy/export.
 - **Variables** - Inspect/edit runtime variables shared with the CLI, including `set`/`unset` rows and text expansion.
 - **Terminal** - Runs CLI commands via `/api/cli`, supports history, Ctrl+L clear, variable expansion, and theming based on profile preferences.
@@ -74,7 +74,7 @@ Base URL: `http://127.0.0.1:7357`. JSON responses unless stated.
 ### Health
 - `GET /health` - YAML `{ ok: true, service: 'chronos-dashboard' }`.
 
-### Today / Scheduling
+### Scheduler / Scheduling (Today widget)
 - `GET /api/today` - YAML blocks with start/end/text/type/depth/is_parallel/order.
 - `POST /api/today/reschedule` - runs `today reschedule` through the CLI pipeline.
 

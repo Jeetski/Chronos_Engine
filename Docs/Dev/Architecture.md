@@ -44,7 +44,7 @@ The "Long-Term Memory" of Chronos.
 
 - Dashboard — `Utilities/Dashboard`
   - Server (`server.py`) serves assets and JSON/YAML APIs (ThreadingHTTPServer over plain HTTP).
-  - UI is plain ES modules + a small loader (`core/runtime.js`) to mount views (`Calendar`, `TemplateBuilder`, `Cockpit`) and widgets (Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug).
+  - UI is plain ES modules + a small loader (`core/runtime.js`) to mount views (`Calendar`, `TemplateBuilder`, `Cockpit`) and widgets (Scheduler/Today widget, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug).
   - Widgets mount via attributes, e.g., `data-widget="Notes"`, and export `mount(el, context)`. Cockpit panels register via `window.__cockpitPanelRegister` and render inside the drag-and-drop canvas.
 
 ## Dashboard Architecture
@@ -65,7 +65,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - **Theming**: Supports hot-swappable CSS themes (Blue, Amber, Emerald, Rose).
   - Endpoints (selected):
     - Health: `GET /health`.
-    - Today: `GET /api/today`, `POST /api/today/reschedule`.
+    - Today API: `GET /api/today`, `POST /api/today/reschedule`.
     - CLI bridge: `POST /api/cli` — invokes the console pipeline in-process (falls back to subprocess if needed).
     - Profile & Theme: `GET /api/profile`, `GET /api/theme?name=...`.
     - Variables: `GET/POST /api/vars`, `POST /api/vars/expand`.
@@ -81,7 +81,7 @@ A generic Vanilla JS Single Page Application (SPA).
 
 - UI runtime (`Utilities/Dashboard/app.js` + widgets/views)
   - Views: Calendar, Template Builder, and the Cockpit canvas (panels under `Utilities/Dashboard/Panels/`).
-  - Widgets: Today, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console.
+  - Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console.
   - Event bus: `mount(el, context)` receives a `context.bus` used by widgets (e.g., emit `vars:changed`, `widget:show`, `calendar:selected`).
   - Terminal: runs CLI via `/api/cli`, supports history, Ctrl+L, optional variable expansion.
   - Item Manager: search/sort/multi-select, YAML editor, copy/rename/delete; bulk delete/set property/copy/export (exports to `/temp/exports_items_*.zip`).
@@ -106,7 +106,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - Variables: `GET/POST /api/vars`, `POST /api/vars/expand`.
 - Profile/Theme: `GET /api/profile`, `GET /api/theme?name=...`.
 - Items: `GET /api/items`, `GET /api/item`, `POST /api/item*`, bulk ops including `export`.
-- Today: `GET /api/today`, `POST /api/today/reschedule`.
+- Today API: `GET /api/today`, `POST /api/today/reschedule`.
 - Timer: `GET /api/timer/status|profiles|settings`, `POST /api/timer/start|pause|resume|stop`.
 - Settings: `GET/POST /api/settings` and `GET /api/settings?file=...`.
 
