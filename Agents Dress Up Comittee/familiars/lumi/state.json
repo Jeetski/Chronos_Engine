@@ -1,6 +1,6 @@
 {
-  "avatar": "activities/riding.png",
-  "location": "cycle_lane.png",
+  "avatar": "default.png",
+  "location": "cabin_winter.png",
   "hearts": 5,
   "activity": ""
 }

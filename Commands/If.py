@@ -1,5 +1,5 @@
 from Modules.Console import run_command, parse_input
-from Modules import Conditions
+from Modules import Conditions, Variables as _V
 
 
 def _exists_target(target: str) -> bool:
@@ -34,7 +34,7 @@ def run(args, properties):
 
     # Evaluate condition (supports and/or/not, matches, parentheses)
     try:
-        is_true = Conditions.evaluate_cond_tokens(cond_tokens)
+        is_true = Conditions.evaluate_cond_tokens(_V.expand_list(cond_tokens))
     except Exception as e:
         line = None
         try:

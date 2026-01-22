@@ -975,14 +975,14 @@ const steps = [
 export async function launch(context, options = {}){
   injectStyles();
   const overlay = document.createElement('div');
-  overlay.className = 'onboarding-overlay';
+  overlay.className = 'onboarding-overlay chronos-wizard-overlay';
   overlay.dataset.wizardOverlay = OVERLAY_TAG;
 
   const shell = document.createElement('div');
-  shell.className = 'onboarding-shell';
+  shell.className = 'onboarding-shell chronos-wizard-shell';
 
   const headerWrap = document.createElement('div');
-  headerWrap.className = 'onboarding-header';
+  headerWrap.className = 'onboarding-header chronos-wizard-header';
 
   const hero = document.createElement('div');
   hero.className = 'onboarding-hero';
@@ -1010,7 +1010,7 @@ export async function launch(context, options = {}){
   hero.append(heroIcon, heroCopy);
 
   const stepper = document.createElement('div');
-  stepper.className = 'onboarding-stepper';
+  stepper.className = 'onboarding-stepper chronos-wizard-stepper';
   const stepperButtons = [];
   steps.forEach((step, idx) => {
     const btn = document.createElement('button');
@@ -1038,13 +1038,13 @@ export async function launch(context, options = {}){
   const content = document.createElement('div');
   content.className = 'onboarding-content';
   const body = document.createElement('div');
-  body.className = 'onboarding-body';
+  body.className = 'onboarding-body chronos-wizard-body';
   content.appendChild(body);
 
   const statusLine = document.createElement('div');
-  statusLine.className = 'wizard-status-line';
+  statusLine.className = 'wizard-status-line chronos-wizard-status';
   const actions = document.createElement('div');
-  actions.className = 'onboarding-actions';
+  actions.className = 'onboarding-actions chronos-wizard-actions';
   const actionsLeft = document.createElement('div');
   actionsLeft.className = 'action-group';
   const actionsRight = document.createElement('div');
@@ -1063,7 +1063,7 @@ export async function launch(context, options = {}){
   actions.append(actionsLeft, actionsRight);
 
   const footer = document.createElement('div');
-  footer.className = 'onboarding-footer';
+  footer.className = 'onboarding-footer chronos-wizard-footer';
   footer.append(statusLine, actions);
 
   shell.append(headerWrap, content, footer);

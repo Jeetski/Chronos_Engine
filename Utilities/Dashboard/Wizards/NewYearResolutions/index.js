@@ -959,27 +959,27 @@ function mountOverlay() {
   wizardState = createInitialState();
 
   overlayEl = document.createElement('div');
-  overlayEl.className = 'newyear-overlay';
+  overlayEl.className = 'newyear-overlay chronos-wizard-overlay';
 
   overlayEl.innerHTML = `
-    <div class="newyear-shell">
-      <div class="newyear-header">
+    <div class="newyear-shell chronos-wizard-shell">
+      <div class="newyear-header chronos-wizard-header">
         <div class="newyear-hero">
           <h1 class="newyear-year">${wizardState.year}</h1>
           <p class="newyear-subtitle">New Year's Resolutions</p>
         </div>
         <button class="newyear-close" data-close>×</button>
       </div>
-      <div class="newyear-stepper" data-stepper></div>
+      <div class="newyear-stepper chronos-wizard-stepper" data-stepper></div>
       <div class="newyear-content">
-        <div class="newyear-body" data-body></div>
+        <div class="newyear-body chronos-wizard-body" data-body></div>
       </div>
-      <div class="newyear-footer">
-        <div class="newyear-status">
+      <div class="newyear-footer chronos-wizard-footer">
+        <div class="newyear-status chronos-wizard-status">
           <div data-status></div>
           <div data-validation></div>
         </div>
-        <div class="newyear-actions">
+        <div class="newyear-actions chronos-wizard-actions">
           <button data-cancel>Cancel</button>
           <button data-prev>Previous</button>
           <button data-next class="primary">Next</button>

@@ -1,0 +1,31 @@
+ _____ _____ _____ _____ _____ _____ _____ 
+|     |  |  | __  |     |   | |     |   __|
+|   --|     |    -|  |  | | | |  |  |__   |
+|_____|__|__|__|__|_____|_|___|_____|_____|
+
+Γî¢ Chronos Engine v1
+≡ƒÜÇ Welcome, Pilot
+≡ƒîî You are the navigator of your reality.
+
+Traceback (most recent call last):
+  File "C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\Console.py", line 588, in <module>
+    invoke_command(command, args, properties.copy())
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\Console.py", line 236, in invoke_command
+    run_command(command_name, args, properties)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\Console.py", line 370, in run_command
+    run_command_core(command_name, args, properties)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\Console.py", line 276, in run_command
+    spec.loader.exec_module(command_module)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Commands\today.py", line 7, in <module>
+    from Modules.Scheduler import (
+    ...<7 lines>...
+    )
+  File "C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\Scheduler.py", line 322, in <module>
+    from Modules.ItemManager import read_item_data, list_day_template_paths, read_template, list_all_items_any
+ImportError: cannot import name 'list_day_template_paths' from 'Modules.ItemManager' (C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\ItemManager.py)

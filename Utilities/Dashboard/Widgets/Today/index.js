@@ -1,152 +1,188 @@
-﻿export function mount(el, context) {
-  console.log('[Chronos][Today] Mounting Today widget');
-  el.innerHTML = `
+export function mount(el, context) {
+    console.log('[Chronos][Today] Mounting Today widget');
+
+    // Load CSS
+    if (!document.getElementById('scheduler-css')) {
+        const link = document.createElement('link');
+        link.id = 'scheduler-css';
+        link.rel = 'stylesheet';
+        link.href = './Widgets/Today/scheduler.css';
+        document.head.appendChild(link);
+    }
+
+    el.className = 'widget scheduler-widget';
+    el.innerHTML = `
     <div class="header" id="todayHeader">
       <div class="title">Scheduler</div>
       <div class="controls">
-        <button class="icon-btn" id="todayMin" title="Minimize">_</button>
-        <button class="icon-btn" id="todayClose" title="Close">x</button>
+        <button class="icon-btn" id="todayMin" title="Minimize">−</button>
+        <button class="icon-btn" id="todayClose" title="Close">×</button>
       </div>
     </div>
     <div class="content">
-      <!-- Scheduling Controls Panel (NEW) -->
-      <details id="schedControls" style="margin-bottom:12px;">
-        <summary style="cursor:pointer; font-weight:700; padding:8px; background:rgba(32,40,56,0.5); border:1px solid var(--border); border-radius:8px; user-select:none;">
-          Scheduling Controls
-        </summary>
-        <div style="padding:12px 8px; display:flex; flex-direction:column; gap:10px; background:rgba(15,17,21,0.4); border:1px solid var(--border); border-radius:8px; margin-top:4px;">
-          <!-- Priority Sliders -->
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <div class="hint" style="font-weight:600;">Priority Weights (1-10)</div>
-            <div class="slider-row">
-              <label for="sliderEnvironment" style="flex:1;">Environment:</label>
-              <input type="range" id="sliderEnvironment" min="1" max="10" value="7" style="flex:2;" />
-              <span id="valEnvironment" style="width:24px; text-align:center;">7</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderCategory" style="flex:1;">Category:</label>
-              <input type="range" id="sliderCategory" min="1" max="10" value="6" style="flex:2;" />
-              <span id="valCategory" style="width:24px; text-align:center;">6</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderHappiness" style="flex:1;">Happiness:</label>
-              <input type="range" id="sliderHappiness" min="1" max="10" value="5" style="flex:2;" />
-              <span id="valHappiness" style="width:24px; text-align:center;">5</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderDueDate" style="flex:1;">Due Date:</label>
-              <input type="range" id="sliderDueDate" min="1" max="10" value="4" style="flex:2;" />
-              <span id="valDueDate" style="width:24px; text-align:center;">4</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderDeadline" style="flex:1;">Deadline:</label>
-              <input type="range" id="sliderDeadline" min="1" max="10" value="5" style="flex:2;" />
-              <span id="valDeadline" style="width:24px; text-align:center;">5</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderStatus" style="flex:1;">Status Align:</label>
-              <input type="range" id="sliderStatus" min="1" max="10" value="3" style="flex:2;" />
-              <span id="valStatus" style="width:24px; text-align:center;">3</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderPriority" style="flex:1;">Priority Prop:</label>
-              <input type="range" id="sliderPriority" min="1" max="10" value="2" style="flex:2;" />
-              <span id="valPriority" style="width:24px; text-align:center;">2</span>
-            </div>
-            <div class="slider-row">
-              <label for="sliderTemplate" style="flex:1;">Template:</label>
-              <input type="range" id="sliderTemplate" min="1" max="10" value="1" style="flex:2;" />
-              <span id="valTemplate" style="width:24px; text-align:center;">1</span>
+      <!-- Quick Actions Bar -->
+      <div class="scheduler-actions-bar">
+        <button class="btn-large btn-start-day" id="todayStartDay">🚀 Start Day</button>
+        <button class="btn-large btn-refresh" id="todayRefresh">↻ Refresh</button>
+        <button class="btn-large btn-reschedule" id="todayReschedule">📅 Reschedule</button>
+      </div>
+
+      <!-- Block Info Card -->
+      <div class="scheduler-block-card empty" id="blockInfoCard">
+        <div class="block-card-header">
+          <div class="block-card-title" id="blockTitle">No block selected</div>
+          <div class="block-status-badge pending" id="blockStatus">select</div>
+        </div>
+        <div class="block-card-details" id="blockDetails">
+          <div class="block-detail-item">
+            <span class="block-detail-icon">🕐</span>
+            <span id="blockTime">--:-- to --:--</span>
+          </div>
+          <div class="block-detail-item">
+            <span class="block-detail-icon">⏱️</span>
+            <span id="blockDuration">-- min</span>
+          </div>
+        </div>
+        <input class="scheduler-input" id="selectedItemInput" list="todayItemList" placeholder="Search or select block" style="margin-top:10px;" />
+        <datalist id="todayItemList"></datalist>
+      </div>
+
+      <!-- Scheduling Controls -->
+      <details class="scheduler-section" id="schedControls">
+        <summary>⚙️ Scheduling Controls</summary>
+        <div class="scheduler-section-content">
+          <div class="action-group">
+            <div class="action-group-title">Priority Weights (1-10)</div>
+            <div class="priority-sliders-grid">
+              <div class="slider-row">
+                <label for="sliderEnvironment">Environment</label>
+                <input type="range" id="sliderEnvironment" min="1" max="10" value="7" />
+                <span class="slider-value" id="valEnvironment">7</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderCategory">Category</label>
+                <input type="range" id="sliderCategory" min="1" max="10" value="6" />
+                <span class="slider-value" id="valCategory">6</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderHappiness">Happiness</label>
+                <input type="range" id="sliderHappiness" min="1" max="10" value="5" />
+                <span class="slider-value" id="valHappiness">5</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderDueDate">Due Date</label>
+                <input type="range" id="sliderDueDate" min="1" max="10" value="4" />
+                <span class="slider-value" id="valDueDate">4</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderDeadline">Deadline</label>
+                <input type="range" id="sliderDeadline" min="1" max="10" value="5" />
+                <span class="slider-value" id="valDeadline">5</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderStatus">Status Align</label>
+                <input type="range" id="sliderStatus" min="1" max="10" value="3" />
+                <span class="slider-value" id="valStatus">3</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderPriority">Priority Prop</label>
+                <input type="range" id="sliderPriority" min="1" max="10" value="2" />
+                <span class="slider-value" id="valPriority">2</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderTemplate">Template</label>
+                <input type="range" id="sliderTemplate" min="1" max="10" value="1" />
+                <span class="slider-value" id="valTemplate">1</span>
+              </div>
             </div>
           </div>
-          <!-- Quick Toggles -->
-          <div style="display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid var(--border);">
-            <div class="hint" style="font-weight:600;">Quick Toggles</div>
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <div class="action-group" style="padding-top:8px; border-top:1px solid var(--border);">
+            <div class="action-group-title">Quick Toggles</div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px;">
               <input type="checkbox" id="toggleCutting" />
               Allow Item Cutting (Phase 3e)
             </label>
           </div>
         </div>
       </details>
-      
-      
 
-      <div id="calendarContext" style="display:none; flex-direction:column; gap:10px;">
-        <div class="row" style="align-items:center; gap:8px;">
-          <span class="hint" id="calendarDayLabel">Calendar day selected.</span>
-          <span class="hint" id="calendarDayNote"></span>
-        </div>
-        <div class="row" style="gap:8px; align-items:center;">
-          <input class="input" id="selectedItemInput" list="todayItemList" placeholder="Selected block or search" />
-          <datalist id="todayItemList"></datalist>
-        </div>
-        <div class="hint" id="selSummary">Select a block in the calendar.</div>
-        <details id="actionControls">
-          <summary style="cursor:pointer; font-weight:700; padding:8px; background:rgba(32,40,56,0.5); border:1px solid var(--border); border-radius:8px; user-select:none;">
-            Actions
-          </summary>
-          <div style="padding:12px 8px; display:flex; flex-direction:column; gap:12px; background:rgba(15,17,21,0.4); border:1px solid var(--border); border-radius:8px; margin-top:4px;">
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <div class="hint" style="font-weight:600;">Quick Status</div>
-              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-                <button class="btn" id="markDone">Done (Today)</button>
-                <button class="btn" id="markSkipped">Skipped</button>
-                <button class="btn" id="markDelayed">Delayed</button>
-              </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <div class="hint" style="font-weight:600;">Schedule Edits</div>
-              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-                <button class="btn" id="trim5" title="Trim 5 minutes">Trim -5</button>
-                <button class="btn" id="trim10" title="Trim 10 minutes">Trim -10</button>
-                <input class="input" id="trimCustom" placeholder="min" style="width:72px;" />
-                <button class="btn" id="trimGo">Trim</button>
-              </div>
-              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-                <input class="input" id="changeTime" type="time" step="60" style="width:110px;" />
-                <button class="btn" id="changeGo">Change</button>
-                <button class="btn" id="cutGo">Cut</button>
-              </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <div class="hint" style="font-weight:600;">Actuals (Did)</div>
-              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-                <input class="input" id="didStart" type="time" step="60" style="width:110px;" placeholder="Start" />
-                <input class="input" id="didEnd" type="time" step="60" style="width:110px;" placeholder="End" />
-                <select class="input" id="didStatus" style="width:130px;">
-                  <option value="completed">completed</option>
-                  <option value="partial">partial</option>
-                  <option value="skipped">skipped</option>
-                </select>
-                <input class="input" id="didNote" placeholder="note" style="min-width:140px;" />
-                <button class="btn" id="didGo">Did</button>
-              </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <div class="hint" style="font-weight:600;">Item State</div>
-              <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-                <button class="btn" id="completeItem">Complete (Item)</button>
-              </div>
+      <!-- Actions Panel -->
+      <details class="scheduler-section" id="actionControls">
+        <summary>⚡ Actions</summary>
+        <div class="scheduler-section-content">
+          <div class="action-group">
+            <div class="action-group-title">Quick Status</div>
+            <div class="button-row">
+              <button class="scheduler-btn btn-success" id="markDone">✓ Done (Today)</button>
+              <button class="scheduler-btn" id="markSkipped">⊘ Skipped</button>
+              <button class="scheduler-btn btn-warning" id="markDelayed">⏰ Delayed</button>
             </div>
           </div>
-        </details>
+          
+          <div class="action-group">
+            <div class="action-group-title">Schedule Edits</div>
+            <div class="button-row">
+              <button class="scheduler-btn" id="trim5" title="Trim 5 minutes">Trim -5</button>
+              <button class="scheduler-btn" id="trim10" title="Trim 10 minutes">Trim -10</button>
+              <input class="scheduler-input" id="trimCustom" placeholder="min" style="width:72px;" />
+              <button class="scheduler-btn" id="trimGo">Trim</button>
+            </div>
+            <div class="button-row">
+              <input class="scheduler-input" id="changeTime" type="time" step="60" style="width:110px;" />
+              <button class="scheduler-btn" id="changeGo">Change Time</button>
+              <button class="scheduler-btn btn-danger" id="cutGo">✂️ Cut</button>
+            </div>
+          </div>
+          
+          <div class="action-group">
+            <div class="action-group-title">Actuals (Did)</div>
+            <div class="button-row">
+              <input class="scheduler-input" id="didStart" type="time" step="60" style="width:110px;" placeholder="Start" />
+              <input class="scheduler-input" id="didEnd" type="time" step="60" style="width:110px;" placeholder="End" />
+              <select class="scheduler-input" id="didStatus" style="width:130px;">
+                <option value="completed">completed</option>
+                <option value="partial">partial</option>
+                <option value="skipped">skipped</option>
+              </select>
+            </div>
+            <div class="button-row">
+              <input class="scheduler-input" id="didNote" placeholder="note" style="min-width:140px; flex:1;" />
+              <button class="scheduler-btn btn-success" id="didGo">✓ Did</button>
+            </div>
+          </div>
+          
+          <div class="action-group">
+            <div class="action-group-title">Item State</div>
+            <div class="button-row">
+              <button class="scheduler-btn btn-success" id="completeItem">✓ Complete (Item)</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Calendar Context (hidden by default) -->
+      <div id="calendarContext" style="display:none; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="scheduler-hint" id="calendarDayLabel">Calendar day selected.</span>
+          <span class="scheduler-hint" id="calendarDayNote"></span>
+        </div>
+        <div class="scheduler-hint" id="selSummary">Select a block in the calendar.</div>
       </div>
-<!-- Existing Controls -->
-      <div class="row" style="align-items: center; gap: 8px;">
-        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="todayFxToggle" checked /> fx</label>
-        <span class="hint" id="selHint">Select a day in Calendar to preview the schedule.</span>
-        <div class="spacer"></div>
-        <button class="btn btn-secondary" id="todayRefresh">Refresh</button>
-        <button class="btn btn-primary" id="todayStartDay">Start Day</button>
-        <button class="btn btn-secondary" id="todayReschedule">Reschedule</button>
+
+      <!-- Status Bar -->
+      <div class="scheduler-status-bar">
+        <label class="scheduler-toggle">
+          <input type="checkbox" id="todayFxToggle" checked />
+          fx
+        </label>
+        <span class="scheduler-hint" id="selHint">Select a day in Calendar to preview the schedule.</span>
       </div>
-      <div class="hint">Select a block in Calendar, then use Actions (today only). Apply edits with Reschedule.</div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
     <div class="resizer se"></div>
   `;
+
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 

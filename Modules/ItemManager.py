@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime, timedelta
 import importlib.util
 from Modules.FilterManager import FilterManager
+from Modules.Logger import Logger
 
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -89,13 +90,43 @@ def get_item_path(item_type, name):
     Sanitizes the name for use in filenames.
     """
     item_dir = get_item_dir(item_type)
-    preferred = _normalize_filename(name, prefer_underscores=True)
-    legacy = _normalize_filename(name, prefer_underscores=False)
+    raw_name = str(name).strip() if name is not None else ""
+    preferred = _normalize_filename(raw_name, prefer_underscores=True)
+    legacy = _normalize_filename(raw_name, prefer_underscores=False)
+
+    candidates = []
+    if raw_name:
+        candidates.append(os.path.join(item_dir, f"{raw_name}.yml"))
+        candidates.append(os.path.join(item_dir, f"{raw_name}.yaml"))
+
     preferred_path = os.path.join(item_dir, f"{preferred}.yml")
     legacy_path = os.path.join(item_dir, f"{legacy}.yml")
-    # Use legacy naming if it already exists to avoid duplicating files.
-    if os.path.exists(legacy_path) and not os.path.exists(preferred_path):
-        return legacy_path
+    candidates.extend([preferred_path, legacy_path])
+
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+
+    # Fallback: scan for a file whose internal name matches (handles legacy spacing/examples).
+    if raw_name and os.path.isdir(item_dir):
+        try:
+            for filename in os.listdir(item_dir):
+                if not filename.lower().endswith((".yml", ".yaml")):
+                    continue
+                path = os.path.join(item_dir, filename)
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = yaml.safe_load(f) or {}
+                    if isinstance(data, dict):
+                        file_name = str(data.get("name", "")).strip().lower()
+                        if file_name and file_name == raw_name.lower():
+                            return path
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+    # Default to preferred path for new writes.
     return preferred_path
 
 def read_item_data(item_type, name):
@@ -135,7 +166,7 @@ def list_all_items(item_type):
                 data = yaml.safe_load(item_file) or {}
                 items_data.append(data)
         except Exception as e:
-            print(f"⚠️ Could not read {f}: {e}")
+            Logger.error(f"Could not read {f}: {e}")
     return items_data
 
 def list_all_items_any():
@@ -160,7 +191,7 @@ def list_all_items_any():
                     with open(path, "r", encoding="utf-8") as item_file:
                         data = yaml.safe_load(item_file) or {}
                 except Exception as e:
-                    print(f"?? Could not read {filename}: {e}")
+                    Logger.error(f"Could not read {filename}: {e}")
                     continue
                 if not isinstance(data, dict):
                     continue
@@ -189,15 +220,12 @@ def delete_item(item_type, name):
     Deletes an item's YAML file.
     """
     path = get_item_path(item_type, name)
-    with open("debug_delete.txt", "a") as f:
-        f.write(f"Attempting to delete: {path}\n")
+    Logger.debug_to_file("item_manager_delete.txt", f"Attempting to delete: {path}")
     if not os.path.exists(path):
-        with open("debug_delete.txt", "a") as f:
-            f.write(f"File not found: {path}\n")
+        Logger.debug_to_file("item_manager_delete.txt", f"File not found: {path}")
         return False
     os.remove(path)
-    with open("debug_delete.txt", "a") as f:
-        f.write(f"Successfully deleted: {path}\n")
+    Logger.debug_to_file("item_manager_delete.txt", f"Successfully deleted: {path}")
     return True
 
 # --- Command Dispatcher ---
@@ -214,8 +242,7 @@ def dispatch_command(command_name, item_type, item_name, text_to_append, propert
         try:
             spec.loader.exec_module(module)
         except Exception as e:
-            with open("debug_delete.txt", "a") as f:
-                f.write(f"Error loading module {module_path}: {e}\n")
+            Logger.debug_to_file("item_manager_dispatch.txt", f"Error loading module {module_path}: {e}")
             module = None
 
     if module and hasattr(module, "handle_command"):
@@ -226,8 +253,7 @@ def dispatch_command(command_name, item_type, item_name, text_to_append, propert
         handler_name = f"handle_{command_name}"
         if hasattr(module, handler_name):
             handler = getattr(module, handler_name)
-            with open("debug_delete.txt", "a") as f:
-                f.write(f"dispatch_command: Calling handler {handler_name} in module {item_type}\n")
+            Logger.debug_to_file("item_manager_dispatch.txt", f"dispatch_command: Calling handler {handler_name} in module {item_type}")
             handler(item_name, properties)
         else:
             print(f"❌ Command '{command_name}' not supported by module '{item_type}'.")
@@ -316,8 +342,7 @@ def generic_handle_delete(item_type, item_name, properties):
     Generic handler for the 'delete' command.
     """
     force = properties.get("force", False)
-    with open("debug_delete.txt", "a") as f:
-        f.write(f"generic_handle_delete: item_type={item_type}, item_name={item_name}, force={force}\n")
+    Logger.debug_to_file("item_manager_delete.txt", f"generic_handle_delete: item_type={item_type}, item_name={item_name}, force={force}")
     if not force:
         confirm = input(f"⚠️ Are you sure you want to delete '{item_name}'? (y/n): ").strip().lower()
         if confirm not in {"y", "yes"}:
@@ -375,4 +400,4 @@ def open_item_in_editor(item_type, name, editor_command):
     except FileNotFoundError:
         print(f"❌ Editor '{editor_command}' not found. Please ensure it's in your PATH.")
     except Exception as e:
-        print(f"❌ An error occurred while opening the editor: {e}")
+        Logger.error(f"An error occurred while opening the editor: {e}")

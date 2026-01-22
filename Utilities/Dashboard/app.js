@@ -60,6 +60,7 @@ async function startChronosDay(options = {}) {
 
 try { window.ChronosStartDay = startChronosDay; } catch { }
 
+
 const panelLoaders = [
   () => import(new URL('./Panels/Schedule/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
     console.error('[Chronos][app] Failed to load schedule panel module', err);
@@ -121,6 +122,8 @@ ready(async () => {
   } catch { }
 
   const viewRoot = document.getElementById('view');
+  const DEV_VIEWS = new Set(['ADUC', 'Canvas', 'Cockpit']);
+  const DEV_WIDGETS = new Set(['Link', 'Variables']);
   const availableViews = [
     { name: 'ADUC', label: 'ADUC' },
     { name: 'Cockpit', label: 'Cockpit' },
@@ -130,7 +133,9 @@ ready(async () => {
     { name: 'TemplateBuilder', label: 'Template Builder' },
     { name: 'ProjectManager', label: 'Project Manager' },
     { name: 'Canvas', label: 'Canvas' },
+    { name: 'Editor', label: 'Editor' },
   ];
+
   const wizardCatalog = [
     {
       id: 'onboarding',
@@ -225,6 +230,7 @@ ready(async () => {
       description: 'Vibrant magenta hues for late-night plotting.',
       accent: '#ff6fb1',
     },
+
   ];
   const THEME_STORAGE_KEY = 'chronos_dashboard_theme_v1';
   const themeStylesheet = document.getElementById('themeStylesheet');
@@ -484,7 +490,7 @@ ready(async () => {
           window.__calendarUpdateTitle = () => {
             try {
               const base = label || name;
-              const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
               const mode = window.__calendarViewMode || 'year';
               const day = window.__calendarSelectedDay ? new Date(window.__calendarSelectedDay) : null;
               const weekStart = window.__calendarSelectedWeekStart ? new Date(window.__calendarSelectedWeekStart) : null;
@@ -503,7 +509,7 @@ ready(async () => {
               } else if (mode === 'day') {
                 const d = day;
                 if (d) {
-                  const dows = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                  const dows = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                   const dow = dows[d.getDay()] || '';
                   text += ` · ${dow}, ${months[d.getMonth()]} ${d.getDate()}`;
                 }
@@ -514,14 +520,14 @@ ready(async () => {
             }
           };
           window.__calendarUpdateTitle();
-        } catch {}
+        } catch { }
         try {
           const todayWidget = document.querySelector('[data-widget="Today"]');
           if (todayWidget) {
             todayWidget.style.display = '';
             window.ChronosFocusWidget?.(todayWidget);
           }
-        } catch {}
+        } catch { }
       }
       openPanes.push({ name, label: label || name, pane, content, viewport });
       window.__currentView = name;
@@ -547,7 +553,7 @@ ready(async () => {
       }
     } catch { }
     if (name === 'Calendar') {
-      try { delete window.__calendarTitleEl; delete window.__calendarUpdateTitle; } catch {}
+      try { delete window.__calendarTitleEl; delete window.__calendarUpdateTitle; } catch { }
     }
     try { pane.pane.remove(); } catch { }
     openPanes.splice(idx, 1);
@@ -594,7 +600,8 @@ ready(async () => {
       .map(el => {
         const fallback = el.id || el.getAttribute('data-widget') || 'widget';
         const label = el.getAttribute('data-label') || el.getAttribute('data-widget') || fallback;
-        return { el, label };
+        const name = el.getAttribute('data-widget') || fallback;
+        return { el, label, name };
       })
       .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
     const createItem = ({ el, label }) => {
@@ -606,6 +613,14 @@ ready(async () => {
       const span = document.createElement('span');
       span.textContent = label;
       item.append(check, span);
+      const name = el.getAttribute('data-widget') || label;
+      if (DEV_WIDGETS.has(name)) {
+        const badge = document.createElement('span');
+        badge.className = 'dev-badge';
+        badge.textContent = 'dev';
+        badge.title = 'Under development';
+        item.appendChild(badge);
+      }
       item.addEventListener('click', () => {
         el.style.display = (el.style.display === 'none' ? '' : 'none');
         check.textContent = el.style.display === 'none' ? '' : '✓';
@@ -896,6 +911,13 @@ ready(async () => {
       const span = document.createElement('span');
       span.textContent = v.label;
       it.append(check, span);
+      if (DEV_VIEWS.has(v.name)) {
+        const badge = document.createElement('span');
+        badge.className = 'dev-badge';
+        badge.textContent = 'dev';
+        badge.title = 'Under development';
+        it.appendChild(badge);
+      }
       it.addEventListener('click', async () => {
         closeMenus();
         const isOpen = openPanes.some(p => p.name === v.name);

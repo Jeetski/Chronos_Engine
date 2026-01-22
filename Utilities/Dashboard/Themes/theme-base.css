@@ -13,8 +13,8 @@
 .chronos-shell {
   width: min(960px, 95vw);
   max-height: 94vh;
-  background: linear-gradient(180deg, var(--chronos-surface-strong), var(--chronos-surface));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--chronos-surface);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   box-shadow: var(--chronos-shadow);
   color: var(--chronos-text);
@@ -24,14 +24,19 @@
   padding: clamp(20px, 3vw, 32px);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .chronos-card {
   background: var(--chronos-surface-soft);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 18px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
+
 
 .chronos-stepper {
   display: grid;
@@ -93,8 +98,14 @@
 }
 
 .chronos-btn:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.32);
   transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(22, 26, 38, 0.96);
+}
+
+.chronos-btn:active:not(:disabled) {
+  transform: translateY(0);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .chronos-btn:disabled {
@@ -103,83 +114,165 @@
 }
 
 .chronos-btn.primary {
-  background: var(--chronos-accent-gradient);
-  border-color: rgba(122, 162, 247, 0.6);
-  color: #fff;
-  box-shadow: var(--chronos-accent-glow);
+  background: var(--chronos-accent);
+  border-color: var(--chronos-accent);
+  color: #0a0d14;
 }
 
-.chronos-btn.ghost {
-  background: rgba(12, 16, 28, 0.6);
-  border-color: rgba(255, 255, 255, 0.08);
+.chronos-btn.primary:hover:not(:disabled) {
+  background: var(--chronos-accent-bright);
+  border-color: var(--chronos-accent-bright);
 }
 
-.chronos-btn.subtle {
-  background: transparent;
-  border-color: transparent;
-  color: var(--chronos-text-muted);
+.chronos-btn.success {
+  background: var(--chronos-success);
+  border-color: var(--chronos-success);
+  color: #0a0d14;
 }
 
-.chronos-chip {
+.chronos-btn.success:hover:not(:disabled) {
+  background: #83e5bb;
+  border-color: #83e5bb;
+}
+
+.chronos-select {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 10px 14px;
+  font-size: 14px;
+  background: rgba(12, 16, 28, 0.9);
+  color: var(--chronos-text);
+  cursor: pointer;
+  outline: none;
+}
+
+.chronos-select:focus {
+  border-color: var(--chronos-accent);
+}
+
+.chronos-input {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 10px 14px;
+  font-size: 14px;
+  background: rgba(12, 16, 28, 0.9);
+  color: var(--chronos-text);
+  outline: none;
+}
+
+.chronos-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.chronos-input:focus {
+  border-color: var(--chronos-accent);
+  background: rgba(12, 16, 28, 0.96);
+}
+
+.chronos-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--chronos-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.chronos-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 16px 0;
+}
+
+.chronos-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 16, 28, 0.9);
+  color: var(--chronos-text);
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--chronos-text-soft);
-  background: var(--chronos-accent-soft);
+  justify-content: center;
+  font-size: 18px;
+  transition: transform 120ms ease, background 120ms ease;
 }
 
-.chronos-status-text[data-tone="success"] {
-  color: var(--chronos-success);
+.chronos-close:hover {
+  transform: scale(1.05);
+  background: rgba(22, 26, 38, 0.96);
 }
 
-.chronos-status-text[data-tone="warn"] {
-  color: var(--chronos-warning);
+/* ========================================
+   GLASSMORPHIC WIDGET STYLES
+   ======================================== */
+
+/* Primary glass container for widget backgrounds */
+.widget-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 
-.chronos-status-text[data-tone="error"] {
-  color: var(--chronos-danger);
+.widget-glass:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border-color: rgba(78, 201, 176, 0.4);
 }
 
-:root {
-  color-scheme: dark;
+/* Nested glass cards within widgets */
+.widget-glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 12px;
+  transition: all 0.3s ease;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]),
-textarea,
-select {
-  background: var(--chronos-surface-soft);
-  color: var(--chronos-text);
-  border: 1px solid var(--chronos-border);
+.widget-glass-card:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-color: rgba(78, 201, 176, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Subtle glass effect for minimal areas */
+.widget-glass-subtle {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--chronos-border-strong);
-  box-shadow: 0 0 0 3px rgba(122, 162, 247, 0.15);
+/* Glass content area wrapper */
+.widget-content-glass {
+  background: transparent;
+  padding: 12px;
 }
 
-input::placeholder,
-textarea::placeholder {
-  color: var(--chronos-text-muted);
+/* Dark glass variant for high-contrast content (e.g., terminal, code) */
+.widget-glass-dark {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-select option,
-select optgroup {
-  background: var(--chronos-surface-strong);
-  color: var(--chronos-text);
-}
-
-input[type="checkbox"],
-input[type="radio"],
-input[type="range"],
-progress {
-  accent-color: var(--accent);
+/* No hover effect variant */
+.widget-glass-static {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }

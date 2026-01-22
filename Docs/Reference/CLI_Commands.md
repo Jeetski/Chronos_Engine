@@ -335,6 +335,18 @@ Executes a Chronos script (.chs).
 Runs a single-line conditional command.
 **Usage:** `if <left> <op> <right> then <command> [args...] [else <command> ...]`
 
+### `repeat`
+Runs a command a fixed number of times.
+**Usage:** `repeat count:<n> then <command> [args...]`
+
+### `for`
+Iterates items and runs a command for each.
+**Usage:** `for <var> in <type> [filters] then <command> [args...]`
+
+### `while`
+Runs a command while a condition remains true (bounded).
+**Usage:** `while <condition> max:<n> then <command> [args...]`
+
 ### `vars`
 Lists current script variables or a single variable by name.
 **Usage:** `vars [name:<varname>]`

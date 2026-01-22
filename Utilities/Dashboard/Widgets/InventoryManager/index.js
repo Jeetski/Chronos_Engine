@@ -1,4 +1,14 @@
-export function mount(el, context){
+export function mount(el, context) {
+  // Load CSS
+  if (!document.getElementById('inventory-manager-css')) {
+    const link = document.createElement('link');
+    link.id = 'inventory-manager-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/InventoryManager/inventory-manager.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget inventory-manager-widget';
   const tpl = `
     <style>
       .inv-body { display:flex; flex-direction:column; gap:10px; height:100%; min-height:0; }
@@ -91,37 +101,37 @@ export function mount(el, context){
     places: [],
   };
 
-  function apiBase(){
+  function apiBase() {
     const origin = window.location.origin;
     if (!origin || origin === 'null' || origin.startsWith('file:')) return 'http://127.0.0.1:7357';
     return origin;
   }
 
-  function setStatus(msg = '', tone = 'info'){
+  function setStatus(msg = '', tone = 'info') {
     const colors = { info: '#a6adbb', success: '#8ef7c2', error: '#ff9aa2', warn: '#ffd77a' };
     statusEl.textContent = msg;
     statusEl.style.color = colors[tone] || colors.info;
   }
 
-  function toList(value){
+  function toList(value) {
     if (Array.isArray(value)) return value;
     if (value === undefined || value === null || value === '') return [];
     return [value];
   }
 
-  async function fetchJson(url, options){
+  async function fetchJson(url, options) {
     const resp = await fetch(url, options);
     const text = await resp.text();
     let data;
     try { data = JSON.parse(text); } catch { data = {}; }
-    if (!resp.ok || (data && data.ok === false)){
+    if (!resp.ok || (data && data.ok === false)) {
       const err = (data && data.error) || text || `HTTP ${resp.status}`;
       throw new Error(err);
     }
     return data;
   }
 
-  async function loadPlaces(){
+  async function loadPlaces() {
     try {
       const data = await fetchJson(`${apiBase()}/api/settings?file=place_settings.yml`);
       const entries = (data?.data?.Place_Settings) || (data?.data?.place_settings) || {};
@@ -133,24 +143,24 @@ export function mount(el, context){
     }
   }
 
-  function renderPlaceOptions(){
+  function renderPlaceOptions() {
     const options = ['<option value="">All places</option>']
       .concat(state.places.map(place => `<option value="${place}">${place}</option>`));
     placeSel.innerHTML = options.join('');
   }
 
-  async function loadInventories(keepSelection = true){
+  async function loadInventories(keepSelection = true) {
     try {
       setStatus('Loading inventories...', 'info');
       const data = await fetchJson(`${apiBase()}/api/items?type=inventory`);
       state.inventories = (data.items || data || []).map(item => item || {});
       renderList();
       const prior = keepSelection && state.selected ? state.selected.name : null;
-      if (prior){
+      if (prior) {
         await selectInventory(prior);
-      } else if (!state.selected && state.inventories.length){
+      } else if (!state.selected && state.inventories.length) {
         await selectInventory(state.inventories[0].name);
-      } else if (!state.inventories.length){
+      } else if (!state.inventories.length) {
         state.selected = null;
         renderDetail();
       }
@@ -160,13 +170,13 @@ export function mount(el, context){
     }
   }
 
-  function filteredInventories(){
+  function filteredInventories() {
     const term = (searchEl.value || '').trim().toLowerCase();
     const place = (placeSel.value || '').trim().toLowerCase();
     return state.inventories.filter(inv => {
       const name = String(inv.name || '').toLowerCase();
       if (term && !name.includes(term)) return false;
-      if (place){
+      if (place) {
         const places = toList(inv.places || inv.location).map(p => String(p).toLowerCase());
         if (!places.includes(place)) return false;
       }
@@ -174,12 +184,12 @@ export function mount(el, context){
     });
   }
 
-  function renderList(){
+  function renderList() {
     const entries = filteredInventories();
     const total = state.inventories.length;
     countEl.textContent = total ? `${entries.length} / ${total} inventories` : 'No inventories';
     listEl.innerHTML = '';
-    if (!entries.length){
+    if (!entries.length) {
       const empty = document.createElement('div');
       empty.className = 'inv-empty';
       empty.textContent = 'No inventories match the current filters.';
@@ -190,7 +200,7 @@ export function mount(el, context){
       const row = document.createElement('div');
       row.className = 'inv-row';
       row.dataset.name = inv.name;
-      if (state.selected && state.selected.name === inv.name){
+      if (state.selected && state.selected.name === inv.name) {
         row.classList.add('active');
       }
       const places = toList(inv.places || inv.location);
@@ -206,12 +216,12 @@ export function mount(el, context){
           ${tags.length ? `<span>Tags: ${tags.join(', ')}</span>` : ''}
         </div>
       `;
-      row.addEventListener('click', ()=> selectInventory(inv.name));
+      row.addEventListener('click', () => selectInventory(inv.name));
       listEl.appendChild(row);
     });
   }
 
-  async function selectInventory(name){
+  async function selectInventory(name) {
     if (!name) return;
     try {
       setStatus(`Loading ${name}...`, 'info');
@@ -226,8 +236,8 @@ export function mount(el, context){
     }
   }
 
-  function renderDetail(){
-    if (!state.selected){
+  function renderDetail() {
+    if (!state.selected) {
       detailEl.innerHTML = '<div class="inv-empty">Select an inventory to see details.</div>';
       return;
     }
@@ -290,7 +300,7 @@ export function mount(el, context){
     `;
   }
 
-  async function saveInventory(data){
+  async function saveInventory(data) {
     const payload = {
       type: 'inventory',
       name: data.name,
@@ -303,7 +313,7 @@ export function mount(el, context){
     });
   }
 
-  async function modifyInventory(mutator, successMsg){
+  async function modifyInventory(mutator, successMsg) {
     if (!state.selected) return;
     const clone = JSON.parse(JSON.stringify(state.selected));
     mutator(clone);
@@ -317,9 +327,9 @@ export function mount(el, context){
     }
   }
 
-  async function handleCreateInventory(){
+  async function handleCreateInventory() {
     const name = newNameEl.value.trim();
-    if (!name){
+    if (!name) {
       setStatus('Inventory name is required.', 'warn');
       return;
     }
@@ -347,14 +357,14 @@ export function mount(el, context){
     }
   }
 
-  detailEl.addEventListener('click', (ev)=>{
+  detailEl.addEventListener('click', (ev) => {
     const actionBtn = ev.target.closest('[data-action]');
     if (!actionBtn) return;
     const action = actionBtn.dataset.action;
     const name = actionBtn.dataset.name;
     if (!state.selected) return;
 
-    if (action === 'remove-item'){
+    if (action === 'remove-item') {
       modifyInventory(data => {
         const items = Array.isArray(data.inventory_items) ? data.inventory_items
           : Array.isArray(data.items) ? data.items : [];
@@ -362,7 +372,7 @@ export function mount(el, context){
         if ('items' in data) delete data.items;
       }, `Removed item '${name}'.`);
     }
-    if (action === 'update-item'){
+    if (action === 'update-item') {
       const entryEl = actionBtn.closest('.inv-entry');
       const qtyInput = entryEl?.querySelector('input[data-qty]');
       const qty = qtyInput ? parseInt(qtyInput.value, 10) || 0 : 0;
@@ -370,7 +380,7 @@ export function mount(el, context){
         const items = Array.isArray(data.inventory_items) ? data.inventory_items
           : Array.isArray(data.items) ? data.items : [];
         items.forEach(entry => {
-          if (String(entry.name).toLowerCase() === String(name).toLowerCase()){
+          if (String(entry.name).toLowerCase() === String(name).toLowerCase()) {
             entry.quantity = qty;
           }
         });
@@ -378,7 +388,7 @@ export function mount(el, context){
         if ('items' in data) delete data.items;
       }, `Updated quantity for '${name}'.`);
     }
-    if (action === 'remove-tool'){
+    if (action === 'remove-tool') {
       modifyInventory(data => {
         const tools = Array.isArray(data.tools) ? data.tools : [];
         data.tools = tools.filter(entry => String(entry.name).toLowerCase() !== String(name).toLowerCase());
@@ -386,19 +396,19 @@ export function mount(el, context){
     }
   });
 
-  detailEl.addEventListener('submit', (ev)=>{
+  detailEl.addEventListener('submit', (ev) => {
     const form = ev.target;
     if (!form.dataset.form) return;
     ev.preventDefault();
-    if (!state.selected){
+    if (!state.selected) {
       setStatus('Select an inventory first.', 'warn');
       return;
     }
     const formData = new FormData(form);
-    if (form.dataset.form === 'add-item'){
+    if (form.dataset.form === 'add-item') {
       const name = (formData.get('name') || '').toString().trim();
       const qty = parseInt(formData.get('quantity'), 10) || 1;
-      if (!name){
+      if (!name) {
         setStatus('Item name is required.', 'warn');
         return;
       }
@@ -406,7 +416,7 @@ export function mount(el, context){
         const items = Array.isArray(data.inventory_items) ? data.inventory_items
           : Array.isArray(data.items) ? data.items : [];
         const existing = items.find(entry => String(entry.name).toLowerCase() === name.toLowerCase());
-        if (existing){
+        if (existing) {
           existing.quantity = qty;
         } else {
           items.push({ type: 'inventory_item', name, quantity: qty });
@@ -418,15 +428,15 @@ export function mount(el, context){
       const qtyInput = form.querySelector('[name="quantity"]');
       if (qtyInput) qtyInput.value = 1;
     }
-    if (form.dataset.form === 'add-tool'){
+    if (form.dataset.form === 'add-tool') {
       const name = (formData.get('name') || '').toString().trim();
-      if (!name){
+      if (!name) {
         setStatus('Tool name is required.', 'warn');
         return;
       }
       modifyInventory(data => {
         const tools = Array.isArray(data.tools) ? data.tools : [];
-        if (!tools.some(entry => String(entry.name).toLowerCase() === name.toLowerCase())){
+        if (!tools.some(entry => String(entry.name).toLowerCase() === name.toLowerCase())) {
           tools.push({ type: 'tool', name });
         }
         data.tools = tools;
@@ -435,12 +445,12 @@ export function mount(el, context){
     }
   });
 
-  btnMin?.addEventListener('click', ()=> el.classList.toggle('minimized'));
-  btnClose?.addEventListener('click', ()=> { el.style.display = 'none'; try { context?.bus?.emit?.('widget:closed','InventoryManager'); } catch {} });
-  refreshBtn?.addEventListener('click', ()=> loadInventories(true));
-  searchBtn?.addEventListener('click', ()=> renderList());
-  searchEl?.addEventListener('keydown', (ev)=> { if (ev.key === 'Enter'){ ev.preventDefault(); renderList(); } });
-  placeSel?.addEventListener('change', ()=> renderList());
+  btnMin?.addEventListener('click', () => el.classList.toggle('minimized'));
+  btnClose?.addEventListener('click', () => { el.style.display = 'none'; try { context?.bus?.emit?.('widget:closed', 'InventoryManager'); } catch { } });
+  refreshBtn?.addEventListener('click', () => loadInventories(true));
+  searchBtn?.addEventListener('click', () => renderList());
+  searchEl?.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); renderList(); } });
+  placeSel?.addEventListener('change', () => renderList());
   createBtn?.addEventListener('click', handleCreateInventory);
 
   loadPlaces();

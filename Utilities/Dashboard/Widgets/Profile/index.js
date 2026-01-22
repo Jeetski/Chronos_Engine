@@ -1,7 +1,7 @@
 let el = null;
 let profileData = {};
 
-function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
 async function loadProfile() {
   try {
@@ -99,7 +99,7 @@ function render() {
           if (typeof v === 'boolean') { subInput.type = 'checkbox'; subInput.checked = !!v; subInput.disabled = true; }
           else if (typeof v === 'number') { subInput.type = 'number'; subInput.value = String(v); subInput.disabled = true; }
           else if (Array.isArray(v)) { subInput.type = 'text'; subInput.value = v.join(', '); subInput.disabled = true; }
-          else { subInput.type = 'text'; subInput.value = (v==null?'':String(v)); subInput.disabled = true; }
+          else { subInput.type = 'text'; subInput.value = (v == null ? '' : String(v)); subInput.disabled = true; }
           sub.appendChild(subLab);
           sub.appendChild(subInput);
           box.appendChild(sub);
@@ -108,7 +108,7 @@ function render() {
       } else {
         input = document.createElement('input');
         input.type = 'text';
-        input.value = (value==null?'':String(value));
+        input.value = (value == null ? '' : String(value));
         input.disabled = true;
       }
       row.appendChild(input);
@@ -123,11 +123,22 @@ function render() {
 }
 
 export async function mount(elem, context) {
+  // Load CSS
+  if (!document.getElementById('profile-css')) {
+    const link = document.createElement('link');
+    link.id = 'profile-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/Profile/profile.css';
+    document.head.appendChild(link);
+  }
+
   el = elem;
+  elem.className = 'widget profile-widget';
+
   const resp = await fetch('./Widgets/Profile/template.html');
   el.innerHTML = await resp.text();
   // Widen default width to accommodate two panels
-  try { if (!el.style.width) el.style.width = '640px'; } catch {}
+  try { if (!el.style.width) el.style.width = '640px'; } catch { }
 
   // Dragging via header
   const header = el.querySelector('.header');
@@ -187,19 +198,19 @@ export async function mount(elem, context) {
   // Edit preferences / pilot brief markdown via Notes widget
   const editPrefsBtn = el.querySelector('#edit-preferences-md');
   const editPilotBriefBtn = el.querySelector('#edit-pilot-brief');
-  function showNotesWidget(){
+  function showNotesWidget() {
     try {
       const notesEl = document.querySelector('[data-widget="Notes"]');
-      if (notesEl){
+      if (notesEl) {
         notesEl.style.display = '';
         notesEl.classList.remove('minimized');
-        try { window.ChronosFocusWidget?.(notesEl); } catch {}
+        try { window.ChronosFocusWidget?.(notesEl); } catch { }
       }
-    } catch {}
-    try { context?.bus?.emit('widget:show','Notes'); } catch {}
-    try { window?.ChronosBus?.emit?.('widget:show','Notes'); } catch {}
+    } catch { }
+    try { context?.bus?.emit('widget:show', 'Notes'); } catch { }
+    try { window?.ChronosBus?.emit?.('widget:show', 'Notes'); } catch { }
   }
-  function openFileInNotes(path, title){
+  function openFileInNotes(path, title) {
     try {
       const payload = { path, format: 'markdown', title };
       if (context?.bus) {
@@ -211,7 +222,7 @@ export async function mount(elem, context) {
         return;
       }
       showNotesWidget();
-    } catch {}
+    } catch { }
   }
   if (editPrefsBtn) {
     editPrefsBtn.addEventListener('click', () => openFileInNotes('User/Profile/preferences.md', 'preferences'));

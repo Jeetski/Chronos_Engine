@@ -165,6 +165,17 @@ function injectStyles() {
 }
 
 export function mount(el, context) {
+  // Load CSS
+  if (!document.getElementById('mp3player-css')) {
+    const link = document.createElement('link');
+    link.id = 'mp3player-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/MP3Player/mp3player.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget mp3player-widget';
+
   injectStyles();
   const tpl = `
     <div class="header">
@@ -521,7 +532,7 @@ export function mount(el, context) {
     ensureOrderForIndex(index);
     audio.src = url;
     setTrackInfo(track);
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
     renderPlaylistTracks();
     renderLibrary();
     updateButtons();
@@ -569,7 +580,7 @@ export function mount(el, context) {
       if (state.currentIndex < 0) {
         playIndex(0);
       } else {
-        audio.play().catch(() => {});
+        audio.play().catch(() => { });
         updateButtons();
       }
     } else {
@@ -723,7 +734,7 @@ export function mount(el, context) {
   function handleAudioEnded() {
     if (state.repeat === 'one') {
       audio.currentTime = 0;
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
       return;
     }
     nextTrack(true);
@@ -744,7 +755,7 @@ export function mount(el, context) {
         repeat: state.repeat,
       };
       localStorage.setItem('chronos_mp3_widget', JSON.stringify(snapshot));
-    } catch {}
+    } catch { }
   }
 
   function loadState() {
@@ -753,7 +764,7 @@ export function mount(el, context) {
       if (typeof stored.shuffle === 'boolean') state.shuffle = stored.shuffle;
       if (stored.repeat) state.repeat = stored.repeat;
       if (stored.playlist) state.currentPlaylist = { slug: stored.playlist };
-    } catch {}
+    } catch { }
   }
 
   function _ensureDefaultPlaylistPresence() {

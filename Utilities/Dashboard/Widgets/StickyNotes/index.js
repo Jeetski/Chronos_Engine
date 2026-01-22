@@ -1,4 +1,5 @@
 const STYLE_ID = 'sticky-notes-widget-style';
+const FLOAT_STATE_KEY = 'chronos_sticky_floats_v1';
 const COLORS = [
   { id: 'amber', label: 'Amber', swatch: '#f7d57a' },
   { id: 'citrus', label: 'Citrus', swatch: '#ffd6a5' },
@@ -10,7 +11,7 @@ const COLORS = [
 const DEFAULT_COLOR = 'amber';
 const SAVE_DEBOUNCE_MS = 600;
 
-function injectStyles(){
+function injectStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
@@ -178,9 +179,13 @@ function injectStyles(){
     }
     .sticky-float-actions button {
       border: none;
-      border-radius: 8px;
-      padding: 4px 8px;
-      font-size: 11px;
+      border-radius: 999px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
       cursor: pointer;
       background: rgba(0,0,0,0.12);
       color: #1f2430;
@@ -217,20 +222,31 @@ function injectStyles(){
   document.head.appendChild(style);
 }
 
-function apiBase(){
+function apiBase() {
   const origin = window.location?.origin;
   if (!origin || origin === 'null' || origin.startsWith('file:')) return 'http://127.0.0.1:7357';
   return origin;
 }
 
-function formatUpdated(value){
+function formatUpdated(value) {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleString();
 }
 
-export function mount(el, context){
+export function mount(el, context) {
+  // Load CSS
+  if (!document.getElementById('sticky-notes-css')) {
+    const link = document.createElement('link');
+    link.id = 'sticky-notes-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/StickyNotes/sticky-notes.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget sticky-notes-widget';
+
   injectStyles();
   el.innerHTML = `
     <div class="header">
@@ -291,14 +307,69 @@ export function mount(el, context){
   const pendingUpdates = new Map();
   const pendingTimers = new Map();
   const floatingNotes = new Map();
+  const floatState = new Map();
   let floatZ = 12;
+  let floatSaveTimer = null;
+  let floatsRestored = false;
+  loadFloatState();
 
-  function clamp(value, min, max){
+  function loadFloatState() {
+    try {
+      const raw = localStorage.getItem(FLOAT_STATE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const entries = Array.isArray(parsed?.notes) ? parsed.notes : [];
+      entries.forEach((entry) => {
+        if (!entry || !entry.name) return;
+        floatState.set(entry.name, entry);
+        const z = Number(entry.z);
+        if (Number.isFinite(z)) floatZ = Math.max(floatZ, z);
+      });
+    } catch {}
+  }
+
+  function collectFloatState() {
+    const notes = [];
+    for (const [name, entry] of floatingNotes.entries()) {
+      const el = entry.el;
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const left = Number.parseFloat(el.style.left || rect.left);
+      const top = Number.parseFloat(el.style.top || rect.top);
+      const z = Number.parseFloat(el.style.zIndex || '0');
+      notes.push({
+        name,
+        left: Number.isFinite(left) ? left : rect.left,
+        top: Number.isFinite(top) ? top : rect.top,
+        width: rect.width,
+        height: rect.height,
+        z: Number.isFinite(z) ? z : 0,
+      });
+    }
+    return { notes };
+  }
+
+  function saveFloatState() {
+    try {
+      const payload = collectFloatState();
+      localStorage.setItem(FLOAT_STATE_KEY, JSON.stringify(payload));
+    } catch {}
+  }
+
+  function scheduleFloatSave() {
+    if (floatSaveTimer) window.clearTimeout(floatSaveTimer);
+    floatSaveTimer = window.setTimeout(() => {
+      floatSaveTimer = null;
+      saveFloatState();
+    }, 120);
+  }
+
+  function clamp(value, min, max) {
     if (Number.isNaN(value)) return min;
     return Math.min(Math.max(value, min), max);
   }
 
-  function positionFloating(el, left, top){
+  function positionFloating(el, left, top) {
     const pad = 12;
     const width = el.offsetWidth || 260;
     const height = el.offsetHeight || 260;
@@ -310,20 +381,23 @@ export function mount(el, context){
     el.style.top = `${safeTop}px`;
   }
 
-  function bringFloatToFront(el){
+  function bringFloatToFront(el) {
     if (!el) return;
     floatZ = Math.max(floatZ + 1, 12);
     el.style.zIndex = String(floatZ);
+    scheduleFloatSave();
   }
 
-  function removeFloatingNote(name){
+  function removeFloatingNote(name) {
     const entry = floatingNotes.get(name);
     if (!entry) return;
-    try { entry.el.remove(); } catch {}
+    try { entry.ro?.disconnect?.(); } catch {}
+    try { entry.el.remove(); } catch { }
     floatingNotes.delete(name);
+    scheduleFloatSave();
   }
 
-  function syncFloatingNote(note){
+  function syncFloatingNote(note) {
     if (!note?.name) return;
     const entry = floatingNotes.get(note.name);
     if (!entry) return;
@@ -340,9 +414,9 @@ export function mount(el, context){
     }
   }
 
-  function syncFloatingNotes(){
+  function syncFloatingNotes() {
     const noteMap = new Map((state.notes || []).map(note => [note.name, note]));
-    for (const [name] of floatingNotes.entries()){
+    for (const [name] of floatingNotes.entries()) {
       const note = noteMap.get(name);
       if (!note) {
         removeFloatingNote(name);
@@ -352,10 +426,10 @@ export function mount(el, context){
     }
   }
 
-  function ensureFloatingNote(note){
+  function ensureFloatingNote(note) {
     if (!note?.name) return null;
     const existing = floatingNotes.get(note.name);
-    if (existing){
+    if (existing) {
       bringFloatToFront(existing.el);
       syncFloatingNote(note);
       return existing.el;
@@ -368,7 +442,7 @@ export function mount(el, context){
       <div class="sticky-float-header">
         <div class="sticky-float-title">${note.name}</div>
         <div class="sticky-float-actions">
-          <button type="button" data-action="close">Close</button>
+          <button type="button" data-action="close" title="Close" aria-label="Close">x</button>
         </div>
       </div>
       <textarea spellcheck="false"></textarea>
@@ -379,15 +453,15 @@ export function mount(el, context){
     const textarea = el.querySelector('textarea');
     if (textarea) {
       textarea.value = note.content || '';
-      textarea.addEventListener('input', (ev)=> {
+      textarea.addEventListener('input', (ev) => {
         scheduleUpdate(note.name, { content: ev.target.value });
       });
     }
     const closeBtn = el.querySelector('[data-action="close"]');
-    closeBtn?.addEventListener('click', ()=> removeFloatingNote(note.name));
+    closeBtn?.addEventListener('click', () => removeFloatingNote(note.name));
     const header = el.querySelector('.sticky-float-header');
-    if (header){
-      header.addEventListener('pointerdown', (ev)=> {
+    if (header) {
+      header.addEventListener('pointerdown', (ev) => {
         if (ev.button !== 0) return;
         if (ev.target?.closest('button')) return;
         ev.preventDefault();
@@ -396,29 +470,44 @@ export function mount(el, context){
         const rect = el.getBoundingClientRect();
         const offsetX = startX - rect.left;
         const offsetY = startY - rect.top;
-        function move(e){
+        function move(e) {
           positionFloating(el, e.clientX - offsetX, e.clientY - offsetY);
         }
-        function up(){
+        function up() {
           window.removeEventListener('pointermove', move);
           window.removeEventListener('pointerup', up);
+          scheduleFloatSave();
         }
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
         bringFloatToFront(el);
       });
     }
-    el.addEventListener('pointerdown', ()=> bringFloatToFront(el));
+    el.addEventListener('pointerdown', () => bringFloatToFront(el));
     document.body.appendChild(el);
-    floatingNotes.set(note.name, { el });
-    positionFloating(el, Math.max(12, window.innerWidth - el.offsetWidth - 32), 120);
-    bringFloatToFront(el);
+    const saved = floatState.get(note.name);
+    if (saved) {
+      if (Number.isFinite(saved.width)) el.style.width = `${Math.max(200, saved.width)}px`;
+      if (Number.isFinite(saved.height)) el.style.height = `${Math.max(200, saved.height)}px`;
+      positionFloating(el, saved.left ?? 120, saved.top ?? 120);
+      if (Number.isFinite(saved.z)) {
+        el.style.zIndex = String(saved.z);
+        floatZ = Math.max(floatZ, saved.z);
+      }
+    } else {
+      positionFloating(el, Math.max(12, window.innerWidth - el.offsetWidth - 32), 120);
+      bringFloatToFront(el);
+    }
+    const ro = window.ResizeObserver ? new ResizeObserver(() => scheduleFloatSave()) : null;
+    if (ro) ro.observe(el);
+    floatingNotes.set(note.name, { el, ro });
+    if (!saved) scheduleFloatSave();
     return el;
   }
 
-  function wireFloatDrag(handle, note){
+  function wireFloatDrag(handle, note) {
     if (!handle || !note?.name) return;
-    handle.addEventListener('pointerdown', (ev)=> {
+    handle.addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0) return;
       if (ev.target?.closest('button')) return;
       ev.preventDefault();
@@ -429,38 +518,39 @@ export function mount(el, context){
       let floatEl = null;
       let offsetX = 20;
       let offsetY = 20;
-      function move(e){
+      function move(e) {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        if (!dragging && Math.hypot(dx, dy) > 6){
+        if (!dragging && Math.hypot(dx, dy) > 6) {
           dragging = true;
           floatEl = ensureFloatingNote(note);
-          if (floatEl){
+          if (floatEl) {
             const rect = floatEl.getBoundingClientRect();
             offsetX = Math.round(rect.width / 2);
             offsetY = 18;
           }
         }
-        if (dragging && floatEl){
+        if (dragging && floatEl) {
           positionFloating(floatEl, e.clientX - offsetX, e.clientY - offsetY);
         }
       }
-      function up(){
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-      }
+        function up() {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+          scheduleFloatSave();
+        }
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     });
   }
 
-  function setStatus(text, isError = false){
+  function setStatus(text, isError = false) {
     if (!statusEl) return;
     statusEl.textContent = text || '';
     statusEl.classList.toggle('error', !!isError);
   }
 
-  function sortNotes(notes){
+  function sortNotes(notes) {
     return [...notes].sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -468,10 +558,10 @@ export function mount(el, context){
     });
   }
 
-  function renderNotes(){
+  function renderNotes() {
     if (!grid) return;
     grid.innerHTML = '';
-    if (!state.notes.length){
+    if (!state.notes.length) {
       const empty = document.createElement('div');
       empty.className = 'sticky-empty';
       empty.textContent = 'No sticky notes yet. Capture a thought above.';
@@ -514,7 +604,7 @@ export function mount(el, context){
       const textarea = card.querySelector('textarea');
       if (textarea) textarea.value = note.content || '';
       const colorField = card.querySelector('select[data-field="color"]');
-      if (colorField){
+      if (colorField) {
         COLORS.forEach(color => {
           const option = document.createElement('option');
           option.value = color.id;
@@ -526,38 +616,45 @@ export function mount(el, context){
       const pinToggle = card.querySelector('input[data-field="pinned"]');
       if (pinToggle) pinToggle.checked = !!note.pinned;
 
-      textarea?.addEventListener('input', (ev)=>{
+      textarea?.addEventListener('input', (ev) => {
         scheduleUpdate(note.name, { content: ev.target.value });
       });
-      colorField?.addEventListener('change', (ev)=>{
+      colorField?.addEventListener('change', (ev) => {
         const sel = ev.target.value || DEFAULT_COLOR;
         card.dataset.color = sel;
         scheduleUpdate(note.name, { color: sel });
       });
-      pinToggle?.addEventListener('change', (ev)=>{
+      pinToggle?.addEventListener('change', (ev) => {
         const checked = !!ev.target.checked;
         card.classList.toggle('is-pinned', checked);
         scheduleUpdate(note.name, { pinned: checked });
       });
-      card.querySelector('[data-action="delete"]')?.addEventListener('click', ()=> confirmDelete(note));
-      card.querySelector('[data-action="reminder"]')?.addEventListener('click', ()=> promptReminder(note));
+      card.querySelector('[data-action="delete"]')?.addEventListener('click', () => confirmDelete(note));
+      card.querySelector('[data-action="reminder"]')?.addEventListener('click', () => promptReminder(note));
 
       grid.appendChild(card);
     });
     syncFloatingNotes();
   }
 
-  async function fetchNotes(){
+  async function fetchNotes() {
     state.loading = true;
     setStatus('Loading notes...');
     try {
       const resp = await fetch(`${apiBase()}/api/sticky-notes`);
-      const data = await resp.json().catch(()=> ({}));
-      if (!resp.ok || data.ok === false){
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
       state.notes = Array.isArray(data.notes) ? data.notes : [];
       renderNotes();
+      if (!floatsRestored) {
+        floatsRestored = true;
+        for (const [name] of floatState.entries()) {
+          const note = state.notes.find(n => n.name === name);
+          if (note) ensureFloatingNote(note);
+        }
+      }
       setStatus(`Loaded ${state.notes.length} note${state.notes.length === 1 ? '' : 's'}`);
     } catch (err) {
       console.error('[StickyNotes] fetch failed', err);
@@ -567,17 +664,17 @@ export function mount(el, context){
     }
   }
 
-  function resetForm(){
+  function resetForm() {
     if (titleInput) titleInput.value = '';
     if (bodyInput) bodyInput.value = '';
     if (colorSelect) colorSelect.value = DEFAULT_COLOR;
     if (pinnedCheckbox) pinnedCheckbox.checked = false;
   }
 
-  async function createNote(){
+  async function createNote() {
     const content = (bodyInput?.value || '').trim();
     const title = (titleInput?.value || '').trim();
-    if (!content){
+    if (!content) {
       setStatus('Write something before adding a note.', true);
       return;
     }
@@ -594,8 +691,8 @@ export function mount(el, context){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await resp.json().catch(()=> ({}));
-      if (!resp.ok || data.ok === false){
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
       resetForm();
@@ -607,15 +704,15 @@ export function mount(el, context){
     }
   }
 
-  function scheduleUpdate(name, patch){
+  function scheduleUpdate(name, patch) {
     if (!name) return;
     const prev = pendingUpdates.get(name) || {};
     const merged = { ...prev, ...patch };
     pendingUpdates.set(name, merged);
-    if (pendingTimers.has(name)){
+    if (pendingTimers.has(name)) {
       clearTimeout(pendingTimers.get(name));
     }
-    const handle = setTimeout(()=> {
+    const handle = setTimeout(() => {
       pendingTimers.delete(name);
       const latest = pendingUpdates.get(name) || {};
       pendingUpdates.delete(name);
@@ -624,7 +721,7 @@ export function mount(el, context){
     pendingTimers.set(name, handle);
   }
 
-  async function sendUpdate(name, patch){
+  async function sendUpdate(name, patch) {
     if (!name) return;
     try {
       const resp = await fetch(`${apiBase()}/api/sticky-notes/update`, {
@@ -632,11 +729,11 @@ export function mount(el, context){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, ...patch }),
       });
-      const data = await resp.json().catch(()=> ({}));
-      if (!resp.ok || data.ok === false){
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
-      if (data.note){
+      if (data.note) {
         mergeNote(data.note);
       }
       setStatus('Saved.');
@@ -646,9 +743,9 @@ export function mount(el, context){
     }
   }
 
-  function mergeNote(note){
+  function mergeNote(note) {
     const idx = state.notes.findIndex(n => n.name === note.name);
-    if (idx >= 0){
+    if (idx >= 0) {
       state.notes[idx] = note;
     } else {
       state.notes.push(note);
@@ -657,7 +754,7 @@ export function mount(el, context){
     syncFloatingNote(note);
   }
 
-  async function confirmDelete(note){
+  async function confirmDelete(note) {
     if (!note?.name) return;
     if (!window.confirm(`Delete sticky note "${note.name}"?`)) return;
     try {
@@ -666,8 +763,8 @@ export function mount(el, context){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: note.name }),
       });
-      const data = await resp.json().catch(()=> ({}));
-      if (!resp.ok || data.ok === false){
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
       state.notes = state.notes.filter(n => n.name !== note.name);
@@ -680,7 +777,7 @@ export function mount(el, context){
     }
   }
 
-  async function promptReminder(note){
+  async function promptReminder(note) {
     if (!note?.name) return;
     const time = window.prompt('Reminder time (HH:MM)', '09:00');
     if (!time) return;
@@ -697,8 +794,8 @@ export function mount(el, context){
           message,
         }),
       });
-      const data = await resp.json().catch(()=> ({}));
-      if (!resp.ok || data.ok === false){
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
       setStatus(`Reminder "${data.reminder}" created.`);
@@ -708,18 +805,18 @@ export function mount(el, context){
     }
   }
 
-  headerRefresh?.addEventListener('click', ()=> fetchNotes());
-  reloadBtn?.addEventListener('click', ()=> fetchNotes());
-  createForm?.addEventListener('submit', (ev)=>{
+  headerRefresh?.addEventListener('click', () => fetchNotes());
+  reloadBtn?.addEventListener('click', () => fetchNotes());
+  createForm?.addEventListener('submit', (ev) => {
     ev.preventDefault();
     createNote();
   });
 
   try {
-    const refreshHandler = ()=> fetchNotes();
+    const refreshHandler = () => fetchNotes();
     context?.bus?.on('sticky:refresh', refreshHandler);
     window?.ChronosBus?.on?.('sticky:refresh', refreshHandler);
-  } catch {}
+  } catch { }
 
   fetchNotes();
 

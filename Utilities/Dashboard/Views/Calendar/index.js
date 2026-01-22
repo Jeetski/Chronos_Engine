@@ -168,9 +168,7 @@ export function mount(el, context) {
   dayList.innerHTML = `
     <div class="calendar-daylist-header">
       <div class="calendar-daylist-title">Day</div>
-      <div class="calendar-daylist-actions">
-        <button type="button" class="btn calendar-daylist-refresh">Refresh</button>
-      </div>
+      <div class="calendar-daylist-actions"></div>
     </div>
     <div class="calendar-daylist-table" aria-live="polite">
       <div class="calendar-daylist-head">
@@ -213,7 +211,7 @@ export function mount(el, context) {
   const dayListTitleEl = dayList.querySelector('.calendar-daylist-title');
   const dayListTreeEl = dayList.querySelector('.calendar-daylist-tree');
   const dayListMessageEl = dayList.querySelector('.calendar-daylist-message');
-  const dayListRefreshBtn = dayList.querySelector('.calendar-daylist-refresh');
+  let dayListRefreshBtn = null;
   let dayListTreeData = [];
   let dayListExpanded = new Set();
   let dayListExpandedInitialized = false;
@@ -768,6 +766,12 @@ export function mount(el, context) {
   viewControls.style.alignItems = 'center';
   viewControls.style.zIndex = '13';
 
+  const refreshBtn = document.createElement('button');
+  refreshBtn.type = 'button';
+  refreshBtn.className = 'btn calendar-daylist-refresh';
+  refreshBtn.textContent = 'Refresh';
+  refreshBtn.title = 'Refresh day list';
+
   const fxWrap = document.createElement('label');
   fxWrap.className = 'hint';
   fxWrap.style.display = 'flex';
@@ -784,8 +788,9 @@ export function mount(el, context) {
     renderDayListTree();
   });
 
-  viewControls.append(backBtn, fxWrap);
+  viewControls.append(backBtn, refreshBtn, fxWrap);
   el.appendChild(viewControls);
+  dayListRefreshBtn = refreshBtn;
   function updateBackBtn(){
     const hasHistory = navStack.length > 0;
     backBtn.style.display = '';

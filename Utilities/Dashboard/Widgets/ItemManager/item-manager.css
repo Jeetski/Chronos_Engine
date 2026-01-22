@@ -1,0 +1,8 @@
+/* ItemManager Widget Glass Styling */
+.item-manager-widget {
+    background: transparent !important;
+}
+
+.item-manager-widget .content {
+    padding: 12px;
+}

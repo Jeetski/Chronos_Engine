@@ -1,4 +1,15 @@
 export function mount(el) {
+  // Load CSS
+  if (!document.getElementById('achievements-css')) {
+    const link = document.createElement('link');
+    link.id = 'achievements-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/Achievements/achievements.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget achievements-widget';
+
   const tpl = `
     <style>
       .ac-content { display:flex; flex-direction:column; gap:10px; }
@@ -85,37 +96,37 @@ export function mount(el) {
   const awardedEl = el.querySelector('#acAwarded');
   const pendingEl = el.querySelector('#acPending');
 
-  btnMin.addEventListener('click', ()=> el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', ()=> { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed','Achievements'); } catch {} });
+  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Achievements'); } catch { } });
 
-  function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+  function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
   let fxEnabled = fxToggle ? fxToggle.checked : true;
-  function expandText(s){
-    try{
-      if (!fxEnabled) return String(s||'');
-      return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s||'')) : String(s||'');
-    }catch{
-      return String(s||'');
+  function expandText(s) {
+    try {
+      if (!fxEnabled) return String(s || '');
+      return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || '');
+    } catch {
+      return String(s || '');
     }
   }
-  fxToggle?.addEventListener('change', ()=>{ fxEnabled = !!fxToggle.checked; renderList(); });
+  fxToggle?.addEventListener('change', () => { fxEnabled = !!fxToggle.checked; renderList(); });
 
   let achievements = [];
   let counts = { total: 0, awarded: 0, pending: 0 };
   let loading = false;
 
-  function setStatus(msg, tone){
+  function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
-    statusLine.className = `ac-status${tone ? ' '+tone : ''}`;
+    statusLine.className = `ac-status${tone ? ' ' + tone : ''}`;
   }
 
-  async function refresh(dataOnly=false){
+  async function refresh(dataOnly = false) {
     if (loading) return;
     loading = true;
     if (!dataOnly) setStatus('Loading achievements...');
-    try{
-      const resp = await fetch(apiBase()+"/api/achievements");
+    try {
+      const resp = await fetch(apiBase() + "/api/achievements");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
       achievements = Array.isArray(json?.achievements) ? json.achievements : [];
@@ -123,92 +134,92 @@ export function mount(el) {
       renderSummary();
       renderList();
       if (!dataOnly) setStatus('');
-    }catch(err){
+    } catch (err) {
       console.warn('[Achievements] refresh failed', err);
       setStatus('Failed to load achievements.', 'error');
-    }finally{
+    } finally {
       loading = false;
     }
   }
 
-  function renderSummary(){
+  function renderSummary() {
     totalEl.textContent = (counts?.total ?? achievements.length).toString();
-    awardedEl.textContent = (counts?.awarded ?? achievements.filter(a=>a.state==='awarded').length).toString();
-    pendingEl.textContent = (counts?.pending ?? achievements.filter(a=>a.state!=='awarded' && a.state!=='archived').length).toString();
+    awardedEl.textContent = (counts?.awarded ?? achievements.filter(a => a.state === 'awarded').length).toString();
+    pendingEl.textContent = (counts?.pending ?? achievements.filter(a => a.state !== 'awarded' && a.state !== 'archived').length).toString();
   }
 
-  function renderList(){
+  function renderList() {
     listEl.innerHTML = '';
-    const term = (searchEl.value||'').trim().toLowerCase();
-    const wanted = (statusSel.value||'all').toLowerCase();
-    const filtered = achievements.filter(item=>{
-      if (wanted !== 'all' && (item.state||item.status||'').toLowerCase() !== wanted) return false;
+    const term = (searchEl.value || '').trim().toLowerCase();
+    const wanted = (statusSel.value || 'all').toLowerCase();
+    const filtered = achievements.filter(item => {
+      if (wanted !== 'all' && (item.state || item.status || '').toLowerCase() !== wanted) return false;
       if (!term) return true;
-      const hay = `${item.name||''} ${item.description||''} ${item.category||''} ${(item.tags||[]).join(' ')}`.toLowerCase();
+      const hay = `${item.name || ''} ${item.description || ''} ${item.category || ''} ${(item.tags || []).join(' ')}`.toLowerCase();
       return hay.includes(term);
     });
-    if (!filtered.length){
-      const empty=document.createElement('div');
-      empty.className='ac-card-meta';
-      empty.style.padding='16px';
-      empty.style.border='1px dashed var(--border)';
-      empty.style.borderRadius='8px';
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'ac-card-meta';
+      empty.style.padding = '16px';
+      empty.style.border = '1px dashed var(--border)';
+      empty.style.borderRadius = '8px';
       empty.textContent = achievements.length ? 'No achievements match that filter.' : 'Create achievements via the console or commitments to see them here.';
       listEl.appendChild(empty);
       return;
     }
-    filtered.sort((a,b)=>{
-      const stateRank = {'awarded':0,'pending':1,'archived':2};
-      const ar = stateRank[(a.state||'pending').toLowerCase()] ?? 1;
-      const br = stateRank[(b.state||'pending').toLowerCase()] ?? 1;
+    filtered.sort((a, b) => {
+      const stateRank = { 'awarded': 0, 'pending': 1, 'archived': 2 };
+      const ar = stateRank[(a.state || 'pending').toLowerCase()] ?? 1;
+      const br = stateRank[(b.state || 'pending').toLowerCase()] ?? 1;
       if (ar !== br) return ar - br;
-      return String(a.name||'').localeCompare(String(b.name||''), undefined, { sensitivity:'base' });
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
     });
-    filtered.forEach(item=>{
-      const card=document.createElement('div');
-      card.className='ac-item';
-      const state=(item.state||item.status||'pending').toLowerCase();
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'ac-item';
+      const state = (item.state || item.status || 'pending').toLowerCase();
       if (state === 'archived') card.classList.add('archived');
-      const head=document.createElement('div');
-      head.className='ac-head';
-      const name=document.createElement('div');
-      name.className='ac-name';
-      name.textContent=expandText(item.name||'Achievement');
-      const pill=document.createElement('div');
-      pill.className=`ac-pill ${state}`;
-      pill.textContent=state.charAt(0).toUpperCase()+state.slice(1);
-      head.append(name,pill);
-      const desc=document.createElement('div');
-      desc.className='ac-meta';
+      const head = document.createElement('div');
+      head.className = 'ac-head';
+      const name = document.createElement('div');
+      name.className = 'ac-name';
+      name.textContent = expandText(item.name || 'Achievement');
+      const pill = document.createElement('div');
+      pill.className = `ac-pill ${state}`;
+      pill.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      head.append(name, pill);
+      const desc = document.createElement('div');
+      desc.className = 'ac-meta';
       desc.textContent = expandText(item.description || 'No description.');
-      const meta=document.createElement('div');
-      meta.className='ac-meta';
-      const bits=[];
+      const meta = document.createElement('div');
+      meta.className = 'ac-meta';
+      const bits = [];
       if (item.category) bits.push(`Category: ${item.category}`);
       if (item.priority) bits.push(`Priority: ${item.priority}`);
       if (item.points) bits.push(`Points: ${item.points}`);
       if (item.awarded_at) bits.push(`Awarded: ${item.awarded_at}`);
       meta.textContent = bits.join(' | ');
-      const tagsWrap=document.createElement('div');
-      tagsWrap.className='ac-tags';
-      (item.tags||[]).forEach(tag=>{
-        const chip=document.createElement('div');
-        chip.className='ac-tag';
+      const tagsWrap = document.createElement('div');
+      tagsWrap.className = 'ac-tags';
+      (item.tags || []).forEach(tag => {
+        const chip = document.createElement('div');
+        chip.className = 'ac-tag';
         chip.textContent = expandText(tag);
         tagsWrap.appendChild(chip);
       });
-      const actions=document.createElement('div');
-      actions.className='ac-actions';
-      const awardBtn=document.createElement('button');
-      awardBtn.className='btn btn-primary';
+      const actions = document.createElement('div');
+      actions.className = 'ac-actions';
+      const awardBtn = document.createElement('button');
+      awardBtn.className = 'btn btn-primary';
       awardBtn.textContent = state === 'awarded' ? 'Awarded' : 'Mark Awarded';
       awardBtn.disabled = state === 'awarded';
-      awardBtn.addEventListener('click', ()=> updateAchievement(item, 'award', awardBtn));
-      const archiveBtn=document.createElement('button');
-      archiveBtn.className='btn btn-secondary';
+      awardBtn.addEventListener('click', () => updateAchievement(item, 'award', awardBtn));
+      const archiveBtn = document.createElement('button');
+      archiveBtn.className = 'btn btn-secondary';
       archiveBtn.textContent = state === 'archived' ? 'Archived' : 'Archive';
       archiveBtn.disabled = state === 'archived';
-      archiveBtn.addEventListener('click', ()=> updateAchievement(item, 'archive', archiveBtn));
+      archiveBtn.addEventListener('click', () => updateAchievement(item, 'archive', archiveBtn));
       actions.append(awardBtn, archiveBtn);
 
       card.append(head, desc, meta);
@@ -218,24 +229,24 @@ export function mount(el) {
     });
   }
 
-  async function updateAchievement(item, action, button){
+  async function updateAchievement(item, action, button) {
     if (!item?.name) return;
     const original = button?.textContent;
-    if (button){
+    if (button) {
       button.disabled = true;
       button.textContent = action === 'award' ? 'Updating...' : 'Archiving...';
     }
     setStatus(action === 'award' ? `Marking '${item.name}' as awarded...` : `Archiving '${item.name}'...`);
-    try{
+    try {
       const payload = { name: item.name };
       if (action === 'award') payload.award_now = true;
       if (action === 'archive') payload.archive_now = true;
-      const resp = await fetch(apiBase()+"/api/achievement/update", {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
+      const resp = await fetch(apiBase() + "/api/achievement/update", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!resp.ok){
+      if (!resp.ok) {
         const msg = await resp.text();
         throw new Error(msg || `HTTP ${resp.status}`);
       }
@@ -243,24 +254,24 @@ export function mount(el) {
       renderSummary();
       renderList();
       setStatus(action === 'award' ? 'Achievement marked as awarded.' : 'Achievement archived.', 'success');
-    }catch(err){
+    } catch (err) {
       console.warn('[Achievements] update failed', err);
       setStatus(`Update failed: ${err.message || err}`, 'error');
-    }finally{
-      if (button){
+    } finally {
+      if (button) {
         button.disabled = false;
         button.textContent = original || button.textContent;
       }
     }
   }
 
-  searchEl.addEventListener('input', ()=> renderList());
-  statusSel.addEventListener('change', ()=> renderList());
-  refreshBtn.addEventListener('click', ()=> refresh());
+  searchEl.addEventListener('input', () => renderList());
+  statusSel.addEventListener('change', () => renderList());
+  refreshBtn.addEventListener('click', () => refresh());
 
   refresh();
 
   return {
-    refresh: ()=> refresh()
+    refresh: () => refresh()
   };
 }

@@ -1,0 +1,8 @@
+/* Clock Widget Glass Styling */
+.clock-widget {
+    background: transparent !important;
+}
+
+.clock-widget .content {
+    padding: 12px;
+}

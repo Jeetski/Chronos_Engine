@@ -1,0 +1,8 @@
+/* ResolutionTracker Widget Glass Styling */
+.resolution-tracker-widget {
+    background: transparent !important;
+}
+
+.resolution-tracker-widget .content {
+    padding: 12px;
+}

@@ -1,0 +1,8 @@
+/* DebugConsole Widget Glass Styling */
+.debug-console-widget {
+    background: transparent !important;
+}
+
+.debug-console-widget .content {
+    padding: 12px;
+}

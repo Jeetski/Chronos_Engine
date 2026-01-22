@@ -1,6 +1,6 @@
 const STYLE_ID = 'cockpit-minimap-widget-style';
 
-function injectStyles(){
+function injectStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
@@ -60,17 +60,28 @@ function injectStyles(){
   document.head.appendChild(style);
 }
 
-function clamp(v, min, max){
+function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
 
-export function mount(el, context){
+export function mount(el, context) {
+  // Load CSS
+  if (!document.getElementById('cockpit-minimap-css')) {
+    const link = document.createElement('link');
+    link.id = 'cockpit-minimap-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/CockpitMinimap/cockpit-minimap.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget cockpit-minimap-widget';
+
   injectStyles();
   el.classList.add('cockpit-minimap-widget');
   try {
     el.dataset.minWidth = '220';
     el.dataset.minHeight = '180';
-  } catch {}
+  } catch { }
   if (!el.style.width) el.style.width = '240px';
   if (!el.style.height) el.style.height = '220px';
 
@@ -102,32 +113,32 @@ export function mount(el, context){
   let tickHandle = null;
   let openViews = [];
 
-  function isCockpitActive(){
+  function isCockpitActive() {
     if (openViews.length) return openViews.includes('Cockpit');
     return window.__currentView === 'Cockpit';
   }
 
-  function getLayout(){
+  function getLayout() {
     return window.CockpitPanels?.getLayout?.() || null;
   }
 
-  function setHint(text){
+  function setHint(text) {
     if (!hint) return;
     hint.textContent = text || '';
     hint.style.display = text ? '' : 'none';
   }
 
-  function clearPanels(){
+  function clearPanels() {
     panelEls.forEach(el => {
-      try { el.remove(); } catch {}
+      try { el.remove(); } catch { }
     });
     panelEls.clear();
   }
 
-  function render(){
+  function render() {
     if (!track) return;
     const layout = getLayout();
-    if (!layout || !layout.viewport || !layout.viewport.width || !layout.viewport.height){
+    if (!layout || !layout.viewport || !layout.viewport.width || !layout.viewport.height) {
       setHint('Open the Cockpit view to use the minimap.');
       clearPanels();
       if (viewportEl) viewportEl.style.display = 'none';
@@ -178,7 +189,7 @@ export function mount(el, context){
       if (!panel.visible) return;
       activeIds.add(panel.id);
       let panelEl = panelEls.get(panel.id);
-      if (!panelEl){
+      if (!panelEl) {
         panelEl = document.createElement('div');
         panelEl.className = 'cockpit-mini-panel';
         panelEl.title = panel.label || panel.id;
@@ -197,13 +208,13 @@ export function mount(el, context){
     });
 
     panelEls.forEach((panelEl, id) => {
-      if (!activeIds.has(id)){
-        try { panelEl.remove(); } catch {}
+      if (!activeIds.has(id)) {
+        try { panelEl.remove(); } catch { }
         panelEls.delete(id);
       }
     });
 
-    if (viewportEl){
+    if (viewportEl) {
       const vLeft = (viewWorld.x - minX) * scale + offsetX;
       const vTop = (viewWorld.y - minY) * scale + offsetY;
       const vWidth = Math.max(6, viewWorld.width * scale);
@@ -216,14 +227,14 @@ export function mount(el, context){
     }
   }
 
-  function panToPoint(clientX, clientY){
+  function panToPoint(clientX, clientY) {
     if (!mapState || !track) return;
     const rect = track.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
     const worldX = ((x - mapState.offsetX) / mapState.scale) + mapState.minX;
     const worldY = ((y - mapState.offsetY) / mapState.scale) + mapState.minY;
-    if (window.CockpitPanels?.panToWorld){
+    if (window.CockpitPanels?.panToWorld) {
       window.CockpitPanels.panToWorld(worldX, worldY);
       render();
       return;
@@ -233,19 +244,19 @@ export function mount(el, context){
     const zoom = layout.view?.zoom || 1;
     const panX = layout.viewport.width / 2 - worldX * zoom;
     const panY = layout.viewport.height / 2 - worldY * zoom;
-    if (window.CockpitPanels?.setPan){
+    if (window.CockpitPanels?.setPan) {
       window.CockpitPanels.setPan(panX, panY);
       render();
     }
   }
 
-  track?.addEventListener('pointerdown', (ev)=>{
+  track?.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
     ev.preventDefault();
     ev.stopPropagation();
     panToPoint(ev.clientX, ev.clientY);
-    function move(e){ panToPoint(e.clientX, e.clientY); }
-    function up(){
+    function move(e) { panToPoint(e.clientX, e.clientY); }
+    function up() {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
     }
@@ -253,9 +264,9 @@ export function mount(el, context){
     window.addEventListener('pointerup', up);
   });
 
-  function tick(){
+  function tick() {
     const active = isCockpitActive();
-    if (!active){
+    if (!active) {
       if (el.style.display !== 'none') el.style.display = 'none';
       return;
     }
@@ -263,33 +274,33 @@ export function mount(el, context){
     render();
   }
 
-  function startLoop(){
+  function startLoop() {
     if (tickHandle) return;
     tickHandle = window.setInterval(tick, 140);
   }
 
-  function stopLoop(){
+  function stopLoop() {
     if (!tickHandle) return;
     window.clearInterval(tickHandle);
     tickHandle = null;
   }
 
-  function onViewChanged(payload){
+  function onViewChanged(payload) {
     if (payload && Array.isArray(payload.open)) openViews = payload.open.slice();
     tick();
     if (isCockpitActive()) startLoop();
     else stopLoop();
   }
 
-  collapseBtn?.addEventListener('click', ()=> el.classList.toggle('minimized'));
+  collapseBtn?.addEventListener('click', () => el.classList.toggle('minimized'));
 
-  try { context?.bus?.on('view:changed', onViewChanged); } catch {}
-  try { window?.ChronosBus?.on?.('view:changed', onViewChanged); } catch {}
+  try { context?.bus?.on('view:changed', onViewChanged); } catch { }
+  try { window?.ChronosBus?.on?.('view:changed', onViewChanged); } catch { }
   document.addEventListener('chronos:cockpit-panels', tick);
 
   onViewChanged();
 
-  try { window.ChronosCockpitMinimap = { element: el, render: tick }; } catch {}
+  try { window.ChronosCockpitMinimap = { element: el, render: tick }; } catch { }
 
   return {
     refresh: tick,

@@ -149,10 +149,10 @@ export async function launch(context, options = {}) {
 
     // UI Shell
     const overlay = document.createElement('div');
-    overlay.className = 'wizard-overlay';
+    overlay.className = 'wizard-overlay chronos-wizard-overlay';
     overlay.innerHTML = `
-    <div class="wizard-container">
-      <div class="wizard-header">
+    <div class="wizard-container chronos-wizard-shell">
+      <div class="wizard-header chronos-wizard-header">
         <div class="wizard-title-row">
           <div class="wizard-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -171,13 +171,13 @@ export async function launch(context, options = {}) {
         </div>
       </div>
       
-      <div class="wizard-content" id="contentArea">
+      <div class="wizard-content chronos-wizard-body" id="contentArea">
         <!-- Dynamic Content -->
       </div>
 
-      <div class="wizard-footer">
+      <div class="wizard-footer chronos-wizard-footer">
         <div class="step-indicator" id="stepIndicator">Intro</div>
-        <div class="wizard-actions">
+        <div class="wizard-actions chronos-wizard-actions">
           <button id="resetBtn" class="btn secondary">Restart</button>
           <button id="prevBtn" class="btn secondary">Back</button>
           <button id="nextBtn" class="btn primary">Start Assessment</button>

@@ -1,0 +1,8 @@
+/* Journal Widget Glass Styling */
+.journal-widget {
+    background: transparent !important;
+}
+
+.journal-widget .content {
+    padding: 12px;
+}

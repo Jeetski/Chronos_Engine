@@ -1,0 +1,8 @@
+/* Terminal Widget Glass Styling */
+.terminal-widget {
+    background: transparent !important;
+}
+
+.terminal-widget .content {
+    padding: 12px;
+}

@@ -620,11 +620,11 @@ function mountOverlay(){
   injectStyles();
   removeOverlay();
   overlayEl = document.createElement('div');
-  overlayEl.className = 'wizard-overlay';
+  overlayEl.className = 'wizard-overlay chronos-wizard-overlay';
   overlayEl.setAttribute('data-wizard-overlay', OVERLAY_TAG);
   overlayEl.innerHTML = `
-    <div class="brain-dump-shell">
-      <div class="wizard-header">
+    <div class="brain-dump-shell chronos-wizard-shell">
+      <div class="wizard-header chronos-wizard-header">
         <div>
           <div class="wizard-eyebrow">Chronos Wizard</div>
           <h1>Brain Dump Wizard</h1>
@@ -632,14 +632,14 @@ function mountOverlay(){
         </div>
         <button type="button" class="close" aria-label="Close">x</button>
       </div>
-      <div class="wizard-progress" data-stepper></div>
-      <div class="wizard-body" data-step-region></div>
-      <div class="wizard-footer">
-        <div class="wizard-status">
+      <div class="wizard-progress chronos-wizard-stepper" data-stepper></div>
+      <div class="wizard-body chronos-wizard-body" data-step-region></div>
+      <div class="wizard-footer chronos-wizard-footer">
+        <div class="wizard-status chronos-wizard-status">
           <div data-status></div>
           <div data-validation></div>
         </div>
-        <div class="wizard-actions">
+        <div class="wizard-actions chronos-wizard-actions">
           <button type="button" data-action="close">Cancel</button>
           <button type="button" data-action="prev">Back</button>
           <button type="button" class="primary" data-action="next">Next Step</button>

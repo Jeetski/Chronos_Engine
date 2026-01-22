@@ -1,0 +1,8 @@
+/* Variables Widget Glass Styling */
+.variables-widget {
+    background: transparent !important;
+}
+
+.variables-widget .content {
+    padding: 12px;
+}

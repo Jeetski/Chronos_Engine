@@ -1,0 +1,8 @@
+/* Commitments Widget Glass Styling */
+.commitments-widget {
+    background: transparent !important;
+}
+
+.commitments-widget .content {
+    padding: 12px;
+}

@@ -1,0 +1,318 @@
+{
+  "generated_at": "2026-01-22T13:36:09Z",
+  "properties": {
+    "category": {
+      "values": [
+        "Friends and Family",
+        "Health",
+        "Hobbies",
+        "Personal Development",
+        "Work"
+      ]
+    },
+    "priority": {
+      "values": [
+        "High",
+        "Low",
+        "Medium",
+        "Optional",
+        "Urgent"
+      ]
+    },
+    "quality": {
+      "values": [
+        "Excellent",
+        "Good",
+        "Okay",
+        "Poor"
+      ]
+    },
+    "status": {
+      "children": {
+        "health": [
+          "Critical",
+          "Excellent",
+          "Fair",
+          "Good",
+          "Poor"
+        ],
+        "place": [
+          "At Home",
+          "At Work",
+          "On Holiday",
+          "On The Go",
+          "Traveling"
+        ],
+        "energy": [
+          "Exhausted",
+          "High",
+          "Low",
+          "Medium"
+        ],
+        "mind_state": [
+          "Clear",
+          "Distracted",
+          "Neutral",
+          "Overwhelmed"
+        ],
+        "focus": [
+          "Absent",
+          "Good",
+          "Laser",
+          "Scattered"
+        ],
+        "emotion": [
+          "Negative",
+          "Neutral",
+          "Positive"
+        ],
+        "vibe": [
+          "Bad",
+          "Great",
+          "Okay"
+        ]
+      }
+    }
+  },
+  "status_indicators": [
+    "emotion",
+    "energy",
+    "focus",
+    "health",
+    "mind_state",
+    "place",
+    "vibe"
+  ],
+  "timer_profiles": [
+    "classic_pomodoro",
+    "deep_work_50_10",
+    "sprint_90_30"
+  ],
+  "defaults_keys_by_type": {
+    "achievement": [
+      "default_category",
+      "default_description",
+      "default_name",
+      "default_type"
+    ],
+    "alarm": [
+      "default_enabled",
+      "default_message",
+      "default_recurrence",
+      "default_snooze_duration",
+      "default_sound",
+      "type"
+    ],
+    "appointment": [
+      "date",
+      "description",
+      "location",
+      "name",
+      "time",
+      "type"
+    ],
+    "canvas_board": [
+      "connections",
+      "ink",
+      "nodes",
+      "type",
+      "viewport"
+    ],
+    "commitment": [
+      "description",
+      "due_date",
+      "name",
+      "status",
+      "type"
+    ],
+    "day": [
+      "category",
+      "description",
+      "duration",
+      "name",
+      "sequence",
+      "type"
+    ],
+    "dream_diary_entry": [
+      "content",
+      "date",
+      "description",
+      "name",
+      "type"
+    ],
+    "goal": [
+      "description",
+      "is_template",
+      "milestones",
+      "name",
+      "priority",
+      "type"
+    ],
+    "habit": [
+      "current_count",
+      "description",
+      "frequency",
+      "name",
+      "target_count",
+      "type"
+    ],
+    "inventory": [
+      "description",
+      "inventory_items",
+      "is_template",
+      "name",
+      "places",
+      "tags",
+      "tools",
+      "type"
+    ],
+    "inventory_item": [
+      "category",
+      "description",
+      "linked_tools",
+      "name",
+      "places",
+      "quantity",
+      "status",
+      "tags",
+      "type"
+    ],
+    "journal_entry": [
+      "content",
+      "date",
+      "description",
+      "name",
+      "type"
+    ],
+    "list": [
+      "description",
+      "items",
+      "name",
+      "type"
+    ],
+    "microroutine": [
+      "category",
+      "description",
+      "duration",
+      "name",
+      "sequence",
+      "type"
+    ],
+    "milestone": [
+      "description",
+      "name",
+      "status",
+      "target_date",
+      "type"
+    ],
+    "note": [
+      "category",
+      "content",
+      "description",
+      "name",
+      "type"
+    ],
+    "person": [
+      "description",
+      "email",
+      "name",
+      "phone",
+      "type"
+    ],
+    "place": [
+      "address",
+      "coordinates",
+      "description",
+      "name",
+      "type"
+    ],
+    "plan": [
+      "description",
+      "name",
+      "status",
+      "steps",
+      "type"
+    ],
+    "project": [
+      "category",
+      "children",
+      "description",
+      "milestones",
+      "notes",
+      "priority",
+      "state",
+      "tags",
+      "type"
+    ],
+    "reminder": [
+      "default_enabled",
+      "default_label",
+      "default_recurrence",
+      "default_sound",
+      "type"
+    ],
+    "reward": [
+      "default_category",
+      "default_description",
+      "default_name",
+      "default_type"
+    ],
+    "ritual": [
+      "description",
+      "frequency",
+      "name",
+      "time",
+      "type"
+    ],
+    "routine": [
+      "category",
+      "description",
+      "duration",
+      "name",
+      "sequence",
+      "type"
+    ],
+    "scheduling": [
+      "conflict_resolution",
+      "importance",
+      "rescheduling",
+      "template_selection",
+      "trimming"
+    ],
+    "subroutine": [
+      "category",
+      "description",
+      "duration",
+      "name",
+      "sequence",
+      "type"
+    ],
+    "task": [
+      "content",
+      "description",
+      "due_date",
+      "name",
+      "priority",
+      "status",
+      "type"
+    ],
+    "tool": [
+      "capabilities",
+      "category",
+      "depends_on",
+      "description",
+      "linked_items",
+      "locations",
+      "name",
+      "type"
+    ],
+    "week": [
+      "category",
+      "description",
+      "duration",
+      "name",
+      "sequence",
+      "type"
+    ]
+  }
+}

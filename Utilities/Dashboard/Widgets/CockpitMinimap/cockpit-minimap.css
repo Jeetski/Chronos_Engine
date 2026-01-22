@@ -1,0 +1,8 @@
+/* CockpitMinimap Widget Glass Styling */
+.cockpit-minimap-widget {
+    background: transparent !important;
+}
+
+.cockpit-minimap-widget .content {
+    padding: 12px;
+}

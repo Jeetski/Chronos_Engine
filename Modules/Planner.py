@@ -9,7 +9,7 @@ from Modules.Scheduler import (
     status_current_path,
 )
 
-from Commands.today import (
+from Commands.Today import (
     build_initial_schedule,
     calculate_item_importance,
     check_total_duration,

@@ -1,0 +1,1842 @@
+{
+  "generated_at": "2026-01-22T13:36:08Z",
+  "commands": {
+    "add": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "add <item_to_add> to <target_template> [position:<number>]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value",
+            "kw:to",
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "position"
+          ]
+        }
+      ]
+    },
+    "aduc": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": []
+    },
+    "alarm": {
+      "aliases": [],
+      "subcommands": [
+        "from"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "alarm from <type> <name> [use:deadline|due_date] [date:YYYY-MM-DD] [time:HH:MM] [message:\"...\"] [recurrence:daily]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:from",
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "date",
+            "recurrence",
+            "time",
+            "use"
+          ]
+        }
+      ]
+    },
+    "alias": {
+      "aliases": [],
+      "subcommands": [
+        "list",
+        "remove"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "alias <name> <command_string>",
+        "alias list",
+        "alias remove <name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:list"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:remove",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "append": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "append <item_type> <item_name> \"<text_to_append>\" [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name",
+            "value"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "archive": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "archive <type> <name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "backup": {
+      "aliases": [],
+      "subcommands": [
+        "list"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "backup [name]",
+        "backup list"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:name"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:list"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "bulk": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "bulk <command> [args...] [properties...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "choice:set|append|remove|mark|trim|change|cut|did|delete|copy|move"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "dry",
+            "run",
+            "limit",
+            "force",
+            "no_macros"
+          ]
+        }
+      ]
+    },
+    "change": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "change <item_name> <new_start_time_HH:MM>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name",
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "<new_start_time_HH"
+          ]
+        }
+      ]
+    },
+    "check": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "check"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        }
+      ]
+    },
+    "clean": {
+      "aliases": [],
+      "subcommands": [
+        "archives",
+        "backups",
+        "temp"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "clean backups [keep:5]",
+        "clean archives [days:30]",
+        "clean temp"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:backups"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "keep"
+          ]
+        },
+        {
+          "slots": [
+            "kw:archives"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "days"
+          ]
+        },
+        {
+          "slots": [
+            "kw:temp"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "cls": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "cls"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        }
+      ]
+    },
+    "cmd": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "cmd <command>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "command"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "commitments": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "commitments [check]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:check"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "complete": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "complete <item_type> <item_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "minutes",
+            "quality",
+            "count",
+            "attended",
+            "no_show"
+          ]
+        }
+      ]
+    },
+    "copy": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "copy <item_type> <source_item_name> [new_item_name] [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true
+        },
+        {
+          "slots": [
+            "item_type",
+            "item_name",
+            "new_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "count": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "count <item_type> [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "create": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "create <item_type> <item_name> [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "cut": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "cut <item_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "dashboard": {
+      "aliases": [
+        "dash"
+      ],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "dashboard"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        }
+      ]
+    },
+    "delete": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "delete [-f|--force] <item_type> <item_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "did": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": []
+    },
+    "diff": {
+      "aliases": [],
+      "subcommands": [
+        "file"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "diff <type> <name1> <name2>",
+        "diff file <path1> <path2>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "value",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:file",
+            "path",
+            "path"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "dismiss": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "dismiss <alarm_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "docs": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "docs [topic]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:topic"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "echo": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "echo <text_to_print>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "edit": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "edit <item_type> <item_name> [editor:<editor_name>] [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "export": {
+      "aliases": [],
+      "subcommands": [
+        "all"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "export all [filename.zip]",
+        "export <filename> <command> [args...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:all",
+            "kw:filename.zip"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "path",
+            "command"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "filter": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "filter <item_type> [property:value ...] | filter all | filter off"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:all"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:off"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "item_type"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "find": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "find <item_type> <keyword> [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "value"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "for": {
+      "aliases": [],
+      "subcommands": [
+        "in"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "for <var> in <type> [filters] then <command> [args...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value",
+            "kw:in",
+            "item_type",
+            "kw:filters",
+            "kw:then",
+            "command"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "get": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "get <item_type> <item_name> <property_key> [variable_name:<var_name>] [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name",
+            "item_property"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "help": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "help"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        }
+      ]
+    },
+    "if": {
+      "aliases": [],
+      "subcommands": [
+        "exists",
+        "then"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "if <left> <op> <right> then <command> [args...] [else <command> ...]",
+        "if exists <type>[:<name>[:<property>]] then <command> [else <command> ...]",
+        "if exists file:<path> | dir:<path> | env:<NAME> then <command> [else ...]",
+        "Operators: =, !=, >, <, >=, <=, eq, ne, gt, lt, ge, le, matches",
+        "Logic: and, or, not/! , parentheses ( ... )",
+        "Left/Right forms:",
+        "- status:<key>",
+        "- <type>:<name>:<property>",
+        "- literals (after @var expansion)"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "import": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "import <file_path>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "path"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "inventory": {
+      "aliases": [],
+      "subcommands": [
+        "add-item",
+        "add-tool",
+        "items",
+        "list",
+        "new",
+        "remove-item",
+        "remove-tool",
+        "show",
+        "tools"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "inventory list [place:At Home]",
+        "inventory show <inventory_name>",
+        "inventory new <inventory_name> [property:value ...]",
+        "inventory add-item <inventory_name> <item_name> [quantity:n]",
+        "inventory remove-item <inventory_name> <item_name>",
+        "inventory add-tool <inventory_name> <tool_name>",
+        "inventory remove-tool <inventory_name> <tool_name>",
+        "inventory items [list|new|show]",
+        "inventory tools [list|new|show]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:list",
+            "kw:[place:at",
+            "kw:home]"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "place"
+          ]
+        },
+        {
+          "slots": [
+            "kw:show",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:new",
+            "value",
+            "kw:[property:value",
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "property"
+          ]
+        },
+        {
+          "slots": [
+            "kw:add-item",
+            "value",
+            "item_name"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "quantity"
+          ]
+        },
+        {
+          "slots": [
+            "kw:remove-item",
+            "value",
+            "item_name"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:add-tool",
+            "value",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:remove-tool",
+            "value",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:items",
+            "choice:list|new|show"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:tools",
+            "choice:list|new|show"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "list": {
+      "aliases": [],
+      "subcommands": [
+        "then"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "list <item_type> [sort_by:<property_key>] [reverse_sort:True/False] [property_key:property_value ...]",
+        "list <item_type> [list_properties...] then <command> [command_args...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "sort_by",
+            "reverse_sort"
+          ],
+          "pipeline_keyword": "then"
+        }
+      ]
+    },
+    "macro": {
+      "aliases": [],
+      "subcommands": [
+        "disable",
+        "enable",
+        "list"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "macro list",
+        "macro enable",
+        "macro disable"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:list"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:enable"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:disable"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "mark": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "mark <item_name>:<status>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "<item_name>"
+          ]
+        }
+      ]
+    },
+    "mark_norm": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "mark <item_name>:<status>"
+      ],
+      "syntax": []
+    },
+    "miss": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "miss <item_type> <item_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "move": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "move <source_item_type> <source_item_name> [new_item_name] [type:<target_item_type>] [name:<new_item_name>] [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true
+        },
+        {
+          "slots": [
+            "item_type",
+            "item_name",
+            "new_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "new": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "new <item_type> <item_name> [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "next": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": [
+        {
+          "slots": [
+            "kw:day"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "weekday"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "ordinal",
+            "month"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "ordinal",
+            "kw:of",
+            "month"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "pause": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "pause [message]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "points": {
+      "aliases": [],
+      "subcommands": [
+        "add",
+        "balance",
+        "history",
+        "subtract"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "points balance",
+        "points add <n> [reason:<text>]",
+        "points subtract <n> [reason:<text>]",
+        "points history [<last_N>]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:balance"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:add",
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "reason"
+          ]
+        },
+        {
+          "slots": [
+            "kw:subtract",
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "reason"
+          ]
+        },
+        {
+          "slots": [
+            "kw:history",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "powershell": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "powershell <powershell_code>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "profile": {
+      "aliases": [],
+      "subcommands": [
+        "get",
+        "set",
+        "set-line",
+        "show"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "profile show",
+        "profile get <nickname|line1|line2|line3>",
+        "profile set [nickname:<value>] [line1:\"...\"] [line2:\"...\"] [line3:\"...\"]",
+        "profile set-line <1|2|3> <text...>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:show"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:get",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:set"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "nickname"
+          ]
+        },
+        {
+          "slots": [
+            "kw:set-line",
+            "value",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "redeem": {
+      "aliases": [],
+      "subcommands": [
+        "reward"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "redeem reward <name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:reward",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "register": {
+      "aliases": [],
+      "subcommands": [
+        "all",
+        "commands",
+        "items",
+        "properties"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "register commands",
+        "register items",
+        "register properties",
+        "register all"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "choice:commands|items|properties|all"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "reminder": {
+      "aliases": [],
+      "subcommands": [
+        "from"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "reminder from <type> <name> [use:deadline|due_date] [date:YYYY-MM-DD] [time:HH:MM] [message:\"...\"] [recurrence:daily]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:from",
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "date",
+            "recurrence",
+            "time",
+            "use"
+          ]
+        }
+      ]
+    },
+    "remove": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "remove <item_type> <item_name> <property_key>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name",
+            "item_property"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "rename": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "rename <item_type> <old_name> <new_name> [properties]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name",
+            "new_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "repeat": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "repeat count:<n> then <command> [args...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:count:<n>",
+            "kw:then",
+            "command"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "count"
+          ]
+        }
+      ]
+    },
+    "restore": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "restore <filename|latest> force:true"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "path",
+            "kw:force:true"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "force"
+          ]
+        }
+      ]
+    },
+    "review": {
+      "aliases": [],
+      "subcommands": [
+        "daily",
+        "export",
+        "monthly",
+        "open",
+        "weekly"
+      ],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": [
+        {
+          "slots": [
+            "choice:daily|weekly|monthly"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "choice:daily|weekly|monthly",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:export",
+            "choice:daily|weekly|monthly",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:open",
+            "choice:daily|weekly|monthly",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "run": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "run <script_file>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "path"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "search": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "search <query>",
+        "search type:<type> <query>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:type:<type>",
+            "value"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "sequence": {
+      "aliases": [],
+      "subcommands": [
+        "status"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "sequence status",
+        "Show the current registry of SQLite mirrors and digests."
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:status"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:sync",
+            "choice*:matrix|core|events|memory|trends|trends_digest|all"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:trends"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "set": {
+      "aliases": [],
+      "subcommands": [
+        "var"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "set <item_type> <item_name> <property_key>:<value> [...]",
+        "set var <variable_name>:<value>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:var",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "settings": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "settings <file_shortcut> <property> <value>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "path",
+            "item_property",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "skip": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "skip <alarm_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "snooze": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "snooze <alarm_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "start": {
+      "aliases": [],
+      "subcommands": [
+        "day",
+        "today"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "start day",
+        "start today"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:day"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:today"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "status": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "status <indicator>:<value>",
+        "status (to view current status)"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": true,
+          "property_keys": [
+            "status_indicators"
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "theme <subcommand>",
+        "Subcommands:",
+        "list                 List available themes",
+        "current              Show current theme/background/text",
+        "set <name>           Set theme by name (from theme_settings.yml)",
+        "set-colors [background:<name|#hex>] [text:<name|#hex>]",
+        "Set explicit console colors (overrides theme)"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "this": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": [
+        {
+          "slots": [
+            "weekday"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "timer": {
+      "aliases": [],
+      "subcommands": [
+        "confirm",
+        "pause",
+        "profiles",
+        "resume",
+        "start",
+        "status",
+        "stop"
+      ],
+      "subcommand_groups": {
+        "profiles": [
+          "delete",
+          "list",
+          "save",
+          "view"
+        ]
+      },
+      "usage": [
+        "timer start <profile> [type:<item_type> name:<item_name>] [cycles:N] [auto_advance:true|false]",
+        "timer pause | resume | stop | status",
+        "timer confirm yes|no",
+        "timer profiles list | view <name> | save <name> [k:v ...] | delete <name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:start",
+            "timer_profile"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "type",
+            "name",
+            "cycles",
+            "auto_advance"
+          ]
+        },
+        {
+          "slots": [
+            "kw:pause"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:resume"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:stop"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:status"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:confirm",
+            "choice:yes|no"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:profiles",
+            "choice:list|view|save|delete"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:profiles",
+            "kw:view",
+            "timer_profile"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:profiles",
+            "kw:delete",
+            "timer_profile"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:profiles",
+            "kw:save",
+            "value"
+          ],
+          "allow_properties": true
+        }
+      ]
+    },
+    "today": {
+      "aliases": [],
+      "subcommands": [
+        "microroutines",
+        "reschedule",
+        "routines",
+        "subroutines"
+      ],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "choice:reschedule|routines|subroutines|microroutines"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "tomorrow": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": true,
+          "property_keys": [
+            "days"
+          ]
+        }
+      ]
+    },
+    "track": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "track <item_type> <item_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "tree": {
+      "aliases": [],
+      "subcommands": [
+        "dir"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "tree <type> <name>",
+        "tree dir <path>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:dir",
+            "path"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "trim": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "trim <item_name> <amount_in_minutes>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "undo": {
+      "aliases": [],
+      "subcommands": [
+        "delete",
+        "reschedule"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "undo delete [type]",
+        "undo reschedule"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:delete",
+            "kw:type"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:reschedule"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "unset": {
+      "aliases": [],
+      "subcommands": [
+        "var"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "unset var <name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:var",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "vars": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "vars [name:<varname>]"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        }
+      ]
+    },
+    "view": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "view <item_type> <item_name> [property_key:property_value ...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_type",
+            "item_name"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "while": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "while <condition> max:<n> then <command> [args...]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "value",
+            "kw:max:<n>",
+            "kw:then",
+            "command"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "max"
+          ]
+        }
+      ]
+    }
+  },
+  "aliases": {
+    "dash": "dashboard"
+  }
+}

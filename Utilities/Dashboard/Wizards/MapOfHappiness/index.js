@@ -215,18 +215,18 @@ function mountOverlay(context) {
   injectStyles();
   if (overlayEl) overlayEl.remove();
   overlayEl = document.createElement('div');
-  overlayEl.className = 'moh-overlay';
+  overlayEl.className = 'moh-overlay chronos-wizard-overlay';
   overlayEl.innerHTML = `
-    <div class="moh-shell">
-      <div class="moh-header">
+    <div class="moh-shell chronos-wizard-shell">
+      <div class="moh-header chronos-wizard-header">
         <div class="moh-title">Map of Happiness Wizard <span class="moh-pill">Sam Vaknin technique</span></div>
         <div class="moh-sub">Capture everything you cannot be happy without, cluster them into needs, rank them, define sufficiency, and save to <code>User/Settings/map_of_happiness.yml</code> so items can tag <code>happiness</code> values.</div>
-        <div class="moh-steps" data-stepper></div>
+        <div class="moh-steps chronos-wizard-stepper" data-stepper></div>
       </div>
-      <div class="moh-body" data-body></div>
-      <div class="moh-footer">
-        <div class="moh-status" data-status></div>
-        <div class="moh-actions">
+      <div class="moh-body chronos-wizard-body" data-body></div>
+      <div class="moh-footer chronos-wizard-footer">
+        <div class="moh-status chronos-wizard-status" data-status></div>
+        <div class="moh-actions chronos-wizard-actions">
           <button class="moh-btn" data-cancel>Cancel</button>
           <button class="moh-btn" data-prev>Back</button>
           <button class="moh-btn primary" data-next>Next</button>

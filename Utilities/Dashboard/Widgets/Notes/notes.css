@@ -1,0 +1,8 @@
+/* Notes Widget Glass Styling */
+.notes-widget {
+    background: transparent !important;
+}
+
+.notes-widget .content {
+    padding: 12px;
+}

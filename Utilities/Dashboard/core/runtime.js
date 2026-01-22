@@ -10,54 +10,154 @@ function createBus() {
     },
     emit(event, data) {
       const set = listeners.get(event);
-      if (set) for (const fn of Array.from(set)) try { fn(data); } catch {}
+      if (set) for (const fn of Array.from(set)) try { fn(data); } catch { }
     }
   };
 }
 
 const bus = createBus();
 const context = { bus, getHelpText: getHelpTip, createHelpButton, attachHelpButton };
-try { window.ChronosBus = bus; } catch {}
-try { window.ChronosHelp = { get: getHelpTip, create: createHelpButton, attach: attachHelpButton }; } catch {}
+try { window.ChronosBus = bus; } catch { }
+try { window.ChronosHelp = { get: getHelpTip, create: createHelpButton, attach: attachHelpButton }; } catch { }
+let widgetZCounter = 10;
+const WIZARD_BASE_STYLE_ID = 'chronos-wizard-base-style';
+
+function injectWizardBaseStyles() {
+  if (document.getElementById(WIZARD_BASE_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = WIZARD_BASE_STYLE_ID;
+  style.textContent = `
+    .chronos-wizard-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--chronos-overlay-gradient, rgba(8,10,16,0.85));
+      backdrop-filter: var(--chronos-overlay-blur, blur(10px));
+      padding: clamp(16px, 3vw, 32px);
+    }
+    .chronos-wizard-shell {
+      width: min(1000px, 96vw);
+      max-height: 94vh;
+      background: linear-gradient(180deg, var(--chronos-surface-strong, rgba(15,19,30,0.98)), rgba(8,10,16,0.95));
+      border: 1px solid rgba(122,162,247,0.22);
+      border-radius: 22px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.65);
+      color: var(--chronos-text, #e6e8ef);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: clamp(18px, 3vw, 28px);
+      position: relative;
+    }
+    .chronos-wizard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .chronos-wizard-stepper {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chronos-wizard-body {
+      flex: 1 1 auto;
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      background: rgba(7,9,15,0.65);
+      min-height: 0;
+    }
+    .chronos-wizard-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .chronos-wizard-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .chronos-wizard-actions button {
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 10px 18px;
+      font-size: 15px;
+      background: rgba(10,13,22,0.9);
+      color: inherit;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    .chronos-wizard-actions button.primary {
+      background: var(--chronos-accent-gradient, linear-gradient(135deg, #6b8cff, #7aa2f7));
+      border-color: rgba(122,162,247,0.6);
+      color: #fff;
+      box-shadow: var(--chronos-accent-glow, 0 10px 24px rgba(74,98,255,0.45));
+    }
+    .chronos-wizard-actions button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .chronos-wizard-status {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--chronos-text-muted, #9aa4b7);
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+try { injectWizardBaseStyles(); } catch { }
 
 // ---- Global Vars: fetch/cache/expand ----
-const Vars = (()=>{
+const Vars = (() => {
   let cache = {};
   let lastFetch = 0;
   const MIN_INTERVAL = 1000;
-  async function refresh(force=false){
+  async function refresh(force = false) {
     const now = Date.now();
     if (!force && (now - lastFetch) < MIN_INTERVAL) return cache;
     try {
-      const r = await fetch((window.location.origin && !window.location.origin.startsWith('file:')? window.location.origin : 'http://127.0.0.1:7357') + '/api/vars');
+      const r = await fetch((window.location.origin && !window.location.origin.startsWith('file:') ? window.location.origin : 'http://127.0.0.1:7357') + '/api/vars');
       const j = await r.json();
       cache = (j && j.vars) || {};
       lastFetch = now;
-    } catch {}
+    } catch { }
     return cache;
   }
-  function expand(text){
+  function expand(text) {
     try {
       if (!text || typeof text !== 'string') return text;
       // Simple client-side expansion mirroring server fallback logic
       const m = cache || {};
       const sentinel = '\\x00AT\\x00';
       let s = text.replace(/@@/g, sentinel);
-      s = s.replace(/@\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_,k)=> String(m[k] ?? ''));
-      s = s.replace(/(?<![A-Za-z0-9_])@([A-Za-z_][A-Za-z0-9_]*)/g, (_,k)=> String(m[k] ?? ''));
-      return s.replace(new RegExp(sentinel,'g'), '@');
+      s = s.replace(/@\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (_, k) => String(m[k] ?? ''));
+      s = s.replace(/(?<![A-Za-z0-9_])@([A-Za-z_][A-Za-z0-9_]*)/g, (_, k) => String(m[k] ?? ''));
+      return s.replace(new RegExp(sentinel, 'g'), '@');
     } catch { return text; }
   }
   bus.on('vars:changed', () => refresh(true));
-  try { refresh(true); } catch {}
-  try { window.ChronosVars = { refresh, expand, get: ()=> ({...cache}) }; } catch {}
-  return { refresh, expand, get: ()=> ({...cache}) };
+  try { refresh(true); } catch { }
+  try { window.ChronosVars = { refresh, expand, get: () => ({ ...cache }) }; } catch { }
+  return { refresh, expand, get: () => ({ ...cache }) };
 })();
 
 // Expand helper: apply variable expansion to elements that opt-in via data-expand="text"
-function expandIn(root){
+function expandIn(root) {
   try {
-    const expand = (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand : (s)=>s;
+    const expand = (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand : (s) => s;
     const nodes = (root || document).querySelectorAll('[data-expand="text"]');
     nodes.forEach(node => {
       try {
@@ -66,9 +166,9 @@ function expandIn(root){
         node.textContent = out;
         if (out !== raw) node.title = `from ${raw}`;
         node.setAttribute('data-raw', raw);
-      } catch {}
+      } catch { }
     });
-  } catch {}
+  } catch { }
 }
 
 // Help text registry for widgets and views
@@ -98,6 +198,7 @@ const HELP_TEXT = {
   Variables: 'Variables: View and edit global @vars used across the dashboard and CLI.',
   ResolutionTracker: 'Resolutions: Track yearly resolutions and link them to Chronos items.',
   Link: 'Link: Connect to a peer and sync a shared Canvas board (polling, last-write-wins).',
+  Trends: 'Trends: View performance metrics including habits, goals, focus time, quality, and adherence stats.',
   // Views
   Calendar: 'Calendar View: Timeline of scheduled blocks. Use zoom/level controls and toolstrip to navigate and manage.',
   TemplateBuilder: 'Template Builder: Build templates via drag & drop. Indent/outdent to nest. Toggle Sequential/Parallel; Save to persist.',
@@ -136,7 +237,7 @@ const HELP_TEXT = {
   BrainDump: 'Brain Dump Wizard: Rapid task capture, horizon buckets, and light refinement.'
 };
 
-function getHelpTip(name, fallback){
+function getHelpTip(name, fallback) {
   const key = (name || '').toString().trim();
   const fallbackKey = (fallback || '').toString().trim();
   if (key && HELP_TEXT[key]) return HELP_TEXT[key];
@@ -145,7 +246,7 @@ function getHelpTip(name, fallback){
   return `${label}: No help available.`;
 }
 
-function createHelpButton(name, options = {}){
+function createHelpButton(name, options = {}) {
   try {
     const btn = document.createElement(options.element || 'button');
     btn.type = 'button';
@@ -154,7 +255,7 @@ function createHelpButton(name, options = {}){
     const tip = options.tooltip || getHelpTip(name, options.fallbackLabel || name);
     btn.title = tip || '';
     btn.setAttribute('aria-label', tip);
-    if (typeof options.onClick === 'function'){
+    if (typeof options.onClick === 'function') {
       btn.addEventListener('click', options.onClick);
     }
     return btn;
@@ -163,7 +264,7 @@ function createHelpButton(name, options = {}){
   }
 }
 
-function attachHelpButton(target, name, options = {}){
+function attachHelpButton(target, name, options = {}) {
   if (!target) return null;
   const btn = createHelpButton(name, options);
   if (!btn) return null;
@@ -174,16 +275,16 @@ function attachHelpButton(target, name, options = {}){
 
 // ---- Widget state persistence ----
 const WSTATE_KEY = 'chronos_widget_state_v1';
-function _readStateMap(){
+function _readStateMap() {
   try { const raw = localStorage.getItem(WSTATE_KEY); return raw ? JSON.parse(raw) : {}; } catch { return {}; }
 }
-function _writeStateMap(map){
-  try { localStorage.setItem(WSTATE_KEY, JSON.stringify(map)); } catch {}
+function _writeStateMap(map) {
+  try { localStorage.setItem(WSTATE_KEY, JSON.stringify(map)); } catch { }
 }
-function widgetKey(el){
+function widgetKey(el) {
   return (el?.id) || el?.getAttribute?.('data-widget') || null;
 }
-function saveWidgetState(el){
+function saveWidgetState(el) {
   const key = widgetKey(el); if (!key) return;
   const map = _readStateMap();
   map[key] = {
@@ -196,11 +297,11 @@ function saveWidgetState(el){
   };
   _writeStateMap(map);
 }
-function restoreWidgetState(el){
+function restoreWidgetState(el) {
   const key = widgetKey(el); if (!key) return false;
   const map = _readStateMap();
   const st = map[key];
-  if (st){
+  if (st) {
     if (st.left) el.style.left = st.left;
     if (st.top) el.style.top = st.top;
     if (st.width) el.style.width = st.width;
@@ -211,27 +312,27 @@ function restoreWidgetState(el){
   }
   return false;
 }
-function centerWidget(el){
-  try{
+function centerWidget(el) {
+  try {
     const r = el.getBoundingClientRect();
-    const left = Math.max(6, Math.round((window.innerWidth - r.width)/2));
-    const top = Math.max(48, Math.round((window.innerHeight - r.height)/2));
+    const left = Math.max(6, Math.round((window.innerWidth - r.width) / 2));
+    const top = Math.max(48, Math.round((window.innerHeight - r.height) / 2));
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
-  }catch{}
+  } catch { }
 }
-function persistOnChanges(el){
-  try{
-    const mo = new MutationObserver(()=> saveWidgetState(el));
-    mo.observe(el, { attributes:true, attributeFilter:['style','class'] });
+function persistOnChanges(el) {
+  try {
+    const mo = new MutationObserver(() => saveWidgetState(el));
+    mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
     el.__stateObserver = mo;
-  }catch{}
+  } catch { }
 }
-window.addEventListener('beforeunload', ()=>{
-  try { document.querySelectorAll('.widget').forEach(saveWidgetState); } catch {}
+window.addEventListener('beforeunload', () => {
+  try { document.querySelectorAll('.widget').forEach(saveWidgetState); } catch { }
 });
 
-function insertHelpIntoWidget(el, name){
+function insertHelpIntoWidget(el, name) {
   try {
     if (!el || !name) return;
     const header = el.querySelector('.header');
@@ -251,14 +352,14 @@ function insertHelpIntoWidget(el, name){
     } else {
       header.appendChild(btn);
     }
-  } catch {}
+  } catch { }
 }
 
-function insertHelpIntoView(el, name){
+function insertHelpIntoView(el, name) {
   return;
 }
 
-function removeWidgetMinimizeButtons(el){
+function removeWidgetMinimizeButtons(el) {
   try {
     const candidates = el.querySelectorAll('button, [role="button"]');
     candidates.forEach(btn => {
@@ -273,7 +374,7 @@ function removeWidgetMinimizeButtons(el){
         btn.remove();
       }
     });
-  } catch {}
+  } catch { }
 }
 
 export async function mountWidget(el, name) {
@@ -290,7 +391,7 @@ export async function mountWidget(el, name) {
       removeWidgetMinimizeButtons(el);
       insertHelpIntoWidget(el, name);
       // Apply variable expansion to eligible nodes
-      try { expandIn(el); } catch {}
+      try { expandIn(el); } catch { }
     } else {
       const msg = `Widget '${name}' has no mount()`;
       console.warn(`[Chronos][runtime] ${msg}`);
@@ -308,14 +409,14 @@ export async function mountWidget(el, name) {
     installWidgetFocus(el);
     persistOnChanges(el);
     saveWidgetState(el);
-  } catch {}
+  } catch { }
 }
 
 export async function mountView(el, name) {
   const id = el.id || '(anon)';
   console.log(`[Chronos][runtime] Mounting view '${name}' into #${id}`);
   try {
-    try { el.innerHTML = ''; } catch {}
+    try { el.innerHTML = ''; } catch { }
     const modUrl = new URL(`../Views/${name}/index.js`, import.meta.url);
     const mod = await import(modUrl);
     if (mod && typeof mod.mount === 'function') {
@@ -325,7 +426,7 @@ export async function mountView(el, name) {
       // Inject help button for views
       insertHelpIntoView(el, name);
       // Apply variable expansion to eligible nodes
-      try { expandIn(el); } catch {}
+      try { expandIn(el); } catch { }
     } else {
       const msg = `View '${name}' has no mount()`;
       console.warn(`[Chronos][runtime] ${msg}`);
@@ -375,13 +476,13 @@ ready(() => {
   if (collapseLeftBtn) collapseLeftBtn.addEventListener('click', () => document.getElementById('left')?.classList.toggle('collapsed'));
   if (collapseRightBtn) collapseRightBtn.addEventListener('click', () => document.getElementById('right')?.classList.toggle('collapsed'));
   // Install resizers on any existing widget
-  try { document.querySelectorAll('.widget').forEach(el => { restoreWidgetState(el) || centerWidget(el); installWidgetResizers(el); installWidgetDrag(el); installWidgetFocus(el); persistOnChanges(el); saveWidgetState(el); }); } catch {}
+  try { document.querySelectorAll('.widget').forEach(el => { restoreWidgetState(el) || centerWidget(el); installWidgetResizers(el); installWidgetDrag(el); installWidgetFocus(el); persistOnChanges(el); saveWidgetState(el); }); } catch { }
   // Listen for vars changes to re-expand displayed text
-  try { bus.on('vars:changed', ()=> { try { expandIn(document); } catch {} }); } catch {}
+  try { bus.on('vars:changed', () => { try { expandIn(document); } catch { } }); } catch { }
 });
 
 // ---- Generic widget resizers (E, S, SE) ----
-function installWidgetResizers(el){
+function installWidgetResizers(el) {
   if (!el || !el.classList || !el.classList.contains('widget')) return;
   // Capture initial size as per-widget minimums (only once)
   try {
@@ -397,7 +498,7 @@ function installWidgetResizers(el){
       el.__minH = baseMinH;
       el.__minSizeSet = true;
     }
-  } catch {}
+  } catch { }
   // Avoid duplicate resizers
   const hasResizers = el.querySelector('.resizer.e') || el.querySelector('.resizer.s') || el.querySelector('.resizer.se');
   if (!hasResizers) {
@@ -408,40 +509,40 @@ function installWidgetResizers(el){
   const re = el.querySelector('.resizer.e');
   const rs = el.querySelector('.resizer.s');
   const rse = el.querySelector('.resizer.se');
-  function edgeDrag(cb){
-    return (ev)=>{
+  function edgeDrag(cb) {
+    return (ev) => {
       ev.preventDefault(); ev.stopPropagation();
       const startX = ev.clientX;
       const startY = ev.clientY;
       const startW = el.offsetWidth || 0;
       const startH = el.offsetHeight || 0;
       const scale = toScaleRootCoords(ev.clientX, ev.clientY).scale || 1;
-      function move(e){
+      function move(e) {
         const dx = (e.clientX - startX) / scale;
         const dy = (e.clientY - startY) / scale;
         cb(dx, dy, startW, startH);
       }
-      function up(){ window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); try{ saveWidgetState(el); }catch{} }
+      function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); try { saveWidgetState(el); } catch { } }
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
     };
   }
-  if (re && !re.__wired){
+  if (re && !re.__wired) {
     re.__wired = true;
-    re.addEventListener('pointerdown', (ev)=> edgeDrag((dx, dy, startW)=>{
+    re.addEventListener('pointerdown', (ev) => edgeDrag((dx, dy, startW) => {
       const minW = Number(el.__minW || 280);
       el.style.width = Math.max(minW, startW + dx) + 'px';
     })(ev));
   }
-  if (rs && !rs.__wired){
+  if (rs && !rs.__wired) {
     rs.__wired = true;
-    rs.addEventListener('pointerdown', (ev)=> edgeDrag((dx, dy, startW, startH)=>{
+    rs.addEventListener('pointerdown', (ev) => edgeDrag((dx, dy, startW, startH) => {
       const minH = Number(el.__minH || 160);
       el.style.height = Math.max(minH, startH + dy) + 'px';
     })(ev));
   }
-  if (rse && !rse.__wired){
+  if (rse && !rse.__wired) {
     rse.__wired = true;
-    rse.addEventListener('pointerdown', (ev)=> edgeDrag((dx, dy, startW, startH)=>{
+    rse.addEventListener('pointerdown', (ev) => edgeDrag((dx, dy, startW, startH) => {
       const minW = Number(el.__minW || 280);
       const minH = Number(el.__minH || 160);
       el.style.width = Math.max(minW, startW + dx) + 'px';
@@ -450,8 +551,8 @@ function installWidgetResizers(el){
   }
 }
 
-function ensureInViewport(el){
-  if (!el || el.style.display==='none') return;
+function ensureInViewport(el) {
+  if (!el || el.style.display === 'none') return;
   try {
     const rect = el.getBoundingClientRect();
     const pad = 20;
@@ -471,10 +572,10 @@ function ensureInViewport(el){
     }
     el.style.top = Math.round(top) + 'px';
     el.style.left = Math.round(left) + 'px';
-  } catch {}
+  } catch { }
 }
 
-function isOffscreen(el){
+function isOffscreen(el) {
   if (!el || el.style.display === 'none') return false;
   try {
     const rect = el.getBoundingClientRect();
@@ -483,23 +584,27 @@ function isOffscreen(el){
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     return (centerX < 0 || centerX > vw || centerY < 0 || centerY > vh);
-  } catch {}
+  } catch { }
   return false;
 }
 
-function flashFocus(el){
+function flashFocus(el) {
   if (!el) return;
   try {
     el.classList.remove('pulse');
     void el.offsetWidth;
     el.classList.add('pulse');
-    window.setTimeout(()=>{ try { el.classList.remove('pulse'); } catch {} }, 900);
-  } catch {}
+    window.setTimeout(() => { try { el.classList.remove('pulse'); } catch { } }, 900);
+  } catch { }
 }
 
-function focusWidget(el){
+function focusWidget(el) {
   if (!el || !el.classList || !el.classList.contains('widget')) return;
   if (isOffscreen(el)) centerWidget(el);
+  try {
+    widgetZCounter = Math.max(widgetZCounter + 1, (Number(el.style.zIndex) || 0) + 1);
+    el.style.zIndex = String(widgetZCounter);
+  } catch { }
   flashFocus(el);
   saveWidgetState(el);
 }
@@ -547,10 +652,10 @@ try {
   window.ensureWidgetInView = focusWidget;
   window.ChronosLaunchWizard = launchWizard;
   window.ChronosFocusWidget = focusWidget;
-} catch {}
+} catch { }
 
 // ---- Generic widget header dragging ----
-function isInteractiveTarget(target){
+function isInteractiveTarget(target) {
   if (!target) return false;
   const selector = [
     'input',
@@ -568,11 +673,11 @@ function isInteractiveTarget(target){
   return !!target.closest(selector);
 }
 
-function installWidgetDrag(el){
+function installWidgetDrag(el) {
   if (!el || !el.classList || !el.classList.contains('widget')) return;
   if (el.__dragWired) return;
   el.__dragWired = true;
-  el.addEventListener('pointerdown', (ev)=>{
+  el.addEventListener('pointerdown', (ev) => {
     // Only left button
     if (ev.button !== 0) return;
     if (isInteractiveTarget(ev.target)) return;
@@ -588,26 +693,26 @@ function installWidgetDrag(el){
     const offY = startPos.y - rectTop;
     if (el.style.right) el.style.right = 'auto';
     if (el.style.bottom) el.style.bottom = 'auto';
-    function move(e){
+    function move(e) {
       const pos = toScaleRootCoords(e.clientX, e.clientY);
       el.style.left = Math.round(pos.x - offX) + 'px';
       el.style.top = Math.round(pos.y - offY) + 'px';
     }
-    function up(){
+    function up() {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      try { saveWidgetState(el); } catch {}
+      try { saveWidgetState(el); } catch { }
     }
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
   });
 }
 
-function installWidgetFocus(el){
+function installWidgetFocus(el) {
   if (!el || !el.classList || !el.classList.contains('widget')) return;
   if (el.__focusWired) return;
   el.__focusWired = true;
-  el.addEventListener('pointerdown', ()=>{
-    try { focusWidget(el); } catch {}
+  el.addEventListener('pointerdown', () => {
+    try { focusWidget(el); } catch { }
   });
 }

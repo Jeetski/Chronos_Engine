@@ -1,0 +1,8 @@
+/* Timer Widget Glass Styling */
+.timer-widget {
+    background: transparent !important;
+}
+
+.timer-widget .content {
+    padding: 12px;
+}

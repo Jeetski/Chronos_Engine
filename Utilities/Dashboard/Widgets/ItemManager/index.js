@@ -1,4 +1,15 @@
 export function mount(el) {
+  // Load CSS
+  if (!document.getElementById('item-manager-css')) {
+    const link = document.createElement('link');
+    link.id = 'item-manager-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/ItemManager/item-manager.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget item-manager-widget';
+
   const tpl = `
     <style>
       .im-content { display:flex; flex-direction:column; gap:8px; height:100%; min-height:0; }

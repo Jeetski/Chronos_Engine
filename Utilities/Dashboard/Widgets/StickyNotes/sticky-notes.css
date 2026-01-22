@@ -1,0 +1,8 @@
+/* StickyNotes Widget Glass Styling */
+.sticky-notes-widget {
+    background: transparent !important;
+}
+
+.sticky-notes-widget .content {
+    padding: 12px;
+}

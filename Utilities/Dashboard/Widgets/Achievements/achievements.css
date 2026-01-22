@@ -1,0 +1,27 @@
+/* Achievements Widget Glass Styling */
+.achievements-widget {
+    background: transparent !important;
+}
+
+.achievements-widget .content {
+    padding: 12px;
+}
+
+/* Achievement cards - glassmorphic effect matching Trends */
+.achievement-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.achievement-card:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+    border-color: rgba(78, 201, 176, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}

@@ -4,7 +4,8 @@
     <button class="icon-btn" id="profileClose" title="Close">✖</button>
   </div>
 </div>
-<div class="content" style="display:flex; flex-direction:row; gap:12px; align-items:stretch; flex-wrap:nowrap; overflow:hidden;">
+<div class="content"
+  style="display:flex; flex-direction:row; gap:12px; align-items:stretch; flex-wrap:nowrap; overflow:hidden;">
   <div class="left" style="flex:1 1 50%; min-width:260px; display:flex; flex-direction:column; gap:8px;">
     <div class="row">
       <label for="nickname">Nickname:</label>
@@ -34,7 +35,9 @@
       <label style="margin:0;">Agent Preferences</label>
       <span class="hint" style="color:var(--text-dim);">from preferences.yml/yaml</span>
     </div>
-    <div id="agent-preferences-container" style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow:auto; border:1px solid var(--border); border-radius:8px; padding:6px;"></div>
+    <div id="agent-preferences-container"
+      style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow:auto; border:1px solid rgba(255, 255, 255, 0.08); border-radius:12px; padding:12px; background:linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
+    </div>
   </div>
   <div class="resizer e"></div>
   <div class="resizer s"></div>

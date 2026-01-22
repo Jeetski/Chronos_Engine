@@ -1,0 +1,4 @@
+[2026-01-22 16:02:48] Attempting to delete: C:\Users\david\AppData\Local\Temp\tmprislwp1w\User\tasks\delete_me.yml
+[2026-01-22 16:02:48] Successfully deleted: C:\Users\david\AppData\Local\Temp\tmprislwp1w\User\tasks\delete_me.yml
+[2026-01-22 16:11:56] Attempting to delete: C:\Users\david\AppData\Local\Temp\tmpmabnpiby\User\tasks\delete_me.yml
+[2026-01-22 16:11:56] Successfully deleted: C:\Users\david\AppData\Local\Temp\tmpmabnpiby\User\tasks\delete_me.yml

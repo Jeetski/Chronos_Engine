@@ -77,18 +77,18 @@ function mountOverlay(context) {
   injectStyles();
   if (overlayEl) overlayEl.remove();
   overlayEl = document.createElement('div');
-  overlayEl.className = 'fsd-overlay';
+  overlayEl.className = 'fsd-overlay chronos-wizard-overlay';
   overlayEl.innerHTML = `
-    <div class="fsd-shell">
-      <div class="fsd-header">
+    <div class="fsd-shell chronos-wizard-shell">
+      <div class="fsd-header chronos-wizard-header">
         <div class="fsd-title">Future Self Dialogue <span class="fsd-pill">Sam Vaknin</span></div>
         <div class="fsd-sub">Speak as your future actualized self to your past self, then write a letter to your future self and read it through past/present/future lenses. Source: <a class="fsd-link" href="${SOURCE_LINK}" target="_blank" rel="noopener">Vaknin Talks</a>.</div>
-        <div class="fsd-steps" data-stepper></div>
+        <div class="fsd-steps chronos-wizard-stepper" data-stepper></div>
       </div>
-      <div class="fsd-body" data-body></div>
-      <div class="fsd-footer">
-        <div class="fsd-status" data-status></div>
-        <div class="fsd-actions">
+      <div class="fsd-body chronos-wizard-body" data-body></div>
+      <div class="fsd-footer chronos-wizard-footer">
+        <div class="fsd-status chronos-wizard-status" data-status></div>
+        <div class="fsd-actions chronos-wizard-actions">
           <button class="fsd-btn" data-cancel>Cancel</button>
           <button class="fsd-btn" data-prev>Back</button>
           <button class="fsd-btn primary" data-next>Next</button>

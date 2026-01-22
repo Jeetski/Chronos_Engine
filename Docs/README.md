@@ -80,7 +80,7 @@ Status-aware scheduling
 - Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, marking, and `did` entries all update the plan.
 
 Scripts and conditions
-- `.chs` scripts can run CLI commands with variables and conditionals (`if/elseif/else/end`).
+- `.chs` scripts can run CLI commands with variables, conditionals (`if/elseif/else/end`), and loops (`repeat/for/while`).
 - Conditions support `and/or/xor/nor`, parentheses, numeric/string compares, regex `matches`, and `exists` for files/dirs/env and items.
 
 Listener services

@@ -1,0 +1,91 @@
+--- Today's Schedule ---
+05:00 - 18:56: morning routine (836.80484475 minutes) [In Progress]
+  05:00 - 05:05: boot sequence (5 minutes) [Missed]
+    05:00 - 05:00: make my bed (parallel) [Missed]
+    05:00 - 05:00: dream defrag (0 minutes) [Missed]
+  06:20 - 06:40: breakfast (20 minutes) [Missed]
+    06:20 - 06:20: have breakfast (parallel) [Missed]
+    06:20 - 06:20: take vitamins (parallel) [Missed]
+    06:20 - 06:20: take supplements (parallel) [Missed]
+    06:20 - 06:20: have a glass of water (parallel) [Missed]
+    06:20 - 06:20: have coffee (parallel) [Missed]
+  06:40 - 07:00: hygiene and grooming (20 minutes) [Missed]
+    06:40 - 06:40: wash hands (parallel) [Missed]
+    06:40 - 06:40: oral hygiene (parallel) [Missed]
+      06:40 - 06:40: swish mouthwash (parallel) [Missed]
+      06:40 - 06:40: brush teeth (parallel) [Missed]
+      06:40 - 06:40: deep clean teeth (parallel) [Missed]
+      06:40 - 06:40: deep clean mouth (parallel) [Missed]
+      06:40 - 06:40: whiten teeth (parallel) [Missed]
+    06:40 - 06:40: shower stuff (parallel) [Missed]
+      06:40 - 06:40: shower (parallel) [Missed]
+      06:40 - 06:40: shampoo (parallel) [Missed]
+      06:40 - 06:40: trim body hair (parallel) [Missed]
+      06:40 - 06:40: shave back of neck (parallel) [Missed]
+      06:40 - 06:40: expholiate (parallel) [Missed]
+    06:40 - 06:40: skincare (parallel) [Missed]
+      06:40 - 06:40: wash face (parallel) [Missed]
+      06:40 - 06:40: moisturize (parallel) [Missed]
+      06:40 - 06:40: creams (parallel) [Missed]
+    06:40 - 06:40: shave and shape up (parallel) [Missed]
+      06:40 - 06:40: trim beard (parallel) [Missed]
+      06:40 - 06:40: shave (parallel) [Missed]
+      06:40 - 06:40: trim hair (parallel) [Missed]
+      06:40 - 06:40: trim nose & ear hairs (parallel) [Missed]
+      06:40 - 06:40: trim finger & feet hairs (parallel) [Missed]
+      06:40 - 06:40: cut fingernails & toenails (parallel) [Missed]
+      06:40 - 06:40: clean nails (parallel) [Missed]
+      06:40 - 06:40: swab ears (parallel) [Missed]
+      06:40 - 06:40: apply deodorant (parallel) [Missed]
+      06:40 - 06:40: apply essential oils (parallel) [Missed]
+      06:40 - 06:40: apply fragrance (parallel) [Missed]
+      06:40 - 06:40: dress up (parallel) [Missed]
+      06:40 - 06:40: bling up (parallel) [Missed]
+  12:04 - 18:56: recalibrate and revitalize (412.0 minutes) [Upcoming]
+    12:04 - 12:34: work out (30 minutes) [Upcoming]
+    17:35 - 18:02: set intentions and get ready (27.0 minutes) [Upcoming]
+      11:36 - 11:46: meditation (10 minutes) [Upcoming]
+      11:47 - 11:57: journaling & planning (10 minutes) [Upcoming]
+      11:58 - 12:03: tidy up bedroom (5 minutes) [Upcoming]
+    18:34 - 18:56: warm up (22.0 minutes) [Upcoming]
+      11:13 - 11:18: breathwork (5 minutes) [In Progress]
+      11:19 - 11:24: stretching (5 minutes) [Upcoming]
+      11:25 - 11:35: yoga (10 minutes) [Upcoming]
+21:00 - 22:00: dinner (60 minutes) [Upcoming]
+22:00 - 22:30: evening routine (30 minutes) [Upcoming]
+
+--- Conflicts ---
+Capacity Conflict: Total duration of all items (1507.80484475 minutes) exceeds 24 hours by 67.80484475000003 minutes.
+ _____ _____ _____ _____ _____ _____ _____ 
+|     |  |  | __  |     |   | |     |   __|
+|   --|     |    -|  |  | | | |  |  |__   |
+|_____|__|__|__|__|_____|_|___|_____|_____|
+
+Γî¢ Chronos Engine v1
+≡ƒÜÇ Welcome, Pilot
+≡ƒîî You are the navigator of your reality.
+
+Status-aware pick: using 'sunday.yml' (score 5.00).
+Capacity Conflict: Total duration of all items (1634.80484475 minutes) exceeds 24 hours by 194.80484475000003 minutes.
+≡ƒöä Conflict Resolution Loop - Iteration 1
+≡ƒöä Conflict Resolution Loop - Iteration 2
+≡ƒöä Conflict Resolution Loop - Iteration 3
+≡ƒöä Conflict Resolution Loop - Iteration 4
+≡ƒöä Conflict Resolution Loop - Iteration 5
+≡ƒöä Conflict Resolution Loop - Iteration 6
+≡ƒöä Conflict Resolution Loop - Iteration 7
+≡ƒöä Conflict Resolution Loop - Iteration 8
+≡ƒöä Conflict Resolution Loop - Iteration 9
+≡ƒöä Conflict Resolution Loop - Iteration 10
+Inserting buffers...
+Γ£à Resolved schedule saved to: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\Schedules\today_schedule.yml
+Conflict resolution log saved to: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\Logs\conflict_log_20251228_111348.yml
+
+Rescheduled the following missed blocks:
+- breathwork (now starts at 11:13)
+- stretching (now starts at 11:19)
+- yoga (now starts at 11:25)
+- meditation (now starts at 11:36)
+- journaling & planning (now starts at 11:47)
+- tidy up bedroom (now starts at 11:58)
+- work out (now starts at 12:04)

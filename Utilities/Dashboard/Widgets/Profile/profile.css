@@ -1,0 +1,8 @@
+/* Profile Widget Glass Styling */
+.profile-widget {
+    background: transparent !important;
+}
+
+.profile-widget .content {
+    padding: 12px;
+}

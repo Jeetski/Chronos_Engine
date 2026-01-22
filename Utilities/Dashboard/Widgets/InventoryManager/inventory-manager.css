@@ -1,0 +1,8 @@
+/* InventoryManager Widget Glass Styling */
+.inventory-manager-widget {
+    background: transparent !important;
+}
+
+.inventory-manager-widget .content {
+    padding: 12px;
+}

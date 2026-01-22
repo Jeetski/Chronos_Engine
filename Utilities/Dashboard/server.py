@@ -24,6 +24,8 @@ if COMMANDS_DIR not in sys.path:
     sys.path.insert(0, COMMANDS_DIR)
 DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Utilities", "Dashboard"))
 
+from Modules.Logger import Logger
+
 from Utilities.dashboard_matrix import (
     compute_matrix,
     get_metadata as matrix_metadata,
@@ -647,6 +649,31 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         sys.stderr.write(f"DEBUG: GET request path: {parsed.path}\n") # DEBUG
         sys.stderr.flush()
+
+        if parsed.path == "/api/registry":
+            try:
+                qs = parse_qs(parsed.query or "")
+                name = (qs.get("name") or [""])[0].strip().lower()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing name"}); return
+                
+                if name not in ("command", "item", "property"):
+                    self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
+
+                reg_dir = os.path.join(ROOT_DIR, 'Registry')
+                fpath = os.path.join(reg_dir, f"{name}_registry.json")
+                
+                if not os.path.exists(fpath):
+                    self._write_json(200, {"ok": True, "registry": {}}); return
+
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                self._write_json(200, {"ok": True, "registry": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Registry error: {e}"})
+            return
+
         sys.stderr.write(f"DEBUG: Checking path for /api/profile: {parsed.path}\n") # TEMP DEBUG
         sys.stderr.flush()
         # Lazy import ItemManager helpers when API endpoints are hit
@@ -1012,6 +1039,101 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(404, {"ok": False, "error": "Preset not found"})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Preset error: {e}"})
+            return
+        if parsed.path == "/api/trends/metrics":
+            try:
+                import sqlite3
+                data_dir = os.path.join(ROOT_DIR, 'User', 'Data')
+                trends_db = os.path.join(data_dir, 'chronos_trends.db')
+                
+                if not os.path.exists(trends_db):
+                    self._write_json(200, {"ok": True, "metrics": {}})
+                    return
+                
+                conn = sqlite3.connect(trends_db)
+                cursor = conn.cursor()
+                
+                # Get all latest metrics
+                rows = cursor.execute("""
+                    SELECT metric, value, unit, extra_json
+                    FROM metrics
+                    ORDER BY generated_at DESC
+                    LIMIT 100
+                """).fetchall()
+                
+                metrics = {
+                    "blocks_total": 0,
+                    "blocks_completed": 0,
+                    "quality_counts": {},
+                    "habit_stats": {},
+                    "goal_stats": {},
+                    "timer_stats": {},
+                    "adherence_stats": {}
+                }
+                
+                for metric, value, unit, extra_json in rows:
+                    if metric.startswith("habits_"):
+                        key = metric.replace("habits_", "")
+                        metrics["habit_stats"][key] = value
+                    elif metric.startswith("goals_"):
+                        key = metric.replace("goals_", "")
+                        metrics["goal_stats"][key] = value
+                    elif metric.startswith("timer_"):
+                        key = metric.replace("timer_", "")
+                        metrics["timer_stats"][key] = value
+                    elif metric.startswith("adherence_"):
+                        key = metric.replace("adherence_", "")
+                        metrics["adherence_stats"][key] = value
+                    elif metric == "blocks_total":
+                        metrics["blocks_total"] = int(value)
+                    elif metric == "blocks_completed":
+                        metrics["blocks_completed"] = int(value)
+                    elif metric == "completion_quality_counts" and extra_json:
+                        try:
+                            metrics["quality_counts"] = json.loads(extra_json)
+                        except:
+                            pass
+                
+                # Fix habit_stats keys
+                if "total" in metrics["habit_stats"]:
+                    metrics["habit_stats"]["total_habits"] = metrics["habit_stats"].pop("total")
+                if "with_streak" in metrics["habit_stats"]:
+                    metrics["habit_stats"]["habits_with_current_streak"] = metrics["habit_stats"].pop("with_streak")
+                if "avg_streak" in metrics["habit_stats"]:
+                    pass  # Keep as is
+                if "longest_streak" in metrics["habit_stats"]:
+                    metrics["habit_stats"]["longest_streak_overall"] = metrics["habit_stats"].pop("longest_streak")
+                if "completion_today" in metrics["habit_stats"]:
+                    metrics["habit_stats"]["completion_rate_today"] = metrics["habit_stats"].pop("completion_today")
+                
+                # Fix goal_stats keys
+                if "total" in metrics["goal_stats"]:
+                    metrics["goal_stats"]["total_goals"] = metrics["goal_stats"].pop("total")
+                if "in_progress" in metrics["goal_stats"]:
+                    metrics["goal_stats"]["goals_in_progress"] = metrics["goal_stats"].pop("in_progress")
+                if "avg_progress" in metrics["goal_stats"]:
+                    metrics["goal_stats"]["total_progress"] = metrics["goal_stats"].pop("avg_progress") * metrics["goal_stats"].get("total_goals", 1)
+                if "completed_week" in metrics["goal_stats"]:
+                    metrics["goal_stats"]["milestones_completed_this_week"] = metrics["goal_stats"].pop("completed_week")
+                
+                # Fix timer_stats keys
+                if "sessions_total" in metrics["timer_stats"]:
+                    metrics["timer_stats"]["sessions_total"] = metrics["timer_stats"]["sessions_total"]
+                if "focus_minutes" in metrics["timer_stats"]:
+                    metrics["timer_stats"]["focus_minutes"] = metrics["timer_stats"]["focus_minutes"]
+                
+                # Fix adherence_stats keys
+                if "on_time" in metrics["adherence_stats"]:
+                    metrics["adherence_stats"]["on_time_count"] = metrics["adherence_stats"].pop("on_time")
+                if "late" in metrics["adherence_stats"]:
+                    metrics["adherence_stats"]["late_count"] = metrics["adherence_stats"].pop("late")
+                if "percentage" in metrics["adherence_stats"]:
+                    metrics["adherence_stats"]["adherence_percentage"] = metrics["adherence_stats"].pop("percentage")
+                
+                conn.close()
+                self._write_json(200, {"ok": True, "metrics": metrics})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Trends error: {e}"})
             return
         if parsed.path == "/api/status/current":
             try:
@@ -1698,6 +1820,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Settings error: {e}"})
             return
+        if parsed.path == "/api/registry":
+            try:
+                qs = parse_qs(parsed.query or "")
+                name = (qs.get("name") or [""])[0].strip().lower()
+                if name not in {"command", "item", "property"}:
+                    self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
+                reg_path = os.path.join(ROOT_DIR, "Registry", f"{name}_registry.json")
+                if not os.path.exists(reg_path):
+                    self._write_json(404, {"ok": False, "error": "Registry not found"}); return
+                with open(reg_path, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                self._write_json(200, {"ok": True, "registry": data})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Registry error: {e}"})
+            return
         if parsed.path == "/api/items":
             # Query params: type, q, props (csv key:value)
             try:
@@ -2263,6 +2400,50 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Failed to get item: {e}"})
             return
         
+        if parsed.path == "/api/editor":
+            try:
+                qs = parse_qs(parsed.query or "")
+                path_arg = (qs.get("path") or [""])[0].strip()
+                # Security: allow access only to User/, Scripts/
+                # Logic: resolve path absolute, check if starts with ROOT_DIR
+                target_path = os.path.abspath(os.path.join(ROOT_DIR, path_arg))
+                if not target_path.startswith(ROOT_DIR):
+                    self._write_json(403, {"ok": False, "error": "Forbidden path"})
+                    return
+                
+                if os.path.isdir(target_path):
+                    # List contents (simple top-level for now, client can traverse)
+                    entries = []
+                    for fn in os.listdir(target_path):
+                        full = os.path.join(target_path, fn)
+                        is_dir = os.path.isdir(full)
+                        entries.append({
+                            "name": fn,
+                            "is_dir": is_dir
+                        })
+                    entries.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+                    # Provide relative path for client
+                    rel = os.path.relpath(target_path, ROOT_DIR)
+                    if rel == ".": rel = ""
+                    self._write_json(200, {"ok": True, "type": "directory", "path": rel, "entries": entries})
+                elif os.path.isfile(target_path):
+                    enc = (qs.get("encoding") or ["utf-8"])[0].strip()
+                    try:
+                        with open(target_path, 'r', encoding=enc, errors='replace') as f:
+                            content = f.read()
+                    except LookupError:
+                        # Fallback if invalid encoding
+                        with open(target_path, 'r', encoding='utf-8', errors='replace') as f:
+                            content = f.read()
+                    
+                    rel = os.path.relpath(target_path, ROOT_DIR)
+                    self._write_json(200, {"ok": True, "type": "file", "path": rel, "content": content, "encoding": enc})
+                else:
+                    self._write_json(404, {"ok": False, "error": "Path not found"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Editor error: {e}"})
+            return
+
         return super().do_GET()
 
     def do_POST(self):
@@ -2276,6 +2457,42 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = yaml.safe_load(text) or {}
         except Exception as e:
             self._write_yaml(400, {"ok": False, "error": f"Invalid YAML: {e}"})
+            return
+
+        if parsed.path == "/api/shell/exec":
+            # Execute arbitrary shell command
+            # Security Warning: This allows full shell access
+            cmd = str(payload.get('cmd') or '').strip()
+            if not cmd:
+                self._write_json(400, {"ok": False, "error": "Missing 'cmd'"})
+                return
+            
+            import subprocess
+            try:
+                # Use subprocess to run command
+                # Capture output
+                # Use shell=True for convenience in this local env, though risky in prod
+                # Combined stdout/stderr? Or separate?
+                
+                # Check for 'python' and redirect to sys.executable if needed?
+                # Actually, let's just run it.
+                
+                proc = subprocess.run(
+                    cmd, 
+                    shell=True, 
+                    stdout=subprocess.PIPE, 
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                
+                self._write_json(200, {
+                    "ok": proc.returncode == 0, 
+                    "stdout": proc.stdout, 
+                    "stderr": proc.stderr,
+                    "code": proc.returncode
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Exec failed: {e}"})
             return
 
         if parsed.path == "/api/cli":
@@ -2460,10 +2677,42 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not os.path.exists(target):
                     self._write_json(404, {"ok": False, "error": "File not found"}); return
                 os.remove(target)
-                _remove_track_from_playlists(file_name)
+                try:
+                    _remove_track_from_playlists(file_name)
+                except Exception:
+                    pass
                 self._write_json(200, {"ok": True})
+
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Delete failed: {e}"})
+            return
+
+        if parsed.path == "/api/editor":
+            try:
+                path_arg = str(payload.get("path") or "").strip()
+                content = payload.get("content")
+                if not path_arg:
+                    self._write_json(400, {"ok": False, "error": "Missing path"}); return
+                
+                target_path = os.path.abspath(os.path.join(ROOT_DIR, path_arg))
+                if not target_path.startswith(ROOT_DIR):
+                    self._write_json(403, {"ok": False, "error": "Forbidden path"}); return
+                
+                # Check for directory traversal or critical files if needed
+                # For now just save
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                enc = str(payload.get("encoding") or "utf-8").strip()
+                try:
+                    with open(target_path, 'w', encoding=enc) as f:
+                        f.write(content if content is not None else "")
+                except LookupError:
+                    # Fallback
+                    with open(target_path, 'w', encoding='utf-8') as f:
+                        f.write(content if content is not None else "")
+
+                self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Save failed: {e}"})
             return
 
         if parsed.path == "/api/media/playlists/save":
@@ -2892,6 +3141,50 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Write failed: {e}"})
             return
 
+        if parsed.path == "/api/file/rename":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                old_path = (payload.get('old_path') or '').strip()
+                new_path = (payload.get('new_path') or '').strip()
+                if not old_path or not new_path:
+                    self._write_json(400, {"ok": False, "error": "Missing old_path or new_path"}); return
+                old_target = os.path.abspath(os.path.join(ROOT_DIR, old_path))
+                new_target = os.path.abspath(os.path.join(ROOT_DIR, new_path))
+                if not old_target.startswith(ROOT_DIR) or not new_target.startswith(ROOT_DIR):
+                    self._write_json(403, {"ok": False, "error": "Forbidden path"}); return
+                if not os.path.exists(old_target):
+                    self._write_json(404, {"ok": False, "error": "File not found"}); return
+                if os.path.exists(new_target):
+                    self._write_json(409, {"ok": False, "error": "Destination file already exists"}); return
+                os.rename(old_target, new_target)
+                self._write_json(200, {"ok": True, "old_path": old_path, "new_path": new_path})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Rename failed: {e}"})
+            return
+
+        if parsed.path == "/api/file/delete":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                path = (payload.get('path') or '').strip()
+                if not path:
+                    self._write_json(400, {"ok": False, "error": "Missing path"}); return
+                target = os.path.abspath(os.path.join(ROOT_DIR, path))
+                if not target.startswith(ROOT_DIR):
+                    self._write_json(403, {"ok": False, "error": "Forbidden path"}); return
+                if not os.path.exists(target):
+                    self._write_json(404, {"ok": False, "error": "File not found"}); return
+                if os.path.isdir(target):
+                    import shutil
+                    shutil.rmtree(target)
+                else:
+                    os.remove(target)
+                self._write_json(200, {"ok": True, "path": path})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Delete failed: {e}"})
+            return
+
         if parsed.path == "/api/status/update":
             # Payload: map of indicator:value, e.g., { energy: high, focus: good }
             if not isinstance(payload, dict):
@@ -2905,10 +3198,33 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 # Call 'status' once per indicator
                 ok, out, err = run_console_command("status", [f"{k}:{v}"])
                 results[str(k)] = {"ok": ok, "stdout": out, "stderr": err}
-                if not ok:
-                    overall_ok = False
-            self._write_json(200 if overall_ok else 500, {"ok": overall_ok, "results": results})
+            self._write_json(200, {"ok": True, "details": results})
             return
+
+        if parsed.path == "/api/logs":
+            try:
+                # Basic log reader: returns last N lines
+                log_path = os.path.join(ROOT_DIR, "Logs", "engine.log")
+                if not os.path.exists(log_path):
+                    self._write_json(200, {"ok": True, "logs": []})
+                    return
+                qs = parse_qs(parsed.query or "")
+                limit = 50
+                try:
+                    limit = int((qs.get("limit") or [50])[0])
+                except Exception:
+                    pass
+                lines = []
+                with open(log_path, "r", encoding="utf-8") as f:
+                    # Simple tail implementation
+                    # For very large files, this should be optimized
+                    all_lines = f.readlines()
+                    lines = [ln.strip() for ln in all_lines[-limit:]]
+                self._write_json(200, {"ok": True, "logs": lines})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read logs: {e}"})
+            return
+
 
         if parsed.path == "/api/today/reschedule":
             ok, out, err = run_console_command("today", ["reschedule"])

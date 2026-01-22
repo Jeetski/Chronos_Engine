@@ -1,0 +1,8 @@
+/* Link Widget Glass Styling */
+.link-widget {
+    background: transparent !important;
+}
+
+.link-widget .content {
+    padding: 12px;
+}

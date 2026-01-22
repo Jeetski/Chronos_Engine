@@ -58,4 +58,6 @@ User/**
 !User/**/.gitkeep
 !User/Settings/**
 !User/Profile/**
+!User/Scripts/**
+!User/Scripts/Macros/**
 !User/**/*_example.yml

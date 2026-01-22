@@ -1,0 +1,113 @@
+/* Status Widget Glass Styling */
+.status-widget {
+    background: transparent !important;
+}
+
+.status-widget .content {
+    padding: 12px;
+}
+
+/* Knob Component Styles */
+.status-knob-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+}
+
+.status-knob-row:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border-color: rgba(78, 201, 176, 0.3);
+    transform: translateY(-1px);
+}
+
+.knob-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--chronos-text-muted, #a6adbb);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.knob-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ns-resize;
+    user-select: none;
+    touch-action: none;
+}
+
+.knob-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.08);
+    /* Track */
+    box-sizing: border-box;
+}
+
+.knob-dial {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    /* Active portion handled by rotation/conic if simple, or we use a transform marker */
+    border-top-color: var(--chronos-accent, #7aa2f7);
+    box-sizing: border-box;
+    transform: rotate(-135deg);
+    /* Start position */
+    transition: transform 0.1s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.knob-dial::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px var(--chronos-accent, #7aa2f7);
+}
+
+.knob-value-display {
+    min-width: 80px;
+    text-align: right;
+    font-family: var(--chronos-font-mono, monospace);
+    color: var(--chronos-accent, #7aa2f7);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.15) 100%);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    pointer-events: none;
+}
+
+/* Hover effects */
+.knob-container:hover .knob-ring {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.knob-container:active .knob-dial {
+    border-top-color: var(--chronos-accent-strong, #3d59a1);
+    transition: none;
+    /* Instant feedback when dragging */
+}

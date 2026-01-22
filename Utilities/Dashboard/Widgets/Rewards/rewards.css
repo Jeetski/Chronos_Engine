@@ -1,0 +1,8 @@
+/* Rewards Widget Glass Styling */
+.rewards-widget {
+    background: transparent !important;
+}
+
+.rewards-widget .content {
+    padding: 12px;
+}

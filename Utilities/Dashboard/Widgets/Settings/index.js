@@ -1,4 +1,15 @@
 export function mount(el) {
+  // Load CSS
+  if (!document.getElementById('settings-css')) {
+    const link = document.createElement('link');
+    link.id = 'settings-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/Settings/settings.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget settings-widget';
+
   el.innerHTML = `
     <div class="header" id="settingsHeader">
       <div class="title">Settings</div>

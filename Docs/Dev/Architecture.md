@@ -6,9 +6,10 @@ This guide explains how Chronos fits together so you can extend it confidently.
 
 - CLI Entrypoint — `Modules/Console.py`
   - Adds project paths, sets UTF-8, and loads `Commands/*.py` dynamically.
-  - Parses interactive input, CLI args, and `.chs` scripts (supports nested `if/elseif/else/end`).
+  - Parses interactive input, CLI args, and `.chs` scripts (supports nested `if/elseif/else/end` and loop blocks).
   - Uses `Modules/Variables.py` for in-memory variables and token expansion (e.g., `@nickname`).
   - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `Modules/MacroEngine.py` (enabled by `User/Scripts/Macros/macros.yml`). Dashboard calls also pass through these hooks.
+  - Autosuggest and autocomplete are registry-driven; see `Docs/Dev/Autosuggest.md` for the slot model and refresh workflow.
 
 ### 2. Item System (`Modules/ItemManager.py`)
 Items are the atoms of Chronos. They are stored as YAML files in the `User/` directory.

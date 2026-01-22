@@ -8,10 +8,12 @@
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
   --radius: 12px;
 
-  --chronos-surface: rgba(30, 16, 25, 0.94);
-  --chronos-surface-strong: #1b0c14;
-  --chronos-surface-soft: rgba(18, 9, 14, 0.78);
-  --chronos-surface-highlight: rgba(63, 30, 48, 0.85);
+  /* Core surfaces - Liquid Glass Transparencies */
+  --chronos-bg: #1a0f15;
+  --chronos-surface: rgba(35, 20, 28, 0.5);
+  --chronos-surface-strong: rgba(26, 14, 20, 0.65);
+  --chronos-surface-soft: rgba(35, 20, 28, 0.3);
+  --chronos-surface-highlight: rgba(58, 30, 40, 0.4);
 
   --chronos-border: #3c1c2d;
   --chronos-border-strong: #5e2941;

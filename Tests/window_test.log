@@ -1,0 +1,45 @@
+--- Today's Schedule ---
+05:00 - 15:24: morning routine (624.8358858666667 minutes) [In Progress]
+  05:00 - 05:05: boot sequence (5 minutes) [Missed]
+    05:00 - 05:00: make my bed (parallel) [Missed]
+    05:00 - 05:00: dream defrag (0 minutes) [Missed]
+  06:20 - 06:40: breakfast (20 minutes) [Missed]
+    06:20 - 06:20: have breakfast (parallel) [Missed]
+    06:20 - 06:20: take vitamins (parallel) [Missed]
+    06:20 - 06:20: take supplements (parallel) [Missed]
+    06:20 - 06:20: have a glass of water (parallel) [Missed]
+    06:20 - 06:20: have coffee (parallel) [Missed]
+15:50 - 16:50: lunch (60 minutes) [Upcoming]
+16:51 - 22:51: deep work block 1 (360 minutes) [Upcoming]
+22:51 - 22:56: evening routine (5.0 minutes) [Upcoming]
+  22:51 - 22:56: brush teeth (5 minutes) [Upcoming]
+22:56 - 04:17: deep work block 2 (321.01531520000003 minutes) [Upcoming]
+04:17 - 04:22: dinner (5.0 minutes) [Upcoming]
+ _____ _____ _____ _____ _____ _____ _____ 
+|     |  |  | __  |     |   | |     |   __|
+|   --|     |    -|  |  | | | |  |  |__   |
+|_____|__|__|__|__|_____|_|___|_____|_____|
+
+Γî¢ Chronos Engine v1
+≡ƒÜÇ Welcome, Pilot
+≡ƒîî You are the navigator of your reality.
+
+Capacity Conflict: Total duration of all items (1909.8358858666666 minutes) exceeds 24 hours by 469.83588586666656 minutes.
+≡ƒöä Conflict Resolution Loop - Iteration 1
+≡ƒöä Conflict Resolution Loop - Iteration 2
+≡ƒöä Conflict Resolution Loop - Iteration 3
+Γ£à All conflicts resolved and capacity within limits.
+Inserting buffers...
+Γ£à Resolved schedule saved to: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\Schedules\today_schedule.yml
+Conflict resolution log saved to: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\Logs\conflict_log_20251228_142850.yml
+
+Rescheduled the following missed blocks:
+- breathwork (now starts at 14:28)
+- stretching (now starts at 14:34)
+- yoga (now starts at 14:40)
+- meditation (now starts at 14:51)
+- journaling & planning (now starts at 15:02)
+- tidy up bedroom (now starts at 15:13)
+- work out (now starts at 15:19)
+- lunch (now starts at 15:50)
+- deep work block 1 (now starts at 16:51)

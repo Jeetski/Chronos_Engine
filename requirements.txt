@@ -12,3 +12,6 @@ colorama>=0.4.6
 # Optional simple audio utility; retained for compatibility
 playsound>=1.2.2
 
+# CLI UX (autocomplete/suggestions)
+prompt_toolkit>=3.0.43
+

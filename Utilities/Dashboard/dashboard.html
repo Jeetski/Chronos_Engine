@@ -33,6 +33,28 @@
       .dropdown .item { display:flex; align-items:center; gap:8px; padding: 6px 10px; color: var(--text); cursor: pointer; border-radius: 6px; width: 100%; }
       .dropdown .item:hover { background: #0f141d; }
       .dropdown .item.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+      .dev-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 6px;
+        padding: 1px 6px 1px 4px;
+        border-radius: 10px;
+        font-size: 10px;
+        letter-spacing: 0.2px;
+        text-transform: uppercase;
+        color: #ffb14a;
+        border: 1px solid rgba(255,177,74,0.45);
+        background: rgba(255,177,74,0.12);
+        white-space: nowrap;
+      }
+      .dev-badge::before {
+        content: '';
+        width: 10px;
+        height: 10px;
+        display: inline-block;
+        background: no-repeat center/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffb14a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M2 6l4-4 4 4-4 4z'/><path d='M7 7l6 6'/><path d='M9 2h5v3'/></svg>");
+      }
       .dropdown .wizard-item { flex-direction: row; align-items: center; gap: 8px; }
       .dropdown .wizard-title { font-weight: 600; }
       .dropdown .theme-item { align-items: center; justify-content: space-between; gap: 10px; }
@@ -85,8 +107,8 @@
       .btn { background: linear-gradient(180deg, #1a2130, #151b28); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; cursor: pointer; transition: transform 60ms ease, background 120ms ease, border-color 120ms ease; }
       .btn:hover { border-color: #2b3343; background: linear-gradient(180deg, #21293a, #181e2e); }
       .btn:active { transform: translateY(1px); }
-      .btn-primary { background: linear-gradient(180deg, #2a5cff, #2048d6); border-color: #2a55e0; }
-      .btn-primary:hover { background: linear-gradient(180deg, #3466ff, #2850e6); border-color: #355eef; }
+      .btn-primary { background: var(--chronos-accent-gradient); border-color: var(--chronos-accent-strong); color: var(--chronos-text); }
+      .btn-primary:hover { background: color-mix(in srgb, var(--chronos-accent) 80%, #0b0f18); border-color: var(--chronos-accent); }
       .btn-secondary { background: linear-gradient(180deg, #1a2130, #151b28); }
       /* Resizer handles for all Widgets */
       .widget { position: fixed; }
@@ -148,6 +170,7 @@
       <aside class="widget" id="itemManagerWidget" style="display: none; right: 900px; top: 60px; width: 760px;" data-widget="ItemManager" data-label="Items"></aside>
       <aside class="widget" id="inventoryManagerWidget" style="display: none; right: 20px; top: 1720px; width: 760px;" data-widget="InventoryManager" data-label="Inventories"></aside>
       <aside class="widget" id="timerWidget" style="display: none; right: 20px; top: 540px; width: 420px;" data-widget="Timer" data-label="Timer"></aside>
+      <aside class="widget" id="trendsWidget" style="display: none; right: 20px; top: 120px; width: 650px; height: 450px;" data-widget="Trends" data-label="Performance"></aside>
       <aside class="widget" id="mp3Widget" style="display: none; right: 20px; top: 1080px; width: 420px;" data-widget="MP3Player" data-label="MP3 Player"></aside>
       <aside class="widget" id="goalTrackerWidget" style="display: none; right: 460px; top: 540px; width: 520px;" data-widget="GoalTracker" data-label="Goals"></aside>
       <aside class="widget" id="commitmentsWidget" style="display: none; right: 20px; top: 1320px; width: 520px;" data-widget="Commitments" data-label="Commitments"></aside>

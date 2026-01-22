@@ -1,0 +1,8 @@
+/* Review Widget Glass Styling */
+.review-widget {
+    background: transparent !important;
+}
+
+.review-widget .content {
+    padding: 12px;
+}

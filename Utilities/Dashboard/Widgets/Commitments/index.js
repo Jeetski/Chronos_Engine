@@ -1,4 +1,15 @@
 export function mount(el) {
+  // Load CSS
+  if (!document.getElementById('commitments-css')) {
+    const link = document.createElement('link');
+    link.id = 'commitments-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/Commitments/commitments.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget commitments-widget';
+
   const tpl = `
     <style>
       .cm-content { display:flex; flex-direction:column; gap:10px; min-height:0; }
@@ -81,121 +92,121 @@ export function mount(el) {
   const metEl = el.querySelector('#cmMet');
   const violationEl = el.querySelector('#cmViolations');
 
-  btnMin.addEventListener('click', ()=> el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', ()=> { el.style.display='none'; try { window?.ChronosBus?.emit?.('widget:closed','Commitments'); } catch {} });
+  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Commitments'); } catch { } });
 
-  function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+  function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
   let commitments = [];
-  let counts = { total:0, met:0, violations:0, pending:0 };
+  let counts = { total: 0, met: 0, violations: 0, pending: 0 };
   let loading = false;
 
-  function setStatus(msg, tone){
+  function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
-    statusLine.className = `cm-status${tone ? ' '+tone : ''}`;
+    statusLine.className = `cm-status${tone ? ' ' + tone : ''}`;
   }
 
-  async function refresh(dataOnly=false){
+  async function refresh(dataOnly = false) {
     if (loading) return;
     loading = true;
     if (!dataOnly) setStatus('Loading commitments...');
-    try{
-      const resp = await fetch(apiBase()+"/api/commitments");
+    try {
+      const resp = await fetch(apiBase() + "/api/commitments");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const json = await resp.json();
       commitments = Array.isArray(json?.commitments) ? json.commitments : [];
-      counts = json?.counts || { total: commitments.length, met:0, violations:0, pending:0 };
+      counts = json?.counts || { total: commitments.length, met: 0, violations: 0, pending: 0 };
       renderSummary();
       renderList();
       if (!dataOnly) setStatus('');
-    }catch(err){
+    } catch (err) {
       console.warn('[Commitments] refresh failed', err);
       setStatus('Failed to load commitments.', 'error');
-    }finally{
+    } finally {
       loading = false;
     }
   }
 
-  function renderSummary(){
+  function renderSummary() {
     totalEl.textContent = (counts.total ?? commitments.length).toString();
-    metEl.textContent = (counts.met ?? commitments.filter(c=>c.status==='met').length).toString();
-    violationEl.textContent = (counts.violations ?? commitments.filter(c=>c.status==='violation').length).toString();
+    metEl.textContent = (counts.met ?? commitments.filter(c => c.status === 'met').length).toString();
+    violationEl.textContent = (counts.violations ?? commitments.filter(c => c.status === 'violation').length).toString();
   }
 
-  function renderList(){
+  function renderList() {
     listEl.innerHTML = '';
-    const term = (searchEl.value||'').trim().toLowerCase();
-    const wanted = (statusSel.value||'all').toLowerCase();
-    const filtered = commitments.filter(item=>{
-      if (wanted !== 'all' && (item.status||'').toLowerCase() !== wanted) return false;
+    const term = (searchEl.value || '').trim().toLowerCase();
+    const wanted = (statusSel.value || 'all').toLowerCase();
+    const filtered = commitments.filter(item => {
+      if (wanted !== 'all' && (item.status || '').toLowerCase() !== wanted) return false;
       if (!term) return true;
-      const hay = `${item.name||''} ${item.description||''} ${item.period||''} ${(item.associated||[]).map(a=>a.name||'').join(' ')}`.toLowerCase();
+      const hay = `${item.name || ''} ${item.description || ''} ${item.period || ''} ${(item.associated || []).map(a => a.name || '').join(' ')}`.toLowerCase();
       return hay.includes(term);
     });
-    if (!filtered.length){
-      const empty=document.createElement('div');
-      empty.className='cm-card-meta';
-      empty.style.padding='16px';
-      empty.style.border='1px dashed var(--border)';
-      empty.style.borderRadius='8px';
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'cm-card-meta';
+      empty.style.padding = '16px';
+      empty.style.border = '1px dashed var(--border)';
+      empty.style.borderRadius = '8px';
       empty.textContent = commitments.length ? 'No commitments match that filter.' : 'Define commitments via CLI to see them here.';
       listEl.appendChild(empty);
       return;
     }
-    filtered.sort((a,b)=>{
-      const rank = { 'violation':0,'pending':1,'met':2 };
-      const ar = rank[(a.status||'pending').toLowerCase()] ?? 1;
-      const br = rank[(b.status||'pending').toLowerCase()] ?? 1;
+    filtered.sort((a, b) => {
+      const rank = { 'violation': 0, 'pending': 1, 'met': 2 };
+      const ar = rank[(a.status || 'pending').toLowerCase()] ?? 1;
+      const br = rank[(b.status || 'pending').toLowerCase()] ?? 1;
       if (ar !== br) return ar - br;
-      return String(a.name||'').localeCompare(String(b.name||''), undefined, { sensitivity:'base' });
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
     });
-    filtered.forEach(item=>{
-      const card=document.createElement('div');
-      card.className='cm-item';
-      const head=document.createElement('div');
-      head.className='cm-head';
-      const name=document.createElement('div');
-      name.className='cm-name';
-      name.textContent=item.name||'Commitment';
-      const pill=document.createElement('div');
-      const state=(item.status||'pending').toLowerCase();
-      pill.className=`cm-pill ${state}`;
-      pill.textContent = state.charAt(0).toUpperCase()+state.slice(1);
-      head.append(name,pill);
+    filtered.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'cm-item';
+      const head = document.createElement('div');
+      head.className = 'cm-head';
+      const name = document.createElement('div');
+      name.className = 'cm-name';
+      name.textContent = item.name || 'Commitment';
+      const pill = document.createElement('div');
+      const state = (item.status || 'pending').toLowerCase();
+      pill.className = `cm-pill ${state}`;
+      pill.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      head.append(name, pill);
 
-      const desc=document.createElement('div');
-      desc.className='cm-meta';
-      desc.textContent=item.description || 'No description.';
+      const desc = document.createElement('div');
+      desc.className = 'cm-meta';
+      desc.textContent = item.description || 'No description.';
 
-      const freq=document.createElement('div');
-      freq.className='cm-meta';
+      const freq = document.createElement('div');
+      freq.className = 'cm-meta';
       const req = item.times_required || 0;
       const prog = item.progress || 0;
       freq.textContent = req ? `Progress: ${prog}/${req} this ${item.period || 'period'}` : 'Progress: n/a';
 
-      const assoc=document.createElement('div');
-      assoc.className='cm-meta';
-      const assocNames = (item.associated||[]).map(it=> `${it.type||'?'}:${it.name||''}`).filter(Boolean).join(', ');
+      const assoc = document.createElement('div');
+      assoc.className = 'cm-meta';
+      const assocNames = (item.associated || []).map(it => `${it.type || '?'}:${it.name || ''}`).filter(Boolean).join(', ');
       if (assocNames) assoc.textContent = `Associated: ${assocNames}`;
 
-      const forb=document.createElement('div');
-      forb.className='cm-meta';
-      const forbNames = (item.forbidden||[]).map(it=> `${it.type||'?'}:${it.name||''}`).filter(Boolean).join(', ');
+      const forb = document.createElement('div');
+      forb.className = 'cm-meta';
+      const forbNames = (item.forbidden || []).map(it => `${it.type || '?'}:${it.name || ''}`).filter(Boolean).join(', ');
       if (forbNames) forb.textContent = `Forbidden: ${forbNames}`;
 
-      const stamps=document.createElement('div');
-      stamps.className='cm-meta';
-      const stampBits=[];
+      const stamps = document.createElement('div');
+      stamps.className = 'cm-meta';
+      const stampBits = [];
       if (item.last_met) stampBits.push(`Last met: ${item.last_met}`);
       if (item.last_violation) stampBits.push(`Last violation: ${item.last_violation}`);
       stamps.textContent = stampBits.join(' | ');
 
-      const actions=document.createElement('div');
-      actions.className='cm-actions';
-      const evalBtn=document.createElement('button');
-      evalBtn.className='btn btn-secondary';
-      evalBtn.textContent='Evaluate';
-      evalBtn.addEventListener('click', ()=> runEvaluation());
+      const actions = document.createElement('div');
+      actions.className = 'cm-actions';
+      const evalBtn = document.createElement('button');
+      evalBtn.className = 'btn btn-secondary';
+      evalBtn.textContent = 'Evaluate';
+      evalBtn.addEventListener('click', () => runEvaluation());
       actions.appendChild(evalBtn);
 
       card.append(head, desc, freq);
@@ -207,35 +218,35 @@ export function mount(el) {
     });
   }
 
-  async function runEvaluation(){
+  async function runEvaluation() {
     setStatus('Evaluating commitments...');
-    try{
+    try {
       const payload = { command: 'commitments', args: ['check'], properties: {} };
-      const resp = await fetch(apiBase()+"/api/cli", {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
+      const resp = await fetch(apiBase() + "/api/cli", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const text = await resp.text();
-      if (!resp.ok){
+      if (!resp.ok) {
         throw new Error(text || `HTTP ${resp.status}`);
       }
       await refresh(true);
       renderSummary();
       renderList();
       setStatus('Commitments evaluated.', 'success');
-    }catch(err){
+    } catch (err) {
       console.warn('[Commitments] evaluate failed', err);
       setStatus(`Evaluation failed: ${err.message || err}`, 'error');
     }
   }
 
-  searchEl.addEventListener('input', ()=> renderList());
-  statusSel.addEventListener('change', ()=> renderList());
-  refreshBtn.addEventListener('click', ()=> refresh());
-  evaluateBtn.addEventListener('click', ()=> runEvaluation());
+  searchEl.addEventListener('input', () => renderList());
+  statusSel.addEventListener('change', () => renderList());
+  refreshBtn.addEventListener('click', () => refresh());
+  evaluateBtn.addEventListener('click', () => runEvaluation());
 
   refresh();
 
-  return { refresh: ()=> refresh() };
+  return { refresh: () => refresh() };
 }

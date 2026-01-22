@@ -76,6 +76,39 @@ else
 end
 ```
 
+## Loops
+
+Loops are bounded and available in `.chs` scripts. Each loop exposes `@i` as a
+1-based index during iteration.
+
+### `repeat`
+
+```
+repeat count:3 then
+  echo Pass @i
+end
+```
+
+### `for`
+
+Iterates items and sets `@<var>` (item name) and `@<var>_type` (item type).
+
+```
+for item in tasks status:pending then
+  echo @item
+end
+```
+
+### `while`
+
+Requires a max to prevent infinite loops.
+
+```
+while status:energy eq high max:3 then
+  echo Still high @i
+end
+```
+
 ## Errors
 
 - Single-line and block `if` report concise parse errors.

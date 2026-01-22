@@ -23,12 +23,15 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - **Cockpit** - A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, and **Deadlines**. See `Docs/Guides/Cockpit.md` for panel details and troubleshooting.
   - The Matrix panel ships with curated presets (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category) so you can load a meaningful pivot immediately before saving your own variations.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
+- **Editor** - A full-featured code editor for managing Chronos scripts (`.chs`), YAML settings, and Markdown notes (`User/` directory).
+  - **Features**: Syntax Highlighting, Shell Integration (`Run > Run File`), Settings (Theme/Tab Size), and Sidebar File Management.
+  - **Shell Integration**: Can execute system commands (like `python`) directly from the integrated Terminal.
 
 ### Widgets (mounted via `data-widget="Name"`)
 - **Scheduler (Today widget)** - Trim (-5/-10/custom), change start time, cut, mark complete, reschedule. Selecting a Calendar date loads a read-only preview for that day; actions remain today-only. Optional `fx` toggle expands variables in labels.
 - **Item Manager** - Search/browse by type (defaults include every registered item type). YAML editor, copy/rename/delete, bulk delete/setprop/copy/export.
 - **Variables** - Inspect/edit runtime variables shared with the CLI, including `set`/`unset` rows and text expansion.
-- **Terminal** - Runs CLI commands via `/api/cli`, supports history, Ctrl+L clear, variable expansion, and theming based on profile preferences.
+- **Terminal** - Runs CLI commands via `/api/cli`. Features **autosuggest** (commands/items/props) and **shell execution** (passes unknown commands like `python` or `git` to system shell).
 - **Link** - Connect to a peer and sync a shared Canvas board (polling, last-write-wins).
 - **Habit Tracker** - Snapshot of habits with polarity, streaks, and today's status.
 - **Goal Tracker** - Goal list + detail view, milestone progress, "Start Focus" to bind the Timer, buttons to mark milestones complete.
@@ -78,8 +81,9 @@ Base URL: `http://127.0.0.1:7357`. JSON responses unless stated.
 - `GET /api/today` - YAML blocks with start/end/text/type/depth/is_parallel/order.
 - `POST /api/today/reschedule` - runs `today reschedule` through the CLI pipeline.
 
-### CLI Bridge
+### CLI Bridge & Shell
 - `POST /api/cli` - `{ command, args: [], properties: {} }`; runs commands in-process (falls back to subprocess).
+- `POST /api/shell/exec` - `{ cmd: "string" }`; executes arbitrary system commands via subprocess (requires security caution).
 
 ### Profile, Theme, Variables
 - `GET /api/profile` / `GET /api/theme?name=THEME`.
@@ -92,6 +96,11 @@ Base URL: `http://127.0.0.1:7357`. JSON responses unless stated.
 - `POST /api/item/copy|rename|delete`
 - `POST /api/items/delete|setprop|copy|export`
 - `POST /api/open-in-editor`
+
+### Editor & Registry
+- `GET /api/editor?path=...` - List directory or read file content.
+- `POST /api/editor` - `{ path, content, encoding }` to save files.
+- `GET /api/registry?name=command|item|property` - Returns JSON registry for autosuggest.
 
 ### Habits, Goals, Milestones, Commitments
 - `GET /api/habits`

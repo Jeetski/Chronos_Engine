@@ -29,6 +29,7 @@ Development
 - Sequence Mirrors: `Docs/Dev/Sequence.md` - SQLite mirrors and trends pipeline.
 - Macros (BEFORE/AFTER): `Docs/Dev/Macros.md` - command hooks and macro config.
 - CHS Scripting: `Docs/Dev/CHS_Scripting.md` - scripting language reference.
+- Autosuggest: `Docs/Dev/Autosuggest.md` - CLI and dashboard autosuggest/autocomplete design.
 
 Designs
 - Cockpit Matrix Panel: `Docs/Designs/cockpit_matrix_panel.md` - design notes for the matrix panel.

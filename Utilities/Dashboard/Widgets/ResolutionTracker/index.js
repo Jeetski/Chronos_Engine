@@ -1,4 +1,15 @@
 export async function mount(el, context) {
+  // Load CSS
+  if (!document.getElementById('resolution-tracker-css')) {
+    const link = document.createElement('link');
+    link.id = 'resolution-tracker-css';
+    link.rel = 'stylesheet';
+    link.href = './Widgets/ResolutionTracker/resolution-tracker.css';
+    document.head.appendChild(link);
+  }
+
+  el.className = 'widget resolution-tracker-widget';
+
   const tpl = `
     <div class="header" id="resolutionHeader">
       <div class="title">Resolutions</div>
