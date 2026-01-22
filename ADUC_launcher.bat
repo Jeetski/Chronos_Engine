@@ -12,7 +12,7 @@ set "CHRONOS_ROOT=%~dp0"
 :: Remove trailing backslash
 if "%CHRONOS_ROOT:~-1%"=="\" set "CHRONOS_ROOT=%CHRONOS_ROOT:~0,-1%"
 
-set "ADUC_DIR=%CHRONOS_ROOT%\Agents Dress Up Comittee"
+set "ADUC_DIR=%CHRONOS_ROOT%\Agents Dress Up Committee"
 set "DOCS_DIR=%CHRONOS_ROOT%\Docs"
 set "CTX_FILE=%TEMP%\chronos_full_context.md"
 set "ADUC_TEMP_DIR=%TEMP%\ADUC"

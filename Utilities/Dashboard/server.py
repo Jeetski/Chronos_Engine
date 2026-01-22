@@ -44,7 +44,7 @@ _LISTENER_PROC = None
 _ADUC_PORT = 8080
 _ADUC_LOG_PATH = os.path.join(tempfile.gettempdir(), "aduc_launch.log")
 _ADUC_NO_BROWSER_FLAG = os.path.join(tempfile.gettempdir(), "ADUC", "no_browser.flag")
-_ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Comittee", "temp", "no_browser.flag")
+_ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "temp", "no_browser.flag")
 _LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "link_settings.yml")
 
 def _load_link_settings():
