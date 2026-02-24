@@ -1,0 +1,11 @@
+name: schedule_parallel_weekday
+label: Parallel Blocks x Weekday
+rows:
+- schedule_is_parallel
+cols:
+- schedule_weekday
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

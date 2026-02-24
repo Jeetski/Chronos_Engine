@@ -26,7 +26,7 @@ export function mount(el, context) {
       .rw-list { display:flex; flex-direction:column; gap:10px; min-height:120px; max-height:clamp(220px, 45vh, 420px); overflow:auto; }
       .rw-reward { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; display:flex; flex-direction:column; gap:6px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); }
       .rw-reward.disabled { opacity:0.65; }
-      .rw-reward-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+      .rw-reward-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:nowrap; gap:6px; cursor:pointer; }
       .rw-name { font-size:15px; font-weight:700; }
       .rw-cost { font-weight:700; color:#f6c177; }
       .rw-tags { display:flex; flex-wrap:wrap; gap:4px; font-size:11px; }
@@ -36,6 +36,11 @@ export function mount(el, context) {
       .rw-status.success { color:#5bdc82; }
       .rw-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
       .rw-empty { border:1px dashed var(--border); border-radius:10px; padding:20px; text-align:center; color:var(--text-dim); }
+      .rw-head-left { display:flex; align-items:center; gap:8px; min-width:0; }
+      .rw-expander { font-size:12px; color:var(--text-dim); width:14px; text-align:center; user-select:none; }
+      .rw-head-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+      .rw-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
+      .rw-reward.expanded .rw-detail { display:flex; }
     </style>
     <div class="header">
       <div class="title">Rewards</div>
@@ -106,6 +111,7 @@ export function mount(el, context) {
   let balance = 0;
   let history = [];
   let loading = false;
+  const expanded = new Set();
 
   function setStatus(msg, tone) {
     statusEl.textContent = msg || '';
@@ -197,16 +203,43 @@ export function mount(el, context) {
     }
     sorted.forEach(item => {
       const card = document.createElement('div');
+      const itemName = item.name || '';
+      const key = itemName.toLowerCase();
+      const isExpanded = expanded.has(key);
       card.className = 'rw-reward' + (item.available ? '' : ' disabled');
+      if (isExpanded) card.classList.add('expanded');
       const head = document.createElement('div');
       head.className = 'rw-reward-head';
+      const headLeft = document.createElement('div');
+      headLeft.className = 'rw-head-left';
+      const expander = document.createElement('div');
+      expander.className = 'rw-expander';
+      expander.textContent = isExpanded ? '▼' : '▶';
       const name = document.createElement('div');
       name.className = 'rw-name';
-      name.textContent = expandText(item.name || '');
+      name.textContent = expandText(itemName);
       const cost = document.createElement('div');
       cost.className = 'rw-cost';
       cost.textContent = `${item.cost_points || 0} pts`;
-      head.append(name, cost);
+
+      const headActions = document.createElement('div');
+      headActions.className = 'rw-head-actions';
+      const redeemBtn = document.createElement('button');
+      redeemBtn.className = 'btn btn-primary';
+      redeemBtn.textContent = 'Redeem';
+      const needsPoints = (item.cost_points || 0) > balance;
+      const disable = !item.available || needsPoints;
+      redeemBtn.disabled = disable;
+      redeemBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        redeemReward(item, redeemBtn);
+      });
+      headActions.append(redeemBtn, cost);
+      headLeft.append(expander, name);
+      head.append(headLeft, headActions);
+
+      const detail = document.createElement('div');
+      detail.className = 'rw-detail';
       const desc = document.createElement('div');
       desc.className = 'rw-meta';
       desc.textContent = expandText(item.description || 'No description.');
@@ -236,21 +269,24 @@ export function mount(el, context) {
       else if (!item.cooldown_ready && item.cooldown_remaining_minutes) {
         statusText = `Cooldown ${item.cooldown_remaining_minutes}m`;
       }
-      const needsPoints = (item.cost_points || 0) > balance;
       if (needsPoints) statusText += ` - need ${(item.cost_points || 0) - balance} more pts`;
       statusLine.textContent = statusText;
-      const actions = document.createElement('div');
-      actions.className = 'rw-actions';
-      const redeemBtn = document.createElement('button');
-      redeemBtn.className = 'btn btn-primary';
-      redeemBtn.textContent = 'Redeem';
-      const disable = !item.available || needsPoints;
-      redeemBtn.disabled = disable;
-      redeemBtn.addEventListener('click', () => redeemReward(item, redeemBtn));
-      actions.appendChild(redeemBtn);
-      card.append(head, desc, meta);
-      if (tagWrap.children.length) card.appendChild(tagWrap);
-      card.append(statusLine, actions);
+
+      detail.append(desc, meta);
+      if (tagWrap.children.length) detail.appendChild(tagWrap);
+      detail.append(statusLine);
+      card.append(head, detail);
+      head.addEventListener('click', () => {
+        if (card.classList.contains('expanded')) {
+          card.classList.remove('expanded');
+          expanded.delete(key);
+          expander.textContent = '▶';
+        } else {
+          card.classList.add('expanded');
+          expanded.add(key);
+          expander.textContent = '▼';
+        }
+      });
       listEl.appendChild(card);
     });
   }
@@ -268,7 +304,7 @@ export function mount(el, context) {
         body: JSON.stringify({ name: item.name })
       });
       const data = await resp.json().catch(() => ({}));
-      if (!resp.ok || data.ok === False) {
+      if (!resp.ok || data.ok === false) {
         const err = data?.stderr || data?.error || 'Redeem failed';
         throw new Error(err);
       }

@@ -1,0 +1,10 @@
+--- 1. Syncing Core DB ---
+Error syncing DB: cannot import name 'build_block_key' from 'Modules.Scheduler' (c:\Users\david\Desktop\Hivemind Studio\Chronos Engine\Modules\Scheduler\__init__.py)
+
+--- 2. Running Kairos Scheduler ---
+[Kairos] Generating schedule for 2026-02-03...
+[Kairos Debug] DB returned 23 tasks/goals.
+[Kairos Debug] DB returned 3 commitments.
+[Kairos] Gathered 26 candidates.
+[Kairos] Filtered down to 26 valid items.
+Error running scheduler: 'NoneType' object has no attribute 'lower'

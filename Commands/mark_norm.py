@@ -1,12 +1,46 @@
 
 import os
 import yaml
+from datetime import datetime
 from Modules.ItemManager import get_item_path, read_item_data, write_item_data
 from Modules.Scheduler import schedule_path_for_date, build_block_key
-from Commands.today import load_completion_payload
+from Commands.Today import load_completion_payload
 from Modules import quality_utils
+try:
+    from Utilities import points as Points
+except Exception:
+    Points = None
 
-def find_item_in_nested_schedule(schedule, item_name):
+def _normalize_time_str(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    if isinstance(value, str):
+        txt = value.strip()
+        if not txt:
+            return None
+        try:
+            parsed = datetime.strptime(txt, "%H:%M")
+        except ValueError:
+            return None
+        return parsed.strftime("%H:%M")
+    return None
+
+def _minutes_between(start_str, end_str):
+    if not start_str or not end_str:
+        return None
+    try:
+        start_dt = datetime.strptime(start_str, "%H:%M")
+        end_dt = datetime.strptime(end_str, "%H:%M")
+    except Exception:
+        return None
+    minutes = int((end_dt - start_dt).total_seconds() // 60)
+    if minutes <= 0:
+        return None
+    return minutes
+
+def find_item_in_nested_schedule(schedule, item_name, desired_start=None):
     """
     Recursively searches for an item by name in the nested schedule structure.
     Returns the item dictionary if found, otherwise None.
@@ -14,14 +48,22 @@ def find_item_in_nested_schedule(schedule, item_name):
     if not schedule:
         return None
 
+    candidates = []
     for item in schedule:
         if isinstance(item, dict) and item.get('name', '').strip().lower() == item_name.strip().lower():
-            return item
+            candidates.append(item)
         if "children" in item and item["children"]:
-            found_in_children = find_item_in_nested_schedule(item["children"], item_name)
+            found_in_children = find_item_in_nested_schedule(item["children"], item_name, desired_start)
             if found_in_children:
-                return found_in_children
-    return None
+                candidates.append(found_in_children)
+    if not candidates:
+        return None
+    if desired_start:
+        for item in candidates:
+            start_time = item.get("start_time")
+            if start_time and _normalize_time_str(start_time) == desired_start:
+                return item
+    return candidates[0]
 
 def run(args, properties):
     """
@@ -64,7 +106,9 @@ def run(args, properties):
     with open(schedule_path, 'r') as f:
         schedule = yaml.safe_load(f)
 
-    item_in_schedule = find_item_in_nested_schedule(schedule, item_name)
+    desired_start = _normalize_time_str(properties.get("start_time") or properties.get("scheduled_start"))
+    desired_end = _normalize_time_str(properties.get("end_time") or properties.get("scheduled_end"))
+    item_in_schedule = find_item_in_nested_schedule(schedule, item_name, desired_start)
 
     if not item_in_schedule:
         # If not found in schedule, it might be a non-scheduled item, try to get its type from its name
@@ -99,15 +143,17 @@ def run(args, properties):
         print(err)
         return
 
-    if is_repeating:
-        # This is a repeating item, so update the completion file
-        scheduled_start = None
-        scheduled_end = None
-        if item_in_schedule:
-            if item_in_schedule.get("start_time"):
-                scheduled_start = item_in_schedule["start_time"].strftime("%H:%M")
-            if item_in_schedule.get("end_time"):
-                scheduled_end = item_in_schedule["end_time"].strftime("%H:%M")
+    scheduled_start = desired_start
+    scheduled_end = desired_end
+    if item_in_schedule:
+        if item_in_schedule.get("start_time"):
+            scheduled_start = item_in_schedule["start_time"].strftime("%H:%M")
+        if item_in_schedule.get("end_time"):
+            scheduled_end = item_in_schedule["end_time"].strftime("%H:%M")
+
+    def _log_completion_entry():
+        if not (item_in_schedule or scheduled_start):
+            return
         block_key = build_block_key(item_name, scheduled_start or "unscheduled")
         entry = {
             "name": item_name,
@@ -119,11 +165,21 @@ def run(args, properties):
         if quality:
             entry["quality"] = quality
         entries[block_key] = entry
-
         with open(completion_path, 'w') as f:
             yaml.dump(completion_data, f, default_flow_style=False, sort_keys=False)
 
+    status_lower = str(new_status).lower()
+    if is_repeating:
+        # This is a repeating item, so update the completion file
+        _log_completion_entry()
+
         print(f"✅ Marked repeating item '{item_name}' as '{new_status}' for today.")
+        if status_lower == 'completed' and Points:
+            try:
+                minutes = _minutes_between(scheduled_start, scheduled_end)
+                Points.award_on_complete(item_type, item_name, minutes=minutes if isinstance(minutes, int) else None)
+            except Exception:
+                pass
         # Evaluate commitments after marking to trigger immediate actions
         try:
             from Modules.Commitment import main as CommitmentModule  # type: ignore
@@ -135,7 +191,14 @@ def run(args, properties):
         # This is a non-repeating item, so update the item's own file
         item_data['status'] = new_status
         write_item_data(item_type, item_name, item_data)
+        _log_completion_entry()
         print(f"✅ Marked non-repeating item '{item_name}' as '{new_status}'.")
+        if status_lower == 'completed' and Points:
+            try:
+                minutes = _minutes_between(scheduled_start, scheduled_end)
+                Points.award_on_complete(item_type, item_name, minutes=minutes if isinstance(minutes, int) else None)
+            except Exception:
+                pass
         # Evaluate commitments after marking to trigger immediate actions
         try:
             from Modules.Commitment import main as CommitmentModule  # type: ignore

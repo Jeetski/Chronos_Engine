@@ -1,0 +1,5 @@
+name: 'Category: Personal'
+mode: category
+value: personal
+use_momentum: false
+kind: default

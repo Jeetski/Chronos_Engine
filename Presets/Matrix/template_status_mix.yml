@@ -1,0 +1,11 @@
+name: template_status_mix
+label: Template Type x Status
+rows:
+- template_type
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

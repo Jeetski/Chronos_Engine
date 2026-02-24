@@ -1,10 +1,10 @@
-# Chronos Engine - Alpha 2.0 Release Notes
+# Chronos Engine - Alpha v0.2 Release Notes
 
 **Status**: Alpha
 **Release Date**: 2026-01-22
 
 ## 🚀 Highlights
-Alpha 2.0 focuses on **stability, observability, and hygiene**. We have introduced a centralized logging system, cleaned up development artifacts, and upgraded the dashboard for better debugging.
+Alpha v0.2 focuses on **stability, observability, and hygiene**. We have introduced a centralized logging system, cleaned up development artifacts, and upgraded the dashboard for better debugging.
 
 ### ✨ New Features
 *   **Centralized Logging**: The engine now writes structured logs to `Logs/engine.log`. No more flying blind when backend commands fail.

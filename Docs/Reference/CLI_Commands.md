@@ -95,9 +95,25 @@ Displays help information for a command.
 ### `today`
 The central command for daily management.
 **Subcommands:**
-- `today`: Shows today's schedule (in-progress and upcoming).
-- `today reschedule`: Rebuilds the schedule with conflict resolution.
+- `today`: Shows today's schedule (in-progress and upcoming). Uses Kairos active scheduler by default.
+- `today reschedule`: Rebuilds the schedule with conflict resolution. Uses Kairos active scheduler by default.
 - `today routines|subroutines|microroutines`: Collapses display to that level.
+- `today kairos [options]`: Run Kairos shadow schedule generation.
+- `today kairos week [days:N] [options]`: Generate rolling weekly skeleton.
+- `today legacy [subcommand/options]`: Force legacy scheduler path.
+
+**Kairos options (Chronos syntax):**
+- `template:<name|path>`
+- `status:key=value,key=value` (example: `status:energy=high,focus=high`)
+- `prioritize:key=value,key=value` (example: `prioritize:happiness=9,deadline=5`)
+- `custom_property:<property_name>` (example: `custom_property:focus_depth`)
+- `buffers:true|false`
+- `breaks:timer|none`
+- `sprints:true|false`
+- `timer_profile:<profile_name>`
+- `quickwins:N`
+- `ignore-trends` or `ignore-trends:true|false`
+- `days:N` (weekly mode)
 
 ### `tomorrow`
 Previews the schedule for tomorrow (or a specified offset).
@@ -138,10 +154,16 @@ Views or sets user status variables.
 ### `complete`
 Marks an item as completed.
 **Usage:** `complete <type> <name> [minutes:<duration>]`
+**Notes:**
+- Runs completion side effects: commitment evaluation/triggers, milestone evaluation, and points awarding.
+- Prefer this when you want full item-level completion behavior.
 
 ### `did`
 Logs actuals for a schedule block.
 **Usage:** `did "Block Name" [start_time:HH:MM] [end_time:HH:MM] [status:completed|skipped|partial] [note:"..."]`
+**Notes:**
+- Best for logging what actually happened in the schedule (actual start/end/status).
+- A `status:completed` log can award points for the logged block.
 
 ### `miss`
 Records a missed occurrence (does not count as completion).
@@ -150,6 +172,10 @@ Records a missed occurrence (does not count as completion).
 ### `mark`
 Marks an item in the daily schedule with a new status.
 **Usage:** `mark <item_name>:<status>`
+**Notes:**
+- `mark ...:completed` now uses the same completion side effects as `complete` (commitments/triggers, milestones, points).
+- Non-completion statuses (for example `skipped`, `delayed`) do not run completion points/milestone effects.
+- Avoid running both `mark ...:completed` and `complete ...` for the same block unless intentionally recording two events.
 
 ### `mark_norm`
 Marks an item in the daily schedule with a new status (normalized variant).
@@ -158,6 +184,17 @@ Marks an item in the daily schedule with a new status (normalized variant).
 ### `change`
 Changes the start time of an item in the current day's schedule.
 **Usage:** `change <item_name> <new_start_time_HH:MM>`
+
+### `shift`
+Shifts an item's start time by a positive or negative number of minutes.
+**Usage:** `shift <item_name> <minutes> [date:YYYY-MM-DD] [start_time:HH:MM]`
+**Examples:**
+- `shift "Morning Routine" +15`
+- `shift "Deep Work" -10 date:2026-02-24 start_time:09:00`
+**Notes:**
+- Positive minutes move later; negative minutes move earlier.
+- `date` lets you target a specific day schedule.
+- `start_time` disambiguates when multiple blocks share the same name.
 
 ### `trim`
 Reduces the duration of an item in the current day's schedule.
@@ -220,6 +257,29 @@ Manages automation macros.
 Evaluates all commitments and fires triggers.
 **Usage:** `commitments [check]`
 
+**Commitment schema (examples):**
+```yaml
+name: Daily Walk
+type: commitment
+rule: { kind: frequency, times: 1, period: day }
+targets:
+  - { type: habit, name: Morning Walk }
+triggers:
+  on_met:
+    - { type: reward, name: Espresso Treat }
+```
+
+```yaml
+name: Never Smoke
+type: commitment
+rule: { kind: never }
+targets:
+  - { type: habit, name: Smoke }
+triggers:
+  on_violation:
+    - { type: script, path: Scripts/commitments/miss_example.chs }
+```
+
 ### `review`
 Generates periodic reviews (Daily, Weekly, Monthly).
 **Usage:**
@@ -280,6 +340,38 @@ Restores the most recently archived item or schedule.
 ### `clean`
 Removes temporary files.
 **Usage:** `clean`
+
+### `clear`
+Performs system maintenance by clearing logs, databases, registries, and other system data.
+**Usage:** `clear <target> [--force]`
+
+**Targets:**
+- `logs` - Delete all log files from `User/Logs`
+- `schedules` - Delete generated schedule files from `User/Schedules`
+- `cache` - Delete all database mirrors (all `.db` files in `User/Data`)
+- `db:<name>` - Delete a specific database (e.g., `clear db:chronos_core`)
+- `registry:<name>` - Clear a specific registry cache (e.g., `clear registry:wizards`)
+- `temp` - Delete temporary files (`.tmp`, `.bak`, cache files)
+- `archives` - Delete all archived items and schedules
+- `all` - Delete everything (requires typing "DELETE EVERYTHING" to confirm)
+
+**Examples:**
+```
+clear logs                    # Interactive confirmation
+clear logs force              # Skip confirmation
+clear db:chronos_matrix force # Delete specific database
+clear registry:wizards        # Clear wizards registry cache
+clear temp force              # Clear temporary files
+clear archives                # Delete all archives
+```
+
+**Safety:**
+- Without `--force` flag, prompts for confirmation
+- `clear all` requires typing "DELETE EVERYTHING" for safety
+- Individual database deletion allows surgical fixes without full cache reset
+- Registry clearing forces reload from YAML sources on next access
+
+**See Also:** [Admin Tools Guide](../Features/Admin_Tools.md)
 
 ### `search`
 Searches for text content across all items.

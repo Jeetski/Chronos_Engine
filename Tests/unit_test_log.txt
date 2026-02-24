@@ -1,0 +1,12 @@
+test_exists_file_mock (Tests.test_conditions_unit.TestConditionsUnit.test_exists_file_mock) ... ok
+test_grouping (Tests.test_conditions_unit.TestConditionsUnit.test_grouping) ... ok
+test_logic_operators (Tests.test_conditions_unit.TestConditionsUnit.test_logic_operators) ... ok
+test_numeric_comparison (Tests.test_conditions_unit.TestConditionsUnit.test_numeric_comparison) ... ok
+test_regex_match (Tests.test_conditions_unit.TestConditionsUnit.test_regex_match) ... ok
+test_simple_equality (Tests.test_conditions_unit.TestConditionsUnit.test_simple_equality) ... ok
+test_simple_inequality (Tests.test_conditions_unit.TestConditionsUnit.test_simple_inequality) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.001s
+
+OK

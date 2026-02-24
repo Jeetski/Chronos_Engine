@@ -1,5 +1,114 @@
 // Simple app bootstrapper with debug logs
 import { mountWidget, mountView, launchWizard } from './core/runtime.js';
+try { window.__CHRONOS_APP_MANAGED_MOUNTS = true; } catch { }
+const POPUPS_ENABLED_STORAGE_KEY = 'chronos_dashboard_popups_enabled_v1';
+const SHOW_POST_RELEASE_STORAGE_KEY = 'chronos_dashboard_show_post_release_v1';
+const SHOW_BADGES_STORAGE_KEY = 'chronos_dashboard_show_badges_v1';
+const POST_RELEASE_WIDGETS = ['InventoryManager', 'Link', 'MP3Player', 'ResolutionTracker'];
+const PRIORITY_WIDGETS = new Set(['Terminal', 'Review', 'Rewards']);
+const URGENT_WIDGETS = new Set([
+  'GoalTracker',
+  'HabitTracker',
+  'ItemManager',
+  'Milestones',
+  'Settings',
+  'SleepSettings',
+  'Status',
+  'Timer',
+  'Today',
+]);
+const DEV_WIDGETS = new Set([
+  'Achievements',
+  'Commitments',
+  'GoalTracker',
+  'HabitTracker',
+  'ItemManager',
+  'Journal',
+  'Milestones',
+  'Notes',
+  'Rewards',
+  'Review',
+  'Settings',
+  'SleepSettings',
+  'Status',
+  'Terminal',
+  'Timer',
+  'Today',
+  'Trends',
+  'Variables',
+]);
+const GOOD_ENOUGH_WIDGETS = new Set(['Admin', 'Clock', 'DebugConsole', 'Profile', 'StickyNotes']);
+const POST_RELEASE_WIZARDS = new Set(['Big5', 'SelfAuthoring', 'MapOfHappiness', 'FutureSelfDialogue']);
+const PRIORITY_WIZARDS = new Set(['brain dump', 'braindump', 'chore setup', 'choresetup']);
+const URGENT_WIZARDS = new Set([
+  'onboarding',
+  'goal planning',
+  'goalplanning',
+  'life setup',
+  'lifesetup',
+  'sleep hygiene',
+  'sleepsettings',
+]);
+const DEV_VIEWS = new Set(['calendar', 'cockpit', 'project manager', 'template builder', 'weekly']);
+const PRIORITY_VIEWS = new Set([
+  'cockpit',
+  'tracker',
+  'goal planner',
+  'goalplanner',
+  'day builder',
+  'daybuilder',
+  'routine builder',
+  'routinebuilder',
+  'week builder',
+  'weekbuilder',
+]);
+const URGENT_VIEWS = new Set(['calendar', 'weekly']);
+const GOOD_ENOUGH_VIEWS = new Set(['docs', 'editor']);
+const POST_RELEASE_PANELS = new Set(['map of happiness', 'flashcards']);
+const PRIORITY_PANELS = new Set(['commitments', 'commitments snapshot']);
+const URGENT_PANELS = new Set(['status strip', 'schedule panel', 'matrix', 'matrix visuals']);
+
+function arePopupsEnabled() {
+  try {
+    const raw = localStorage.getItem(POPUPS_ENABLED_STORAGE_KEY);
+    if (raw === null) return true;
+    return raw !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function setPopupsEnabled(enabled) {
+  try { localStorage.setItem(POPUPS_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false'); } catch { }
+}
+
+function arePostReleaseItemsVisible() {
+  try {
+    const raw = localStorage.getItem(SHOW_POST_RELEASE_STORAGE_KEY);
+    if (raw === null) return true;
+    return raw !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function setPostReleaseItemsVisible(enabled) {
+  try { localStorage.setItem(SHOW_POST_RELEASE_STORAGE_KEY, enabled ? 'true' : 'false'); } catch { }
+}
+
+function areBadgesVisible() {
+  try {
+    const raw = localStorage.getItem(SHOW_BADGES_STORAGE_KEY);
+    if (raw === null) return true;
+    return raw !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function setBadgesVisible(enabled) {
+  try { localStorage.setItem(SHOW_BADGES_STORAGE_KEY, enabled ? 'true' : 'false'); } catch { }
+}
 
 function ready(fn) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
 
@@ -29,6 +138,8 @@ if (typeof window !== 'undefined' && !window.ChronosPopupQueue) {
   window.ChronosPopupQueue = {
     enqueue(fn) {
       if (typeof fn === 'function') {
+        const force = !!window.__chronosForcePopupQueue;
+        if (!arePopupsEnabled() && !force) return;
         queue.push(fn);
         run();
       }
@@ -61,50 +172,9 @@ async function startChronosDay(options = {}) {
 try { window.ChronosStartDay = startChronosDay; } catch { }
 
 
-const panelLoaders = [
-  () => import(new URL('./Panels/Schedule/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load schedule panel module', err);
-  }),
-  () => import(new URL('./Panels/Matrix/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load matrix panel module', err);
-  }),
-  () => import(new URL('./Panels/StatusStrip/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load status strip panel module', err);
-  }),
-  () => import(new URL('./Panels/Commitments/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load commitments panel module', err);
-  }),
-  () => import(new URL('./Panels/MapOfHappiness/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load map of happiness panel module', err);
-  }),
-  () => import(new URL('./Panels/Flashcards/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load flashcards panel module', err);
-  }),
-  () => import(new URL('./Panels/RandomPicker/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load random picker panel module', err);
-  }),
-  () => import(new URL('./Panels/Lists/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load lists panel module', err);
-  }),
-  () => import(new URL('./Panels/Checklist/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load checklist panel module', err);
-  }),
-  () => import(new URL('./Panels/Deadlines/index.js?v=' + Date.now(), import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load deadlines panel module', err);
-  }),
-];
+// Panel loaders will be built dynamically from registry
 
-const popupLoaders = [
-  () => import(new URL('./Pop_Ups/StatusNudge/index.js', import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load status nudge popup', err);
-  }),
-  () => import(new URL('./Pop_Ups/Welcome/index.js', import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load welcome popup', err);
-  }),
-  () => import(new URL('./Pop_Ups/DueSoon/index.js', import.meta.url)).catch(err => {
-    console.error('[Chronos][app] Failed to load due soon popup', err);
-  }),
-];
+// Popup loaders will be built dynamically from registry
 
 ready(async () => {
   console.log('[Chronos][app] Booting dashboard app');
@@ -122,120 +192,17 @@ ready(async () => {
   } catch { }
 
   const viewRoot = document.getElementById('view');
-  const DEV_VIEWS = new Set(['ADUC', 'Canvas', 'Cockpit']);
-  const DEV_WIDGETS = new Set(['Link', 'Variables']);
-  const availableViews = [
-    { name: 'ADUC', label: 'ADUC' },
-    { name: 'Cockpit', label: 'Cockpit' },
-    { name: 'Calendar', label: 'Calendar' },
-    { name: 'Docs', label: 'Docs' },
-    { name: 'Weekly', label: 'Weekly' },
-    { name: 'TemplateBuilder', label: 'Template Builder' },
-    { name: 'ProjectManager', label: 'Project Manager' },
-    { name: 'Canvas', label: 'Canvas' },
-    { name: 'Editor', label: 'Editor' },
-  ];
+  // DEV flags and available views will come from registries
+  let availableViews = [];
 
-  const wizardCatalog = [
-    {
-      id: 'onboarding',
-      module: 'Onboarding',
-      label: 'Chronos Onboarding Wizard',
-      description: 'Guided setup for nickname, categories, statuses, templates, and rewards.',
-      enabled: true,
-    },
-    {
-      id: 'big5',
-      module: 'Big5',
-      label: 'Big 5 Personality Assessment',
-      description: 'Psychometric assessment for Openness, Conscientiousness, Extraversion, Agreeableness, and Neuroticism.',
-      enabled: true,
-    },
-    {
-      id: 'goalPlanning',
-      module: 'GoalPlanning',
-      label: 'Goal Planning Wizard',
-      description: 'Guided flow to scope, break down, and schedule ambitious goals.',
-      enabled: true,
-    },
-    {
-      id: 'projectLaunch',
-      module: 'ProjectLaunch',
-      label: 'Project Launch Wizard',
-      description: 'Design project milestones and kickoff tasks before writing YAML.',
-      enabled: true,
-    },
-    {
-      id: 'brainDump',
-      module: 'BrainDump',
-      label: 'Brain Dump Wizard',
-      description: 'Rapid task capture with horizon buckets and quick refinement.',
-      enabled: true,
-    },
-    {
-      id: 'newYearResolutions',
-      module: 'NewYearResolutions',
-      label: 'New Year\'s Resolutions Wizard',
-      description: 'Transform your dreams into actionable resolutions with affirmations for the year ahead.',
-      enabled: true,
-    },
-    {
-      id: 'selfAuthoring',
-      module: 'SelfAuthoring',
-      label: 'Self Authoring Suite',
-      description: 'Comprehensive Past/Present/Future reflection exercises to generate goals, habits, and tasks.',
-      enabled: true,
-    },
-    {
-      id: 'futureSelfDialogue',
-      module: 'FutureSelfDialogue',
-      label: 'Future Self Dialogue (Vaknin)',
-      description: 'Speak as future-you to past-you, write to future-you, read through past/present/future lenses, save as a journal entry.',
-      enabled: true,
-    },
-    {
-      id: 'mapOfHappiness',
-      module: 'MapOfHappiness',
-      label: 'Map of Happiness Wizard',
-      description: 'Capture non-negotiables, cluster into needs, rank, and save map_of_happiness.yml.',
-      enabled: true,
-    },
-  ];
-  const themeOptions = [
-    {
-      id: 'chronos-blue',
-      label: 'Chronos Blue',
-      file: 'chronos-blue.css',
-      description: 'Default indigo cockpit palette.',
-      accent: '#7aa2f7',
-    },
-    {
-      id: 'chronos-amber',
-      label: 'Amber Drift',
-      file: 'chronos-amber.css',
-      description: 'Warm sunrise gradients and copper tones.',
-      accent: '#f3a64c',
-    },
-    {
-      id: 'chronos-emerald',
-      label: 'Emerald Focus',
-      file: 'chronos-emerald.css',
-      description: 'Green focus mode pulled from the CLI themes.',
-      accent: '#4de2b6',
-    },
-    {
-      id: 'chronos-rose',
-      label: 'Rose Nebula',
-      file: 'chronos-rose.css',
-      description: 'Vibrant magenta hues for late-night plotting.',
-      accent: '#ff6fb1',
-    },
-
-  ];
+  let wizardCatalog = [];
+  let themeOptions = [];
+  let popupCatalog = [];
   const THEME_STORAGE_KEY = 'chronos_dashboard_theme_v1';
   const themeStylesheet = document.getElementById('themeStylesheet');
   const UI_SCALE_STORAGE_KEY = 'chronos_dashboard_ui_scale_v1';
-  const UI_SCALE_BASE = 0.6;
+  // Rebased scale curve: 100% now matches the previous 140% visual size.
+  const UI_SCALE_BASE = 0.84;
   const UI_SCALE_MIN = 60;
   const UI_SCALE_MAX = 140;
 
@@ -542,6 +509,32 @@ ready(async () => {
     }
   }
 
+  try {
+    window.ChronosOpenView = async (name, label) => {
+      if (!name) return;
+      await openPane(String(name), label || String(name));
+    };
+    window.ChronosOpenDoc = async (path, line) => {
+      const req = { path: String(path || ''), line: Number.isFinite(Number(line)) ? Number(line) : undefined };
+      try { window.__chronosDocsOpenRequest = req; } catch { }
+      await openPane('Docs', 'Docs');
+      try {
+        const docsPane = openPanes.find(p => p.name === 'Docs');
+        const api = docsPane?.viewport?.__view?.api;
+        if (api && typeof api.openDoc === 'function') {
+          api.openDoc(req.path, req.line);
+        }
+      } catch { }
+      try { if (typeof window.ChronosDocsOpen === 'function') window.ChronosDocsOpen(req); } catch { }
+      try { window.ChronosBus?.emit?.('docs:open', req); } catch { }
+      try {
+        setTimeout(() => {
+          try { if (typeof window.ChronosDocsOpen === 'function') window.ChronosDocsOpen(req); } catch { }
+        }, 120);
+      } catch { }
+    };
+  } catch { }
+
   function closePane(name) {
     const idx = openPanes.findIndex(v => v.name === name);
     if (idx === -1) return;
@@ -584,6 +577,8 @@ ready(async () => {
       if (id === 'wizards') buildWizardsMenu();
       if (id === 'panels') buildPanelsMenu();
       if (id === 'appearance') buildAppearanceMenu();
+      if (id === 'popups') buildPopupsMenu();
+      if (id === 'dev') buildDevMenu();
       closeMenus();
       const menu = document.getElementById('menu-' + id);
       if (menu) menu.classList.add('open');
@@ -596,15 +591,18 @@ ready(async () => {
     const widgetsMenu = document.getElementById('menu-widgets');
     if (!widgetsMenu) return;
     widgetsMenu.innerHTML = '';
+    const showPostRelease = arePostReleaseItemsVisible();
     const entries = widgetEls
       .map(el => {
         const fallback = el.id || el.getAttribute('data-widget') || 'widget';
         const label = el.getAttribute('data-label') || el.getAttribute('data-widget') || fallback;
         const name = el.getAttribute('data-widget') || fallback;
-        return { el, label, name };
+        const postRelease = POST_RELEASE_WIDGETS.includes(name);
+        return { el, label, name, postRelease };
       })
+      .filter(entry => showPostRelease || !entry.postRelease)
       .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-    const createItem = ({ el, label }) => {
+    const createItem = ({ el, label, name }) => {
       const item = document.createElement('div');
       item.className = 'item';
       const check = document.createElement('span');
@@ -613,13 +611,38 @@ ready(async () => {
       const span = document.createElement('span');
       span.textContent = label;
       item.append(check, span);
-      const name = el.getAttribute('data-widget') || label;
-      if (DEV_WIDGETS.has(name)) {
-        const badge = document.createElement('span');
-        badge.className = 'dev-badge';
-        badge.textContent = 'dev';
-        badge.title = 'Under development';
-        item.appendChild(badge);
+      if (areBadgesVisible()) {
+        if (URGENT_WIDGETS.has(name)) {
+          const badge = document.createElement('span');
+          badge.className = 'urgent-badge';
+          badge.textContent = 'urgent';
+          badge.title = 'Urgent widget';
+          item.appendChild(badge);
+        } else if (PRIORITY_WIDGETS.has(name)) {
+          const badge = document.createElement('span');
+          badge.className = 'priority-badge';
+          badge.textContent = 'priority';
+          badge.title = 'Priority widget';
+          item.appendChild(badge);
+        } else if (POST_RELEASE_WIDGETS.includes(name)) {
+          const badge = document.createElement('span');
+          badge.className = 'post-release-badge';
+          badge.textContent = 'later';
+          badge.title = 'Post-release feature';
+          item.appendChild(badge);
+        } else if (GOOD_ENOUGH_WIDGETS.has(name)) {
+          const badge = document.createElement('span');
+          badge.className = 'good-enough-badge';
+          badge.textContent = 'good enough';
+          badge.title = 'Stable enough for now';
+          item.appendChild(badge);
+        } else if (DEV_WIDGETS.has(name)) {
+          const badge = document.createElement('span');
+          badge.className = 'dev-badge';
+          badge.textContent = 'dev';
+          badge.title = 'Development feature';
+          item.appendChild(badge);
+        }
       }
       item.addEventListener('click', () => {
         el.style.display = (el.style.display === 'none' ? '' : 'none');
@@ -644,12 +667,442 @@ ready(async () => {
   }
   // Initial build
   buildWidgetsMenu();
-  buildWizardsMenu();
-  buildPanelsMenu();
-  try {
-    await Promise.all(panelLoaders.map(loader => loader()));
-    await Promise.all(popupLoaders.map(loader => loader()));
-  } catch { }
+
+  function formatBytes(bytes) {
+    const n = Number(bytes);
+    if (!Number.isFinite(n) || n <= 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const exp = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
+    const value = n / Math.pow(1024, exp);
+    return `${value.toFixed(value >= 10 || exp === 0 ? 0 : 1)} ${units[exp]}`;
+  }
+
+  async function postJson(path, payload) {
+    const r = await fetch(apiBase() + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+    });
+    let data = null;
+    try { data = await r.json(); } catch { }
+    return { ok: r.ok, status: r.status, data };
+  }
+
+  async function runSystemCommand(command) {
+    return postJson('/api/system/command', { command });
+  }
+
+  function showTextOverlay(title, body, { tone = 'normal' } = {}) {
+    const overlay = document.createElement('div');
+    overlay.className = 'chronos-overlay';
+    const shell = document.createElement('div');
+    shell.className = 'chronos-shell';
+    shell.style.width = 'min(980px, 92vw)';
+    shell.style.maxHeight = '84vh';
+    shell.style.overflow = 'hidden';
+
+    const head = document.createElement('div');
+    head.style.display = 'flex';
+    head.style.alignItems = 'center';
+    head.style.justifyContent = 'space-between';
+    head.style.gap = '12px';
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+    titleEl.style.margin = '0';
+    if (tone === 'error') titleEl.style.color = '#ff8080';
+
+    const close = document.createElement('button');
+    close.className = 'chronos-btn';
+    close.textContent = 'Close';
+    close.addEventListener('click', () => overlay.remove());
+    head.append(titleEl, close);
+
+    const pre = document.createElement('pre');
+    pre.style.marginTop = '12px';
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.overflow = 'auto';
+    pre.style.maxHeight = '68vh';
+    pre.style.padding = '12px';
+    pre.style.border = '1px solid var(--line)';
+    pre.style.borderRadius = '10px';
+    pre.style.background = 'rgba(0,0,0,0.2)';
+    pre.textContent = body || '(no output)';
+
+    shell.append(head, pre);
+    overlay.appendChild(shell);
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
+  }
+
+  async function runDevCommandAction(label, command) {
+    const started = performance.now();
+    const res = await runSystemCommand(command);
+    const ms = Math.round(performance.now() - started);
+    const data = res.data || {};
+    const out = (data.stdout || '').trim();
+    const err = (data.stderr || '').trim();
+    const text = [
+      `${label}`,
+      `Command: ${command}`,
+      `HTTP: ${res.status}`,
+      `Elapsed: ${ms} ms`,
+      '',
+      out ? `STDOUT:\n${out}` : 'STDOUT:\n(none)',
+      '',
+      err ? `STDERR:\n${err}` : 'STDERR:\n(none)',
+    ].join('\n');
+    showTextOverlay(label, text, { tone: (res.ok && data.ok) ? 'normal' : 'error' });
+  }
+
+  async function runHealthProbe() {
+    const started = performance.now();
+    const r = await fetch(apiBase() + '/health');
+    const txt = await r.text();
+    const elapsed = Math.round(performance.now() - started);
+    const lines = [
+      `API Health Probe`,
+      `Status: ${r.status}`,
+      `Elapsed: ${elapsed} ms`,
+      '',
+      txt.trim() || '(empty)',
+    ];
+    showTextOverlay('API Health Probe', lines.join('\n'), { tone: r.ok ? 'normal' : 'error' });
+  }
+
+  function collectRuntimeSnapshot() {
+    const visibleWidgets = widgetEls.filter(el => el.style.display !== 'none').length;
+    const hiddenWidgets = widgetEls.length - visibleWidgets;
+    let storageBytes = 0;
+    let storageKeys = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const k = localStorage.key(i) || '';
+        const v = localStorage.getItem(k) || '';
+        storageBytes += (k.length + v.length) * 2;
+        storageKeys += 1;
+      }
+    } catch { }
+    const navMem = (performance && performance.memory) ? performance.memory : null;
+    return {
+      now: new Date().toISOString(),
+      viewsOpen: openPanes.map(p => p.name),
+      widgetsTotal: widgetEls.length,
+      widgetsVisible: visibleWidgets,
+      widgetsHidden: hiddenWidgets,
+      localStorageKeys: storageKeys,
+      localStorageBytes: storageBytes,
+      localStorageHuman: formatBytes(storageBytes),
+      jsHeap: navMem ? {
+        used: navMem.usedJSHeapSize,
+        total: navMem.totalJSHeapSize,
+        limit: navMem.jsHeapSizeLimit,
+      } : null,
+    };
+  }
+
+  async function gatherStatsForNerds() {
+    const stats = {
+      capturedAt: new Date().toISOString(),
+      runtime: collectRuntimeSnapshot(),
+      mirrors: null,
+      health: null,
+      apiLatency: [],
+      scheduler: null,
+      commandSignals: null,
+      integrity: null,
+    };
+
+    const healthStart = performance.now();
+    try {
+      const h = await fetch(apiBase() + '/health');
+      const text = await h.text();
+      stats.health = {
+        ok: h.ok,
+        status: h.status,
+        latencyMs: Math.round(performance.now() - healthStart),
+        payload: text.trim(),
+      };
+    } catch (e) {
+      stats.health = { ok: false, status: 0, latencyMs: null, payload: String(e || 'health failed') };
+    }
+
+    try {
+      const t0 = performance.now();
+      const r = await fetch(apiBase() + '/api/system/databases');
+      const j = await r.json();
+      const dbs = Array.isArray(j?.databases) ? j.databases : [];
+      const nowMs = Date.now();
+      const stale24h = dbs.filter(d => {
+        if (!d?.modified) return true;
+        const ts = Date.parse(d.modified);
+        if (!Number.isFinite(ts)) return true;
+        return (nowMs - ts) > (24 * 60 * 60 * 1000);
+      }).length;
+      const totalSize = dbs.reduce((sum, d) => sum + (Number(d?.size) || 0), 0);
+      stats.mirrors = {
+        ok: r.ok && !!j?.ok,
+        latencyMs: Math.round(performance.now() - t0),
+        count: dbs.length,
+        stale24h,
+        totalSize,
+        totalSizeHuman: formatBytes(totalSize),
+        rows: dbs.map(d => ({
+          name: d?.name || d?.label || 'unknown',
+          modified: d?.modified || null,
+          size: Number(d?.size) || 0,
+        })),
+      };
+    } catch (e) {
+      stats.mirrors = { ok: false, error: String(e || 'mirror probe failed') };
+    }
+
+    const probes = [
+      '/api/registry?name=widgets',
+      '/api/items?type=task',
+      '/api/timer/status',
+      '/api/today',
+      '/api/logs?limit=20',
+    ];
+    for (const path of probes) {
+      const started = performance.now();
+      try {
+        const r = await fetch(apiBase() + path);
+        await r.text();
+        stats.apiLatency.push({ path, ok: r.ok, status: r.status, ms: Math.round(performance.now() - started) });
+      } catch (e) {
+        stats.apiLatency.push({ path, ok: false, status: 0, ms: null, error: String(e || 'request failed') });
+      }
+    }
+
+    try {
+      const [todayResp, timerResp, seqResp] = await Promise.all([
+        fetch(apiBase() + '/api/today').then(async (r) => ({ ok: r.ok, status: r.status, text: await r.text() })).catch((e) => ({ ok: false, status: 0, text: String(e || '') })),
+        fetch(apiBase() + '/api/timer/status').then((r) => r.json()).catch(() => null),
+        runSystemCommand('sequence status'),
+      ]);
+      const todayText = String(todayResp?.text || '');
+      const blockCount = (todayText.match(/^\s*-\s+name\s*:/gm) || []).length;
+      const completedMentions = (todayText.match(/status:\s*completed/gi) || []).length;
+      stats.scheduler = {
+        todayOk: !!todayResp?.ok,
+        todayStatus: todayResp?.status || 0,
+        blocksApprox: blockCount,
+        completedMentionsApprox: completedMentions,
+        timer: timerResp || null,
+        sequenceStatusStdout: seqResp?.data?.stdout || '',
+        sequenceStatusStderr: seqResp?.data?.stderr || '',
+      };
+    } catch (e) {
+      stats.scheduler = { ok: false, error: String(e || 'scheduler probe failed') };
+    }
+
+    try {
+      const commands = ['count task', 'count habit', 'count goal', 'count milestone', 'count reminder', 'count alarm'];
+      const rows = [];
+      for (const cmd of commands) {
+        const res = await runSystemCommand(cmd);
+        const out = String(res?.data?.stdout || '').trim();
+        const m = out.match(/-?\d+/);
+        rows.push({
+          command: cmd,
+          ok: !!res?.ok && !!res?.data?.ok,
+          value: m ? Number(m[0]) : null,
+          stdout: out,
+        });
+      }
+      stats.commandSignals = { rows };
+    } catch (e) {
+      stats.commandSignals = { error: String(e || 'command stats failed') };
+    }
+
+    try {
+      const started = performance.now();
+      const r = await fetch(apiBase() + '/api/logs?limit=250');
+      const j = await r.json();
+      const logs = Array.isArray(j?.logs) ? j.logs : [];
+      const errors = logs.filter(line => /error|exception|traceback/i.test(String(line))).length;
+      stats.integrity = {
+        ok: r.ok && !!j?.ok,
+        latencyMs: Math.round(performance.now() - started),
+        logsSampled: logs.length,
+        errorLikeLines: errors,
+      };
+    } catch (e) {
+      stats.integrity = { ok: false, error: String(e || 'log probe failed') };
+    }
+
+    return stats;
+  }
+
+  function renderStatsForNerds(stats) {
+    const lines = [];
+    lines.push('Stats for Nerds');
+    lines.push(`Captured: ${stats.capturedAt}`);
+    lines.push('');
+
+    const rt = stats.runtime || {};
+    lines.push('[Runtime]');
+    lines.push(`Views open: ${(rt.viewsOpen || []).join(', ') || '(none)'}`);
+    lines.push(`Widgets: ${rt.widgetsVisible || 0}/${rt.widgetsTotal || 0} visible`);
+    lines.push(`localStorage: ${rt.localStorageKeys || 0} keys, ${rt.localStorageHuman || '0 B'}`);
+    if (rt.jsHeap) {
+      lines.push(`JS heap: used ${formatBytes(rt.jsHeap.used)} / total ${formatBytes(rt.jsHeap.total)} (limit ${formatBytes(rt.jsHeap.limit)})`);
+    } else {
+      lines.push('JS heap: unavailable (browser does not expose performance.memory)');
+    }
+    lines.push('');
+
+    lines.push('[Health]');
+    lines.push(`OK: ${stats.health?.ok ? 'yes' : 'no'} | status: ${stats.health?.status ?? 'n/a'} | latency: ${stats.health?.latencyMs ?? 'n/a'} ms`);
+    if (stats.health?.payload) lines.push(`Payload: ${stats.health.payload.replace(/\s+/g, ' ').trim()}`);
+    lines.push('');
+
+    lines.push('[Mirrors]');
+    lines.push(`Databases: ${stats.mirrors?.count ?? 'n/a'} | stale>24h: ${stats.mirrors?.stale24h ?? 'n/a'} | size: ${stats.mirrors?.totalSizeHuman ?? 'n/a'}`);
+    const mirrorRows = Array.isArray(stats.mirrors?.rows) ? stats.mirrors.rows.slice(0, 12) : [];
+    mirrorRows.forEach((row) => {
+      lines.push(`- ${row.name}: ${formatBytes(row.size)} | modified ${row.modified || 'unknown'}`);
+    });
+    lines.push('');
+
+    lines.push('[API Latency]');
+    (stats.apiLatency || []).forEach((p) => {
+      lines.push(`- ${p.path}: ${p.ok ? 'ok' : 'fail'} status=${p.status} latency=${p.ms ?? 'n/a'} ms`);
+    });
+    lines.push('');
+
+    lines.push('[Scheduler]');
+    lines.push(`today blocks (approx): ${stats.scheduler?.blocksApprox ?? 'n/a'} | completed markers: ${stats.scheduler?.completedMentionsApprox ?? 'n/a'}`);
+    const timer = stats.scheduler?.timer;
+    if (timer && typeof timer === 'object') {
+      const state = timer?.status || timer?.state || timer?.mode || 'unknown';
+      lines.push(`timer state: ${state}`);
+    } else {
+      lines.push('timer state: unavailable');
+    }
+    const seqOut = String(stats.scheduler?.sequenceStatusStdout || '').trim();
+    if (seqOut) {
+      lines.push('sequence status:');
+      lines.push(seqOut);
+    }
+    lines.push('');
+
+    lines.push('[Command Signals]');
+    const cmdRows = stats.commandSignals?.rows || [];
+    cmdRows.forEach((row) => {
+      lines.push(`- ${row.command}: ${row.value ?? 'n/a'} (${row.ok ? 'ok' : 'fail'})`);
+    });
+    lines.push('');
+
+    lines.push('[Integrity]');
+    lines.push(`log lines sampled: ${stats.integrity?.logsSampled ?? 'n/a'} | error-like lines: ${stats.integrity?.errorLikeLines ?? 'n/a'}`);
+
+    return lines.join('\n');
+  }
+
+  async function openStatsForNerds() {
+    showTextOverlay('Stats for Nerds', 'Collecting diagnostics...');
+    const overlays = Array.from(document.querySelectorAll('.chronos-overlay'));
+    const current = overlays[overlays.length - 1];
+    if (!current) return;
+    const pre = current.querySelector('pre');
+    try {
+      const stats = await gatherStatsForNerds();
+      if (pre) pre.textContent = renderStatsForNerds(stats);
+    } catch (e) {
+      if (pre) pre.textContent = `Failed to build stats report.\n${String(e || '')}`;
+    }
+  }
+
+  // Dynamic Registries - fetch all component registries
+  Promise.all([
+    fetch(apiBase() + '/api/registry?name=wizards').then(r => r.json()).then(d => d.registry?.wizards || []),
+    fetch(apiBase() + '/api/registry?name=themes').then(r => r.json()).then(d => d.registry?.themes || []),
+    fetch(apiBase() + '/api/registry?name=views').then(r => r.json()).then(d => d.registry?.views || []),
+    fetch(apiBase() + '/api/registry?name=panels').then(r => r.json()).then(d => d.registry?.panels || []),
+    fetch(apiBase() + '/api/registry?name=popups').then(r => r.json()).then(d => d.registry?.popups || [])
+  ]).then(([wizards, themes, views, panels, popups]) => {
+    console.log('[Chronos][app] Registries loaded:', { wizards: wizards.length, themes: themes.length, views: views.length, panels: panels.length, popups: popups.length });
+
+    wizardCatalog = wizards;
+    themeOptions = themes.filter(t => t.id !== 'theme-base'); // Exclude Theme Base
+    popupCatalog = Array.isArray(popups) ? popups : [];
+    availableViews = (views || []).filter(v => {
+      const enabled = v?.enabled;
+      if (enabled === false) return false;
+      const name = String(v?.name || '').trim().toLowerCase();
+      return name !== 'templatebuilder';
+    });
+
+    // Default Fallback if none
+    if (!themeOptions.length) {
+      themeOptions.push({ id: 'chronos-blue', label: 'Chronos Blue', file: 'chronos-blue.css', accent: '#7aa2f7' });
+    }
+
+    buildWizardsMenu();
+
+    // Update theme menu if it exists (not implemented in this file but good to be ready)
+    // Re-apply stored theme if needed since options are now loaded
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    applyTheme(stored, { persist: false });
+
+    // Build views menu now that registry is loaded
+    buildViewsMenu();
+    buildPopupsMenu();
+
+    // Build panel loaders dynamically from registry
+    const panelLoaders = (panels || [])
+      .filter(p => p.enabled !== false)
+      .map(p => () => import(new URL(`./Panels/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
+        .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} panel`, err)));
+
+    // Build popup loaders dynamically from registry (priority first, then module name)
+    const popupLoaders = (arePopupsEnabled() ? (popups || []) : [])
+      .filter(p => p.enabled !== false)
+      .sort((a, b) => {
+        const ma = String(a?.module || a?.id || '');
+        const mb = String(b?.module || b?.id || '');
+        // Hard-order critical startup sequence:
+        // 1) Startup
+        // 2) YesterdayCheckin
+        const rank = (m) => {
+          if (m === 'Startup') return 0;
+          if (m === 'YesterdayCheckin') return 1;
+          return 2;
+        };
+        const ra = rank(ma);
+        const rb = rank(mb);
+        if (ra !== rb) return ra - rb;
+        if (ra < 2) return ma.localeCompare(mb);
+
+        const pa = Number(a?.priority || 0);
+        const pb = Number(b?.priority || 0);
+        if (pa !== pb) return pb - pa;
+        return ma.localeCompare(mb);
+      })
+      .map(p => () => import(new URL(`./Popups/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
+        .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} popup`, err)));
+
+    // Load panels and popups
+    buildPanelsMenu();
+
+    console.log('[Chronos][app] Loading panels and popups...', { panelCount: panelLoaders.length, popupCount: popupLoaders.length });
+
+    // Load panels in parallel, then popups in strict sequence (priority order)
+    Promise.all(panelLoaders.map(loader => loader()))
+      .then(async () => {
+        for (const loader of popupLoaders) {
+          await loader();
+        }
+      })
+      .then(() => console.log('[Chronos][app] All components loaded'))
+      .catch(err => console.error('[Chronos][app] Error loading components:', err));
+  }).catch(err => {
+    console.error('[Chronos][app] Failed to load registries:', err);
+  });
 
   function buildPanelsMenu() {
     const menu = document.getElementById('menu-panels');
@@ -707,6 +1160,33 @@ ready(async () => {
       const span = document.createElement('span');
       span.textContent = panel.label || panel.key;
       item.append(check, span);
+      if (areBadgesVisible()) {
+        const normalize = (value) => String(value || '').trim().toLowerCase();
+        const panelLabel = normalize(panel.label || panel.key);
+        const panelKey = normalize(panel.key);
+        const isUrgent = URGENT_PANELS.has(panelLabel) || URGENT_PANELS.has(panelKey);
+        const isPriority = PRIORITY_PANELS.has(panelLabel) || PRIORITY_PANELS.has(panelKey);
+        const isLater = POST_RELEASE_PANELS.has(panelLabel) || POST_RELEASE_PANELS.has(panelKey);
+        const badge = document.createElement('span');
+        if (isUrgent) {
+          badge.className = 'urgent-badge';
+          badge.textContent = 'urgent';
+          badge.title = 'Urgent panel';
+        } else if (isPriority) {
+          badge.className = 'priority-badge';
+          badge.textContent = 'priority';
+          badge.title = 'Priority panel';
+        } else if (isLater) {
+          badge.className = 'post-release-badge';
+          badge.textContent = 'later';
+          badge.title = 'Post-release feature';
+        } else {
+          badge.className = 'dev-badge';
+          badge.textContent = 'dev';
+          badge.title = 'Development feature';
+        }
+        item.appendChild(badge);
+      }
       item.addEventListener('click', () => {
         const entries = panel.entries || [];
         if (!entries.length) {
@@ -797,6 +1277,39 @@ ready(async () => {
       title.className = 'wizard-title';
       title.textContent = wizard.label;
       item.appendChild(title);
+      const normalize = (value) => String(value || '').trim().toLowerCase();
+      const wizardRawKey = String(wizard.module || wizard.id || '').trim();
+      const wizardKey = normalize(wizardRawKey);
+      const wizardLabel = normalize(wizard.label);
+      const isUrgentWizard = URGENT_WIZARDS.has(wizardKey) || URGENT_WIZARDS.has(wizardLabel);
+      const isPriorityWizard = PRIORITY_WIZARDS.has(wizardKey) || PRIORITY_WIZARDS.has(wizardLabel);
+      if (areBadgesVisible()) {
+        if (isUrgentWizard) {
+          const badge = document.createElement('span');
+          badge.className = 'urgent-badge';
+          badge.textContent = 'urgent';
+          badge.title = 'Urgent wizard';
+          item.appendChild(badge);
+        } else if (isPriorityWizard) {
+          const badge = document.createElement('span');
+          badge.className = 'priority-badge';
+          badge.textContent = 'priority';
+          badge.title = 'Priority wizard';
+          item.appendChild(badge);
+        } else if (POST_RELEASE_WIZARDS.has(wizardRawKey)) {
+          const badge = document.createElement('span');
+          badge.className = 'post-release-badge';
+          badge.textContent = 'later';
+          badge.title = 'Post-release feature';
+          item.appendChild(badge);
+        } else {
+          const badge = document.createElement('span');
+          badge.className = 'dev-badge';
+          badge.textContent = 'dev';
+          badge.title = 'Development feature';
+          item.appendChild(badge);
+        }
+      }
       if (wizard.enabled) {
         item.addEventListener('click', () => startWizardFlow(wizard));
       }
@@ -812,6 +1325,200 @@ ready(async () => {
       frag.appendChild(column);
     }
     menu.appendChild(frag);
+  }
+
+  async function launchPopupFromMenu(popup) {
+    const moduleName = String(popup?.module || popup?.id || '').trim();
+    if (!moduleName) return;
+    try {
+      window.__chronosForcePopupQueue = true;
+      await import(new URL(`./Popups/${moduleName}/index.js?v=${Date.now()}&manual=1`, import.meta.url));
+      closeMenus();
+    } catch (err) {
+      console.error('[Chronos][app] Popup launch failed', moduleName, err);
+      try {
+        const toast = document.createElement('div');
+        toast.textContent = `Unable to launch popup ${moduleName}`;
+        toast.style.position = 'fixed';
+        toast.style.bottom = '24px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.padding = '10px 16px';
+        toast.style.background = '#2b3040';
+        toast.style.border = '1px solid #444c63';
+        toast.style.borderRadius = '8px';
+        toast.style.zIndex = '999';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2200);
+      } catch { }
+    } finally {
+      window.__chronosForcePopupQueue = false;
+    }
+  }
+
+  function buildDevMenu() {
+    const menu = document.getElementById('menu-dev');
+    if (!menu) return;
+    menu.innerHTML = '';
+
+    const mkColumn = (title) => {
+      const col = document.createElement('div');
+      col.className = 'column';
+      const head = document.createElement('div');
+      head.className = 'titlebar';
+      head.textContent = title;
+      head.style.fontWeight = '600';
+      head.style.padding = '2px 8px 6px 8px';
+      col.appendChild(head);
+      return col;
+    };
+
+    const mkAction = (label, onClick, { check = '', disabled = false, badge = '' } = {}) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = disabled ? 'item disabled' : 'item';
+      btn.style.border = '0';
+      btn.style.background = 'transparent';
+      btn.style.textAlign = 'left';
+      btn.style.font = 'inherit';
+      btn.style.width = '100%';
+      btn.style.padding = '6px 10px';
+      const checkEl = document.createElement('span');
+      checkEl.className = 'check';
+      checkEl.textContent = check;
+      const textEl = document.createElement('span');
+      textEl.textContent = label;
+      btn.append(checkEl, textEl);
+      if (badge === 'later') {
+        const el = document.createElement('span');
+        el.className = 'post-release-badge';
+        el.textContent = 'later';
+        el.title = 'Post-release feature';
+        btn.appendChild(el);
+      } else if (badge === 'dev') {
+        const el = document.createElement('span');
+        el.className = 'dev-badge';
+        el.textContent = 'dev';
+        el.title = 'Development feature';
+        btn.appendChild(el);
+      } else if (badge === 'good-enough') {
+        const el = document.createElement('span');
+        el.className = 'good-enough-badge';
+        el.textContent = 'good enough';
+        el.title = 'Stable enough for now';
+        btn.appendChild(el);
+      }
+      if (!disabled && typeof onClick === 'function') {
+        btn.addEventListener('click', () => {
+          try { onClick(); } finally { closeMenus(); }
+        });
+      } else {
+        btn.disabled = true;
+      }
+      return btn;
+    };
+
+    const mkToggle = (label, checked, onChange) => {
+      const row = document.createElement('label');
+      row.className = 'item';
+      row.style.cursor = 'pointer';
+      const checkEl = document.createElement('span');
+      checkEl.className = 'check';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = !!checked;
+      input.style.margin = '0';
+      input.addEventListener('change', () => {
+        try { onChange(!!input.checked); } catch { }
+      });
+      checkEl.appendChild(input);
+      const text = document.createElement('span');
+      text.textContent = label;
+      row.append(checkEl, text);
+      return row;
+    };
+
+    const toggleWidgetByName = (name) => {
+      const el = document.querySelector(`[data-widget="${name}"]`);
+      if (!el) return false;
+      el.style.display = el.style.display === 'none' ? '' : 'none';
+      if (el.style.display !== 'none') {
+        try { window.ChronosFocusWidget?.(el); } catch { }
+      }
+      return true;
+    };
+
+    const isWidgetVisible = (name) => {
+      const el = document.querySelector(`[data-widget="${name}"]`);
+      return !!el && el.style.display !== 'none';
+    };
+
+    const isViewOpen = (name) => openPanes.some(p => p.name === name);
+    const hasView = (name) => availableViews.some(v => v.name === name);
+    const openView = async (name, label) => {
+      try {
+        if (isViewOpen(name)) closePane(name);
+        else await openPane(name, label || name);
+      } catch { }
+    };
+
+    const workspaceCol = mkColumn('Workspace');
+    workspaceCol.append(
+      mkAction('Docs View', () => { void openView('Docs', 'Docs'); }, {
+        check: isViewOpen('Docs') ? '✓' : '',
+        disabled: !hasView('Docs'),
+      }),
+      mkAction('Editor View', () => { void openView('Editor', 'Editor'); }, {
+        check: isViewOpen('Editor') ? '✓' : '',
+        disabled: !hasView('Editor'),
+      }),
+      mkAction('Debug Console Widget', () => toggleWidgetByName('DebugConsole'), {
+        check: isWidgetVisible('DebugConsole') ? '✓' : '',
+      }),
+      mkAction('Terminal Widget', () => toggleWidgetByName('Terminal'), {
+        check: isWidgetVisible('Terminal') ? '✓' : '',
+      }),
+      mkAction('Reload Dashboard', () => window.location.reload())
+    );
+
+    const diagnosticsCol = mkColumn('Diagnostics');
+    diagnosticsCol.append(
+      mkAction('Stats for Nerds', () => { void openStatsForNerds(); }, { badge: 'dev' }),
+      mkAction('API Health Probe', () => { void runHealthProbe(); }),
+      mkAction('Runtime Snapshot', () => {
+        const snap = collectRuntimeSnapshot();
+        showTextOverlay('Runtime Snapshot', JSON.stringify(snap, null, 2));
+      })
+    );
+
+    const dataOpsCol = mkColumn('Data Ops');
+    dataOpsCol.append(
+      mkAction('Rebuild Registries (All)', () => { void runDevCommandAction('Rebuild Registries (All)', 'register all'); }),
+      mkAction('Rebuild Registry: Commands', () => { void runDevCommandAction('Rebuild Registry: Commands', 'register commands'); }),
+      mkAction('Rebuild Registry: Items', () => { void runDevCommandAction('Rebuild Registry: Items', 'register items'); }),
+      mkAction('Rebuild Registry: Properties', () => { void runDevCommandAction('Rebuild Registry: Properties', 'register properties'); }),
+      mkAction('Sequence Status', () => { void runDevCommandAction('Sequence Status', 'sequence status'); }),
+      mkAction('Sequence Sync (All)', () => { void runDevCommandAction('Sequence Sync (All)', 'sequence sync'); }),
+      mkAction('Sequence Trends', () => { void runDevCommandAction('Sequence Trends', 'sequence trends'); })
+    );
+
+    const showPostRelease = arePostReleaseItemsVisible();
+    const togglesCol = mkColumn('Display');
+    togglesCol.append(
+      mkToggle('Show Later Items', showPostRelease, (enabled) => {
+        setPostReleaseItemsVisible(enabled);
+        buildWidgetsMenu();
+        buildViewsMenu();
+      }),
+      mkToggle('Show Badges', areBadgesVisible(), (enabled) => {
+        setBadgesVisible(enabled);
+        buildWidgetsMenu();
+        buildViewsMenu();
+        buildWizardsMenu();
+      })
+    );
+
+    menu.append(workspaceCol, diagnosticsCol, dataOpsCol, togglesCol);
   }
 
   // Keep menu in sync when widgets close themselves
@@ -872,14 +1579,24 @@ ready(async () => {
     themeHeader.className = 'titlebar';
     themeHeader.textContent = 'Themes';
     themeCol.appendChild(themeHeader);
+    const accentByThemeId = {
+      'chronos-blue': '#7aa2f7',
+      'chronos-amber': '#f3a64c',
+      'chronos-emerald': '#4de2b6',
+      'chronos-rose': '#ff6fb1',
+    };
     themeOptions.forEach(theme => {
       const item = document.createElement('div');
       item.className = 'item theme-item';
       item.setAttribute('data-theme', theme.id);
+      const accent = String(theme.accent || accentByThemeId[theme.id] || '#7aa2f7');
       item.innerHTML = `
         <span class="check"></span>
-        <span class="theme-title">${theme.label}</span>
-        <span class="theme-swatch" style="background:${theme.accent};"></span>
+        <span class="theme-main">
+          <span class="theme-logo" style="--theme-accent:${accent};"></span>
+          <span class="theme-title">${theme.label}</span>
+        </span>
+        <span class="theme-swatch" style="background:${accent};"></span>
       `;
       item.addEventListener('click', () => {
         applyTheme(theme.id);
@@ -890,6 +1607,90 @@ ready(async () => {
     menu.append(scaleCol, themeCol);
     refreshThemeMenuChecks(themeStylesheet?.dataset.themeId);
   }
+
+  function buildPopupsMenu() {
+    const menu = document.getElementById('menu-popups');
+    if (!menu) return;
+    menu.innerHTML = '';
+
+    const col = document.createElement('div');
+    col.className = 'column';
+
+    const header = document.createElement('div');
+    header.className = 'titlebar';
+    header.textContent = 'Popups';
+    col.appendChild(header);
+
+    const toggleWrap = document.createElement('label');
+    toggleWrap.className = 'item';
+    toggleWrap.style.display = 'flex';
+    toggleWrap.style.alignItems = 'center';
+    toggleWrap.style.gap = '8px';
+    toggleWrap.style.cursor = 'pointer';
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.checked = !arePopupsEnabled();
+    const text = document.createElement('span');
+    text.textContent = 'Disable popups';
+    toggleWrap.append(toggle, text);
+    toggleWrap.addEventListener('click', (ev) => ev.stopPropagation());
+    toggle.addEventListener('change', () => {
+      setPopupsEnabled(!toggle.checked);
+    });
+    col.appendChild(toggleWrap);
+
+    const hint = document.createElement('div');
+    hint.className = 'item disabled';
+    hint.textContent = 'Launch-required popups only.';
+    col.appendChild(hint);
+
+    const listHeader = document.createElement('div');
+    listHeader.className = 'titlebar';
+    listHeader.textContent = 'Available';
+    col.appendChild(listHeader);
+
+    const formatLabel = (popup) => {
+      const raw = String(popup?.label || popup?.module || popup?.id || '').trim();
+      if (!raw) return 'Unknown';
+      return raw.replace(/([a-z])([A-Z])/g, '$1 $2');
+    };
+
+    const items = [...popupCatalog]
+      .sort((a, b) => String(a?.module || a?.id || '').localeCompare(String(b?.module || b?.id || ''), undefined, { sensitivity: 'base' }));
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'item disabled';
+      empty.textContent = 'No popups discovered.';
+      col.appendChild(empty);
+    } else {
+      items.forEach((popup) => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.style.cursor = 'pointer';
+        const check = document.createElement('span');
+        check.className = 'check';
+        check.textContent = popup?.enabled === false ? '' : '✓';
+        const label = document.createElement('span');
+        label.textContent = formatLabel(popup);
+        item.append(check, label);
+        const meta = [];
+        const moduleName = String(popup?.module || popup?.id || '').trim();
+        const priority = Number(popup?.priority || 0);
+        if (moduleName) meta.push(moduleName);
+        if (Number.isFinite(priority) && priority !== 0) meta.push(`p${priority}`);
+        const metaText = document.createElement('span');
+        metaText.className = 'hint';
+        metaText.textContent = meta.join(' ');
+        item.appendChild(metaText);
+        item.addEventListener('click', () => {
+          void launchPopupFromMenu(popup);
+        });
+        col.appendChild(item);
+      });
+    }
+
+    menu.appendChild(col);
+  }
   hookWidgetCloseButtons();
   // Also observe visibility changes as a fallback
   try {
@@ -898,9 +1699,13 @@ ready(async () => {
   } catch { }
 
   // View menu -> open/close panes (up to 3)
-  const viewMenu = document.getElementById('menu-view');
-  if (viewMenu) {
+  function buildViewsMenu() {
+    const viewMenu = document.getElementById('menu-view');
+    if (!viewMenu) return;
+
     viewMenu.innerHTML = '';
+    const showPostRelease = arePostReleaseItemsVisible();
+    const normalize = (value) => String(value || '').trim().toLowerCase();
     const createViewItem = (v) => {
       const it = document.createElement('div');
       it.className = 'item';
@@ -909,14 +1714,48 @@ ready(async () => {
       check.className = 'check';
       check.textContent = openPanes.some(p => p.name === v.name) ? '✓' : '';
       const span = document.createElement('span');
-      span.textContent = v.label;
+      span.textContent = v.label || v.name;
       it.append(check, span);
-      if (DEV_VIEWS.has(v.name)) {
-        const badge = document.createElement('span');
-        badge.className = 'dev-badge';
-        badge.textContent = 'dev';
-        badge.title = 'Under development';
-        it.appendChild(badge);
+      const viewName = normalize(v.name);
+      const viewLabel = normalize(v.label || v.name);
+      const isUrgentView = URGENT_VIEWS.has(viewName) || URGENT_VIEWS.has(viewLabel);
+      const isPriorityView = PRIORITY_VIEWS.has(viewName) || PRIORITY_VIEWS.has(viewLabel);
+      const isDevView = DEV_VIEWS.has(viewName) || DEV_VIEWS.has(viewLabel);
+      const isGoodEnoughView = GOOD_ENOUGH_VIEWS.has(viewName) || GOOD_ENOUGH_VIEWS.has(viewLabel);
+
+      // Add post-release badge if marked
+      if (areBadgesVisible()) {
+        if (isUrgentView) {
+          const badge = document.createElement('span');
+          badge.className = 'urgent-badge';
+          badge.textContent = 'urgent';
+          badge.title = 'Urgent view';
+          it.appendChild(badge);
+        } else if (isPriorityView) {
+          const badge = document.createElement('span');
+          badge.className = 'priority-badge';
+          badge.textContent = 'priority';
+          badge.title = 'Priority view';
+          it.appendChild(badge);
+        } else if (v.postRelease) {
+          const badge = document.createElement('span');
+          badge.className = 'post-release-badge';
+          badge.textContent = 'later';
+          badge.title = 'Post-release feature';
+          it.appendChild(badge);
+        } else if (isGoodEnoughView) {
+          const badge = document.createElement('span');
+          badge.className = 'good-enough-badge';
+          badge.textContent = 'good enough';
+          badge.title = 'Stable enough for now';
+          it.appendChild(badge);
+        } else if (isDevView) {
+          const badge = document.createElement('span');
+          badge.className = 'dev-badge';
+          badge.textContent = 'dev';
+          badge.title = 'Development feature';
+          it.appendChild(badge);
+        }
       }
       it.addEventListener('click', async () => {
         closeMenus();
@@ -931,7 +1770,9 @@ ready(async () => {
     };
     const MAX_PER_COLUMN = 10;
     const frag = document.createDocumentFragment();
-    const sortedViews = [...availableViews].sort((a, b) => String(a.label || a.name).localeCompare(String(b.label || b.name), undefined, { sensitivity: 'base' }));
+    const sortedViews = [...availableViews]
+      .filter(v => showPostRelease || !v.postRelease)
+      .sort((a, b) => String(a.label || a.name).localeCompare(String(b.label || b.name), undefined, { sensitivity: 'base' }));
     for (let i = 0; i < sortedViews.length; i += MAX_PER_COLUMN) {
       const column = document.createElement('div');
       column.className = 'column';

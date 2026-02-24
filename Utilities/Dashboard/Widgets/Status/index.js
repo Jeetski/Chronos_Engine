@@ -46,6 +46,7 @@ export function mount(el) {
   const types = Array.isArray(settings.types) ? settings.types : ['Health', 'Place', 'Energy', 'Mind State', 'Focus', 'Emotion', 'Vibe'];
   const optionsMap = settings.options || {};
   let currentStatus = normalizeStatusMap(settings.current || {});
+  const optionRankMap = {};
 
   // Render fields
   const fieldRefs = {};
@@ -68,14 +69,11 @@ export function mount(el) {
     const normalized = normalizeStatusMap(map || {});
     currentStatus = { ...currentStatus, ...normalized };
     Object.keys(fieldRefs).forEach(key => {
-      const select = fieldRefs[key];
-      if (!select) return;
+      const knob = fieldRefs[key];
+      if (!knob) return;
       const rawVal = currentStatus[key];
       if (!rawVal) return;
-      const exact = Array.from(select.options).find(o => o.value === rawVal);
-      const ci = exact || Array.from(select.options || []).find(o => o.value.toLowerCase() === String(rawVal).toLowerCase());
-      if (ci) select.value = ci.value;
-      if (select.value === undefined && typeof select.value === 'string') select.value = rawVal; // knob case fallback
+      knob.value = rawVal;
     });
   }
   function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
@@ -142,6 +140,7 @@ export function mount(el) {
           updateVisuals();
         }
       },
+      options: validOptions.slice(),
       el: wrap
     };
 
@@ -205,19 +204,68 @@ export function mount(el) {
     return api;
   }
 
-  types.forEach(type => {
-    const typeSlug = slugify(type);
-    const labelText = expandText(type);
-    const opts = Array.isArray(optionsMap[type]) ? optionsMap[type] : ['Poor', 'Fair', 'Good', 'Excellent'];
+  async function loadValueRanks(typeSlug) {
+    try {
+      const resp = await fetch(apiBase() + `/api/settings?file=${encodeURIComponent(typeSlug + '_settings.yml')}`);
+      const json = await resp.json().catch(() => ({}));
+      const data = (json && json.data && typeof json.data === 'object') ? json.data : {};
+      const root = Object.values(data)[0];
+      if (!root || typeof root !== 'object') return null;
+      const ranks = {};
+      Object.entries(root).forEach(([label, meta]) => {
+        const n = Number(meta && meta.value);
+        if (!Number.isNaN(n)) ranks[String(label)] = n;
+      });
+      return Object.keys(ranks).length ? ranks : null;
+    } catch {
+      return null;
+    }
+  }
 
-    // Create knob
-    const knob = renderKnob(typeSlug, labelText, opts);
-    fieldRefs[typeSlug] = knob;
+  function sortOptionsLowToHigh(typeSlug, options) {
+    const src = Array.isArray(options) ? options.slice() : [];
+    const ranks = optionRankMap[typeSlug];
+    if (!ranks) return src;
+    return src.sort((a, b) => {
+      const av = Number(ranks[a]);
+      const bv = Number(ranks[b]);
+      const aHas = Number.isFinite(av);
+      const bHas = Number.isFinite(bv);
+      if (!aHas && !bHas) return 0;
+      if (!aHas) return 1;
+      if (!bHas) return -1;
+      // Higher configured value means lower status severity in existing status files.
+      // Sort descending by rank so knobs read low -> high.
+      return bv - av;
+    });
+  }
 
-    // Set initial value
-    const curVal = currentStatus[typeSlug];
-    if (curVal) knob.value = curVal;
-  });
+  function renderFields() {
+    fieldsRoot.innerHTML = '';
+    Object.keys(fieldRefs).forEach(k => delete fieldRefs[k]);
+
+    types.forEach(type => {
+      const typeSlug = slugify(type);
+      const labelText = expandText(type);
+      const rawOpts = Array.isArray(optionsMap[type]) ? optionsMap[type] : ['Poor', 'Fair', 'Good', 'Excellent'];
+      const opts = sortOptionsLowToHigh(typeSlug, rawOpts);
+
+      const knob = renderKnob(typeSlug, labelText, opts);
+      fieldRefs[typeSlug] = knob;
+
+      const curVal = currentStatus[typeSlug];
+      if (curVal) knob.value = curVal;
+    });
+  }
+
+  async function initFields() {
+    await Promise.all(types.map(async (type) => {
+      const typeSlug = slugify(type);
+      const ranks = await loadValueRanks(typeSlug);
+      if (ranks) optionRankMap[typeSlug] = ranks;
+    }));
+    renderFields();
+  }
   // Re-expand options when vars change
   try {
     window?.ChronosVars && context?.bus?.on('vars:changed', () => {
@@ -283,7 +331,10 @@ export function mount(el) {
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
 
-  fetchCurrentStatus().then(applyCurrentStatus).catch(() => { });
+  initFields().then(() => fetchCurrentStatus().then(applyCurrentStatus).catch(() => { })).catch(() => {
+    renderFields();
+    fetchCurrentStatus().then(applyCurrentStatus).catch(() => { });
+  });
 
   console.log('[Chronos][Status] Widget ready');
   return {};

@@ -68,6 +68,13 @@ def evaluate_and_update_milestones():
             m['completed'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             changed = True
             _fire_triggers(m)
+            try:
+                from Utilities import points as Points
+                if not m.get('points_awarded'):
+                    Points.award_on_complete('milestone', name, minutes=None)
+                    m['points_awarded'] = True
+            except Exception:
+                pass
         # Move into in-progress if >0 and not finished
         if 0 < computed['progress']['percent'] < 100 and str(m.get('status','')).lower() == 'pending':
             m['status'] = 'in-progress'

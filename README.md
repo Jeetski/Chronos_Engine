@@ -1,4 +1,4 @@
-# Chronos Engine
+# Chronos Engine (Alpha v0.2)
 
 YAML-first life management engine with a scriptable CLI, background listener (alarms, reminders, timer), and a lightweight dashboard.
 
@@ -17,6 +17,8 @@ Quickstart
 - **Scripting Engine**: A custom `.chs` scripting language with conditional logic (`Conditions.py`) to automate your life.
 - **Data Mirroring**: The `Sequence` system builds a relational "Memory" (SQLite) of your history for trend analysis.
 - **Rich Dashboard**: A local web interface (Static HTML + Python Server) with widgets, wizards, and visualizations.
+- **Data Cards**: A flexible card-based system for managing arbitrary collections (RPGs, Collections, Inventories) with custom schemas and visualizations.
+- **Extensible Logic**: Dynamic Registries for Wizards and Themes allow drop-in extensions without code changes.
 - **Agent-Ready**: Explicit "Pilot Directives" and "Mental Models" for AI agents to interact with the system.
 
 ## Documentation

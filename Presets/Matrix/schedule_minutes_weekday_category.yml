@@ -1,0 +1,11 @@
+name: schedule_minutes_weekday_category
+label: Schedule Minutes by Weekday x Category
+rows:
+- schedule_weekday
+cols:
+- category
+metric: duration
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

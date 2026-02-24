@@ -88,7 +88,7 @@
 .knob-value-display {
     min-width: 80px;
     text-align: right;
-    font-family: var(--chronos-font-mono, monospace);
+    font-family: var(--chronos-font-mono);
     color: var(--chronos-accent, #7aa2f7);
     font-size: 12px;
     font-weight: 600;

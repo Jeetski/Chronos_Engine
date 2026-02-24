@@ -1,0 +1,5 @@
+name: 'Happiness: Connection'
+mode: happiness
+value: connection
+use_momentum: false
+kind: default

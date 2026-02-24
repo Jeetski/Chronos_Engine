@@ -13,8 +13,8 @@ Commitment YAML fields (examples):
 
   name: Exercise Twice Weekly
   type: commitment
-  frequency: { times: 2, period: week }
-  associated_items:
+  rule: { kind: frequency, times: 2, period: week }
+  targets:
     - { type: habit, name: Exercise }
     - { type: task, name: Morning Run }
   triggers:
@@ -22,10 +22,17 @@ Commitment YAML fields (examples):
       - { type: achievement, name: Exercise streak! }
       - { type: script, path: Scripts/congrats.chs }
 
+  name: Grow Honeycomb Lab
+  type: commitment
+  rule: { kind: frequency, period: week }
+  targets:
+    - { type: habit, name: Beat Upload, count: 1 }
+    - { type: habit, name: Post on Socials, count: 10 }
+
   name: Never Smoke
   type: commitment
-  never: true
-  forbidden_items:
+  rule: { kind: never }
+  targets:
     - { type: habit, name: Smoke }
   triggers:
     on_violation:

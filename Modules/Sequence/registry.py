@@ -34,11 +34,17 @@ DEFAULT_DATABASES: Dict[str, Dict[str, Any]] = {
         "type": "sqlite",
         "description": "Command/event log for automation triggers and retrospectives.",
     },
-    "memory": {
-        "name": "Behavioral Memory",
-        "filename": "chronos_memory.db",
+    "behavior": {
+        "name": "Behavior Facts",
+        "filename": "chronos_behavior.db",
         "type": "sqlite",
-        "description": "Schedule adherence, status snapshots, and qualitative notes.",
+        "description": "Activity facts (planned vs actual), variance, completion rates.",
+    },
+    "journal": {
+        "name": "Journal Context",
+        "filename": "chronos_journal.db",
+        "type": "sqlite",
+        "description": "Status snapshots and narratives for context filtering.",
     },
     "trends": {
         "name": "Trends Warehouse",

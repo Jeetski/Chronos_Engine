@@ -14,6 +14,8 @@ except Exception:
     tk = None  # type: ignore
 
 from Modules.ItemManager import get_user_dir, read_item_data, write_item_data
+from Modules.Scheduler import get_flattened_schedule, schedule_path_for_date
+from Utilities.duration_parser import parse_duration_string
 from Utilities import points as Points
 
 
@@ -176,10 +178,12 @@ def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_
     prof = profs.get(profile_name) or {}
 
     blocks = plan.get('blocks') or []
+    plan_date = str(plan.get('date') or datetime.now().strftime('%Y-%m-%d'))
     first_block = blocks[0]
     focus_sec = _block_minutes_value(first_block) * 60
     schedule_state = {
         'plan': plan,
+        'plan_date': plan_date,
         'current_index': 0,
         'completed_indices': [],
         'total_blocks': len(blocks),
@@ -477,6 +481,43 @@ def _schedule_blocks(st):
         return blocks
     return []
 
+def _record_schedule_completion(block, status: str = "completed"):
+    if not isinstance(block, dict):
+        return
+    if block.get("is_buffer"):
+        return
+    name = block.get("name") or "Unnamed block"
+    scheduled_start = block.get("start") or block.get("scheduled_start")
+    scheduled_end = block.get("end") or block.get("scheduled_end")
+    try:
+        from Commands.Today import load_completion_payload
+        from Modules.Scheduler import build_block_key
+        schedule_date = str(block.get("date") or datetime.now().strftime("%Y-%m-%d"))
+        completion_data, completion_path = load_completion_payload(schedule_date)
+        entries = completion_data.setdefault("entries", {})
+        block_key = build_block_key(name, scheduled_start or "unscheduled")
+        entry = {
+            "name": name,
+            "status": status,
+            "scheduled_start": scheduled_start,
+            "scheduled_end": scheduled_end,
+            "logged_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        entries[block_key] = entry
+        with open(completion_path, "w") as fh:
+            yaml.dump(completion_data, fh, default_flow_style=False, sort_keys=False)
+    except Exception:
+        return
+
+    if status == "completed":
+        try:
+            item_type = block.get("type") or block.get("item_type")
+            minutes = _block_minutes_value(block)
+            if item_type:
+                Points.award_on_complete(str(item_type), name, minutes=minutes if isinstance(minutes, int) else None)
+        except Exception:
+            pass
+
 
 def _begin_schedule_block(st, index):
     blocks = _schedule_blocks(st)
@@ -519,6 +560,9 @@ def _handle_schedule_completion(st):
         completed.append(idx)
     st['schedule_state'] = sched
 
+    if block and not block.get('is_buffer') and not bool(st.get('confirm_completion')):
+        _record_schedule_completion(block, status="completed")
+
     next_index = idx + 1
     if block and bool(st.get('confirm_completion')) and not block.get('is_buffer'):
         st['pending_confirmation'] = {
@@ -539,7 +583,34 @@ def _handle_schedule_completion(st):
     return _begin_schedule_block(st, next_index)
 
 
-def confirm_schedule_block(completed: bool):
+def _stretch_schedule_block(st, minutes: int):
+    if st.get('mode') != 'schedule':
+        return st
+    if minutes <= 0:
+        return st
+    pending = st.get('pending_confirmation') or {}
+    block_index = int(pending.get('block_index', st.get('schedule_state', {}).get('current_index', 0)) or 0)
+    blocks = _schedule_blocks(st)
+    block = blocks[block_index] if block_index < len(blocks) else st.get('current_block')
+    if not block:
+        return st
+    try:
+        existing = int(block.get('stretch_minutes') or 0)
+    except Exception:
+        existing = 0
+    block['stretch_minutes'] = existing + minutes
+    st['current_block'] = block
+    st['current_phase'] = 'focus' if not block.get('is_buffer') else 'break'
+    st['remaining_seconds'] = int(minutes) * 60
+    st['status'] = 'running'
+    st['phase_start'] = _now_str()
+    st['last_tick'] = _now_str()
+    st['pending_confirmation'] = None
+    _save_state(st)
+    return st
+
+
+def confirm_schedule_block(completed: bool | None = None, action: str | None = None, *, stretch_minutes: int | None = None):
     st = _load_state()
     if st.get('mode') != 'schedule':
         return st
@@ -549,9 +620,48 @@ def confirm_schedule_block(completed: bool):
 
     block_index = int(pending.get('block_index', 0))
     next_index = int(pending.get('next_index', block_index + 1))
+    block = pending.get('block')
     st['pending_confirmation'] = None
 
+    if action:
+        action = str(action).strip().lower()
+    if completed is None:
+        if action in {'yes', 'y', 'complete', 'completed', 'done'}:
+            completed = True
+        elif action in {'skip', 'skipped'}:
+            completed = True
+        else:
+            completed = False
+
+    if action in {'start_over', 'restart', 'repeat'}:
+        _begin_schedule_block(st, block_index)
+        return _load_state()
+
+    if action in {'stretch', 'extend'}:
+        minutes = None
+        if isinstance(stretch_minutes, int):
+            minutes = stretch_minutes
+        else:
+            try:
+                settings = _load_settings()
+                minutes = int(settings.get('stretch_minutes') or 5)
+            except Exception:
+                minutes = 5
+        return _stretch_schedule_block(st, max(1, minutes))
+
+    if action in {'skip', 'skipped'}:
+        if block and not block.get('is_buffer'):
+            _record_schedule_completion(block, status="skipped")
+        blocks = _schedule_blocks(st)
+        if next_index >= len(blocks):
+            _complete_schedule_run(st)
+            return _load_state()
+        _begin_schedule_block(st, next_index)
+        return _load_state()
+
     if completed:
+        if block and not block.get('is_buffer'):
+            _record_schedule_completion(block, status="completed")
         blocks = _schedule_blocks(st)
         if next_index >= len(blocks):
             _complete_schedule_run(st)
@@ -618,6 +728,7 @@ def _tick_seconds(st: dict, seconds: int):
 
 
 def auto_tick():
+    sync_schedule_state()
     st = _load_state()
     if st.get('status') != 'running':
         return st
@@ -633,3 +744,216 @@ def _block_minutes_value(block):
     except Exception:
         pass
     return 1
+
+
+def _block_identity(block: dict) -> str:
+    if not isinstance(block, dict):
+        return ""
+    block_id = str(block.get("block_id") or "").strip()
+    if block_id:
+        return f"id:{block_id}"
+    name = str(block.get("name") or "").strip().lower()
+    start = str(block.get("start") or block.get("scheduled_start") or "").strip()
+    end = str(block.get("end") or block.get("scheduled_end") or "").strip()
+    buf = "1" if bool(block.get("is_buffer")) else "0"
+    return f"{name}|{start}|{end}|{buf}"
+
+
+def _normalize_time_label(value):
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    if isinstance(value, str):
+        txt = value.strip()
+        if not txt:
+            return None
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%H:%M:%S", "%H:%M"):
+            try:
+                parsed = datetime.strptime(txt, fmt)
+                return parsed.strftime("%H:%M")
+            except ValueError:
+                continue
+    return None
+
+
+def _duration_minutes(block):
+    raw = block.get("duration")
+    if isinstance(raw, (int, float)):
+        return max(0, int(round(raw)))
+    if isinstance(raw, str):
+        txt = raw.strip()
+        if txt.isdigit():
+            return max(0, int(txt))
+        try:
+            parsed = parse_duration_string(txt)
+            if isinstance(parsed, (int, float)):
+                return max(0, int(parsed))
+        except Exception:
+            pass
+    return 0
+
+
+def _extract_minutes(block):
+    mins = _duration_minutes(block)
+    if mins > 0:
+        return mins
+    start = block.get("start_time") or block.get("ideal_start_time")
+    end = block.get("end_time") or block.get("ideal_end_time")
+    try:
+        st = _normalize_time_label(start)
+        en = _normalize_time_label(end)
+        if st and en:
+            st_dt = datetime.strptime(st, "%H:%M")
+            en_dt = datetime.strptime(en, "%H:%M")
+            delta = int((en_dt - st_dt).total_seconds() // 60)
+            if delta > 0:
+                return delta
+    except Exception:
+        pass
+    return 0
+
+
+def _should_include_schedule_block(block):
+    if bool(block.get("is_buffer")):
+        return True
+    children = block.get("children") or []
+    if not children:
+        return True
+    for child in children:
+        if not isinstance(child, dict):
+            continue
+        if child.get("is_buffer"):
+            continue
+        if child.get("is_parallel_item"):
+            continue
+        if _extract_minutes(child) > 0:
+            return False
+    return True
+
+
+def _build_schedule_plan_for_date(date_key: str):
+    path = schedule_path_for_date(date_key)
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or []
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+
+    flat = get_flattened_schedule(data or [])
+    settings = _load_settings()
+    try:
+        min_minutes = int(settings.get("start_day_min_minutes") or settings.get("start_day_min_block_minutes") or 5)
+    except Exception:
+        min_minutes = 5
+    blocks = []
+    for block in flat:
+        if not isinstance(block, dict):
+            continue
+        if block.get("is_parallel_item"):
+            continue
+        if not _should_include_schedule_block(block):
+            continue
+        is_buffer = bool(block.get("is_buffer"))
+        minutes = _extract_minutes(block)
+        if minutes <= 0:
+            continue
+        if (not is_buffer) and int(minutes) < max(1, int(min_minutes)):
+            continue
+        name = str(block.get("name") or "Unnamed block")
+        plan_block = {
+            "name": name,
+            "minutes": max(1, int(minutes)),
+            "is_buffer": is_buffer,
+            "schedule_type": block.get("type"),
+            "start": _normalize_time_label(block.get("start_time") or block.get("ideal_start_time")),
+            "end": _normalize_time_label(block.get("end_time") or block.get("ideal_end_time")),
+            "buffer_type": block.get("buffer_type"),
+            "block_id": block.get("block_id"),
+            "date": date_key,
+        }
+        blocks.append(plan_block)
+
+    def _sort_key(b):
+        s = str(b.get("start") or "")
+        try:
+            return datetime.strptime(s, "%H:%M")
+        except Exception:
+            return datetime.min
+
+    blocks.sort(key=_sort_key)
+    return blocks
+
+
+def sync_schedule_state():
+    st = _load_state()
+    if st.get("mode") != "schedule":
+        return st
+    sched = st.get("schedule_state") or {}
+    if not isinstance(sched, dict):
+        return st
+    plan = sched.get("plan") or {}
+    if not isinstance(plan, dict):
+        return st
+
+    date_key = str(sched.get("plan_date") or plan.get("date") or datetime.now().strftime("%Y-%m-%d")).strip()
+    try:
+        datetime.strptime(date_key, "%Y-%m-%d")
+    except Exception:
+        date_key = datetime.now().strftime("%Y-%m-%d")
+
+    latest_blocks = _build_schedule_plan_for_date(date_key)
+    if not latest_blocks:
+        return st
+
+    old_blocks = plan.get("blocks") if isinstance(plan.get("blocks"), list) else []
+    if not old_blocks:
+        return st
+
+    old_identities = [_block_identity(b) for b in old_blocks]
+    new_identities = [_block_identity(b) for b in latest_blocks]
+    if old_identities == new_identities:
+        return st
+
+    old_completed = set(int(i) for i in (sched.get("completed_indices") or []) if isinstance(i, int))
+    completed_ids = {old_identities[i] for i in old_completed if 0 <= i < len(old_identities)}
+
+    current_index = int(sched.get("current_index") or 0)
+    current_block = st.get("current_block") or (old_blocks[current_index] if 0 <= current_index < len(old_blocks) else None)
+    current_id = _block_identity(current_block) if isinstance(current_block, dict) else ""
+
+    new_completed_indices = [idx for idx, ident in enumerate(new_identities) if ident in completed_ids]
+    new_current_index = 0
+    if current_id and current_id in new_identities:
+        new_current_index = new_identities.index(current_id)
+    else:
+        pending = [i for i in range(len(latest_blocks)) if i not in set(new_completed_indices)]
+        new_current_index = pending[0] if pending else max(0, len(latest_blocks) - 1)
+
+    sched["plan"] = {
+        **plan,
+        "date": date_key,
+        "blocks": latest_blocks,
+        "generated_at": datetime.now().isoformat(),
+        "source": "schedule_sync",
+    }
+    sched["plan_date"] = date_key
+    sched["total_blocks"] = len(latest_blocks)
+    sched["completed_indices"] = new_completed_indices
+    sched["current_index"] = new_current_index
+    st["schedule_state"] = sched
+    st["current_block"] = latest_blocks[new_current_index] if latest_blocks else None
+
+    # Keep remaining seconds valid for current block duration.
+    try:
+        max_sec = int((st["current_block"] or {}).get("minutes") or 1) * 60
+        rem = int(st.get("remaining_seconds") or 0)
+        if rem > max_sec:
+            st["remaining_seconds"] = max_sec
+    except Exception:
+        pass
+
+    _save_state(st)
+    return st

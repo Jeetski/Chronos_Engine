@@ -1,0 +1,12 @@
+name: schedule_quality_weekday
+label: Quality x Weekday
+rows:
+- quality
+cols:
+- schedule_weekday
+metric: count
+filters:
+  dataset: schedule
+  status: completed
+row_sort: label-asc
+col_sort: label-asc

@@ -1,0 +1,11 @@
+name: tag_status_mix
+label: Tag x Status
+rows:
+- tag
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+row_sort: metric-desc
+col_sort: label-asc

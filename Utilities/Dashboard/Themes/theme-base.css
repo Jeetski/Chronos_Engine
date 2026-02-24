@@ -1,3 +1,16 @@
+:root {
+  --font-stack-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-stack-base: var(--font-stack-mono);
+  --chronos-font-mono: var(--font-stack-mono);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 .chronos-overlay {
   position: fixed;
   inset: 0;
@@ -275,4 +288,36 @@
   border-radius: 12px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+/* ========================================
+   POST-RELEASE BADGES
+   ======================================== */
+
+.post-release-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: rgba(255, 165, 0, 0.2);
+  border: 1px solid rgba(255, 165, 0, 0.4);
+  color: #ffb84d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.good-enough-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: rgba(72, 187, 120, 0.2);
+  border: 1px solid rgba(72, 187, 120, 0.45);
+  color: #7ce3a3;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }

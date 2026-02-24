@@ -1,0 +1,9 @@
+--- Starting Kairos Shadow Run ---
+[Kairos] Generating schedule for 2026-02-03...
+[Kairos] Error gathering candidates: No module named 'Modules'
+[Kairos] Gathered 0 candidates.
+[Kairos] Filtered down to 0 valid items.
+
+--- Generated Schedule ---
+Stats: {'total_items': 0, 'scheduled_items': 0, 'happiness_score': 0}
+--- End Shadow Run ---

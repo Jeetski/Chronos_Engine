@@ -1,0 +1,5 @@
+--- 1. Syncing Core DB ---
+Core DB Synced.
+
+--- 2. Running Kairos Scheduler ---
+Error running scheduler: No module named 'Modules.Scheduler.Kairos'; 'Modules.Scheduler' is not a package

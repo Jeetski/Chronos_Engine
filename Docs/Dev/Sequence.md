@@ -7,17 +7,19 @@ Chronos ships a `sequence` CLI that builds fast mirrors of your YAML data. This 
 - `User/Data/chronos_core.db` — canonical mirror of YAML items, relations, completions, schedules.
 - `User/Data/chronos_matrix.db` — analytics cache that powers Matrix panels/queries.
 - `User/Data/chronos_events.db` — listener log stream plus command/trigger history.
-- `User/Data/chronos_memory.db` — planned vs. actual activity facts and status snapshots.
+- `User/Data/chronos_behavior.db` — planned vs. actual activity facts + variance.
+- `User/Data/chronos_journal.db` — status snapshots + narratives.
 - `User/Data/chronos_trends.db` — derived trends store.
 - `User/Data/trends.md` — human-readable digest of completion rates/variance for agents.
 - `User/Data/databases.yml` — registry of known mirrors and their state.
 - `User/Data/sequence_automation.yml` — listener automation state for nightly syncs.
+  - Deprecated: `chronos_memory.db` (replaced by behavior + journal).
 
 ## Commands
 
 - `sequence status` — list every mirror in `databases.yml` and whether it’s current.
-- `sequence sync <targets>` — rebuild specific mirrors. Targets: `core`, `matrix`, `events`, `memory`, `trends`. Omit to refresh everything.
-- `sequence trends` — shortcut: rebuilds memory/trends and rewrites `trends.md`.
+- `sequence sync <targets>` — rebuild specific mirrors. Targets: `core`, `matrix`, `events`, `behavior`, `journal`, `trends`. Omit to refresh everything.
+- `sequence trends` — shortcut: rebuilds behavior/trends and rewrites `trends.md`.
 
 ## When to run
 
@@ -27,7 +29,7 @@ Chronos ships a `sequence` CLI that builds fast mirrors of your YAML data. This 
 
 ## Automation
 
-The Listener calls `sequence sync memory trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so the dashboard starts each day with fresh summaries. If you disable the listener, schedule `sequence trends` yourself.
+The Listener calls `sequence sync behavior journal trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so the dashboard starts each day with fresh summaries. If you disable the listener, schedule `sequence trends` yourself.
 
 ## Consumers
 

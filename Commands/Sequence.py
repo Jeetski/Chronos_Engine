@@ -11,14 +11,16 @@ from Modules.Sequence import (
 )
 from Modules.Sequence.matrix_builder import build_matrix_cache
 from Modules.Sequence.core_builder import build_core_db
-from Modules.Sequence.memory_builder import build_memory_db
+from Modules.Sequence.behavior_builder import build_behavior_db
+from Modules.Sequence.journal_builder import build_journal_db
 from Modules.Sequence.events_builder import build_events_db
 from Modules.Sequence.trends_builder import build_trends_report
 
 SYNC_HANDLERS = {
     "matrix": build_matrix_cache,
     "core": build_core_db,
-    "memory": build_memory_db,
+    "behavior": build_behavior_db,
+    "journal": build_journal_db,
     "events": build_events_db,
     "trends": build_trends_report,
 }
@@ -43,6 +45,11 @@ def _resolve_targets(args: List[str], properties: dict) -> List[str]:
     for token in tokens:
         if token == "all":
             return known
+        if token == "memory":
+            for alias in ("behavior", "journal"):
+                if alias not in resolved:
+                    resolved.append(alias)
+            continue
         if token not in DEFAULT_DATABASES:
             raise ValueError(f"Unknown database key '{token}'. Known keys: {', '.join(known)}")
         resolved.append(token)
@@ -161,10 +168,11 @@ Usage:
   sequence status
       Show the current registry of SQLite mirrors and digests.
 
-  sequence sync [matrix|core|events|memory|trends|trends_digest ...]
+  sequence sync [matrix|core|events|behavior|journal|memory|trends|trends_digest ...]
       Placeholder sync hook. If no targets are provided it touches every dataset.
       Use space-separated keys (e.g., `sequence sync matrix core`). Properties
       `db`/`database` still work for automation hooks.
+      Note: `memory` is deprecated and maps to `behavior` + `journal`.
 
   sequence trends
       Refreshes `chronos_trends.db` and rewrites `User/Data/trends.md` with the

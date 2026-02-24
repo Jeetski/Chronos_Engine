@@ -85,7 +85,28 @@ Habit Stacks (ordered habits as microroutines)
 - Use it
   - Add to another template: `add "Morning Prime (Habit Stack)" to routine "Morning"` or to a day template in the Template Builder.
   - Schedule behavior stays the same: each habit is its own block; the stack just preserves order and intent.
-  - Tracking is per habit; if you want a single “stack complete” signal, add a helper habit and include it as the last child.
+- Tracking is per habit; if you want a single “stack complete” signal, add a helper habit and include it as the last child.
+
+----------------------------------------
+
+Chores (habit convention)
+
+- What they are
+  - Chores are habits tagged with `chore: true` (and `tags: [chore]`).
+  - They are not a separate item type; they use the normal habit tracker.
+
+- Default chores
+  - Chronos ships with `_example` chore habits you can clone into live ones.
+  - Use the **Chore Setup** wizard from the dashboard to activate them.
+
+- Example YAML
+  ```yaml
+  name: Take Out Trash _example
+  type: habit
+  chore: true
+  frequency: weekly
+  tags: [chore, weekly]
+  ```
 
 ----------------------------------------
 
@@ -108,6 +129,7 @@ Plan the Day
   - Capture what really happened: `did "Morning Meditation" start_time:07:30 end_time:07:55 status:completed note:"Felt great"`
   - Today now shows `upcoming/in progress/missed/completed/skipped/partial` next to each block, and `today reschedule` re-queues missed-but-still-important work automatically.
   - Daily completion entries live in `User/Schedules/completions/YYYY-MM-DD.yml` under `entries:` (used by `did`, `mark`, and `complete`).
+  - `mark "Block":completed` and `complete <type> "<name>"` now share the same completion side effects (commitments/triggers, milestones, points). Use one of them per block to avoid double awarding points.
 
 - Resolve conflicts & dependencies
   - Use exact item names and keep durations realistic.
@@ -237,7 +259,12 @@ Points & Rewards
       routine: 5
       habit: 5
     ```
-  - Some completion flows can add points automatically when you use your `complete` command patterns.
+  - Points are awarded on completion flows, including:
+    - `complete <type> <name>`
+    - `did "Block" ... status:completed`
+    - `mark "Block":completed` (scheduler/timer blocks)
+    - Timer schedule confirmations (`yes`)
+    - Milestones/goals when they flip to `completed`
 
 ----------------------------------------
 

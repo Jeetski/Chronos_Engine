@@ -13,7 +13,7 @@ _sys_paths = {str(Path(p)) for p in sys.path if isinstance(p, str)}
 if str(ROOT_DIR) not in _sys_paths:
     sys.path.insert(0, str(ROOT_DIR))
 
-from Modules import theme_utils  # noqa: E402
+from Modules import console_style  # noqa: E402
 from Modules import status_utils  # noqa: E402
 from Modules.Scheduler import status_current_path, status_history_path_for_date  # noqa: E402
 
@@ -54,11 +54,15 @@ class OnboardingWizard:
         self.current_status_path = Path(status_current_path())
         self.nickname = "Pilot"
         self.changes: list[str] = []
-        # Apply the console theme immediately so the wizard mirrors CLI colors.
+        # Apply console colors so the wizard mirrors CLI styling.
         try:
-            self.theme_colors = theme_utils.apply_theme_to_console(self.root)
+            console_style.apply_global_colors()
         except Exception:
-            self.theme_colors = theme_utils.DEFAULT_THEME.copy()
+            pass
+        try:
+            console_style.enable_themed_print()
+        except Exception:
+            pass
 
     # ---- helpers ---------------------------------------------------------
     def load_yaml(self, path: Path, default):

@@ -205,6 +205,7 @@ const HELP_TEXT = {
   Cockpit: 'Cockpit View: Drag modular panels onto the canvas, move/resize them, and curate your personal flight deck via the Panels menu.',
   ProjectManager: 'Project Manager: Filter/search projects on the left and review summaries, milestones, and linked items in the detail pane.',
   Weekly: 'Weekly View: Scan the next 7 days at a glance, sourced from schedule previews.',
+  Tracker: 'Tracker View: Visualize a full-year calendar for a selected habit or commitment with done/not-done states.',
   Docs: 'Docs View: Browse the Docs tree, search content, and read files without leaving the dashboard.',
   ADUC: 'ADUC View: Launches ADUC (Chronos mode) and embeds it in a dashboard iframe.',
   // Panels
@@ -234,7 +235,8 @@ const HELP_TEXT = {
   Onboarding: 'Chronos Onboarding Wizard: Guided flow to set nickname, categories, statuses, templates, and starter goals/rewards.',
   GoalPlanning: 'Goal Planning Wizard: Capture intent, milestones, and supporting work to spin up a rich goal file.',
   ProjectLaunch: 'Project Launch Wizard: Draft a project brief, milestones, and kickoff actions before writing YAML.',
-  BrainDump: 'Brain Dump Wizard: Rapid task capture, horizon buckets, and light refinement.'
+  BrainDump: 'Brain Dump Wizard: Rapid task capture, horizon buckets, and light refinement.',
+  LifeSetup: 'Life Setup Wizard: Build a schedule skeleton with anchors like sleep, meals, work, and exercise.'
 };
 
 function getHelpTip(name, fallback) {
@@ -460,16 +462,19 @@ function ready(fn) {
 }
 
 ready(() => {
-  // Mount widgets
-  document.querySelectorAll('[data-widget]').forEach(el => {
-    const name = el.getAttribute('data-widget');
-    mountWidget(el, name);
-  });
-  // Mount views
-  document.querySelectorAll('[data-view]').forEach(el => {
-    const name = el.getAttribute('data-view');
-    mountView(el, name);
-  });
+  const appManaged = !!window.__CHRONOS_APP_MANAGED_MOUNTS;
+  if (!appManaged) {
+    // Mount widgets (legacy standalone mode)
+    document.querySelectorAll('[data-widget]').forEach(el => {
+      const name = el.getAttribute('data-widget');
+      mountWidget(el, name);
+    });
+    // Mount views (legacy standalone mode)
+    document.querySelectorAll('[data-view]').forEach(el => {
+      const name = el.getAttribute('data-view');
+      mountView(el, name);
+    });
+  }
   // Floating panel collapse toggles (optional)
   const collapseLeftBtn = document.getElementById('collapseLeft');
   const collapseRightBtn = document.getElementById('collapseRight');

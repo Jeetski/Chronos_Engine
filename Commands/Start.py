@@ -110,6 +110,7 @@ def _load_timer_settings():
 
 
 def _build_plan(schedule, *, min_minutes=5, now_dt=None):
+    day_key = (now_dt or datetime.now()).strftime("%Y-%m-%d")
     blocks = []
     for block in sorted(schedule, key=_sort_key):
         plan_entry = _block_to_plan(block, now_dt=now_dt)
@@ -122,6 +123,7 @@ def _build_plan(schedule, *, min_minutes=5, now_dt=None):
     return {
         "generated_at": datetime.now().isoformat(),
         "source": "schedule",
+        "date": day_key,
         "blocks": blocks,
     }
 
@@ -154,6 +156,7 @@ def _block_to_plan(block, now_dt=None):
         "start": start_label,
         "end": end_label,
         "buffer_type": block.get("buffer_type"),
+        "block_id": block.get("block_id"),
     }
 
 

@@ -1,0 +1,11 @@
+name: schedule_weekday_by_priority
+label: Schedule Weekday x Priority
+rows:
+- schedule_weekday
+cols:
+- priority
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

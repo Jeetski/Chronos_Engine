@@ -1,0 +1,11 @@
+name: status_by_type
+label: Status x Type
+rows:
+- item_type
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+row_sort: metric-desc
+col_sort: label-asc

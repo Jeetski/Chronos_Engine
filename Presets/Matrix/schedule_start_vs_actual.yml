@@ -1,0 +1,11 @@
+name: schedule_start_vs_actual
+label: Schedule Start Hour vs Actual Hour
+rows:
+- schedule_start_hour
+cols:
+- actual_start_hour
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

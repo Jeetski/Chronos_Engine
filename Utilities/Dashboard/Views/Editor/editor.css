@@ -170,7 +170,7 @@
     background: #1e1e1e;
     border-right: 1px solid #333;
     color: #858585;
-    font-family: var(--font-console, monospace);
+    font-family: var(--chronos-font-mono);
     font-size: 14px;
     line-height: 1.5;
     padding: 16px 0;
@@ -193,7 +193,7 @@
 
 .code-area,
 .code-highlight {
-    font-family: var(--font-console, monospace);
+    font-family: var(--chronos-font-mono);
     font-size: 14px;
     line-height: 1.5;
     padding: 16px;

@@ -65,12 +65,22 @@ def run(args, properties):
             print(get_help_message())
             return
         answer = args[1].lower()
-        completed = answer in {'y', 'yes', 'done', 'complete'}
-        st = Timer.confirm_schedule_block(completed)
+        action = answer
+        completed = answer in {'y', 'yes', 'done', 'complete', 'completed'}
+        stretch_minutes = None
+        if len(args) >= 3 and args[2].isdigit():
+            stretch_minutes = int(args[2])
+        st = Timer.confirm_schedule_block(completed, action, stretch_minutes=stretch_minutes)
         if st.get('pending_confirmation'):
             print("Awaiting confirmation for the current block.")
         else:
-            if completed:
+            if action in {'skip', 'skipped'}:
+                print("Skipped block. Continuing.")
+            elif action in {'start_over', 'restart', 'repeat'}:
+                print("Repeating current block.")
+            elif action in {'stretch', 'extend'}:
+                print("Extended current block.")
+            elif completed:
                 print("Marked block as completed. Continuing.")
             else:
                 print("Repeating current block.")
@@ -127,6 +137,6 @@ def get_help_message():
 Usage:
   timer start <profile> [type:<item_type> name:<item_name>] [cycles:N] [auto_advance:true|false]
   timer pause | resume | stop | status
-  timer confirm yes|no
+  timer confirm yes|skip|start_over|stretch [minutes]
   timer profiles list | view <name> | save <name> [k:v ...] | delete <name>
 """

@@ -55,7 +55,7 @@ High level
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `Modules/Listener/Listener.py` runs alarms, reminders, and timer lifecycle.
 - Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views.
-- Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, memory, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
+- Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
 - `Commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
@@ -100,10 +100,11 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `inventory ...` – manage inventories, inventory items, and tools (list/show/new/add/remove) without remembering every verb.
 - `delete [-f] <type> <name>`, `copy`, `rename`, `move type:<new_type>` – manage item files.
 - `view|info|track <type> <name>` — display summaries (`track goal`, `track milestone`, `view commitment`, `view reward`, etc.).
-- `commitments check` — evaluate frequency/never rules and fire triggers (scripts, rewards, achievements).
+- `commitments check` — evaluate commitment rules (frequency/never) against target items and fire triggers (scripts, rewards, achievements).
 - `redeem reward "<name>" [reason:...]` — apply reward cost/cooldown and perform its target action.
 - `today`, `today reschedule`, `trim`, `change`, `cut`, `mark <item>:<status>` — modify today’s schedule.
 - `did "<block>" [start_time:HH:MM] [end_time:HH:MM] [status:completed|skipped|partial]` — log actuals so completions, dashboards, and reschedules stay aligned.
+- `mark ...:completed` and `complete <type> <name>` now share the same post-completion side effects (commitments/triggers, milestones, points). Use one completion path per block to avoid duplicate point awards.
 - `tomorrow [days:n]`, `this <weekday>`, `next <weekday>` — preview upcoming agendas using the same scheduler that powers `today`, handy for planning travel weeks or weekends.
 - `status [k:v ...]` — view or set energy/focus/mood/stress values that influence scheduling.
 - `timer start <profile> [bind_type:task bind_name:"Name"]`, `timer pause|resume|stop|cancel` — run focus sessions bound to items if desired.
@@ -124,12 +125,12 @@ Server
 - Serves assets and provides JSON/YAML endpoints (see Dashboard API guide).
 
 UI
-- `Utilities/Dashboard/dashboard.html` + `app.js` load all views and widgets.
+- `Utilities/Dashboard/` contains auto-discovered views, widgets, panels, and popups.
 - Views:
 - **Calendar** (year/month/week/day canvas with a Day List tree). Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable).
   - **Template Builder** (drag/drop week/day/routine trees plus goal/project/inventory builders with duration badges, nesting inspector, and POST `/api/template` saves).
 - **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree), **Matrix** (pivot-style grid for Chronos data), and **Status Strip** (color-coded horizontal strip of your current status indicators) can be arranged into a personal flight deck, with more panels on the way.
-- Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
+- Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Sleep Settings, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 
 Selected endpoints (JSON unless noted)
 - Health: `GET /health`.
@@ -169,11 +170,12 @@ This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and
   - `chronos_core.db` — canonical mirror of YAML items, relations, completions, and schedules.
   - `chronos_matrix.db` — fast analytics cache powering cockpit Matrix panels.
   - `chronos_events.db` — listener log stream plus command/trigger history.
-  - `chronos_memory.db` — activity facts (planned vs actual) and status snapshots.
+  - `chronos_behavior.db` — activity facts (planned vs actual), variance, completion rates.
+  - `chronos_journal.db` — status snapshots and narratives for context filtering.
   - `chronos_trends.db` + `trends.md` — digest of completion rates/variance for agents.
-- `sequence sync <targets>` rebuilds one or more datasets (`matrix core events memory trends`). Omit the target list to refresh everything.
-- `sequence trends` is a shortcut that rebuilds the memory/trends chain and rewrites `User/Data/trends.md`.
-- The Listener automatically runs `sequence sync memory trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
+- `sequence sync <targets>` rebuilds one or more datasets (`matrix core events behavior journal trends`). Omit the target list to refresh everything.
+- `sequence trends` is a shortcut that rebuilds the behavior/trends chain and rewrites `User/Data/trends.md`.
+- The Listener automatically runs `sequence sync behavior journal trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
 
 ## Development Notes
 Coding style
@@ -192,7 +194,11 @@ Emojis & encoding
 ## Changelog Highlights
 Recent improvements
 - Dashboard themes now live under `Utilities/Dashboard/Themes/` with a runtime picker (Blue, Amber, Emerald, Rose) so operators can switch palettes without editing CSS; base components (wizards, panels, widgets) read shared CSS variables.
+- Popups menu includes a `Disable popups` toggle; Appearance contains scale/theme controls with accent-tinted Chronos glyphs for easier selection.
 - Added the **New Year's Resolutions Wizard** and **Self Authoring Suite** (see `Utilities/Dashboard/Wizards/`) to turn reflections into Chronos items, plus a Resolution Tracker widget and aggregated `/api/items` endpoint so dashboards can surface resolution progress at a glance.
+- Added **Sleep Hygiene** wizard + **Sleep Settings** widget workflow:
+  - wizard guides pattern/timing + hygiene defaults and can create bedtime routine examples;
+  - widget manages sleep anchor blocks directly in day templates.
 - Cockpit panels (Schedule, Matrix, Matrix Visuals, Lists, Commitments) now respect the shared theme tokens, improving readability across palettes.
 - Virtualenv installer (`install_dependencies.bat`) to isolate dependencies.
 - Settings widget + API for editing `User/Settings/*.yml` from the dashboard.

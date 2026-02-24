@@ -1,0 +1,5 @@
+name: 'Category: Health'
+mode: category
+value: health
+use_momentum: false
+kind: default

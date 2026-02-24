@@ -13,7 +13,7 @@ This document is for AI agents (and human developers) extending Chronos: adding 
 | Commands | `Commands/*.py` | Very thin functions implementing `run(args, properties)`; most delegate to ItemManager or modules. |
 | Modules | `Modules/<Type>/main.py` | Item-specific logic (defaults, `handle_command`, triggers). |
 | Item Manager | `Modules/ItemManager.py` | Generic item ops: filesystem paths, YAML read/write, default injection, `dispatch_command`. |
-| Scheduler | `Modules/Scheduler.py`, `Modules/Today.py` | Building agenda, trimming/shifting blocks, applying buffers, manual overrides. |
+| Scheduler | `Commands/Today.py` | Building agenda, trimming/shifting blocks, applying buffers, manual overrides. (`Modules/Scheduler.py` provides helpers). |
 | Utilities | `Utilities/*` | Dashboard server, points ledger, duration parser, CLI colorprint helper, etc. |
 | User data | `User/` | All pilot-owned files (items, settings, schedules, logs). |
 
@@ -28,7 +28,7 @@ Core principle: keep commands thin. ItemManager and per-item modules handle almo
 - Settings: `User/Settings/*.yml` (points, themes, preferences, timer profiles, etc.). Use the `settings` command to mutate them.
 - Pilot context: `User/Profile/pilot_brief.md` (long-form priorities/motivations) and `User/Profile/preferences.md` are plain Markdown that agents must read at startup; keep them lightweight and user-owned.
 - Schedule: `User/Schedules/schedule_YYYY-MM-DD.yml`, with manual modifications tracked via `User/Schedules/manual_modifications_YYYY-MM-DD.yml`. Scheduler merges these each `today reschedule` run.
-- Data mirrors: the `sequence` command writes SQLite caches under `User/Data/` (`chronos_core.db`, `chronos_matrix.db`, `chronos_events.db`, `chronos_memory.db`, `chronos_trends.db`, plus `trends.md`). Treat YAML as the source of truth but rely on these mirrors for fast analytics/dashboards.
+- Data mirrors: the `sequence` command writes SQLite caches under `User/Data/` (`chronos_core.db`, `chronos_matrix.db`, `chronos_events.db`, `chronos_behavior.db`, `chronos_journal.db`, `chronos_trends.db`, plus `trends.md`). Treat YAML as the source of truth but rely on these mirrors for fast analytics/dashboards.
 
 ---
 
@@ -86,7 +86,7 @@ Conceptual phases (simplified):
 5. **Write schedule** (`User/Schedules/schedule_YYYY-MM-DD.yml`), log modifications, update `User/Schedules/manual_modifications_YYYY-MM-DD.yml` for later reconciliation.
 6. **Listener synchronization** for alarms/reminders and Timer binding if relevant.
 
-Modify `Modules/Scheduler.py` and `Modules/Today.py` when you need new scheduling behavior; run `today reschedule` after code changes to test.
+Modify `Commands/Today.py` when you need new scheduling behavior; run `today reschedule` after code changes to test.
 
 ---
 
@@ -97,18 +97,38 @@ The dashboard (under `Utilities/Dashboard/`) is a static SPA served by `server.p
 - Items: `/api/items`, `/api/item`, plus bulk operations.
 - Points/rewards/achievements/commitments/milestones: `/api/points`, `/api/rewards`, `/api/reward/redeem`, `/api/achievements`, `/api/achievement/update`, `/api/commitments`, `/api/milestones`, `/api/milestone/update`.
 - Timer: `/api/timer/*` endpoints map to Timer module functions.
-- Widgets live in `Utilities/Dashboard/Widgets/<Name>/`. They import runtime helpers via `Utilities/Dashboard/core/runtime.js` and often call `apiBase()+/api/...` to fetch data.
 
-When adding a widget:
-1. Create `Widgets/<Name>/index.js` with a `mount(el, context)` export.
-2. Add a matching `<aside data-widget="Name">` in `dashboard.html` and update help text in `core/runtime.js`.
-3. Wire any new endpoints in `server.py` (GET for data, POST for mutations).
+Widgets, views, panels, and popups are **auto-discovered** from the filesystem - no manual registration required.
 
-### Cockpit view & panels
+**Adding a new widget:**
+1. Create folder: `Utilities/Dashboard/Widgets/MyWidget/`
+2. Create `index.js` with `export function mount(el, context) { ... }`
+3. (Optional) Create `widget.yml` for metadata (custom label, postRelease flag)
+4. Refresh dashboard → Widget appears in menu automatically
 
-- The new Cockpit canvas (`Utilities/Dashboard/Views/Cockpit/`) manages drag/drop panels. State is persisted via `chronos_cockpit_panels_v1` in `localStorage`; panels register through an exposed `window.__cockpitPanelRegister`.
-- Panels live in `Utilities/Dashboard/Panels/<Name>/` and typically export a `register(manager)` function that calls `manager.registerPanel({ id, label, mount, ... })`.
-- The inaugural panel is **Schedule**; more panels can hook into the same manager without touching `dashboard.html`.
+**No code editing required** - the registry builder (`Utilities/registry_builder.py`) scans directories and generates menu entries dynamically.
+
+### Views, Panels, and Popups
+
+**Views** (`Utilities/Dashboard/Views/<Name>/`):
+- Full-screen layouts like Calendar, Cockpit, Editor, ProjectManager
+- Automatically listed in Views dropdown menu
+- Create `index.js` with `export async function mount(container, context) { ... }`
+- Optional `view.yml` for metadata
+
+**Panels** (`Utilities/Dashboard/Panels/<Name>/`):
+- Drag-and-drop components for Cockpit view (Schedule, Matrix, etc.)
+- Auto-discovered and registered with panel manager on load
+- Create `index.js` with `export function register(manager) { ... }`
+- Optional `panel.yml` for metadata
+
+**Popups** (`Utilities/Dashboard/Popups/<Name>/`):
+- Notification overlays (StatusNudge, Welcome, etc.)
+- Auto-loaded on dashboard startup
+- Create `index.js` with `export function mount(el) { ... }`
+- Optional `popup.yml` for metadata
+
+See `Docs/Dev/Extensibility.md` for complete documentation on all component types.
 
 ---
 
@@ -124,9 +144,9 @@ When adding a widget:
 ## 9. Sequence mirrors & automation
 
 - `sequence status` reads `User/Data/databases.yml` and shows the state of every mirror.
-- `sequence sync <targets>` rebuilds specific datasets. Targets currently include `matrix`, `core`, `events`, `memory`, `trends`, and `trends_digest` (placeholder). Omit the target list to refresh everything.
-- `sequence trends` is a shortcut for rebuilding the memory/trends pipeline and writing `User/Data/trends.md`.
-- The Listener imports `Modules.Sequence.automation.maybe_queue_midnight_sync` so it can run `sequence sync memory trends` shortly after midnight (state stored in `User/Data/sequence_automation.yml`). If you change the automation cadence, update that helper and make sure agents know where to look for the digest.
+- `sequence sync <targets>` rebuilds specific datasets. Targets currently include `matrix`, `core`, `events`, `behavior`, `journal`, `trends`, and `trends_digest` (placeholder). Omit the target list to refresh everything.
+- `sequence trends` is a shortcut for rebuilding the behavior/trends pipeline and writing `User/Data/trends.md`.
+- The Listener imports `Modules.Sequence.automation.maybe_queue_midnight_sync` so it can run `sequence sync behavior journal trends` shortly after midnight (state stored in `User/Data/sequence_automation.yml`). If you change the automation cadence, update that helper and make sure agents know where to look for the digest.
 - When you add new analytics, prefer piggybacking on Sequence (store data in `User/Data/*.db` and expose summaries in docs) so agents/dashboards can reuse the same mirrors.
 
 ---
@@ -144,7 +164,7 @@ When adding a widget:
 
 - Entry scripts: `console_launcher.bat/.sh`, `listener_launcher.*`, `timer_launcher.*` (if any).
 - Commands: `Commands/*.py` (snake_case filenames, capitalized user names `Commands/Add.py` vs `add`? verify pattern when editing).  
-- Modules: `Modules/<Type>/main.py` plus shared modules (`Modules/Console.py`, `Modules/Today.py`, `Modules/Scheduler.py`, `Modules/Commitment/main.py`, etc.).
+- Modules: `Modules/<Type>/main.py` plus shared modules (`Modules/Console.py`, `Modules/Scheduler.py` (helpers), `Modules/Commitment/main.py`, etc.).
 - Utilities: `Utilities/points.py`, `Utilities/tracking.py`, `Utilities/Dashboard/*`, `Utilities/duration_parser.py`.
 - User data: `User/` directories for each item type, `User/Settings`, `User/Profile`, `User/Rewards`, etc.
 - Docs: `Docs/*.md` for user/agent instructions, `Docs/Dev/Architecture.md` for high-level diagrams, `Docs/Guides/Dashboard.md` for the SPA.

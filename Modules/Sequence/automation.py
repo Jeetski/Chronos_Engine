@@ -39,7 +39,7 @@ def _save_state(date_str: str):
 
 def maybe_queue_midnight_sync(now: datetime, run_cli_command) -> None:
     """
-    Called by the listener loop to trigger `sequence sync memory trends`
+    Called by the listener loop to trigger `sequence sync behavior journal trends`
     shortly after midnight. Ensures it runs at most once per calendar day.
     """
     _load_state()
@@ -48,7 +48,7 @@ def maybe_queue_midnight_sync(now: datetime, run_cli_command) -> None:
         return
     if now.hour == 0 and now.minute < 10:
         try:
-            run_cli_command('sequence sync memory trends')
+            run_cli_command('sequence sync behavior journal trends')
             _save_state(date_str)
         except Exception:
             pass

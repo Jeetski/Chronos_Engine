@@ -1,0 +1,5 @@
+name: Happiness (Scheduled)
+mode: happiness_scheduled
+value: "*"
+use_momentum: false
+kind: default

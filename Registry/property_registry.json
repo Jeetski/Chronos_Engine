@@ -1,166 +1,107 @@
 {
-  "generated_at": "2026-01-22T13:36:09Z",
-  "properties": {
-    "category": {
-      "values": [
-        "Friends and Family",
-        "Health",
-        "Hobbies",
-        "Personal Development",
-        "Work"
-      ]
-    },
-    "priority": {
-      "values": [
-        "High",
-        "Low",
-        "Medium",
-        "Optional",
-        "Urgent"
-      ]
-    },
-    "quality": {
-      "values": [
-        "Excellent",
-        "Good",
-        "Okay",
-        "Poor"
-      ]
-    },
-    "status": {
-      "children": {
-        "health": [
-          "Critical",
-          "Excellent",
-          "Fair",
-          "Good",
-          "Poor"
-        ],
-        "place": [
-          "At Home",
-          "At Work",
-          "On Holiday",
-          "On The Go",
-          "Traveling"
-        ],
-        "energy": [
-          "Exhausted",
-          "High",
-          "Low",
-          "Medium"
-        ],
-        "mind_state": [
-          "Clear",
-          "Distracted",
-          "Neutral",
-          "Overwhelmed"
-        ],
-        "focus": [
-          "Absent",
-          "Good",
-          "Laser",
-          "Scattered"
-        ],
-        "emotion": [
-          "Negative",
-          "Neutral",
-          "Positive"
-        ],
-        "vibe": [
-          "Bad",
-          "Great",
-          "Okay"
-        ]
-      }
-    }
-  },
-  "status_indicators": [
-    "emotion",
-    "energy",
-    "focus",
-    "health",
-    "mind_state",
-    "place",
-    "vibe"
-  ],
-  "timer_profiles": [
-    "classic_pomodoro",
-    "deep_work_50_10",
-    "sprint_90_30"
-  ],
-  "defaults_keys_by_type": {
+  "generated_at": "2026-02-24T21:13:58Z",
+  "keys_by_type": {
     "achievement": [
-      "default_category",
-      "default_description",
-      "default_name",
-      "default_type"
-    ],
-    "alarm": [
-      "default_enabled",
-      "default_message",
-      "default_recurrence",
-      "default_snooze_duration",
-      "default_sound",
-      "type"
-    ],
-    "appointment": [
-      "date",
+      "awarded",
+      "category",
+      "criteria",
       "description",
-      "location",
       "name",
-      "time",
+      "notes",
+      "points",
+      "status",
+      "tags",
+      "title",
       "type"
     ],
+    "alarm": [],
+    "appointment": [],
     "canvas_board": [
       "connections",
       "ink",
+      "link_rev",
+      "link_updated_at",
+      "link_updated_by",
+      "name",
       "nodes",
       "type",
       "viewport"
     ],
     "commitment": [
-      "description",
-      "due_date",
+      "category",
+      "last_met",
       "name",
+      "notes",
+      "rule",
       "status",
+      "targets",
       "type"
+    ],
+    "data_card": [
+      "description",
+      "display",
+      "element",
+      "fields",
+      "id",
+      "label",
+      "name",
+      "power_level",
+      "visualization"
     ],
     "day": [
       "category",
-      "description",
-      "duration",
+      "children",
+      "days",
       "name",
+      "planet",
       "sequence",
+      "status",
       "type"
     ],
-    "dream_diary_entry": [
-      "content",
-      "date",
-      "description",
-      "name",
-      "type"
-    ],
+    "document": [],
+    "dream_diary_entry": [],
     "goal": [
-      "description",
-      "is_template",
+      "category",
+      "deadline",
       "milestones",
       "name",
+      "notes",
       "priority",
+      "project",
+      "status",
       "type"
     ],
     "habit": [
-      "current_count",
+      "category",
+      "chore",
+      "clean_current_streak",
+      "clean_longest_streak",
+      "completion_dates",
+      "current_streak",
       "description",
+      "duration",
+      "end_time",
+      "essential",
       "frequency",
+      "incident_dates",
+      "longest_streak",
       "name",
-      "target_count",
+      "observer_only",
+      "polarity",
+      "priority",
+      "reschedule",
+      "start_time",
+      "status",
+      "tags",
+      "time",
       "type"
     ],
+    "icon": [],
     "inventory": [
       "description",
       "inventory_items",
-      "is_template",
       "name",
+      "notes",
       "places",
       "tags",
       "tools",
@@ -177,141 +118,125 @@
       "tags",
       "type"
     ],
-    "journal_entry": [
-      "content",
-      "date",
-      "description",
-      "name",
-      "type"
-    ],
-    "list": [
-      "description",
-      "items",
-      "name",
-      "type"
-    ],
+    "journal_entry": [],
+    "list": [],
     "microroutine": [
       "category",
-      "description",
+      "children",
       "duration",
+      "end",
+      "filters",
+      "habit_stack",
       "name",
-      "sequence",
-      "type"
+      "start",
+      "status",
+      "tags",
+      "type",
+      "window"
     ],
     "milestone": [
-      "description",
+      "goal",
       "name",
       "status",
-      "target_date",
-      "type"
+      "type",
+      "weight"
     ],
-    "note": [
-      "category",
-      "content",
-      "description",
-      "name",
-      "type"
-    ],
-    "person": [
-      "description",
-      "email",
-      "name",
-      "phone",
-      "type"
-    ],
-    "place": [
-      "address",
-      "coordinates",
-      "description",
-      "name",
-      "type"
-    ],
-    "plan": [
-      "description",
-      "name",
-      "status",
-      "steps",
-      "type"
-    ],
+    "note": [],
+    "person": [],
+    "place": [],
+    "plan": [],
+    "preset": [],
     "project": [
       "category",
-      "children",
-      "description",
-      "milestones",
+      "goals",
+      "name",
       "notes",
       "priority",
-      "state",
+      "resolution",
+      "status",
+      "tags",
+      "tasks",
+      "type"
+    ],
+    "reminder": [],
+    "reward": [
+      "balance",
+      "category",
+      "cooldown",
+      "cost",
+      "description",
+      "duration",
+      "ledger",
+      "name",
+      "notes",
+      "requirements",
+      "status",
+      "target",
+      "type"
+    ],
+    "ritual": [],
+    "routine": [
+      "category",
+      "children",
+      "name",
+      "status",
       "tags",
       "type"
     ],
-    "reminder": [
-      "default_enabled",
-      "default_label",
-      "default_recurrence",
-      "default_sound",
-      "type"
-    ],
-    "reward": [
-      "default_category",
-      "default_description",
-      "default_name",
-      "default_type"
-    ],
-    "ritual": [
-      "description",
-      "frequency",
-      "name",
-      "time",
-      "type"
-    ],
-    "routine": [
-      "category",
-      "description",
-      "duration",
-      "name",
-      "sequence",
-      "type"
-    ],
-    "scheduling": [
-      "conflict_resolution",
-      "importance",
-      "rescheduling",
-      "template_selection",
-      "trimming"
-    ],
     "subroutine": [
       "category",
-      "description",
-      "duration",
+      "children",
       "name",
-      "sequence",
-      "type"
-    ],
-    "task": [
-      "content",
-      "description",
-      "due_date",
-      "name",
-      "priority",
       "status",
+      "tags",
       "type"
     ],
-    "tool": [
-      "capabilities",
+    "task": [],
+    "temp": [],
+    "timeblock": [
+      "absorbable",
       "category",
-      "depends_on",
-      "description",
-      "linked_items",
-      "locations",
+      "duration",
+      "end_time",
+      "flexible",
       "name",
+      "notes",
+      "start_time",
+      "status",
+      "subtype",
+      "tags",
       "type"
     ],
+    "timer": [
+      "auto_advance",
+      "blocks",
+      "bound_item",
+      "confirm_completion",
+      "current_block",
+      "current_phase",
+      "cycle_index",
+      "cycles_goal",
+      "date",
+      "entries",
+      "generated_at",
+      "last_tick",
+      "mode",
+      "pending_confirmation",
+      "phase_start",
+      "profile",
+      "profile_name",
+      "remaining_seconds",
+      "schedule_state",
+      "source",
+      "status"
+    ],
+    "tool": [],
     "week": [
       "category",
-      "description",
-      "duration",
+      "children",
       "name",
-      "sequence",
+      "notes",
+      "status",
       "type"
     ]
   }

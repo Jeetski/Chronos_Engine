@@ -573,7 +573,7 @@
   text-align: var(--node-text-align, left);
   font-size: var(--node-font-size, 14px);
   color: var(--node-text-color, var(--chronos-text));
-  font-family: var(--node-font-family, inherit);
+  font-family: var(--node-font-family, var(--chronos-font-mono));
   font-weight: var(--node-font-weight, 500);
   font-style: var(--node-font-style, normal);
   text-decoration: var(--node-underline, none);

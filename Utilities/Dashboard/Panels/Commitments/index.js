@@ -87,7 +87,7 @@ function injectStyles(){
       padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
       background: var(--chronos-surface-soft);
     }
     .commitments-panel-item + .commitments-panel-item {
@@ -97,6 +97,21 @@ function injectStyles(){
       display: flex;
       align-items: center;
       gap: 8px;
+      cursor: pointer;
+    }
+    .commitments-panel-head-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+    .commitments-panel-expander {
+      width: 14px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--chronos-text-muted);
+      user-select: none;
     }
     .commitments-panel-item-name {
       font-size: 15px;
@@ -131,6 +146,25 @@ function injectStyles(){
       border-color: rgba(91,220,130,0.4);
       background: rgba(91,220,130,0.08);
     }
+    .commitments-panel-head-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .commitments-panel-head-actions button {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--chronos-text);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .commitments-panel-head-actions button:hover {
+      filter: brightness(1.1);
+    }
     .commitments-panel-progress {
       font-size: 12px;
       color: var(--chronos-text-muted);
@@ -154,6 +188,16 @@ function injectStyles(){
     }
     .commitments-panel-status[data-tone="success"] {
       color: var(--chronos-success);
+    }
+    .commitments-panel-detail {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .commitments-panel-item.expanded .commitments-panel-detail {
+      display: flex;
     }
   `;
   document.head.appendChild(style);
@@ -209,8 +253,14 @@ function normalizeItems(list){
     description: entry.description || '',
     status: String(entry.status || 'pending').toLowerCase(),
     period: entry.period || '',
+    ruleKind: entry.rule_kind || '',
     progress: Number(entry.progress ?? 0),
-    required: Number(entry.times_required ?? 0),
+    required: Number(entry.required_total ?? entry.times_required ?? 0),
+    remaining: Number(entry.remaining ?? 0),
+    targetProgress: Array.isArray(entry.target_progress) ? entry.target_progress : [],
+    targets: Array.isArray(entry.targets) ? entry.targets : [],
+    manualToday: String(entry.manual_today || '').toLowerCase(),
+    needsCheckin: !!entry.needs_checkin,
     lastMet: entry.last_met || '',
     lastViolation: entry.last_violation || '',
   }));
@@ -262,6 +312,7 @@ function mountCommitmentsPanel(root){
     counts: { total: 0, met: 0, violations: 0 },
     timer: null,
     loading: false,
+    expanded: new Set(),
   };
 
   function setStatus(message = '', tone = 'info'){
@@ -276,10 +327,13 @@ function mountCommitmentsPanel(root){
     if (countEls.violations) countEls.violations.textContent = (state.counts.violations ?? state.items.filter(it => it.status === 'violation').length ?? 0).toString();
   }
 
-  function formatProgress(item){
-    if (!item.required) return 'Progress: n/a';
-    return `Progress: ${item.progress}/${item.required} this ${item.period || 'period'}`;
+function formatProgress(item){
+  if (!item.required) {
+    if (item.ruleKind) return `Rule: ${item.ruleKind} (${item.period || 'period'})`;
+    return 'Progress: n/a';
   }
+  return `Progress: ${item.progress}/${item.required} this ${item.period || 'period'}`;
+}
 
   function renderList(){
     listEl.innerHTML = '';
@@ -292,10 +346,18 @@ function mountCommitmentsPanel(root){
     }
     const top = state.items.slice().sort(sortCommitments).slice(0, MAX_ITEMS);
     top.forEach(item => {
+      const nameKey = String(item.name || '').toLowerCase();
+      const isExpanded = state.expanded.has(nameKey);
       const card = document.createElement('div');
       card.className = 'commitments-panel-item';
+      if (isExpanded) card.classList.add('expanded');
       const head = document.createElement('div');
       head.className = 'commitments-panel-item-head';
+      const headLeft = document.createElement('div');
+      headLeft.className = 'commitments-panel-head-left';
+      const expander = document.createElement('div');
+      expander.className = 'commitments-panel-expander';
+      expander.textContent = isExpanded ? '▼' : '▶';
       const name = document.createElement('div');
       name.className = 'commitments-panel-item-name';
       name.textContent = item.name;
@@ -306,7 +368,44 @@ function mountCommitmentsPanel(root){
       if (STATUS_COLORS[item.status]){
         badge.style.setProperty('--accent', STATUS_COLORS[item.status]);
       }
-      head.append(name, badge);
+      headLeft.append(expander, name);
+
+      const headActions = document.createElement('div');
+      headActions.className = 'commitments-panel-head-actions';
+      const metBtn = document.createElement('button');
+      metBtn.type = 'button';
+      metBtn.textContent = 'Met';
+      metBtn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        await setDailyOverride(item.name, 'met');
+      });
+      headActions.appendChild(metBtn);
+
+      const vioBtn = document.createElement('button');
+      vioBtn.type = 'button';
+      vioBtn.textContent = 'Violated';
+      vioBtn.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        await setDailyOverride(item.name, 'violation');
+      });
+      headActions.appendChild(vioBtn);
+
+      if (item.manualToday) {
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.textContent = 'Clear';
+        clearBtn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          await setDailyOverride(item.name, 'clear');
+        });
+        headActions.appendChild(clearBtn);
+      }
+
+      headActions.appendChild(badge);
+      head.append(headLeft, headActions);
+
+      const detail = document.createElement('div');
+      detail.className = 'commitments-panel-detail';
 
       const desc = document.createElement('div');
       desc.className = 'commitments-panel-progress';
@@ -316,6 +415,11 @@ function mountCommitmentsPanel(root){
       progress.className = 'commitments-panel-progress';
       progress.textContent = item.description ? formatProgress(item) : '';
 
+      const targets = document.createElement('div');
+      targets.className = 'commitments-panel-progress';
+      const targetNames = (item.targets || []).map(it => `${it.type || '?'}:${it.name || ''}`).filter(Boolean).join(', ');
+      if (targetNames) targets.textContent = `Targets: ${targetNames}`;
+
       const traceBits = [];
       if (item.lastViolation) traceBits.push(`Last violation ${item.lastViolation}`);
       if (item.lastMet) traceBits.push(`Last met ${item.lastMet}`);
@@ -323,12 +427,63 @@ function mountCommitmentsPanel(root){
       trace.className = 'commitments-panel-trace';
       trace.textContent = traceBits.join(' • ');
 
+      if (Array.isArray(item.targetProgress) && item.targetProgress.length) {
+        const tp = document.createElement('div');
+        tp.className = 'commitments-panel-progress';
+        tp.textContent = `Target progress: ${item.targetProgress.map(t => `${t.name || ''} ${Number(t.progress || 0)}/${Number(t.required || 0)}`).join(' | ')}`;
+        detail.appendChild(tp);
+      }
+
+      const checkin = document.createElement('div');
+      checkin.className = 'commitments-panel-progress';
+      if (item.manualToday === 'met' || item.manualToday === 'violation') {
+        checkin.textContent = `Today check-in: ${item.manualToday}`;
+      } else if (item.needsCheckin) {
+        checkin.textContent = 'Daily check-in pending.';
+      } else {
+        checkin.textContent = 'Daily check-in optional.';
+      }
+
       card.append(head);
-      if (item.description) card.append(desc, progress);
-      else card.append(desc);
-      if (trace.textContent) card.append(trace);
+      detail.append(desc);
+      if (item.description) detail.append(progress);
+      if (targetNames) detail.append(targets);
+      detail.append(checkin);
+      if (trace.textContent) detail.append(trace);
+      card.append(detail);
+      head.addEventListener('click', () => {
+        if (card.classList.contains('expanded')) {
+          card.classList.remove('expanded');
+          expander.textContent = '▶';
+          state.expanded.delete(nameKey);
+        } else {
+          card.classList.add('expanded');
+          expander.textContent = '▼';
+          state.expanded.add(nameKey);
+        }
+      });
       listEl.appendChild(card);
     });
+  }
+
+  async function setDailyOverride(name, status){
+    setStatus('Saving check-in…');
+    try {
+      const resp = await fetch(`${apiBase()}/api/commitments/override`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, state: status }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
+        throw new Error(data?.error || `HTTP ${resp.status}`);
+      }
+      await refresh(false);
+      setStatus('Check-in saved.', 'success');
+    } catch (err) {
+      console.error('[Chronos][Panels][Commitments] check-in failed', err);
+      setStatus(err?.message || 'Failed to save check-in.', 'error');
+    }
   }
 
   async function fetchCommitments(){

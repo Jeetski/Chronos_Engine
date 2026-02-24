@@ -1,0 +1,11 @@
+name: points_by_category
+label: Points by Category
+rows:
+- category
+cols:
+- item_status
+metric: points
+filters:
+  dataset: item
+row_sort: metric-desc
+col_sort: label-asc

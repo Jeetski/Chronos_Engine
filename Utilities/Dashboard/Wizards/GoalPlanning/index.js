@@ -10,6 +10,7 @@ let optionsRef = null;
 const STEP_DEFS = [
   { id: 'vision', name: 'Goal Vision', hint: 'Who, why, and when.', render: renderVisionStep },
   { id: 'signals', name: 'Outcomes & Signals', hint: 'Define success metrics and habits.', render: renderSignalsStep },
+  { id: 'hindering', name: 'Hindering Habits', hint: 'Capture what lowers your odds.', render: renderHinderingStep },
   { id: 'milestones', name: 'Milestones & Workstreams', hint: 'Map the path forward.', render: renderMilestonesStep },
   { id: 'review', name: 'Review & Create', hint: 'Confirm YAML then create the goal.', render: renderReviewStep },
 ];
@@ -300,6 +301,8 @@ function createInitialState(){
   return {
     step: 0,
     busy: false,
+    mode: 'create',
+    targetGoalName: '',
     goal: {
       name: '',
       description: '',
@@ -321,8 +324,19 @@ function createInitialState(){
       risks: '',
       accountability: '',
     },
+    hindering: {
+      selectedHabits: [],
+      newHabits: '',
+    },
+    milestoneLinks: {
+      selectedExisting: [],
+    },
     milestones: [createMilestone(), createMilestone()],
-    metadata: { categories: [], priorities: [] },
+    metadata: { categories: [], priorities: [], habits: [], milestones: [], goals: [] },
+    originalLinks: {
+      habits: [],
+      milestones: [],
+    },
   };
 }
 function createMetric(){
@@ -402,6 +416,51 @@ function setFieldValue(path, value){
 
 function listFromMultiline(text){
   return String(text || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+}
+
+function listFromMaybe(value){
+  if (Array.isArray(value)) return normalizeNameList(value);
+  if (typeof value === 'string') return normalizeNameList(listFromMultiline(value));
+  return [];
+}
+
+function normalizeNameList(values){
+  const out = [];
+  const seen = new Set();
+  (values || []).forEach((raw) => {
+    const name = String(raw || '').trim();
+    if (!name) return;
+    const key = name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(name);
+  });
+  return out;
+}
+
+function collectHinderingHabits(state){
+  const selected = normalizeNameList((state?.hindering?.selectedHabits) || []);
+  const typed = normalizeNameList(listFromMultiline(state?.hindering?.newHabits || ''));
+  return normalizeNameList(selected.concat(typed));
+}
+
+function collectMilestoneLinks(state){
+  const selectedExisting = normalizeNameList((state?.milestoneLinks?.selectedExisting) || []);
+  const authored = normalizeNameList((state?.milestones || []).map(m => m?.name || '').filter(Boolean));
+  return normalizeNameList(selectedExisting.concat(authored));
+}
+
+function mergeGoalsArray(existing, legacyGoal){
+  const merged = [];
+  const pushName = (value) => {
+    const name = String(value || '').trim();
+    if (!name) return;
+    if (merged.some(x => x.toLowerCase() === name.toLowerCase())) return;
+    merged.push(name);
+  };
+  if (Array.isArray(existing)) existing.forEach(pushName);
+  if (typeof legacyGoal === 'string') pushName(legacyGoal);
+  return merged;
 }
 
 function slugify(value){
@@ -486,8 +545,10 @@ function buildGoalPayload(state){
     .filter(m => m.label && (m.target || m.notes));
   if (metrics.length) base.success_metrics = metrics;
 
-  const habitList = listFromMultiline(state.supports.habits);
+  const habitList = normalizeNameList(listFromMultiline(state.supports.habits));
   if (habitList.length) base.supporting_habits = habitList;
+  const hinderingHabits = collectHinderingHabits(state);
+  if (hinderingHabits.length) base.hindering_habits = hinderingHabits;
   if (state.supports.first_action?.trim()) base.first_action = state.supports.first_action.trim();
   if (state.supports.checkpoints?.trim()) base.review_cadence = state.supports.checkpoints.trim();
   const risks = listFromMultiline(state.supports.risks);
@@ -516,6 +577,8 @@ function buildGoalPayload(state){
     .filter(Boolean);
   if (!milestones.length) throw new Error('Add at least one milestone.');
   base.milestones = milestones;
+  const linkedMilestones = collectMilestoneLinks(state);
+  if (linkedMilestones.length) base.linked_milestones = linkedMilestones;
   return base;
 }
 
@@ -532,12 +595,21 @@ function validateStep(index, state){
     return { valid: true };
   }
   if (index === 2){
-    const milestones = state.milestones.filter(m => m.name.trim());
-    if (!milestones.length) return { valid: false, message: 'Add one or more milestones.' };
-    if (milestones.some(m => !m.summary.trim())) return { valid: false, message: 'Describe each milestone.' };
+    const supporting = normalizeNameList(listFromMultiline(state.supports?.habits || ''));
+    const hindering = collectHinderingHabits(state);
+    if (hindering.some(name => !name.trim())) return { valid: false, message: 'Fix hindering habit names.' };
+    const overlap = hindering.find(name => supporting.some(s => s.toLowerCase() === name.toLowerCase()));
+    if (overlap) return { valid: false, message: `Habit "${overlap}" cannot be both supporting and hindering.` };
     return { valid: true };
   }
   if (index === 3){
+    const authored = (state.milestones || []).filter(m => m.name.trim());
+    const linkedExisting = normalizeNameList(state?.milestoneLinks?.selectedExisting || []);
+    if (!authored.length && !linkedExisting.length) return { valid: false, message: 'Add or link at least one milestone.' };
+    if (authored.some(m => !m.summary.trim())) return { valid: false, message: 'Describe each authored milestone.' };
+    return { valid: true };
+  }
+  if (index === STEP_DEFS.length - 1){
     try {
       buildGoalPayload(state);
       return { valid: true };
@@ -560,6 +632,7 @@ function renderStepContent(){
 function renderVisionStep(container, state){
   const categories = state.metadata.categories || [];
   const priorities = state.metadata.priorities || [];
+  const knownGoals = (state.metadata.goals || []).filter(Boolean);
   const catOptions = ['<option value="">Select category</option>']
     .concat(categories.map(opt => `<option value="${escapeAttr(opt.value)}"${opt.value === state.goal.category ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`))
     .join('');
@@ -569,14 +642,25 @@ function renderVisionStep(container, state){
   const horizonOptions = HORIZON_PRESETS
     .map(opt => `<option value="${opt.value}"${opt.value === state.goal.horizon ? ' selected' : ''}>${opt.label}</option>`)
     .join('');
+  const selectedGoal = state.mode === 'edit' ? state.goal.name : '__new__';
+  const goalOptions = ['<option value="__new__">+ New goal</option>']
+    .concat(knownGoals.map(name => `<option value="${escapeAttr(name)}"${name === selectedGoal ? ' selected' : ''}>${escapeHtml(name)}</option>`))
+    .join('');
 
   container.innerHTML = `
     <div>
       <h2 class="section-header">Clarify the goal</h2>
       <p class="hint">Give Chronos enough context to prioritize the work and communicate why it matters.</p>
+      ${state.mode === 'edit' ? '<p class="hint">Editing mode keeps the goal name fixed so linked habits and milestones stay consistent.</p>' : ''}
+    </div>
+    <div class="form-grid">
+      <label>Existing goals
+        <span class="hint">Pick an existing goal to edit, or keep "+ New goal" to create from scratch.</span>
+        <select data-existing-goal>${goalOptions}</select>
+      </label>
     </div>
     <div class="form-grid two">
-      <label>Goal name<input type="text" data-field="goal.name" value="${escapeAttr(state.goal.name)}" placeholder="Ship my personal project" /></label>
+      <label>Goal name<input type="text" data-field="goal.name" value="${escapeAttr(state.goal.name)}" placeholder="Ship my personal project" ${state.mode === 'edit' ? 'disabled' : ''} /></label>
       <label>Category<select data-field="goal.category">${catOptions}</select></label>
       <label>Priority<select data-field="goal.priority">${priorityOptions}</select></label>
       <label>Time horizon<select data-field="goal.horizon">${horizonOptions}</select></label>
@@ -595,6 +679,19 @@ function renderVisionStep(container, state){
     const handler = (ev) => setFieldValue(ev.target.dataset.field, ev.target.value);
     el.addEventListener('input', handler);
   });
+  const goalPicker = container.querySelector('[data-existing-goal]');
+  if (goalPicker) {
+    goalPicker.addEventListener('change', async (ev) => {
+      const picked = String(ev.target.value || '').trim();
+      if (!picked || picked === '__new__') {
+        resetToCreateMode();
+        updateNavigation();
+        return;
+      }
+      await loadGoalForEdit(picked);
+      updateNavigation();
+    });
+  }
   const customRow = container.querySelector('[data-custom-horizon]');
   if (customRow) customRow.style.display = state.goal.horizon === 'custom' ? 'flex' : 'none';
 }
@@ -609,7 +706,7 @@ function renderSignalsStep(container, state){
     <div style="margin-top:16px;">
       <h3 class="section-header" style="font-size:16px;">Support systems</h3>
       <div class="form-grid two">
-        <label>Supporting habits / rituals<span class="hint">One per line.</span><textarea data-support-field="habits">${escapeHtml(state.supports.habits)}</textarea></label>
+        <label>Supporting habits / rituals<span class="hint">One per line. Each habit will be linked to this goal via <code>goals: []</code>.</span><textarea data-support-field="habits">${escapeHtml(state.supports.habits)}</textarea></label>
         <label>First meaningful action<textarea data-support-field="first_action" placeholder="What can you do this week to start?">${escapeHtml(state.supports.first_action)}</textarea></label>
         <label>Checkpoint cadence<input type="text" data-support-field="checkpoints" value="${escapeAttr(state.supports.checkpoints)}" /></label>
         <label>Risks or blockers<span class="hint">One per line.</span><textarea data-support-field="risks">${escapeHtml(state.supports.risks)}</textarea></label>
@@ -678,15 +775,142 @@ function renderSignalsStep(container, state){
   });
 }
 
+function renderHinderingStep(container, state){
+  const habits = (state.metadata.habits || [])
+    .filter(h => h && h.name)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const selectedSet = new Set((state.hindering.selectedHabits || []).map(x => String(x).toLowerCase()));
+  container.innerHTML = `
+    <div>
+      <h2 class="section-header">What gets in the way?</h2>
+      <p class="hint">Link habits that reduce your chance of success. These are saved as <code>hindering_habits</code> on the goal and linked to the goal via each habit's <code>goals: []</code>.</p>
+    </div>
+    <div class="form-grid">
+      <label>Existing habits
+        <span class="hint">Select any existing habit to link. Habits linked here are treated as hindering for this goal.</span>
+      </label>
+      <div class="metric-list" data-habit-select-list></div>
+      <label>Create new hindering habits (one per line)
+        <textarea data-hindering-field="newHabits" placeholder="Doomscrolling at night&#10;Skipping planning&#10;Late caffeine">${escapeHtml(state.hindering.newHabits || '')}</textarea>
+      </label>
+    </div>
+  `;
+  const list = container.querySelector('[data-habit-select-list]');
+  if (!list) return;
+  if (!habits.length) {
+    const empty = document.createElement('div');
+    empty.className = 'hint';
+    empty.textContent = 'No habits found yet. Add names below to create linked hindering habits.';
+    list.appendChild(empty);
+  } else {
+    habits.forEach((habit) => {
+      const row = document.createElement('label');
+      row.className = 'metric-card';
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'space-between';
+      row.style.gap = '12px';
+      const checked = selectedSet.has(String(habit.name).toLowerCase()) ? 'checked' : '';
+      const polarity = String(habit.polarity || 'good').toLowerCase();
+      row.innerHTML = `
+        <span>
+          <strong>${escapeHtml(habit.name)}</strong>
+          <span class="hint">(${escapeHtml(polarity)})</span>
+        </span>
+        <input type="checkbox" data-hindering-existing="${escapeAttr(habit.name)}" ${checked} />
+      `;
+      list.appendChild(row);
+    });
+    container.querySelectorAll('[data-hindering-existing]').forEach((el) => {
+      el.addEventListener('change', (ev) => {
+        const name = String(ev.target.dataset.hinderingExisting || '').trim();
+        if (!name) return;
+        const current = normalizeNameList(state.hindering.selectedHabits || []);
+        const key = name.toLowerCase();
+        const has = current.some(x => x.toLowerCase() === key);
+        if (ev.target.checked && !has) current.push(name);
+        if (!ev.target.checked && has) {
+          state.hindering.selectedHabits = current.filter(x => x.toLowerCase() !== key);
+        } else {
+          state.hindering.selectedHabits = current;
+        }
+        updateValidationHint();
+        if (state.step === STEP_DEFS.length - 1) renderStepContent();
+      });
+    });
+  }
+  container.querySelectorAll('[data-hindering-field]').forEach(el => {
+    el.addEventListener('input', (ev) => {
+      state.hindering[ev.target.dataset.hinderingField] = ev.target.value;
+      updateValidationHint();
+      if (state.step === STEP_DEFS.length - 1) renderStepContent();
+    });
+  });
+}
+
 function renderMilestonesStep(container, state){
+  const knownMilestones = (state.metadata.milestones || [])
+    .filter(m => m && m.name)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const selectedExisting = new Set((state.milestoneLinks.selectedExisting || []).map(x => String(x).toLowerCase()));
   container.innerHTML = `
     <div>
       <h2 class="section-header">Turn the goal into milestones</h2>
-      <p class="hint">Each milestone becomes a YAML entry with a definition of done and optional celebration.</p>
+      <p class="hint">Author new milestones and/or link existing ones to this goal.</p>
+    </div>
+    <div class="form-grid">
+      <label>Link existing milestones</label>
+      <div class="metric-list" data-existing-milestones></div>
     </div>
     <div class="milestone-list"></div>
     <button class="primary" type="button" data-add-milestone>Add milestone</button>
   `;
+  const existingEl = container.querySelector('[data-existing-milestones]');
+  if (existingEl) {
+    if (!knownMilestones.length) {
+      const empty = document.createElement('div');
+      empty.className = 'hint';
+      empty.textContent = 'No existing milestones found. Create one below.';
+      existingEl.appendChild(empty);
+    } else {
+      knownMilestones.forEach((m) => {
+        const row = document.createElement('label');
+        row.className = 'metric-card';
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        row.style.gap = '12px';
+        const checked = selectedExisting.has(String(m.name).toLowerCase()) ? 'checked' : '';
+        const currentGoal = String(m.goal || '').trim();
+        const goalInfo = currentGoal ? `goal: ${currentGoal}` : 'unlinked';
+        row.innerHTML = `
+          <span>
+            <strong>${escapeHtml(m.name)}</strong>
+            <span class="hint">(${escapeHtml(goalInfo)})</span>
+          </span>
+          <input type="checkbox" data-existing-milestone="${escapeAttr(m.name)}" ${checked} />
+        `;
+        existingEl.appendChild(row);
+      });
+      container.querySelectorAll('[data-existing-milestone]').forEach((el) => {
+        el.addEventListener('change', (ev) => {
+          const name = String(ev.target.dataset.existingMilestone || '').trim();
+          if (!name) return;
+          const current = normalizeNameList(state.milestoneLinks.selectedExisting || []);
+          const key = name.toLowerCase();
+          const has = current.some(x => x.toLowerCase() === key);
+          if (ev.target.checked && !has) current.push(name);
+          if (!ev.target.checked && has) {
+            state.milestoneLinks.selectedExisting = current.filter(x => x.toLowerCase() !== key);
+          } else {
+            state.milestoneLinks.selectedExisting = current;
+          }
+          updateValidationHint();
+          if (state.step === STEP_DEFS.length - 1) renderStepContent();
+        });
+      });
+    }
+  }
   const listEl = container.querySelector('.milestone-list');
   state.milestones.forEach((mile, idx) => {
     const card = document.createElement('div');
@@ -753,6 +977,15 @@ function renderReviewStep(container, state){
   const milestoneSummary = (payload.milestones || [])
     .map(m => `<li><strong>${escapeHtml(m.name)}</strong> – ${escapeHtml(m.description || '')}${m.due_date ? ` (due ${escapeHtml(m.due_date)})` : ''}</li>`)
     .join('');
+  const linkedMilestones = (payload.linked_milestones || [])
+    .map(name => `<li>${escapeHtml(name)}</li>`)
+    .join('');
+  const supportingHabits = (payload.supporting_habits || [])
+    .map(name => `<li>${escapeHtml(name)}</li>`)
+    .join('');
+  const hinderingHabits = (payload.hindering_habits || [])
+    .map(name => `<li>${escapeHtml(name)}</li>`)
+    .join('');
   container.innerHTML = `
     <div>
       <h2 class="section-header">Review and confirm</h2>
@@ -774,8 +1007,22 @@ function renderReviewStep(container, state){
       </div>
     </div>
     <div>
+      <h3 class="tagline">Linked milestones (existing + authored)</h3>
+      <ul>${linkedMilestones || '<li>None linked</li>'}</ul>
+    </div>
+    <div>
       <h3 class="tagline">Success metrics</h3>
       <ul>${metrics || '<li>Add at least one metric.</li>'}</ul>
+    </div>
+    <div class="form-grid two">
+      <div>
+        <h3 class="tagline">Supporting habits</h3>
+        <ul>${supportingHabits || '<li>None defined</li>'}</ul>
+      </div>
+      <div>
+        <h3 class="tagline">Hindering habits</h3>
+        <ul>${hinderingHabits || '<li>None defined</li>'}</ul>
+      </div>
     </div>
     <div class="yaml-preview">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -847,6 +1094,7 @@ function updateNavigation(){
     }
   }
   if (overlayRefs.create) overlayRefs.create.style.display = wizardState.step === STEP_DEFS.length - 1 ? '' : 'none';
+  if (overlayRefs.create) overlayRefs.create.textContent = wizardState.mode === 'edit' ? 'Save Goal' : 'Create Goal';
   updateValidationHint();
 }
 
@@ -880,10 +1128,17 @@ async function saveGoal(){
   setStatus('Creating goal...', 'info');
   try {
     await apiRequest('/api/item', { method: 'POST', body: payload });
-    setStatus('Goal created successfully.', 'success');
+    await syncHabitGoalLinks(payload, wizardState.originalLinks.habits || []);
+    await syncMilestoneGoalLinks(payload, wizardState.originalLinks.milestones || [], wizardState);
+    wizardState.originalLinks.habits = normalizeNameList((payload.supporting_habits || []).concat(payload.hindering_habits || []));
+    wizardState.originalLinks.milestones = normalizeNameList(payload.linked_milestones || []);
+    setStatus(wizardState.mode === 'edit'
+      ? 'Goal updated successfully, with habit and milestone links synced.'
+      : 'Goal created successfully, with habit and milestone links synced.', 'success');
     wizardState.busy = false;
     updateValidationHint();
     contextRef?.bus?.emit?.('wizard:goal:created', { name: payload.name });
+    contextRef?.bus?.emit?.('wizard:goal:saved', { name: payload.name, mode: wizardState.mode });
   } catch (err) {
     setStatus(err.message || 'Failed to create goal.', 'error');
     wizardState.busy = false;
@@ -891,22 +1146,198 @@ async function saveGoal(){
   }
 }
 
+async function syncHabitGoalLinks(goalPayload, previousHabitLinks = []){
+  const goalName = String(goalPayload?.name || '').trim();
+  if (!goalName) return;
+
+  const supporting = normalizeNameList(goalPayload.supporting_habits || []);
+  const hindering = normalizeNameList(goalPayload.hindering_habits || []);
+  const allNames = normalizeNameList(supporting.concat(hindering));
+  const prevNames = normalizeNameList(previousHabitLinks);
+  if (!allNames.length && !prevNames.length) return;
+
+  let habitIndex = {};
+  try {
+    const resp = await apiRequest('/api/habits');
+    const rows = Array.isArray(resp?.habits) ? resp.habits : [];
+    rows.forEach((row) => {
+      const name = String(row?.name || '').trim();
+      if (!name) return;
+      habitIndex[name.toLowerCase()] = row;
+    });
+  } catch {
+    habitIndex = {};
+  }
+
+  for (const habitName of allNames) {
+    const key = habitName.toLowerCase();
+    const isHindering = hindering.some(x => x.toLowerCase() === key);
+    const existing = habitIndex[key];
+    let habitPayload = null;
+
+    if (existing) {
+      try {
+        const itemResp = await apiRequest(`/api/item?type=habit&name=${encodeURIComponent(habitName)}`);
+        habitPayload = itemResp?.item && typeof itemResp.item === 'object' ? itemResp.item : null;
+      } catch {
+        habitPayload = null;
+      }
+    }
+
+    if (!habitPayload) {
+      habitPayload = {
+        type: 'habit',
+        name: habitName,
+        status: 'pending',
+        polarity: isHindering ? 'bad' : 'good',
+      };
+    }
+
+    const goals = mergeGoalsArray(habitPayload.goals, habitPayload.goal);
+    if (!goals.some(x => x.toLowerCase() === goalName.toLowerCase())) goals.push(goalName);
+    habitPayload.goals = goals;
+    if (isHindering) habitPayload.polarity = 'bad';
+    habitPayload.type = 'habit';
+    habitPayload.name = habitName;
+
+    await apiRequest('/api/item', { method: 'POST', body: habitPayload });
+  }
+
+  const removed = prevNames.filter(name => !allNames.some(x => x.toLowerCase() === name.toLowerCase()));
+  for (const habitName of removed) {
+    let itemResp = null;
+    try {
+      itemResp = await apiRequest(`/api/item?type=habit&name=${encodeURIComponent(habitName)}`);
+    } catch {
+      itemResp = null;
+    }
+    const habitPayload = itemResp?.item && typeof itemResp.item === 'object' ? itemResp.item : null;
+    if (!habitPayload) continue;
+    const goals = mergeGoalsArray(habitPayload.goals, habitPayload.goal).filter(x => x.toLowerCase() !== goalName.toLowerCase());
+    habitPayload.goals = goals;
+    if (typeof habitPayload.goal === 'string' && habitPayload.goal.trim().toLowerCase() === goalName.toLowerCase()) {
+      delete habitPayload.goal;
+    }
+    habitPayload.type = 'habit';
+    habitPayload.name = habitName;
+    await apiRequest('/api/item', { method: 'POST', body: habitPayload });
+  }
+}
+
+async function syncMilestoneGoalLinks(goalPayload, previousMilestoneLinks = [], state = null){
+  const goalName = String(goalPayload?.name || '').trim();
+  if (!goalName) return;
+  const desiredNames = normalizeNameList(goalPayload.linked_milestones || []);
+  const prevNames = normalizeNameList(previousMilestoneLinks || []);
+  const authoredByName = {};
+  ((state?.milestones) || []).forEach((m) => {
+    const name = String(m?.name || '').trim();
+    if (!name) return;
+    authoredByName[name.toLowerCase()] = m;
+  });
+
+  for (const msName of desiredNames) {
+    const authored = authoredByName[msName.toLowerCase()] || null;
+    let payload = null;
+    try {
+      const resp = await apiRequest(`/api/item?type=milestone&name=${encodeURIComponent(msName)}`);
+      payload = resp?.item && typeof resp.item === 'object' ? resp.item : null;
+    } catch {
+      payload = null;
+    }
+    if (!payload) payload = { type: 'milestone', name: msName, status: 'pending', progress: { percent: 0 } };
+    payload.type = 'milestone';
+    payload.name = msName;
+    payload.goal = goalName;
+    if (authored) {
+      if (String(authored.summary || '').trim()) payload.description = String(authored.summary).trim();
+      if (authored.target_date) payload.due_date = authored.target_date;
+      if (String(authored.metric || '').trim()) payload.criteria = String(authored.metric).trim();
+      if (authored.owner) payload.owner = authored.owner;
+      payload.weight = Number(authored.weight) || 1;
+      const steps = listFromMultiline(authored.steps || '');
+      if (steps.length) payload.plan = steps;
+      if (String(authored.celebrate || '').trim()) payload.celebration = String(authored.celebrate).trim();
+    }
+    await apiRequest('/api/item', { method: 'POST', body: payload });
+  }
+
+  const removed = prevNames.filter(name => !desiredNames.some(x => x.toLowerCase() === name.toLowerCase()));
+  for (const msName of removed) {
+    let resp = null;
+    try {
+      resp = await apiRequest(`/api/item?type=milestone&name=${encodeURIComponent(msName)}`);
+    } catch {
+      resp = null;
+    }
+    const payload = resp?.item && typeof resp.item === 'object' ? resp.item : null;
+    if (!payload) continue;
+    if (String(payload.goal || '').trim().toLowerCase() === goalName.toLowerCase()) {
+      delete payload.goal;
+      payload.type = 'milestone';
+      payload.name = msName;
+      await apiRequest('/api/item', { method: 'POST', body: payload });
+    }
+  }
+}
+
 async function loadMetadata(){
   if (!wizardState) return;
-  try {
-    const [catResp, priResp] = await Promise.all([
-      fetchSettings('category_settings.yml'),
-      fetchSettings('priority_settings.yml'),
-    ]);
+  const [cat, pri, habits, milestones, goals] = await Promise.allSettled([
+    fetchSettings('category_settings.yml'),
+    fetchSettings('priority_settings.yml'),
+    apiRequest('/api/habits'),
+    apiRequest('/api/items?type=milestone'),
+    apiRequest('/api/goals'),
+  ]);
+  if (cat.status === 'fulfilled') {
+    const catResp = cat.value;
     if (catResp?.Category_Settings || catResp?.category_settings) {
       wizardState.metadata.categories = parseOrderedEntries(catResp.Category_Settings || catResp.category_settings);
     }
+  }
+  if (pri.status === 'fulfilled') {
+    const priResp = pri.value;
     if (priResp?.Priority_Settings || priResp?.priority_settings) {
       wizardState.metadata.priorities = parseOrderedEntries(priResp.Priority_Settings || priResp.priority_settings);
     }
-  } catch (err) {
-    console.warn('[Chronos][GoalWizard] Metadata load failed', err);
-    setStatus('Metadata not found. Using manual inputs.', 'warn');
+  }
+  if (habits.status === 'fulfilled') {
+    const habitResp = habits.value;
+    wizardState.metadata.habits = Array.isArray(habitResp?.habits)
+      ? habitResp.habits.map(h => ({ name: String(h?.name || ''), polarity: String(h?.polarity || 'good') })).filter(h => h.name)
+      : [];
+  } else {
+    wizardState.metadata.habits = [];
+  }
+  if (milestones.status === 'fulfilled') {
+    const msResp = milestones.value;
+    wizardState.metadata.milestones = Array.isArray(msResp?.items)
+      ? msResp.items
+        .filter(m => m && String(m.type || '').toLowerCase() === 'milestone')
+        .map(m => ({ name: String(m.name || ''), goal: String(m.goal || '') }))
+        .filter(m => m.name)
+      : [];
+  } else {
+    wizardState.metadata.milestones = [];
+  }
+  if (goals.status === 'fulfilled') {
+    const goalResp = goals.value;
+    wizardState.metadata.goals = Array.isArray(goalResp?.goals)
+      ? goalResp.goals.map(g => String(g?.name || '').trim()).filter(Boolean).sort((a, b) => a.localeCompare(b))
+      : [];
+  } else {
+    wizardState.metadata.goals = [];
+  }
+  if (cat.status === 'rejected' || pri.status === 'rejected' || habits.status === 'rejected' || milestones.status === 'rejected' || goals.status === 'rejected') {
+    console.warn('[Chronos][GoalWizard] Metadata load partial failure', {
+      categories: cat.status,
+      priorities: pri.status,
+      habits: habits.status,
+      milestones: milestones.status,
+      goals: goals.status,
+    });
+    setStatus('Some metadata could not be loaded. You can continue with manual input.', 'warn');
   }
   updateNavigation();
 }
@@ -924,6 +1355,147 @@ function parseOrderedEntries(entries){
     label: name,
     order: Number(meta?.value) || Number(meta?.Value) || 999,
   })).sort((a, b) => (a.order || 999) - (b.order || 999));
+}
+
+function goalsContainName(goalsValue, goalName){
+  const target = String(goalName || '').trim().toLowerCase();
+  if (!target) return false;
+  const list = mergeGoalsArray(Array.isArray(goalsValue) ? goalsValue : [], typeof goalsValue === 'string' ? goalsValue : '');
+  return list.some(x => x.toLowerCase() === target);
+}
+
+function resolveTargetGoalName(options){
+  const maybe = [options?.goalName, options?.goal, options?.name];
+  for (const entry of maybe) {
+    const v = String(entry || '').trim();
+    if (v) return v;
+  }
+  return '';
+}
+
+function toMultiline(values){
+  const list = normalizeNameList(values || []);
+  return list.join('\n');
+}
+
+function resetToCreateMode(){
+  if (!wizardState) return;
+  const metadata = wizardState.metadata || { categories: [], priorities: [], habits: [], milestones: [], goals: [] };
+  wizardState.mode = 'create';
+  wizardState.targetGoalName = '';
+  wizardState.goal = {
+    name: '',
+    description: '',
+    why: '',
+    category: '',
+    priority: '',
+    horizon: '90d',
+    customHorizon: '',
+    start_date: '',
+    target_date: '',
+    celebrate: '',
+    tags: '',
+  };
+  wizardState.metrics = [createMetric()];
+  wizardState.supports = {
+    habits: '',
+    first_action: '',
+    checkpoints: 'Weekly review',
+    risks: '',
+    accountability: '',
+  };
+  wizardState.hindering = { selectedHabits: [], newHabits: '' };
+  wizardState.milestoneLinks = { selectedExisting: [] };
+  wizardState.milestones = [createMilestone(), createMilestone()];
+  wizardState.originalLinks = { habits: [], milestones: [] };
+  wizardState.metadata = metadata;
+  setStatus('Create mode enabled.', 'info');
+}
+
+async function loadGoalForEdit(goalName){
+  if (!wizardState || !goalName) return;
+  const normalizedName = String(goalName).trim();
+  if (!normalizedName) return;
+
+  const [goalRes, habitsRes, milestonesRes] = await Promise.allSettled([
+    apiRequest(`/api/item?type=goal&name=${encodeURIComponent(normalizedName)}`),
+    apiRequest('/api/items?type=habit'),
+    apiRequest('/api/items?type=milestone'),
+  ]);
+
+  if (goalRes.status !== 'fulfilled' || !goalRes.value?.item) {
+    setStatus(`Could not load goal "${normalizedName}". Starting in create mode.`, 'warn');
+    return;
+  }
+
+  const goal = goalRes.value.item || {};
+  wizardState.mode = 'edit';
+  wizardState.targetGoalName = normalizedName;
+  wizardState.goal.name = String(goal.name || normalizedName);
+  wizardState.goal.description = String(goal.description || '');
+  wizardState.goal.why = String(goal.why || '');
+  wizardState.goal.category = String(goal.category || '');
+  wizardState.goal.priority = String(goal.priority || '');
+  wizardState.goal.start_date = String(goal.start_date || '');
+  wizardState.goal.target_date = String(goal.due_date || goal.target_date || '');
+  wizardState.goal.celebrate = String(goal.celebration || goal.celebrate || '');
+  wizardState.goal.tags = Array.isArray(goal.tags) ? goal.tags.join(', ') : String(goal.tags || '');
+  const duration = String(goal.duration || '90d').trim();
+  const knownHorizons = new Set(HORIZON_PRESETS.map(x => x.value));
+  if (knownHorizons.has(duration)) {
+    wizardState.goal.horizon = duration;
+    wizardState.goal.customHorizon = '';
+  } else if (duration) {
+    wizardState.goal.horizon = 'custom';
+    wizardState.goal.customHorizon = duration;
+  }
+
+  const habitItems = habitsRes.status === 'fulfilled' && Array.isArray(habitsRes.value?.items) ? habitsRes.value.items : [];
+  const linkedFromHabits = habitItems
+    .filter(h => h && String(h.type || '').toLowerCase() === 'habit')
+    .filter(h => goalsContainName(h.goals || h.goal || [], normalizedName))
+    .map(h => ({ name: String(h.name || ''), polarity: String(h.polarity || 'good').toLowerCase() }))
+    .filter(h => h.name);
+  const linkedHabitNames = normalizeNameList(linkedFromHabits.map(h => h.name));
+
+  const supporting = listFromMaybe(goal.supporting_habits);
+  const hindering = listFromMaybe(goal.hindering_habits);
+  const inferredSupporting = linkedFromHabits.filter(h => h.polarity !== 'bad').map(h => h.name);
+  const inferredHindering = linkedFromHabits.filter(h => h.polarity === 'bad').map(h => h.name);
+
+  wizardState.supports.habits = toMultiline(supporting.length ? supporting : inferredSupporting);
+  wizardState.hindering.selectedHabits = normalizeNameList(hindering.length ? hindering : inferredHindering);
+  wizardState.hindering.newHabits = '';
+  wizardState.originalLinks.habits = normalizeNameList(linkedHabitNames.concat(supporting, hindering));
+
+  const authoredMilestones = Array.isArray(goal.milestones) ? goal.milestones : [];
+  if (authoredMilestones.length) {
+    wizardState.milestones = authoredMilestones.map((m, idx) => ({
+      id: randomId(`milestone_${idx + 1}`),
+      name: String(m?.name || ''),
+      summary: String(m?.description || ''),
+      target_date: String(m?.due_date || ''),
+      metric: String(m?.criteria || ''),
+      steps: Array.isArray(m?.plan) ? m.plan.join('\n') : '',
+      celebrate: String(m?.celebration || ''),
+      owner: String(m?.owner || ''),
+      weight: Number(m?.weight) || 1,
+    })).filter(m => m.name || m.summary);
+  }
+  if (!wizardState.milestones.length) wizardState.milestones = [createMilestone()];
+
+  const milestoneItems = milestonesRes.status === 'fulfilled' && Array.isArray(milestonesRes.value?.items) ? milestonesRes.value.items : [];
+  const linkedMsFromItems = milestoneItems
+    .filter(m => m && String(m.type || '').toLowerCase() === 'milestone')
+    .filter(m => String(m.goal || '').trim().toLowerCase() === normalizedName.toLowerCase())
+    .map(m => String(m.name || ''))
+    .filter(Boolean);
+  const linkedMsFromGoal = listFromMaybe(goal.linked_milestones);
+  const linkedMilestones = normalizeNameList(linkedMsFromItems.concat(linkedMsFromGoal));
+  wizardState.milestoneLinks.selectedExisting = linkedMilestones;
+  wizardState.originalLinks.milestones = linkedMilestones;
+
+  setStatus(`Editing goal "${wizardState.goal.name}".`, 'info');
 }
 
 function mountOverlay(){
@@ -1000,5 +1572,9 @@ export async function launch(context, options = {}){
   optionsRef = options || {};
   mountOverlay();
   contextRef?.bus?.emit?.('wizard:opened', { wizard: options?.wizard || 'GoalPlanning' });
+  const targetGoalName = resolveTargetGoalName(optionsRef);
+  if (targetGoalName) {
+    await loadGoalForEdit(targetGoalName);
+  }
   await loadMetadata();
 }

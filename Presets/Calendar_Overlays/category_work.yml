@@ -1,0 +1,5 @@
+name: 'Category: Work'
+mode: category
+value: work
+use_momentum: false
+kind: default

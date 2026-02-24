@@ -1,12 +1,17 @@
 /* Scheduler Widget Modern Styling */
 
 :root {
-    --scheduler-primary: #4ec9b0;
-    --scheduler-success: #89d185;
-    --scheduler-warning: #e5c07b;
-    --scheduler-danger: #f48771;
-    --scheduler-info: #569cd6;
-    --scheduler-purple: #c678dd;
+    --scheduler-primary: var(--chronos-accent, #4ec9b0);
+    --scheduler-success: var(--chronos-success, #89d185);
+    --scheduler-warning: var(--chronos-warning, #e5c07b);
+    --scheduler-danger: var(--chronos-danger, #f48771);
+    --scheduler-info: var(--chronos-accent-strong, #569cd6);
+    --scheduler-purple: var(--chronos-accent, #c678dd);
+    --scheduler-surface: var(--panel, rgba(21, 25, 35, 0.85));
+    --scheduler-surface-soft: var(--chronos-surface-soft, rgba(15, 17, 21, 0.4));
+    --scheduler-border: var(--border, #2b3343);
+    --scheduler-text: var(--text, #e0e0e0);
+    --scheduler-text-dim: var(--text-secondary, #b0b0b0);
 }
 
 .scheduler-widget {
@@ -22,8 +27,8 @@
     display: flex;
     gap: 10px;
     padding: 12px;
-    background: linear-gradient(135deg, rgba(78, 201, 176, 0.08) 0%, rgba(86, 156, 214, 0.08) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--chronos-accent-soft, rgba(78, 201, 176, 0.08));
+    border: 1px solid var(--scheduler-border);
     border-radius: 12px;
     margin-bottom: 12px;
 }
@@ -54,7 +59,7 @@
 }
 
 .btn-start-day:hover {
-    background: rgba(137, 209, 133, 0.1);
+    background: var(--chronos-success-soft, rgba(137, 209, 133, 0.1));
     box-shadow: 0 0 20px var(--scheduler-success), 0 0 40px var(--scheduler-success);
 }
 
@@ -64,7 +69,7 @@
 }
 
 .btn-refresh:hover {
-    background: rgba(86, 156, 214, 0.1);
+    background: var(--chronos-accent-soft, rgba(86, 156, 214, 0.1));
     box-shadow: 0 0 20px var(--scheduler-info), 0 0 40px var(--scheduler-info);
 }
 
@@ -74,14 +79,14 @@
 }
 
 .btn-reschedule:hover {
-    background: rgba(198, 120, 221, 0.1);
+    background: var(--chronos-accent-soft, rgba(198, 120, 221, 0.1));
     box-shadow: 0 0 20px var(--scheduler-purple), 0 0 40px var(--scheduler-purple);
 }
 
 /* Block Info Card */
 .scheduler-block-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-    border: 1px solid rgba(78, 201, 176, 0.3);
+    background: var(--scheduler-surface-soft);
+    border: 1px solid var(--scheduler-border);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
@@ -91,7 +96,7 @@
 }
 
 .scheduler-block-card:hover {
-    border-color: rgba(78, 201, 176, 0.5);
+    border-color: var(--scheduler-primary);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
 }
@@ -111,7 +116,7 @@
 .block-card-title {
     font-size: 16px;
     font-weight: 700;
-    color: var(--text-primary, #e0e0e0);
+    color: var(--scheduler-text);
     flex: 1;
 }
 
@@ -145,7 +150,7 @@
 .block-card-details {
     display: flex;
     gap: 16px;
-    color: var(--text-secondary, #b0b0b0);
+    color: var(--scheduler-text-dim);
     font-size: 12px;
 }
 
@@ -170,8 +175,8 @@
     font-weight: 700;
     font-size: 13px;
     padding: 10px 14px;
-    background: linear-gradient(135deg, rgba(32, 40, 56, 0.9) 0%, rgba(18, 22, 32, 0.9) 100%);
-    border: 1px solid var(--border, #2b3343);
+    background: var(--scheduler-surface);
+    border: 1px solid var(--scheduler-border);
     border-radius: 10px;
     user-select: none;
     transition: all 0.2s ease;
@@ -181,8 +186,8 @@
 }
 
 .scheduler-section summary:hover {
-    background: linear-gradient(135deg, rgba(42, 50, 66, 0.9) 0%, rgba(28, 32, 42, 0.9) 100%);
-    border-color: rgba(78, 201, 176, 0.4);
+    background: var(--scheduler-surface-soft);
+    border-color: var(--scheduler-primary);
 }
 
 .scheduler-section summary:before {
@@ -201,11 +206,30 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background: rgba(15, 17, 21, 0.4);
-    border: 1px solid var(--border, #2b3343);
+    background: var(--scheduler-surface-soft);
+    border: 1px solid var(--scheduler-border);
     border-top: none;
     border-radius: 0 0 10px 10px;
     margin-top: -8px;
+}
+
+.scheduler-subsection {
+    border: 1px solid var(--scheduler-border);
+    border-radius: 10px;
+    background: var(--scheduler-surface-soft);
+}
+
+.scheduler-subsection > summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--scheduler-text-dim);
+    padding: 10px 12px;
+    user-select: none;
+}
+
+.scheduler-subsection > .action-group {
+    padding: 0 12px 12px 12px;
 }
 
 /* Priority Sliders */
@@ -226,7 +250,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-secondary, #b0b0b0);
+    color: var(--scheduler-text-dim);
     flex: 1;
     min-width: 80px;
 }
@@ -253,7 +277,7 @@
 
 .slider-row input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.2);
-    box-shadow: 0 3px 10px rgba(78, 201, 176, 0.5);
+    box-shadow: 0 3px 10px var(--chronos-accent-soft, rgba(78, 201, 176, 0.5));
 }
 
 .slider-row .slider-value {
@@ -262,7 +286,7 @@
     font-weight: 700;
     font-size: 12px;
     color: var(--scheduler-primary);
-    background: rgba(78, 201, 176, 0.1);
+    background: var(--chronos-accent-soft, rgba(78, 201, 176, 0.1));
     border-radius: 6px;
     padding: 2px 4px;
 }
@@ -277,7 +301,7 @@
 .action-group-title {
     font-weight: 600;
     font-size: 12px;
-    color: var(--text-secondary, #b0b0b0);
+    color: var(--scheduler-text-dim);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 2px;
@@ -294,17 +318,17 @@
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 500;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--scheduler-border);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: rgba(32, 40, 56, 0.6);
-    color: var(--text, #e0e0e0);
+    background: var(--scheduler-surface);
+    color: var(--scheduler-text);
 }
 
 .scheduler-btn:hover {
-    background: rgba(42, 50, 66, 0.8);
-    border-color: rgba(78, 201, 176, 0.4);
+    background: var(--scheduler-surface-soft);
+    border-color: var(--scheduler-primary);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -333,11 +357,11 @@
 
 /* Inputs */
 .scheduler-input {
-    background: rgba(15, 20, 29, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--scheduler-surface);
+    border: 1px solid var(--scheduler-border);
     border-radius: 8px;
     padding: 8px 10px;
-    color: var(--text, #e0e0e0);
+    color: var(--scheduler-text);
     font-size: 12px;
     outline: none;
     transition: all 0.2s ease;
@@ -345,12 +369,29 @@
 
 .scheduler-input:focus {
     border-color: var(--scheduler-primary);
-    box-shadow: 0 0 0 3px rgba(78, 201, 176, 0.1);
-    background: rgba(15, 20, 29, 0.95);
+    box-shadow: 0 0 0 3px var(--chronos-accent-soft, rgba(78, 201, 176, 0.1));
+    background: var(--scheduler-surface-soft);
 }
 
 .scheduler-input::placeholder {
     color: rgba(255, 255, 255, 0.3);
+}
+
+.scheduler-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--scheduler-text-dim);
+    padding: 6px 8px;
+    border: 1px solid var(--scheduler-border);
+    border-radius: 8px;
+    background: var(--scheduler-surface);
+}
+
+.scheduler-check input[type="checkbox"] {
+    accent-color: var(--scheduler-primary);
 }
 
 /* Status Bar */
@@ -359,15 +400,15 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    background: rgba(15, 17, 21, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--scheduler-surface-soft);
+    border: 1px solid var(--scheduler-border);
     border-radius: 8px;
     margin-top: 10px;
 }
 
 .scheduler-hint {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--scheduler-text-dim);
     flex: 1;
 }
 
@@ -376,7 +417,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    color: var(--text-secondary, #b0b0b0);
+    color: var(--scheduler-text-dim);
 }
 
 /* Responsive */

@@ -21,6 +21,43 @@ function injectStyles() {
       flex-direction: column;
       gap: 12px;
     }
+    .sticky-section {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      background: rgba(10,14,22,0.55);
+      overflow: hidden;
+    }
+    .sticky-section summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      padding: 10px 12px;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #aeb9d6;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sticky-section summary::-webkit-details-marker { display: none; }
+    .sticky-section summary::before {
+      content: '▸';
+      color: #8ea9ff;
+      transition: transform 140ms ease;
+      display: inline-block;
+      transform-origin: center;
+    }
+    .sticky-section[open] summary::before { transform: rotate(90deg); }
+    .sticky-section-content {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
     .sticky-new-form {
       display: flex;
       flex-direction: column;
@@ -52,18 +89,26 @@ function injectStyles() {
     .sticky-status.error {
       color: #ff99a8;
     }
+    .sticky-gallery-viewport {
+      overflow-x: auto;
+      overflow-y: hidden;
+      width: 100%;
+      scrollbar-gutter: stable;
+    }
     .sticky-notes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      display: flex;
       gap: 10px;
+      min-width: 100%;
+      padding-bottom: 6px;
     }
     .sticky-note-card {
+      flex: 0 0 calc((100% - 20px) / 3);
       border-radius: 14px;
-      padding: 12px;
+      padding: 10px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.35);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       border: 1px solid rgba(0,0,0,0.1);
     }
     .sticky-note-card[data-color="amber"] { background: linear-gradient(180deg, #fef1c4, #f7d57a); }
@@ -105,10 +150,11 @@ function injectStyles() {
       background: rgba(0,0,0,0.2);
     }
     .sticky-note-card textarea {
-      min-height: 110px;
+      min-height: 68px;
+      max-height: 96px;
       border-radius: 10px;
       border: 1px solid rgba(0,0,0,0.1);
-      padding: 8px;
+      padding: 6px 8px;
       resize: vertical;
       font-size: 13px;
       background: rgba(255,255,255,0.4);
@@ -135,31 +181,37 @@ function injectStyles() {
       position: fixed;
       width: 260px;
       height: 260px;
-      min-width: 200px;
-      min-height: 200px;
+      min-width: 130px;
+      min-height: 120px;
       border-radius: 16px;
       padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      box-shadow: 0 16px 32px rgba(0,0,0,0.35);
-      border: 1px solid rgba(0,0,0,0.15);
+      box-shadow: 0 18px 42px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.24);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.06)),
+        radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.16), transparent 62%),
+        linear-gradient(165deg, var(--sticky-float-tint-strong, rgba(247,213,122,0.34)), var(--sticky-float-tint, rgba(247,213,122,0.24)));
+      backdrop-filter: blur(12px) saturate(130%);
+      -webkit-backdrop-filter: blur(12px) saturate(130%);
       resize: both;
       overflow: hidden;
       z-index: 12;
     }
-    .sticky-float-note[data-color="amber"] { background: linear-gradient(180deg, #fef1c4, #f7d57a); }
-    .sticky-float-note[data-color="citrus"] { background: linear-gradient(180deg, #ffe6c9, #ffd6a5); }
-    .sticky-float-note[data-color="mint"] { background: linear-gradient(180deg, #e6ffef, #c7f9cc); }
-    .sticky-float-note[data-color="aqua"] { background: linear-gradient(180deg, #e6f8ff, #b4e9ff); }
-    .sticky-float-note[data-color="lilac"] { background: linear-gradient(180deg, #f2e6ff, #e3c6ff); }
-    .sticky-float-note[data-color="slate"] { background: linear-gradient(180deg, #eff3fa, #dfe6f3); }
+    .sticky-float-note[data-color="amber"] { --sticky-float-tint-strong: rgba(247,213,122,0.36); --sticky-float-tint: rgba(247,213,122,0.26); }
+    .sticky-float-note[data-color="citrus"] { --sticky-float-tint-strong: rgba(255,214,165,0.36); --sticky-float-tint: rgba(255,214,165,0.26); }
+    .sticky-float-note[data-color="mint"] { --sticky-float-tint-strong: rgba(199,249,204,0.36); --sticky-float-tint: rgba(199,249,204,0.26); }
+    .sticky-float-note[data-color="aqua"] { --sticky-float-tint-strong: rgba(180,233,255,0.36); --sticky-float-tint: rgba(180,233,255,0.26); }
+    .sticky-float-note[data-color="lilac"] { --sticky-float-tint-strong: rgba(227,198,255,0.36); --sticky-float-tint: rgba(227,198,255,0.26); }
+    .sticky-float-note[data-color="slate"] { --sticky-float-tint-strong: rgba(223,230,243,0.34); --sticky-float-tint: rgba(223,230,243,0.24); }
     .sticky-float-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-weight: 600;
-      color: #1a1f2b;
+      color: var(--text, #e6e8ef);
       cursor: grab;
       user-select: none;
       gap: 8px;
@@ -187,21 +239,21 @@ function injectStyles() {
       line-height: 1;
       font-weight: 700;
       cursor: pointer;
-      background: rgba(0,0,0,0.12);
-      color: #1f2430;
+      background: rgba(255,255,255,0.16);
+      color: var(--text, #e6e8ef);
     }
     .sticky-float-actions button:hover {
-      background: rgba(0,0,0,0.2);
+      background: rgba(255,255,255,0.28);
     }
     .sticky-float-note textarea {
       flex: 1;
       border-radius: 10px;
-      border: 1px solid rgba(0,0,0,0.15);
+      border: 1px solid rgba(255,255,255,0.22);
       padding: 8px;
       resize: none;
       font-size: 13px;
-      background: rgba(255,255,255,0.45);
-      color: #1a1f2b;
+      background: rgba(8,12,18,0.26);
+      color: var(--text, #e6e8ef);
       font-family: inherit;
     }
     .sticky-float-footer {
@@ -209,7 +261,7 @@ function injectStyles() {
       align-items: center;
       justify-content: space-between;
       font-size: 11px;
-      color: #2b2f3a;
+      color: var(--text-dim, #aeb6c8);
     }
     .sticky-empty {
       padding: 20px;
@@ -258,22 +310,34 @@ export function mount(el, context) {
       </div>
     </div>
     <div class="content sticky-notes-shell">
-      <form class="sticky-new-form">
-        <input type="text" class="input" id="stickyNewTitle" placeholder="Title (optional)" />
-        <textarea class="textarea" id="stickyNewBody" placeholder="Write a quick note..."></textarea>
-        <div class="sticky-new-meta">
-          <select class="input" id="stickyNewColor"></select>
-          <label class="hint"><input type="checkbox" id="stickyNewPinned" /> Pin to top</label>
-          <div class="spacer"></div>
-          <button type="submit" class="btn btn-primary" id="stickyCreateBtn">Add Note</button>
+      <details class="sticky-section" open>
+        <summary>Create Sticky Note</summary>
+        <div class="sticky-section-content">
+          <form class="sticky-new-form">
+            <input type="text" class="input" id="stickyNewTitle" placeholder="Title (optional)" />
+            <textarea class="textarea" id="stickyNewBody" placeholder="Write a quick note..."></textarea>
+            <div class="sticky-new-meta">
+              <select class="input" id="stickyNewColor"></select>
+              <label class="hint"><input type="checkbox" id="stickyNewPinned" /> Pin to top</label>
+              <div class="spacer"></div>
+              <button type="submit" class="btn btn-primary" id="stickyCreateBtn">Add Note</button>
+            </div>
+          </form>
         </div>
-      </form>
-      <div class="sticky-status-row">
-        <div class="sticky-status" id="stickyStatus"></div>
-        <div class="spacer"></div>
-        <button class="btn btn-secondary" id="stickyReloadBtn">Refresh</button>
-      </div>
-      <div class="sticky-notes-grid" id="stickyNotesGrid"></div>
+      </details>
+      <details class="sticky-section" open>
+        <summary>My Sticky Notes</summary>
+        <div class="sticky-section-content">
+          <div class="sticky-status-row">
+            <div class="sticky-status" id="stickyStatus"></div>
+            <div class="spacer"></div>
+            <button class="btn btn-secondary" id="stickyReloadBtn">Refresh</button>
+          </div>
+          <div class="sticky-gallery-viewport" id="stickyGalleryViewport">
+            <div class="sticky-notes-grid" id="stickyNotesGrid"></div>
+          </div>
+        </div>
+      </details>
     </div>
   `;
 
@@ -487,8 +551,8 @@ export function mount(el, context) {
     document.body.appendChild(el);
     const saved = floatState.get(note.name);
     if (saved) {
-      if (Number.isFinite(saved.width)) el.style.width = `${Math.max(200, saved.width)}px`;
-      if (Number.isFinite(saved.height)) el.style.height = `${Math.max(200, saved.height)}px`;
+      if (Number.isFinite(saved.width)) el.style.width = `${Math.max(130, saved.width)}px`;
+      if (Number.isFinite(saved.height)) el.style.height = `${Math.max(120, saved.height)}px`;
       positionFloating(el, saved.left ?? 120, saved.top ?? 120);
       if (Number.isFinite(saved.z)) {
         el.style.zIndex = String(saved.z);

@@ -1,0 +1,11 @@
+name: tag_duration_mix
+label: Duration by Tag
+rows:
+- tag
+cols:
+- item_type
+metric: duration
+filters:
+  dataset: item
+row_sort: metric-desc
+col_sort: label-asc

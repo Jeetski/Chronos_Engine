@@ -11,11 +11,11 @@ const VIEW_DEFAULT = {
 const ZOOM_LIMITS = { min: 0.6, max: 1.8 };
 const GRID_SIZE = 12;
 
-function clamp(v, min, max){
+function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
 
-function isInteractiveTarget(target){
+function isInteractiveTarget(target) {
   if (!target) return false;
   const selector = [
     'input',
@@ -35,7 +35,7 @@ function isInteractiveTarget(target){
   return !!target.closest(selector);
 }
 
-function injectStyles(){
+function injectStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
@@ -108,15 +108,21 @@ function injectStyles(){
     }
     .cockpit-panel {
       position: absolute;
-      background: rgba(15,18,30,0.95);
-      border: 1px solid rgba(60,70,96,0.9);
-      border-radius: 20px;
-      box-shadow: 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       pointer-events: auto;
       user-select: none;
+      backdrop-filter: saturate(120%) blur(8px);
+      -webkit-backdrop-filter: saturate(120%) blur(8px);
+      transition: box-shadow 160ms ease;
+    }
+    .cockpit-panel:hover {
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
     }
     .cockpit-panel.pulse {
       animation: cockpitPulse 900ms ease;
@@ -133,11 +139,13 @@ function injectStyles(){
       justify-content: space-between;
       font-weight: 600;
       padding: 12px 18px 10px;
-      color: #f4f5fb;
+      color: var(--text);
       cursor: grab;
-      background: linear-gradient(135deg, rgba(32,38,58,0.95), rgba(18,22,32,0.95));
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      background: linear-gradient(180deg, rgba(28, 34, 48, 0.85), rgba(18, 22, 32, 0.85));
+      border-bottom: 1px solid var(--border);
       user-select: none;
+      border-top-left-radius: var(--radius);
+      border-top-right-radius: var(--radius);
     }
     .cockpit-panel-header:active {
       cursor: grabbing;
@@ -154,17 +162,19 @@ function injectStyles(){
       gap: 6px;
     }
     .cockpit-panel-actions button {
-      background: rgba(255,255,255,0.08);
-      border: none;
+      background: #0f141d;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      color: #d5dbf1;
+      color: var(--text-dim);
       width: 28px;
       height: 28px;
       cursor: pointer;
       font-size: 13px;
     }
     .cockpit-panel-actions button:hover {
-      background: rgba(255,255,255,0.15);
+      color: var(--text);
+      border-color: #2b3343;
+      background: #0b0f16;
     }
     .cockpit-panel-help-btn {
       width: 28px;
@@ -177,9 +187,13 @@ function injectStyles(){
     }
     .cockpit-panel-content {
       flex: 1;
-      padding: 16px 18px 18px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       overflow: auto;
-      background: rgba(6,8,14,0.9);
+      background: transparent;
+      color: var(--text);
       user-select: text;
     }
     .cockpit-panel-empty-prompt {
@@ -190,13 +204,14 @@ function injectStyles(){
     }
     .cockpit-panel-resizer {
       position: absolute;
-      border: 1px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.08);
       border-radius: 4px;
       opacity: 0.85;
     }
     .cockpit-panel-resizer:hover {
-      background: rgba(255,255,255,0.16);
+      background: rgba(255, 255, 255, 0.16);
+      border-color: var(--accent, #7aa2f7);
     }
     .cockpit-panel-resizer.se {
       width: 16px;
@@ -366,6 +381,16 @@ function injectStyles(){
     .cockpit-panel-menu-item:hover {
       background: rgba(255,255,255,0.1);
     }
+    .cockpit-panel-menu-item.danger {
+      background: rgba(220, 68, 68, 0.18);
+      border: 1px solid rgba(220, 68, 68, 0.45);
+      color: #ffc9c9;
+    }
+    .cockpit-panel-menu-item.danger:hover {
+      background: rgba(220, 68, 68, 0.3);
+      border-color: rgba(240, 96, 96, 0.7);
+      color: #ffe3e3;
+    }
     .cockpit-panel-menu-item span {
       white-space: nowrap;
       overflow: hidden;
@@ -453,7 +478,7 @@ function injectStyles(){
   document.head.appendChild(style);
 }
 class CockpitPanelManager {
-  constructor(rootEl, context, options = {}){
+  constructor(rootEl, context, options = {}) {
     this.root = rootEl;
     this.context = context || {};
     this.surface = rootEl.querySelector('.cockpit-panels');
@@ -498,6 +523,7 @@ class CockpitPanelManager {
       setVisible: (id, visible) => this.setVisible(id, visible),
       showAll: () => this.showAll(),
       hideAll: () => this.hideAll(),
+      clearAll: () => this.clearAll(),
       remove: (id) => this.remove(id),
       getLayout: () => this.getLayout(),
       panToWorld: (x, y) => this.panToWorld(x, y),
@@ -507,7 +533,7 @@ class CockpitPanelManager {
     };
   }
 
-  _loadState(){
+  _loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return {};
@@ -518,10 +544,10 @@ class CockpitPanelManager {
     }
   }
 
-  _loadView(){
+  _loadView() {
     const base = { ...VIEW_DEFAULT };
     const stored = this.state?._view;
-    if (stored && typeof stored === 'object'){
+    if (stored && typeof stored === 'object') {
       if (typeof stored.panX === 'number') base.panX = stored.panX;
       if (typeof stored.panY === 'number') base.panY = stored.panY;
       if (typeof stored.zoom === 'number') base.zoom = clamp(stored.zoom, ZOOM_LIMITS.min, ZOOM_LIMITS.max);
@@ -531,8 +557,8 @@ class CockpitPanelManager {
     return base;
   }
 
-  _persist(){
-    if (this.persistHandle){
+  _persist() {
+    if (this.persistHandle) {
       window.clearTimeout(this.persistHandle);
       this.persistHandle = null;
     }
@@ -554,51 +580,51 @@ class CockpitPanelManager {
         height: entry.size.height,
       };
     });
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch { }
     this.state = payload;
   }
 
-  _notify(){
-    try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+  _notify() {
+    try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch { }
   }
 
-  _applyViewTransform(){
-    if (this.surface){
+  _applyViewTransform() {
+    if (this.surface) {
       const { panX, panY, zoom } = this.view;
       this.surface.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
     }
-    if (this.grid){
+    if (this.grid) {
       const { panX, panY, zoom } = this.view;
       const coarse = 60 * zoom;
       const fine = 12 * zoom;
       this.grid.style.backgroundSize = `${coarse}px ${coarse}px, ${fine}px ${fine}px`;
       this.grid.style.backgroundPosition = `${panX}px ${panY}px, ${panX}px ${panY}px`;
     }
-    if (this.minimap?.wrap){
+    if (this.minimap?.wrap) {
       this.minimap.wrap.classList.toggle('hidden', !this.view.minimap);
     }
     this._updateZoomLabel();
     this._scheduleMinimapUpdate();
   }
 
-  _updateZoomLabel(){
+  _updateZoomLabel() {
     if (!this.zoomLabel) return;
     const pct = Math.round((this.view.zoom || 1) * 100);
     this.zoomLabel.textContent = `${pct}%`;
   }
 
-  _schedulePersist(){
+  _schedulePersist() {
     if (this.persistHandle) return;
-    this.persistHandle = window.setTimeout(()=> {
+    this.persistHandle = window.setTimeout(() => {
       this.persistHandle = null;
       this._persist();
     }, 200);
   }
 
-  _bindViewportControls(){
+  _bindViewportControls() {
     if (!this.root) return;
-    const handleWheel = (ev)=>{
-      if (ev.ctrlKey){
+    const handleWheel = (ev) => {
+      if (ev.ctrlKey) {
         ev.preventDefault();
         const rect = this.root.getBoundingClientRect();
         const point = {
@@ -613,9 +639,9 @@ class CockpitPanelManager {
       }
     };
     this.root.addEventListener('wheel', handleWheel, { passive: false });
-    this.cleanups.push(()=> this.root.removeEventListener('wheel', handleWheel));
+    this.cleanups.push(() => this.root.removeEventListener('wheel', handleWheel));
 
-    const handlePanStart = (ev)=>{
+    const handlePanStart = (ev) => {
       if (ev.button !== 0) return;
       if (ev.target.closest('.cockpit-panel')) return;
       if (ev.target.closest('.cockpit-controls')) return;
@@ -624,12 +650,12 @@ class CockpitPanelManager {
       ev.preventDefault();
       const start = { x: ev.clientX, y: ev.clientY };
       const startPan = { x: this.view.panX, y: this.view.panY };
-      const move = (e)=>{
+      const move = (e) => {
         const dx = e.clientX - start.x;
         const dy = e.clientY - start.y;
         this.setPan(startPan.x + dx, startPan.y + dy);
       };
-      const up = ()=>{
+      const up = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         this._persist();
@@ -638,76 +664,76 @@ class CockpitPanelManager {
       window.addEventListener('pointerup', up);
     };
     this.root.addEventListener('pointerdown', handlePanStart);
-    this.cleanups.push(()=> this.root.removeEventListener('pointerdown', handlePanStart));
+    this.cleanups.push(() => this.root.removeEventListener('pointerdown', handlePanStart));
   }
 
-  _bindToolbarControls(){
+  _bindToolbarControls() {
     if (!this.root) return;
-    if (this.zoomInBtn){
-      const zoomInHandler = ()=> this.setZoom(this.view.zoom + 0.15);
+    if (this.zoomInBtn) {
+      const zoomInHandler = () => this.setZoom(this.view.zoom + 0.15);
       this.zoomInBtn.addEventListener('click', zoomInHandler);
-      this.cleanups.push(()=> this.zoomInBtn.removeEventListener('click', zoomInHandler));
+      this.cleanups.push(() => this.zoomInBtn.removeEventListener('click', zoomInHandler));
     }
-    if (this.zoomOutBtn){
-      const zoomOutHandler = ()=> this.setZoom(this.view.zoom - 0.15);
+    if (this.zoomOutBtn) {
+      const zoomOutHandler = () => this.setZoom(this.view.zoom - 0.15);
       this.zoomOutBtn.addEventListener('click', zoomOutHandler);
-      this.cleanups.push(()=> this.zoomOutBtn.removeEventListener('click', zoomOutHandler));
+      this.cleanups.push(() => this.zoomOutBtn.removeEventListener('click', zoomOutHandler));
     }
-    if (this.resetBtn){
-      const resetHandler = ()=> this.resetView();
+    if (this.resetBtn) {
+      const resetHandler = () => this.resetView();
       this.resetBtn.addEventListener('click', resetHandler);
-      this.cleanups.push(()=> this.resetBtn.removeEventListener('click', resetHandler));
+      this.cleanups.push(() => this.resetBtn.removeEventListener('click', resetHandler));
     }
-    if (this.fitBtn){
-      const fitHandler = ()=> this.fitToContent();
+    if (this.fitBtn) {
+      const fitHandler = () => this.fitToContent();
       this.fitBtn.addEventListener('click', fitHandler);
-      this.cleanups.push(()=> this.fitBtn.removeEventListener('click', fitHandler));
+      this.cleanups.push(() => this.fitBtn.removeEventListener('click', fitHandler));
     }
-    if (this.snapBtn){
-      const snapHandler = ()=>{
+    if (this.snapBtn) {
+      const snapHandler = () => {
         this.view.snap = !this.view.snap;
         this._updateSnapButton();
         this._persist();
       };
       this.snapBtn.addEventListener('click', snapHandler);
-      this.cleanups.push(()=> this.snapBtn.removeEventListener('click', snapHandler));
+      this.cleanups.push(() => this.snapBtn.removeEventListener('click', snapHandler));
       this._updateSnapButton();
     }
-    if (this.minimapBtn){
-      const minimapHandler = ()=>{
+    if (this.minimapBtn) {
+      const minimapHandler = () => {
         this.view.minimap = !this.view.minimap;
         this._applyViewTransform();
         this._persist();
       };
       this.minimapBtn.addEventListener('click', minimapHandler);
-      this.cleanups.push(()=> this.minimapBtn.removeEventListener('click', minimapHandler));
+      this.cleanups.push(() => this.minimapBtn.removeEventListener('click', minimapHandler));
     }
-    if (this.panelMenuBtn && this.panelMenu){
-      const toggleMenu = (ev)=>{
+    if (this.panelMenuBtn && this.panelMenu) {
+      const toggleMenu = (ev) => {
         ev.stopPropagation();
         this.panelMenu.classList.toggle('visible');
-        if (this.panelMenu.classList.contains('visible')){
+        if (this.panelMenu.classList.contains('visible')) {
           this._refreshPanelMenu();
-          window.setTimeout(()=> this.panelMenuSearch?.focus(), 30);
+          window.setTimeout(() => this.panelMenuSearch?.focus(), 30);
         }
       };
       this.panelMenuBtn.addEventListener('click', toggleMenu);
-      this.cleanups.push(()=> this.panelMenuBtn.removeEventListener('click', toggleMenu));
-      const closeMenu = ()=>{
+      this.cleanups.push(() => this.panelMenuBtn.removeEventListener('click', toggleMenu));
+      const closeMenu = () => {
         this.panelMenu.classList.remove('visible');
       };
       window.addEventListener('click', closeMenu);
-      this.cleanups.push(()=> window.removeEventListener('click', closeMenu));
-      this.panelMenu.addEventListener('click', (ev)=> ev.stopPropagation());
-      if (this.panelMenuSearch){
-        const searchHandler = ()=> this._refreshPanelMenu();
+      this.cleanups.push(() => window.removeEventListener('click', closeMenu));
+      this.panelMenu.addEventListener('click', (ev) => ev.stopPropagation());
+      if (this.panelMenuSearch) {
+        const searchHandler = () => this._refreshPanelMenu();
         this.panelMenuSearch.addEventListener('input', searchHandler);
-        this.cleanups.push(()=> this.panelMenuSearch.removeEventListener('input', searchHandler));
+        this.cleanups.push(() => this.panelMenuSearch.removeEventListener('input', searchHandler));
       }
     }
-    if (this.overlay){
-      this.overlay.addEventListener('click', ()=>{
-        if (this.panelMenu){
+    if (this.overlay) {
+      this.overlay.addEventListener('click', () => {
+        if (this.panelMenu) {
           this.panelMenu.classList.add('visible');
           this._refreshPanelMenu();
         }
@@ -715,7 +741,7 @@ class CockpitPanelManager {
     }
   }
 
-  _updateSnapButton(){
+  _updateSnapButton() {
     if (!this.snapBtn) return;
     this.snapBtn.style.background = this.view.snap
       ? 'rgba(122,162,247,0.3)'
@@ -723,29 +749,29 @@ class CockpitPanelManager {
     this.snapBtn.title = this.view.snap ? 'Snap on' : 'Snap off';
   }
 
-  _bindMinimap(){
+  _bindMinimap() {
     if (!this.minimap?.track || !this.root) return;
     const track = this.minimap.track;
-    const handleWheel = (ev)=>{
+    const handleWheel = (ev) => {
       ev.stopPropagation();
     };
     track.addEventListener('wheel', handleWheel, { passive: true });
-    this.cleanups.push(()=> track.removeEventListener('wheel', handleWheel));
+    this.cleanups.push(() => track.removeEventListener('wheel', handleWheel));
 
-    const handlePointerDown = (ev)=>{
+    const handlePointerDown = (ev) => {
       if (ev.button !== 0) return;
       ev.preventDefault();
       ev.stopPropagation();
       const rect = track.getBoundingClientRect();
       const start = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
       this._panToMinimapPoint(start.x, start.y);
-      const move = (e)=>{
+      const move = (e) => {
         const rectMove = track.getBoundingClientRect();
         const x = e.clientX - rectMove.left;
         const y = e.clientY - rectMove.top;
         this._panToMinimapPoint(x, y);
       };
-      const up = ()=>{
+      const up = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         this._persist();
@@ -754,14 +780,14 @@ class CockpitPanelManager {
       window.addEventListener('pointerup', up);
     };
     track.addEventListener('pointerdown', handlePointerDown);
-    this.cleanups.push(()=> track.removeEventListener('pointerdown', handlePointerDown));
+    this.cleanups.push(() => track.removeEventListener('pointerdown', handlePointerDown));
 
-    const handleResize = ()=> this._scheduleMinimapUpdate();
+    const handleResize = () => this._scheduleMinimapUpdate();
     window.addEventListener('resize', handleResize);
-    this.cleanups.push(()=> window.removeEventListener('resize', handleResize));
+    this.cleanups.push(() => window.removeEventListener('resize', handleResize));
   }
 
-  _panToMinimapPoint(x, y){
+  _panToMinimapPoint(x, y) {
     const map = this.minimap?.state;
     if (!map || !this.root) return;
     const worldX = ((x - map.offsetX) / map.scale) + map.minX;
@@ -773,16 +799,16 @@ class CockpitPanelManager {
     this.setPan(panX, panY);
   }
 
-  _scheduleMinimapUpdate(){
+  _scheduleMinimapUpdate() {
     if (!this.minimap?.track) return;
     if (this.minimap.raf) return;
-    this.minimap.raf = window.requestAnimationFrame(()=>{
+    this.minimap.raf = window.requestAnimationFrame(() => {
       this.minimap.raf = null;
       this._updateMinimap();
     });
   }
 
-  _updateMinimap(){
+  _updateMinimap() {
     if (!this.minimap?.track || !this.root) return;
     if (!this.view.minimap) return;
     const track = this.minimap.track;
@@ -828,14 +854,14 @@ class CockpitPanelManager {
     this.minimap.state = { minX, minY, scale, offsetX, offsetY, worldW, worldH };
 
     this.entries.forEach(entry => {
-      if (!entry.visible){
-        if (entry.miniEl){
-          try { entry.miniEl.remove(); } catch {}
+      if (!entry.visible) {
+        if (entry.miniEl) {
+          try { entry.miniEl.remove(); } catch { }
           entry.miniEl = null;
         }
         return;
       }
-      if (!entry.miniEl){
+      if (!entry.miniEl) {
         const el = document.createElement('div');
         el.className = 'cockpit-minimap-panel';
         el.title = entry.label || entry.id;
@@ -852,7 +878,7 @@ class CockpitPanelManager {
       entry.miniEl.style.height = `${height}px`;
     });
 
-    if (this.minimap.viewport){
+    if (this.minimap.viewport) {
       const vLeft = (viewWorld.x - minX) * scale + offsetX;
       const vTop = (viewWorld.y - minY) * scale + offsetY;
       const vWidth = Math.max(6, viewWorld.width * scale);
@@ -864,18 +890,18 @@ class CockpitPanelManager {
     }
   }
 
-  setPan(x, y){
+  setPan(x, y) {
     this.view.panX = x;
     this.view.panY = y;
     this._applyViewTransform();
     this._schedulePersist();
   }
 
-  panBy(dx, dy){
+  panBy(dx, dy) {
     this.setPan(this.view.panX + dx, this.view.panY + dy);
   }
 
-  setZoom(nextZoom, center){
+  setZoom(nextZoom, center) {
     const prev = this.view.zoom || 1;
     const clamped = clamp(nextZoom, ZOOM_LIMITS.min, ZOOM_LIMITS.max);
     const rect = this.root?.getBoundingClientRect();
@@ -889,22 +915,22 @@ class CockpitPanelManager {
     this._schedulePersist();
   }
 
-  zoomBy(delta, center){
+  zoomBy(delta, center) {
     const factor = 1 + delta;
     this.setZoom(this.view.zoom * factor, center);
   }
 
-  resetView(){
+  resetView() {
     this.view = { ...VIEW_DEFAULT };
     this._applyViewTransform();
     this._persist();
   }
 
-  fitToContent(){
+  fitToContent() {
     if (!this.root) return;
     const panels = Array.from(this.entries.values()).filter(entry => entry.visible);
     if (!panels.length) return this.resetView();
-    const bounds = panels.reduce((acc, entry)=>{
+    const bounds = panels.reduce((acc, entry) => {
       acc.minX = Math.min(acc.minX, entry.position.x);
       acc.minY = Math.min(acc.minY, entry.position.y);
       acc.maxX = Math.max(acc.maxX, entry.position.x + entry.size.width);
@@ -926,13 +952,13 @@ class CockpitPanelManager {
     this._persist();
   }
 
-  _updateOverlay(){
+  _updateOverlay() {
     if (!this.overlay) return;
     const hasVisible = Array.from(this.entries.values()).some(entry => entry.visible);
     this.overlay.classList.toggle('hidden', hasVisible);
   }
 
-  registerPanel(def){
+  registerPanel(def) {
     if (!def || !def.id || this.entries.has(def.id)) return;
     const entry = {
       id: def.id,
@@ -949,6 +975,12 @@ class CockpitPanelManager {
         width: def.size?.width ?? 360,
         height: def.size?.height ?? 360,
       },
+      defaults: {
+        x: def.defaultPosition?.x ?? 32,
+        y: def.defaultPosition?.y ?? 32,
+        width: def.size?.width ?? 360,
+        height: def.size?.height ?? 360,
+      },
       visible: !!def.defaultVisible,
       menuKey: def.menuKey || def.menuGroup || def.id,
       menuLabel: def.menuLabel || def.label || def.id,
@@ -957,13 +989,13 @@ class CockpitPanelManager {
       api: null,
     };
     const saved = this.state[entry.id];
-    if (saved){
+    if (saved) {
       if (typeof saved.x === 'number') entry.position.x = saved.x;
       if (typeof saved.y === 'number') entry.position.y = saved.y;
       if (typeof saved.width === 'number') entry.size.width = saved.width;
       if (typeof saved.height === 'number') entry.size.height = saved.height;
       if (typeof saved.visible === 'boolean') entry.visible = saved.visible;
-    } else if (this.root){
+    } else if (this.root) {
       try {
         const rect = this.root.getBoundingClientRect();
         const zoom = this.view.zoom || 1;
@@ -971,7 +1003,7 @@ class CockpitPanelManager {
         const vy = rect.height / 2 - (entry.size.height / 2);
         entry.position.x = (-this.view.panX / zoom) + vx;
         entry.position.y = (-this.view.panY / zoom) + vy;
-      } catch {}
+      } catch { }
     }
     this.entries.set(entry.id, entry);
     if (entry.visible) this._mountEntry(entry);
@@ -981,7 +1013,7 @@ class CockpitPanelManager {
     this._scheduleMinimapUpdate();
   }
 
-  list(){
+  list() {
     return Array.from(this.entries.values()).map(entry => ({
       id: entry.id,
       label: entry.label,
@@ -992,7 +1024,7 @@ class CockpitPanelManager {
     }));
   }
 
-  getLayout(){
+  getLayout() {
     const rect = this.root?.getBoundingClientRect?.();
     const viewport = {
       width: rect?.width || 0,
@@ -1014,7 +1046,7 @@ class CockpitPanelManager {
     };
   }
 
-  panToWorld(worldX, worldY){
+  panToWorld(worldX, worldY) {
     if (!this.root) return;
     const rect = this.root.getBoundingClientRect();
     if (!rect) return;
@@ -1024,16 +1056,16 @@ class CockpitPanelManager {
     this.setPan(panX, panY);
   }
 
-  toggle(id){
+  toggle(id) {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.setVisible(id, !entry.visible);
   }
 
-  setVisible(id, visible){
+  setVisible(id, visible) {
     const entry = this.entries.get(id);
     if (!entry) return;
-    if (visible){
+    if (visible) {
       if (!entry.el) this._mountEntry(entry);
     } else {
       this._unmountEntry(entry);
@@ -1046,20 +1078,39 @@ class CockpitPanelManager {
     this._scheduleMinimapUpdate();
   }
 
-  showAll(){
+  showAll() {
     this.entries.forEach(entry => this.setVisible(entry.id, true));
   }
 
-  hideAll(){
+  hideAll() {
     this.entries.forEach(entry => this.setVisible(entry.id, false));
   }
 
-  remove(id){
+  clearAll() {
+    this.entries.forEach(entry => {
+      this._unmountEntry(entry);
+      entry.visible = false;
+      if (entry.defaults) {
+        entry.position.x = entry.defaults.x;
+        entry.position.y = entry.defaults.y;
+        entry.size.width = entry.defaults.width;
+        entry.size.height = entry.defaults.height;
+      }
+    });
+    this.state = { _view: { ...this.view } };
+    this._persist();
+    this._updateOverlay();
+    this._notify();
+    this._refreshPanelMenu();
+    this._scheduleMinimapUpdate();
+  }
+
+  remove(id) {
     const entry = this.entries.get(id);
     if (!entry) return;
     this._unmountEntry(entry);
     this.entries.delete(id);
-    if (this.state && typeof this.state === 'object'){
+    if (this.state && typeof this.state === 'object') {
       delete this.state[id];
     }
     this._persist();
@@ -1069,18 +1120,18 @@ class CockpitPanelManager {
     this._scheduleMinimapUpdate();
   }
 
-  _focus(entry){
+  _focus(entry) {
     if (!entry?.el) return;
     entry.el.style.zIndex = String(++this.zIndex);
     try {
       entry.el.classList.remove('pulse');
       void entry.el.offsetWidth;
       entry.el.classList.add('pulse');
-      window.setTimeout(()=>{ try { entry.el.classList.remove('pulse'); } catch {} }, 900);
-    } catch {}
+      window.setTimeout(() => { try { entry.el.classList.remove('pulse'); } catch { } }, 900);
+    } catch { }
   }
 
-  _centerPanel(entry){
+  _centerPanel(entry) {
     if (!this.root || !entry) return;
     const zoom = this.view.zoom || 1;
     const rect = this.root.getBoundingClientRect();
@@ -1090,7 +1141,7 @@ class CockpitPanelManager {
     const panelCenterY = (entry.position.y + entry.size.height / 2) * zoom;
     this.setPan(targetX - panelCenterX, targetY - panelCenterY);
   }
-  _mountEntry(entry){
+  _mountEntry(entry) {
     if (!this.surface || entry.el) return;
     const wrapper = document.createElement('section');
     wrapper.className = 'cockpit-panel';
@@ -1130,12 +1181,12 @@ class CockpitPanelManager {
     entry.body = body;
     this._scheduleMinimapUpdate();
 
-    closeBtn.addEventListener('click', (ev)=>{
+    closeBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       this.setVisible(entry.id, false);
     });
-    wrapper.addEventListener('pointerdown', ()=> this._focus(entry));
-    header.addEventListener('dblclick', (ev)=>{
+    wrapper.addEventListener('pointerdown', () => this._focus(entry));
+    header.addEventListener('dblclick', (ev) => {
       ev.stopPropagation();
       this._centerPanel(entry);
     });
@@ -1152,27 +1203,27 @@ class CockpitPanelManager {
     }
   }
 
-  _unmountEntry(entry){
+  _unmountEntry(entry) {
     if (!entry.el) return;
-    try { entry.api?.dispose?.(); } catch {}
-    try { entry.el.remove(); } catch {}
+    try { entry.api?.dispose?.(); } catch { }
+    try { entry.el.remove(); } catch { }
     entry.el = null;
     entry.api = null;
-    if (entry.miniEl){
-      try { entry.miniEl.remove(); } catch {}
+    if (entry.miniEl) {
+      try { entry.miniEl.remove(); } catch { }
       entry.miniEl = null;
     }
     this._scheduleMinimapUpdate();
   }
 
-  _applySnap(value, enabled, bypass){
+  _applySnap(value, enabled, bypass) {
     if (!enabled || bypass) return value;
     return Math.round(value / GRID_SIZE) * GRID_SIZE;
   }
 
-  _makeDraggable(entry, wrapper){
+  _makeDraggable(entry, wrapper) {
     if (!wrapper) return;
-    wrapper.addEventListener('pointerdown', (ev)=>{
+    wrapper.addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0) return;
       if (isInteractiveTarget(ev.target)) return;
       ev.preventDefault();
@@ -1180,7 +1231,7 @@ class CockpitPanelManager {
       const startX = ev.clientX;
       const startY = ev.clientY;
       const startPos = { x: entry.position.x, y: entry.position.y };
-      const move = (e)=>{
+      const move = (e) => {
         const zoom = this.view.zoom || 1;
         const rawX = startPos.x + (e.clientX - startX) / zoom;
         const rawY = startPos.y + (e.clientY - startY) / zoom;
@@ -1188,13 +1239,13 @@ class CockpitPanelManager {
         const nextY = this._applySnap(rawY, this.view.snap, e.altKey);
         entry.position.x = nextX;
         entry.position.y = nextY;
-        if (entry.el){
+        if (entry.el) {
           entry.el.style.left = `${nextX}px`;
           entry.el.style.top = `${nextY}px`;
         }
         this._scheduleMinimapUpdate();
       };
-      const up = ()=>{
+      const up = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         this._persist();
@@ -1204,7 +1255,7 @@ class CockpitPanelManager {
     });
   }
 
-  _makeResizable(entry, wrapper){
+  _makeResizable(entry, wrapper) {
     const resizer = document.createElement('div');
     resizer.className = 'cockpit-panel-resizer se';
     const resizerE = document.createElement('div');
@@ -1214,7 +1265,7 @@ class CockpitPanelManager {
     wrapper.append(resizer, resizerE, resizerS);
     const MIN_WIDTH = 180;
     const MIN_HEIGHT = 140;
-    const handleResize = (ev, mode)=>{
+    const handleResize = (ev, mode) => {
       ev.stopPropagation();
       if (ev.button !== 0) return;
       ev.preventDefault();
@@ -1227,7 +1278,7 @@ class CockpitPanelManager {
       const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
       const minW = Math.max(MIN_WIDTH, headerW + 12);
       const minH = Math.max(MIN_HEIGHT, headerH + 20);
-      const move = (e)=>{
+      const move = (e) => {
         const zoom = this.view.zoom || 1;
         const deltaX = (e.clientX - startX) / zoom;
         const deltaY = (e.clientY - startY) / zoom;
@@ -1239,13 +1290,13 @@ class CockpitPanelManager {
         newHeight = this._applySnap(newHeight, this.view.snap, e.altKey);
         entry.size.width = newWidth;
         entry.size.height = newHeight;
-        if (entry.el){
+        if (entry.el) {
           entry.el.style.width = `${newWidth}px`;
           entry.el.style.height = `${newHeight}px`;
         }
         this._scheduleMinimapUpdate();
       };
-      const up = ()=>{
+      const up = () => {
         window.removeEventListener('pointermove', move);
         window.removeEventListener('pointerup', up);
         this._persist();
@@ -1253,18 +1304,65 @@ class CockpitPanelManager {
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
     };
-    resizer.addEventListener('pointerdown', (ev)=> handleResize(ev, 'se'));
-    resizerE.addEventListener('pointerdown', (ev)=> handleResize(ev, 'e'));
-    resizerS.addEventListener('pointerdown', (ev)=> handleResize(ev, 's'));
+    resizer.addEventListener('pointerdown', (ev) => handleResize(ev, 'se'));
+    resizerE.addEventListener('pointerdown', (ev) => handleResize(ev, 'e'));
+    resizerS.addEventListener('pointerdown', (ev) => handleResize(ev, 's'));
   }
 
-  _refreshPanelMenu(){
+  _refreshPanelMenu() {
     if (!this.panelMenuList) return;
     const query = (this.panelMenuSearch?.value || '').trim().toLowerCase();
     const items = Array.from(this.entries.values())
-      .sort((a, b)=> a.label.localeCompare(b.label))
+      .sort((a, b) => a.label.localeCompare(b.label))
       .filter(entry => !query || entry.label.toLowerCase().includes(query));
     this.panelMenuList.innerHTML = '';
+
+    const actionShowAll = document.createElement('div');
+    actionShowAll.className = 'cockpit-panel-menu-item';
+    const actionShowLabel = document.createElement('span');
+    actionShowLabel.textContent = 'Show all panels';
+    const actionShowState = document.createElement('em');
+    actionShowState.textContent = 'action';
+    actionShowAll.append(actionShowLabel, actionShowState);
+    actionShowAll.addEventListener('click', () => {
+      this.showAll();
+      this._refreshPanelMenu();
+    });
+    this.panelMenuList.appendChild(actionShowAll);
+
+    const actionHideAll = document.createElement('div');
+    actionHideAll.className = 'cockpit-panel-menu-item';
+    const actionHideLabel = document.createElement('span');
+    actionHideLabel.textContent = 'Close all panels';
+    const actionHideState = document.createElement('em');
+    actionHideState.textContent = 'action';
+    actionHideAll.append(actionHideLabel, actionHideState);
+    actionHideAll.addEventListener('click', () => {
+      this.hideAll();
+      this._refreshPanelMenu();
+    });
+    this.panelMenuList.appendChild(actionHideAll);
+
+    const actionClearAll = document.createElement('div');
+    actionClearAll.className = 'cockpit-panel-menu-item danger';
+    const actionClearLabel = document.createElement('span');
+    actionClearLabel.textContent = 'Clear all panels';
+    const actionClearState = document.createElement('em');
+    actionClearState.textContent = 'danger';
+    actionClearAll.append(actionClearLabel, actionClearState);
+    actionClearAll.addEventListener('click', () => {
+      const ok = window.confirm('Clear all cockpit panel instances and reset saved layout?');
+      if (!ok) return;
+      this.clearAll();
+    });
+    this.panelMenuList.appendChild(actionClearAll);
+
+    const divider = document.createElement('div');
+    divider.style.height = '1px';
+    divider.style.margin = '8px 0';
+    divider.style.background = 'rgba(255,255,255,0.08)';
+    this.panelMenuList.appendChild(divider);
+
     items.forEach(entry => {
       const row = document.createElement('div');
       row.className = 'cockpit-panel-menu-item';
@@ -1273,7 +1371,7 @@ class CockpitPanelManager {
       const state = document.createElement('em');
       state.textContent = entry.visible ? 'visible' : 'hidden';
       row.append(label, state);
-      row.addEventListener('click', ()=>{
+      row.addEventListener('click', () => {
         this.setVisible(entry.id, !entry.visible);
         this._refreshPanelMenu();
       });
@@ -1281,18 +1379,18 @@ class CockpitPanelManager {
     });
   }
 
-  dispose(){
-    if (this.persistHandle){
+  dispose() {
+    if (this.persistHandle) {
       window.clearTimeout(this.persistHandle);
       this.persistHandle = null;
     }
-    if (this.minimap?.raf){
+    if (this.minimap?.raf) {
       window.cancelAnimationFrame(this.minimap.raf);
       this.minimap.raf = null;
     }
-    if (Array.isArray(this.cleanups)){
+    if (Array.isArray(this.cleanups)) {
       this.cleanups.forEach(fn => {
-        try { fn(); } catch {}
+        try { fn(); } catch { }
       });
       this.cleanups = [];
     }
@@ -1317,14 +1415,14 @@ const PANEL_IMPORTS = [
   'MapOfHappiness',
 ];
 
-async function loadPanels(manager){
-  const tasks = PANEL_IMPORTS.map(async (name)=>{
+async function loadPanels(manager) {
+  const tasks = PANEL_IMPORTS.map(async (name) => {
     const url = new URL(`../../Panels/${name}/index.js`, import.meta.url);
     try {
       const mod = await import(url);
       if (mod && typeof mod.register === 'function') {
         mod.register(manager);
-        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch { }
       } else {
         console.warn('[Chronos][Cockpit] Panel module has no register export', name);
       }
@@ -1335,7 +1433,7 @@ async function loadPanels(manager){
   await Promise.all(tasks);
 }
 
-export function mount(el, context){
+export function mount(el, context) {
   injectStyles();
   el.innerHTML = `
     <div class="cockpit-blank">
@@ -1382,13 +1480,13 @@ export function mount(el, context){
 
   const manager = new CockpitPanelManager(el.querySelector('.cockpit-blank'), context);
 
-  function handlePanelRegistration(entry){
+  function handlePanelRegistration(entry) {
     if (!entry) return;
     try {
-      if (typeof entry === 'function'){
+      if (typeof entry === 'function') {
         console.log('[Chronos][Cockpit] Registering panel via function');
         entry(manager);
-      } else if (typeof entry === 'object' && entry.id){
+      } else if (typeof entry === 'object' && entry.id) {
         console.log('[Chronos][Cockpit] Registering panel via object', entry.id);
         manager.registerPanel(entry);
       }
@@ -1401,20 +1499,20 @@ export function mount(el, context){
   if (Array.isArray(definitions)) {
     definitions.forEach(handlePanelRegistration);
   }
-  window.__cockpitPanelRegister = (entry)=> handlePanelRegistration(entry);
+  window.__cockpitPanelRegister = (entry) => handlePanelRegistration(entry);
 
   loadPanels(manager);
 
   window.CockpitPanels = manager.api;
-  try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+  try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch { }
 
   return {
-    dispose(){
+    dispose() {
       manager.dispose();
       window.__cockpitPanelRegister = null;
-      if (window.CockpitPanels === manager.api){
+      if (window.CockpitPanels === manager.api) {
         window.CockpitPanels = null;
-        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch {}
+        try { document.dispatchEvent(new CustomEvent('chronos:cockpit-panels')); } catch { }
       }
     }
   };

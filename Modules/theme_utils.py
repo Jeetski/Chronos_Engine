@@ -30,7 +30,7 @@ def resolve_theme_colors(root_dir: str | Path) -> Dict[str, str]:
     root = Path(root_dir)
 
     profile = _safe_load_yaml(root / "User" / "Profile" / "profile.yml") or {}
-    theme_cfg = _safe_load_yaml(root / "User" / "Settings" / "theme_settings.yml") or {}
+    theme_cfg = _safe_load_yaml(root / "User" / "Settings" / "console_theme_settings.yml") or {}
     themes = (theme_cfg.get("themes") if isinstance(theme_cfg, dict) else None) or {}
 
     theme_name = None
@@ -39,24 +39,27 @@ def resolve_theme_colors(root_dir: str | Path) -> Dict[str, str]:
         console_cfg = profile.get("console")
         if not theme_name and isinstance(console_cfg, dict):
             theme_name = console_cfg.get("theme")
+    
+    # Default to 'default' if no theme specified
+    if not theme_name:
+        theme_name = "default"
+
     if isinstance(theme_name, str):
         theme = themes.get(theme_name) if isinstance(themes, dict) else None
         if isinstance(theme, dict):
             bg = theme.get("background")
             fg = theme.get("text")
-            if isinstance(bg, str):
-                colors["background"] = bg
-            if isinstance(fg, str):
-                colors["text"] = fg
+            # Ensure they are strings
+            if bg is not None: colors["background"] = str(bg)
+            if fg is not None: colors["text"] = str(fg)
 
+    # Legacy profile overrides (unlikely to be used but kept for safety)
     if isinstance(profile, dict):
         console_cfg = profile.get("console") if isinstance(profile.get("console"), dict) else None
         bg = profile.get("background") or (console_cfg and console_cfg.get("background"))
         fg = profile.get("text") or (console_cfg and console_cfg.get("text"))
-        if isinstance(bg, str):
-            colors["background"] = bg
-        if isinstance(fg, str):
-            colors["text"] = fg
+        if bg is not None: colors["background"] = str(bg)
+        if fg is not None: colors["text"] = str(fg)
 
     return colors
 
@@ -164,8 +167,8 @@ def apply_theme_to_console(root_dir: str | Path, colors: Dict[str, str] | None =
     """Apply the configured theme to the active console window (Windows only)."""
     resolved = colors or resolve_theme_colors(root_dir)
     if os.name == "nt":
-        bg = _nibble_from_hex_or_name(resolved.get("background", ""), "1")
-        fg = _nibble_from_hex_or_name(resolved.get("text", ""), "F")
+        bg = resolved.get("background", "1")
+        fg = resolved.get("text", "F")
         try:
             os.system(f"color {bg}{fg}")
         except Exception:  # pragma: no cover - best-effort

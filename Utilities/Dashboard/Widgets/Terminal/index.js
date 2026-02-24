@@ -16,9 +16,9 @@ export function mount(el, context) {
     .screen { 
       flex:1 1 auto; 
       min-height:160px; 
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
-      color:#e6e8ef; 
-      border:1px solid rgba(255, 255, 255, 0.08); 
+      background: var(--term-screen-bg, linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%));
+      color:var(--term-fg, #e6e8ef); 
+      border:1px solid var(--term-border, rgba(255, 255, 255, 0.08)); 
       border-radius:12px; 
       padding:12px; 
       overflow:auto; 
@@ -30,13 +30,13 @@ export function mount(el, context) {
       -webkit-backdrop-filter: blur(10px);
     }
     .prompt { display:flex; gap:6px; align-items:center; position: relative; }
-    .who { color:#7aa2f7; }
+    .who { color:var(--term-accent, #7aa2f7); }
     .input-wrap { position: relative; flex: 1; }
     .in { 
       width: 100%; 
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-      color:#e6e8ef; 
-      border:1px solid rgba(255, 255, 255, 0.08); 
+      background: var(--term-input-bg, linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%));
+      color:var(--term-fg, #e6e8ef); 
+      border:1px solid var(--term-border, rgba(255, 255, 255, 0.08)); 
       border-radius:8px; 
       padding:6px 8px; 
       position: relative; 
@@ -45,8 +45,8 @@ export function mount(el, context) {
       -webkit-backdrop-filter: blur(8px);
     }
     .in:focus {
-      border-color: rgba(78, 201, 176, 0.4);
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+      border-color: var(--term-focus, rgba(78, 201, 176, 0.4));
+      background: var(--term-input-focus-bg, linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%));
     }
     .ghost {
       position:absolute;
@@ -54,7 +54,7 @@ export function mount(el, context) {
       right: 8px;
       top: 50%;
       transform: translateY(-50%);
-      color: rgba(230,232,239,0.35);
+      color: var(--term-hint, rgba(230,232,239,0.35));
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 12px;
       pointer-events: none;
@@ -95,6 +95,32 @@ export function mount(el, context) {
   const inEl = el.querySelector('#tInput');
   const whoEl = el.querySelector('#tWho');
   const ghostEl = el.querySelector('#tGhost');
+  const HEX_BY_NIBBLE = {
+    '0': '#000000', '1': '#000080', '2': '#008000', '3': '#008080',
+    '4': '#800000', '5': '#800080', '6': '#808000', '7': '#c0c0c0',
+    '8': '#808080', '9': '#0000ff', 'a': '#00ff00', 'b': '#00ffff',
+    'c': '#ff0000', 'd': '#ff00ff', 'e': '#ffff00', 'f': '#ffffff',
+  };
+
+  function nibbleToHex(value, fallback = '#ffffff') {
+    const n = String(value || '').trim().toLowerCase();
+    if (!n) return fallback;
+    if (n.startsWith('#') && (n.length === 4 || n.length === 7)) return n;
+    return HEX_BY_NIBBLE[n] || fallback;
+  }
+
+  function hexToRgba(hex, alpha = 1) {
+    const v = String(hex || '').trim();
+    if (!v.startsWith('#')) return `rgba(255,255,255,${alpha})`;
+    const h = v.length === 4
+      ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`
+      : v;
+    const r = parseInt(h.slice(1, 3), 16);
+    const g = parseInt(h.slice(3, 5), 16);
+    const b = parseInt(h.slice(5, 7), 16);
+    if (![r, g, b].every(Number.isFinite)) return `rgba(255,255,255,${alpha})`;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
   // Global suggestions element
   const suggestEl = document.createElement('div');
   suggestEl.className = 'term-suggest-popup';
@@ -114,6 +140,8 @@ export function mount(el, context) {
     fontSize: '12px'
   });
   document.body.appendChild(suggestEl);
+  let suggestRowColor = '#e6e8ef';
+  let suggestActiveBg = '#1a2334';
 
   const btnMin = el.querySelector('#tMin');
   const btnClose = el.querySelector('#tClose');
@@ -148,6 +176,36 @@ export function mount(el, context) {
 
   function println(txt) { outEl.textContent += (txt ? String(txt) : '') + '\n'; outEl.scrollTop = outEl.scrollHeight; }
 
+  async function applyConsoleTheme() {
+    try {
+      const r = await fetch(apiBase() + '/api/console/theme');
+      const j = await r.json();
+      if (!r.ok || j?.ok === false) return;
+      const palette = (j && typeof j.palette === 'object') ? j.palette : {};
+      const bg = nibbleToHex(palette.bg || '1', '#000080');
+      const fg = nibbleToHex(palette.fg || 'F', '#ffffff');
+      const accent = nibbleToHex(palette.accent || palette.prompt || 'D', '#ff00ff');
+      const hint = nibbleToHex(palette.prompt_hint || palette.dim || '7', '#c0c0c0');
+      const border = nibbleToHex(palette.subheader_text || 'B', '#00ffff');
+      const focus = nibbleToHex(palette.success || palette.accent || 'A', '#00ff00');
+
+      // Keep glassmorphic transparency while tinting to console theme.
+      el.style.setProperty('--term-screen-bg', `linear-gradient(135deg, ${hexToRgba(bg, 0.30)} 0%, ${hexToRgba(bg, 0.18)} 100%)`);
+      el.style.setProperty('--term-input-bg', `linear-gradient(135deg, ${hexToRgba(bg, 0.14)} 0%, ${hexToRgba(bg, 0.08)} 100%)`);
+      el.style.setProperty('--term-input-focus-bg', `linear-gradient(135deg, ${hexToRgba(bg, 0.18)} 0%, ${hexToRgba(bg, 0.10)} 100%)`);
+      el.style.setProperty('--term-fg', fg);
+      el.style.setProperty('--term-accent', accent);
+      el.style.setProperty('--term-hint', hexToRgba(hint, 0.65));
+      el.style.setProperty('--term-border', hexToRgba(border, 0.45));
+      el.style.setProperty('--term-focus', hexToRgba(focus, 0.75));
+
+      suggestRowColor = fg;
+      suggestActiveBg = hexToRgba(accent, 0.22);
+      suggestEl.style.background = `linear-gradient(135deg, ${hexToRgba(bg, 0.32)} 0%, ${hexToRgba(bg, 0.22)} 100%)`;
+      suggestEl.style.border = `1px solid ${hexToRgba(border, 0.48)}`;
+    } catch { }
+  }
+
   async function loadProfile() {
     try {
       const r = await fetch(apiBase() + "/api/profile");
@@ -155,18 +213,6 @@ export function mount(el, context) {
       const prof = j?.profile || {};
       const nick = prof.nickname || prof.nick || 'user';
       whoEl.textContent = `chronos@${nick}`;
-      // Apply theme via server resolver
-      try {
-        const themeName = prof.theme || (prof.console && prof.console.theme);
-        if (themeName) {
-          const ts = await fetch(apiBase() + `/api/theme?name=${encodeURIComponent(themeName)}`);
-          const tj = await ts.json();
-          if (tj && tj.ok) {
-            if (tj.background_hex) outEl.style.background = tj.background_hex;
-            if (tj.text_hex) { outEl.style.color = tj.text_hex; whoEl.style.color = tj.text_hex; }
-          }
-        }
-      } catch { }
       // Greeting lines (support: welcome/greeting/entry_message/welcome_message; console.* variants)
       try {
         const greet = (prof.welcome || prof.greeting || prof.entry_message || prof.welcome_message || (prof.console && (prof.console.welcome || prof.console.greeting)) || []);
@@ -448,8 +494,8 @@ export function mount(el, context) {
 
     suggestEl.innerHTML = suggestions.map((s, idx) => {
       const active = idx === suggestIndex;
-      const bg = active ? '#1a2334' : 'transparent';
-      const color = '#e6e8ef';
+      const bg = active ? suggestActiveBg : 'transparent';
+      const color = suggestRowColor;
       return `<div class="term-suggest-item" data-idx="${idx}" style="padding:6px 8px; cursor:pointer; font-size:12px; color:${color}; background:${bg}; transition:background 0.1s;">${s}</div>`;
     }).join('');
     suggestEl.style.display = 'block';
@@ -489,6 +535,10 @@ export function mount(el, context) {
     println(`${whoEl.textContent}> ${line}`);
     const parts = splitArgs(line.trim());
     const cmd = parts.shift() || '';
+    if (cmd.toLowerCase() === 'cls' || cmd.toLowerCase() === 'clear') {
+      outEl.textContent = '';
+      return;
+    }
     // vars helper: set/unset
     if (cmd.toLowerCase() === 'vars') {
       try {
@@ -680,6 +730,7 @@ export function mount(el, context) {
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(220, e.clientY - sr.top) + 'px'; })(ev); });
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(360, e.clientX - sr.left) + 'px'; el.style.height = Math.max(220, e.clientY - sr.top) + 'px'; })(ev); });
 
+  applyConsoleTheme();
   loadProfile();
   loadRegistry();
 

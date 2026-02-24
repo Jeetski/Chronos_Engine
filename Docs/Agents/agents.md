@@ -90,10 +90,11 @@ For chaotic days: `status energy:low focus:medium`, `today reschedule`, then `ti
 
 - **Rewards.** Lifecycles now match other items. Use `new reward`, `append reward`, `set reward`, `delete reward`, `view reward`. Redeem via `redeem reward "<name>" [reason:taxonomy]`, which deducts points, enforces cooldown, and performs target actions.
 - **Achievements.** `new achievement`, `append achievement`, `set achievement`, `delete achievement`. Mark results with `set achievement "<name>" awarded:true` or `view achievement "<name>"` to inspect progress. Dashboard `/api/achievements` mirrors the same data.
-- **Points ledger.** Stored in `User/Rewards/points.yml`. Completion commands and commitments can call `Utilities/points.add_points`. Rewards interact with it automatically.
+- **Points ledger.** Stored in `User/Rewards/points.yml`. Completion flows (complete/did/mark/timer confirmations and milestone/goal completion) call `Utilities/points.award_on_complete`. Rewards deduct points automatically.
 - **Commitments.**
   - Full CLI verbs: `new commitment`, `append`, `set`, `delete`, `view`, `open`.
   - Evaluate with `commitments check`. This runs frequency/never rules and fires triggers (`script`, `reward`, `achievement`).
+  - Commitments are observer-only promises tied to other items (targets). They are not executed directly; evaluation reads target history.
   - Encourage the pilot to run it daily or after logging key tasks/habits.
 
 ---
@@ -119,11 +120,11 @@ For chaotic days: `status energy:low focus:medium`, `today reschedule`, then `ti
 
 ## 8. Memory & Trends (Sequence System)
 
-- **Memory Database.** The engine mirrors all YAML items into `User/Data/chronos_memory.db` (SQLite). This allows for complex relational queries that are too slow for raw YAML.
+- **Behavior + Journal Databases.** Chronos builds `chronos_behavior.db` (activity facts) and `chronos_journal.db` (status/narratives) for fast analytics and context.
 - **Trend Analysis.** The `sequence trends` command aggregates this data into `chronos_trends.db` and generates a human-readable report at `User/Data/trends.md`.
 - **Agent Usage:**
   - **Read inputs:** Always check `trends.md` to understand the pilot’s recent velocity (completion rates, habit streaks).
-  - **Force refresh:** If the pilot asks for a status report and you suspect the data is stale, run `sequence sync memory trends` first.
+  - **Force refresh:** If the pilot asks for a status report and you suspect the data is stale, run `sequence sync behavior journal trends` first.
 
 ---
 
@@ -152,7 +153,7 @@ The Pilot may complete the **Big 5 Assessment** (via Dashboard Wizard). Results 
 | `status` (no args) | Print current state variables. |
 | `today log` / `today history` (if enabled) | Inspect manual adjustments. |
 | `listener start|stop` | Manage the background reminder service. |
-| `sequence status|sync|trends` | Inspect or refresh the Chronos data mirrors (`User/Data/*.db` + `trends.md`). Run `sequence sync memory trends` before quoting behavior stats if the listener hasn’t refreshed them yet. |
+| `sequence status|sync|trends` | Inspect or refresh the Chronos data mirrors (`User/Data/*.db` + `trends.md`). Run `sequence sync behavior journal trends` before quoting behavior stats if the listener hasn’t refreshed them yet. |
 
 ---
 
@@ -165,7 +166,7 @@ The Pilot may complete the **Big 5 Assessment** (via Dashboard Wizard). Results 
 3. **Goal planning.**  
    `new goal "Ship v1"` → `new milestone "Finalize Docs" goal:"Ship v1"` → `track goal "Ship v1"`
 4. **Commitment loop.**  
-   `new commitment "Exercise 3x" frequency:{times:3,period:week}` + associated items → `commitments check` after workouts → `redeem reward "Game Break"` when thresholds hit.
+   Define a commitment with a frequency rule + targets (in YAML), then run `commitments check` after workouts → `redeem reward "Game Break"` when thresholds hit.
 5. **Rewarding achievements.**  
    `set achievement "Writer Streak" points:50` → `set achievement "Writer Streak" awarded:true` → mention points change if relevant.
 

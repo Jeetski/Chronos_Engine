@@ -1,0 +1,33 @@
+--- 1. Syncing Core DB ---
+Core DB Synced.
+
+--- 2. Running Kairos Scheduler ---
+[Kairos] Generating schedule for 2026-02-03...
+[Kairos Debug] DB returned 23 tasks/goals.
+[Kairos Debug] DB returned 3 commitments.
+[Kairos] Gathered 26 candidates.
+[Kairos] Filtered down to 26 valid items.
+
+--- 3. Results ---
+Stats: {'total_items': 26, 'scheduled_items': 20, 'happiness_score': 0}
+Generated 20 blocks.
+ - [540:00] Health Reboot Quarter (Score: 50.0)
+ - [540:00] Launch Chronos v1 Refresh (Score: 50.0)
+ - [540:00] Chronos 2 Launch (Score: 50.0)
+ - [540:00] Deep Work Foundation (Score: 50.0)
+ - [660:00] Learning Loop (Score: 40.0)
+ - [660:00] Test Lifecycle (Score: 40.0)
+ - [660:00] bedtime (Score: 40.0)
+ - [660:00] have a glass of water (Score: 40.0)
+ - [660:00] have breakfast (Score: 40.0)
+ - [660:00] have coffee (Score: 40.0)
+ - [660:00] make my bed (Score: 40.0)
+ - [660:00] New Task (Score: 40.0)
+ - [660:00] take supplements (Score: 40.0)
+ - [660:00] take vitamins (Score: 40.0)
+ - [660:00] Learn Guitar Example (Score: 20.0)
+ - [660:00] Life Support Ops (Score: 10.0)
+ - [660:00] Maid and University Uniforms for Familiars (Score: 10.0)
+ - [660:00] Fitness 3x Weekly (Score: 2.0)
+ - [660:00] No Midnight Scrolling (Score: 2.0)
+ - [660:00] Practice Rhythm Commitment (Example) (Score: 2.0)

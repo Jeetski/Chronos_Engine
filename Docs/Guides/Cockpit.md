@@ -13,7 +13,7 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 ## Panels (current)
 
 - **Schedule** - Live agenda tree; respects today's schedule and updates after CLI changes.
-- **Matrix** - Pivot-style grid fed by `chronos_matrix.db`; supports presets and filtering.
+- **Matrix** - Pivot-style grid fed by `chronos_matrix.db`; supports presets and filtering. Presets live under `Presets/Matrix/` as YAML.
 - **Matrix Visuals** - Visual take on Matrix data (charts/heatmaps where available).
 - **Lists** - Ad-hoc `/api/items` queries for pinning "due soon", "blocked", etc.
 - **Deadlines** - Read-only list of deadlines and due dates with filters and range controls.

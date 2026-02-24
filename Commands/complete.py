@@ -12,8 +12,9 @@ import os
 import yaml
 from datetime import datetime
 from Modules.Scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
-from Commands.today import load_completion_payload
+from Commands.Today import load_completion_payload
 from Modules import quality_utils
+from Utilities.completion_effects import run_completion_effects
 
 def run(args, properties):
     """
@@ -57,6 +58,8 @@ def run(args, properties):
         print(err)
         return
 
+    count_as_completion = True
+
     # If this is a trackable type (excluding habit which has its own module handling),
     # update tracking directly; otherwise, dispatch to module.
     if is_trackable and is_trackable(item_type) and item_type != 'habit' and mark_complete:
@@ -75,49 +78,23 @@ def run(args, properties):
                 outcome = 'attended'
                 count_as_completion = True
         mark_complete(item_type, item_name, minutes=minutes, count=count, outcome=outcome, count_as_completion=count_as_completion)
-        # Evaluate commitments after completion to trigger immediate actions
-        try:
-            from Modules.Commitment import main as CommitmentModule  # type: ignore
-            CommitmentModule.evaluate_and_trigger()
-        except Exception as e:
-            print(f"Warning: Could not evaluate commitments: {e}")
-        # Evaluate milestones as well
-        try:
-            from Modules.Milestone import main as MilestoneModule  # type: ignore
-            MilestoneModule.evaluate_and_update_milestones()
-        except Exception:
-            pass
-        # Award points
-        try:
-            from Utilities import points as Points
-            pts = Points.award_on_complete(item_type, item_name, minutes=minutes if isinstance(minutes, int) else None)
-            if isinstance(pts, int) and pts > 0:
-                print(f"+{pts} points awarded.")
-        except Exception:
-            pass
+        run_completion_effects(
+            item_type,
+            item_name,
+            minutes=minutes,
+            count_as_completion=count_as_completion,
+            run_milestones=True,
+        )
     else:
         # Dispatch the command to the specific item module
         dispatch_command("complete", item_type, item_name, None, properties)
-        # Evaluate commitments after module-driven completion
-        try:
-            from Modules.Commitment import main as CommitmentModule  # type: ignore
-            CommitmentModule.evaluate_and_trigger()
-        except Exception as e:
-            print(f"Warning: Could not evaluate commitments: {e}")
-        # Evaluate milestones as well
-        try:
-            from Modules.Milestone import main as MilestoneModule  # type: ignore
-            MilestoneModule.evaluate_and_update_milestones()
-        except Exception:
-            pass
-        # Award points
-        try:
-            from Utilities import points as Points
-            pts = Points.award_on_complete(item_type, item_name, minutes=None)
-            if isinstance(pts, int) and pts > 0:
-                print(f"+{pts} points awarded.")
-        except Exception:
-            pass
+        run_completion_effects(
+            item_type,
+            item_name,
+            minutes=None,
+            count_as_completion=True,
+            run_milestones=True,
+        )
 
     # Also record completion in per-day completion log for display integration
     try:

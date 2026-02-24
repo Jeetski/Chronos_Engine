@@ -1,0 +1,5 @@
+name: Happiness (Completed)
+mode: happiness_completed
+value: "*"
+use_momentum: false
+kind: default

@@ -1,0 +1,11 @@
+name: schedule_actual_status_by_type
+label: Schedule Actual Status x Type
+rows:
+- item_status
+cols:
+- item_type
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

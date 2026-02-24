@@ -23,7 +23,7 @@ export function mount(el) {
       .ms-status.success { color:#5bdc82; }
       .ms-list { display:flex; flex-direction:column; gap:10px; max-height:420px; overflow:auto; }
       .ms-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
-      .ms-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+      .ms-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .ms-name { font-size:15px; font-weight:700; }
       .ms-pill { padding:2px 10px; border-radius:999px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
       .ms-pill.pending { background:rgba(122,162,247,0.15); color:#7aa2f7; }
@@ -33,6 +33,11 @@ export function mount(el) {
       .ms-progress-fill { height:100%; background:linear-gradient(90deg,#2a5cff,#7aa2f7); }
       .ms-meta { font-size:12px; color:var(--text-dim); }
       .ms-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+      .ms-head-left { display:flex; align-items:center; gap:8px; min-width:0; }
+      .ms-expander { font-size:12px; color:var(--text-dim); width:14px; text-align:center; user-select:none; }
+      .ms-head-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+      .ms-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
+      .ms-item.expanded .ms-detail { display:flex; }
     </style>
     <div class="header">
       <div class="title">Milestones</div>
@@ -98,6 +103,7 @@ export function mount(el) {
   let milestones = [];
   let counts = { total: 0, completed: 0, in_progress: 0, pending: 0 };
   let loading = false;
+  const expanded = new Set();
 
   function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
@@ -161,15 +167,48 @@ export function mount(el) {
     filtered.forEach(item => {
       const card = document.createElement('div');
       card.className = 'ms-item';
+      const itemName = item.name || 'Milestone';
+      const key = itemName.toLowerCase();
+      const isExpanded = expanded.has(key);
+      if (isExpanded) card.classList.add('expanded');
       const head = document.createElement('div');
       head.className = 'ms-head';
+      const headLeft = document.createElement('div');
+      headLeft.className = 'ms-head-left';
+      const expander = document.createElement('div');
+      expander.className = 'ms-expander';
+      expander.textContent = isExpanded ? '▼' : '▶';
       const name = document.createElement('div');
       name.className = 'ms-name';
-      name.textContent = item.name || 'Milestone';
+      name.textContent = itemName;
       const pill = document.createElement('div');
       pill.className = `ms-pill ${(item.status || 'pending').toLowerCase()}`;
       pill.textContent = (item.status || 'pending').replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
-      head.append(name, pill);
+      headLeft.append(expander, name);
+
+      const actions = document.createElement('div');
+      actions.className = 'ms-head-actions';
+      const completeBtn = document.createElement('button');
+      completeBtn.className = 'btn btn-primary';
+      completeBtn.textContent = (item.status || '').toLowerCase() === 'completed' ? 'Completed' : 'Mark Complete';
+      completeBtn.disabled = (item.status || '').toLowerCase() === 'completed';
+      completeBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        updateMilestone(itemName, 'complete', completeBtn);
+      });
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'btn btn-secondary';
+      resetBtn.textContent = 'Reset';
+      resetBtn.disabled = (item.status || '').toLowerCase() !== 'completed';
+      resetBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        updateMilestone(itemName, 'reset', resetBtn);
+      });
+      actions.append(completeBtn, resetBtn, pill);
+      head.append(headLeft, actions);
+
+      const detail = document.createElement('div');
+      detail.className = 'ms-detail';
 
       const meta = document.createElement('div');
       meta.className = 'ms-meta';
@@ -199,23 +238,20 @@ export function mount(el) {
         criteria.textContent = `Criteria: ${JSON.stringify(item.criteria)}`;
       }
 
-      const actions = document.createElement('div');
-      actions.className = 'ms-actions';
-      const completeBtn = document.createElement('button');
-      completeBtn.className = 'btn btn-primary';
-      completeBtn.textContent = (item.status || '').toLowerCase() === 'completed' ? 'Completed' : 'Mark Complete';
-      completeBtn.disabled = (item.status || '').toLowerCase() === 'completed';
-      completeBtn.addEventListener('click', () => updateMilestone(item.name, 'complete', completeBtn));
-      const resetBtn = document.createElement('button');
-      resetBtn.className = 'btn btn-secondary';
-      resetBtn.textContent = 'Reset';
-      resetBtn.disabled = (item.status || '').toLowerCase() !== 'completed';
-      resetBtn.addEventListener('click', () => updateMilestone(item.name, 'reset', resetBtn));
-      actions.append(completeBtn, resetBtn);
-
-      card.append(head, meta, progressWrap, progressMeta);
-      if (item.criteria) card.appendChild(criteria);
-      card.appendChild(actions);
+      detail.append(meta, progressWrap, progressMeta);
+      if (item.criteria) detail.appendChild(criteria);
+      card.append(head, detail);
+      head.addEventListener('click', () => {
+        if (card.classList.contains('expanded')) {
+          card.classList.remove('expanded');
+          expanded.delete(key);
+          expander.textContent = '▶';
+        } else {
+          card.classList.add('expanded');
+          expanded.add(key);
+          expander.textContent = '▼';
+        }
+      });
       listEl.appendChild(card);
     });
   }

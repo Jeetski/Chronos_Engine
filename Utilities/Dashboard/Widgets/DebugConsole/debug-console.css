@@ -1,6 +1,7 @@
 /* DebugConsole Widget Glass Styling */
 .debug-console-widget {
     background: transparent !important;
+    max-height: calc(100vh - 16px);
 }
 
 .debug-console-widget .content {

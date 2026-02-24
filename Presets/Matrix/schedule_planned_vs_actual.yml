@@ -1,0 +1,11 @@
+name: schedule_planned_vs_actual
+label: Schedule Planned vs Actual Status
+rows:
+- planned_status
+cols:
+- item_status
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

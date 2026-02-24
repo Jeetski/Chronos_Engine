@@ -24,7 +24,7 @@ export function mount(el) {
       .ac-list { display:flex; flex-direction:column; gap:10px; max-height:360px; overflow:auto; }
       .ac-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
       .ac-item.archived { opacity:0.6; }
-      .ac-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+      .ac-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .ac-name { font-size:15px; font-weight:700; }
       .ac-pill { padding:2px 10px; border-radius:999px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
       .ac-pill.pending { background:rgba(122,162,247,0.15); color:#7aa2f7; }
@@ -34,6 +34,11 @@ export function mount(el) {
       .ac-tags { display:flex; flex-wrap:wrap; gap:4px; font-size:11px; }
       .ac-tag { padding:2px 6px; border-radius:999px; border:1px solid rgba(255,255,255,0.08); }
       .ac-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+      .ac-head-left { display:flex; align-items:center; gap:8px; min-width:0; }
+      .ac-expander { font-size:12px; color:var(--text-dim); width:14px; text-align:center; user-select:none; }
+      .ac-head-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+      .ac-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
+      .ac-item.expanded .ac-detail { display:flex; }
     </style>
     <div class="header">
       <div class="title">Achievements</div>
@@ -71,6 +76,10 @@ export function mount(el) {
           <option value="awarded">Awarded</option>
           <option value="archived">Archived</option>
         </select>
+        <select id="acTitleSelect" class="input" style="flex:0 0 200px;">
+          <option value="">Select title...</option>
+        </select>
+        <button class="btn" id="acSetTitle">Set Title</button>
         <div class="spacer"></div>
         <button class="btn" id="acRefresh">Refresh</button>
       </div>
@@ -90,6 +99,8 @@ export function mount(el) {
   const searchEl = el.querySelector('#acSearch');
   const statusSel = el.querySelector('#acStatusFilter');
   const refreshBtn = el.querySelector('#acRefresh');
+  const titleSelect = el.querySelector('#acTitleSelect');
+  const setTitleBtn = el.querySelector('#acSetTitle');
   const statusLine = el.querySelector('#acStatusLine');
   const listEl = el.querySelector('#acList');
   const totalEl = el.querySelector('#acTotal');
@@ -113,8 +124,10 @@ export function mount(el) {
   fxToggle?.addEventListener('change', () => { fxEnabled = !!fxToggle.checked; renderList(); });
 
   let achievements = [];
+  let currentTitle = '';
   let counts = { total: 0, awarded: 0, pending: 0 };
   let loading = false;
+  const expanded = new Set();
 
   function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
@@ -131,6 +144,8 @@ export function mount(el) {
       const json = await resp.json();
       achievements = Array.isArray(json?.achievements) ? json.achievements : [];
       counts = json?.counts || { total: achievements.length, awarded: 0, pending: 0 };
+      await loadProfileTitle();
+      renderTitleOptions();
       renderSummary();
       renderList();
       if (!dataOnly) setStatus('');
@@ -140,6 +155,33 @@ export function mount(el) {
     } finally {
       loading = false;
     }
+  }
+
+  async function loadProfileTitle() {
+    try {
+      const resp = await fetch(apiBase() + "/api/profile");
+      if (!resp.ok) return;
+      const json = await resp.json();
+      currentTitle = json?.profile?.title || '';
+    } catch { }
+  }
+
+  function renderTitleOptions() {
+    if (!titleSelect) return;
+    const awarded = achievements.filter(a => (a.state || '').toLowerCase() === 'awarded' && a.title);
+    const titles = Array.from(new Set(awarded.map(a => String(a.title)).filter(Boolean)));
+    titleSelect.innerHTML = '';
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = titles.length ? 'Select title...' : 'No awarded titles yet';
+    titleSelect.appendChild(blank);
+    titles.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      if (t === currentTitle) opt.selected = true;
+      titleSelect.appendChild(opt);
+    });
   }
 
   function renderSummary() {
@@ -178,17 +220,50 @@ export function mount(el) {
     filtered.forEach(item => {
       const card = document.createElement('div');
       card.className = 'ac-item';
+      const itemName = item.name || 'Achievement';
+      const key = itemName.toLowerCase();
+      const isExpanded = expanded.has(key);
+      if (isExpanded) card.classList.add('expanded');
       const state = (item.state || item.status || 'pending').toLowerCase();
       if (state === 'archived') card.classList.add('archived');
       const head = document.createElement('div');
       head.className = 'ac-head';
+      const headLeft = document.createElement('div');
+      headLeft.className = 'ac-head-left';
+      const expander = document.createElement('div');
+      expander.className = 'ac-expander';
+      expander.textContent = isExpanded ? '▼' : '▶';
       const name = document.createElement('div');
       name.className = 'ac-name';
-      name.textContent = expandText(item.name || 'Achievement');
+      name.textContent = expandText(itemName);
       const pill = document.createElement('div');
       pill.className = `ac-pill ${state}`;
       pill.textContent = state.charAt(0).toUpperCase() + state.slice(1);
-      head.append(name, pill);
+      headLeft.append(expander, name);
+
+      const actions = document.createElement('div');
+      actions.className = 'ac-head-actions';
+      const awardBtn = document.createElement('button');
+      awardBtn.className = 'btn btn-primary';
+      awardBtn.textContent = state === 'awarded' ? 'Awarded' : 'Mark Awarded';
+      awardBtn.disabled = state === 'awarded';
+      awardBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        updateAchievement(item, 'award', awardBtn);
+      });
+      const archiveBtn = document.createElement('button');
+      archiveBtn.className = 'btn btn-secondary';
+      archiveBtn.textContent = state === 'archived' ? 'Archived' : 'Archive';
+      archiveBtn.disabled = state === 'archived';
+      archiveBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        updateAchievement(item, 'archive', archiveBtn);
+      });
+      actions.append(awardBtn, archiveBtn, pill);
+      head.append(headLeft, actions);
+
+      const detail = document.createElement('div');
+      detail.className = 'ac-detail';
       const desc = document.createElement('div');
       desc.className = 'ac-meta';
       desc.textContent = expandText(item.description || 'No description.');
@@ -208,23 +283,21 @@ export function mount(el) {
         chip.textContent = expandText(tag);
         tagsWrap.appendChild(chip);
       });
-      const actions = document.createElement('div');
-      actions.className = 'ac-actions';
-      const awardBtn = document.createElement('button');
-      awardBtn.className = 'btn btn-primary';
-      awardBtn.textContent = state === 'awarded' ? 'Awarded' : 'Mark Awarded';
-      awardBtn.disabled = state === 'awarded';
-      awardBtn.addEventListener('click', () => updateAchievement(item, 'award', awardBtn));
-      const archiveBtn = document.createElement('button');
-      archiveBtn.className = 'btn btn-secondary';
-      archiveBtn.textContent = state === 'archived' ? 'Archived' : 'Archive';
-      archiveBtn.disabled = state === 'archived';
-      archiveBtn.addEventListener('click', () => updateAchievement(item, 'archive', archiveBtn));
-      actions.append(awardBtn, archiveBtn);
 
-      card.append(head, desc, meta);
-      if (tagsWrap.childElementCount) card.appendChild(tagsWrap);
-      card.appendChild(actions);
+      detail.append(desc, meta);
+      if (tagsWrap.childElementCount) detail.appendChild(tagsWrap);
+      card.append(head, detail);
+      head.addEventListener('click', () => {
+        if (card.classList.contains('expanded')) {
+          card.classList.remove('expanded');
+          expanded.delete(key);
+          expander.textContent = '▶';
+        } else {
+          card.classList.add('expanded');
+          expanded.add(key);
+          expander.textContent = '▼';
+        }
+      });
       listEl.appendChild(card);
     });
   }
@@ -268,6 +341,24 @@ export function mount(el) {
   searchEl.addEventListener('input', () => renderList());
   statusSel.addEventListener('change', () => renderList());
   refreshBtn.addEventListener('click', () => refresh());
+  setTitleBtn?.addEventListener('click', async () => {
+    const selected = titleSelect?.value || '';
+    if (!selected) return;
+    setStatus('Updating title...');
+    try {
+      const resp = await fetch(apiBase() + "/api/profile", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: selected }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      currentTitle = selected;
+      setStatus('Title updated.', 'success');
+    } catch (err) {
+      console.warn('[Achievements] title update failed', err);
+      setStatus('Failed to update title.', 'error');
+    }
+  });
 
   refresh();
 

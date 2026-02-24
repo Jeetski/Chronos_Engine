@@ -3,6 +3,7 @@ import os
 import sys
 import yaml
 import json
+import re
 import base64
 import threading
 import socket
@@ -36,7 +37,7 @@ from Utilities.dashboard_matrix import (
     save_matrix_preset,
     delete_matrix_preset,
 )
-from Modules.Scheduler import schedule_path_for_date, status_current_path
+from Modules.Scheduler import schedule_path_for_date, status_current_path, build_block_key, get_flattened_schedule
 
 # In-memory dashboard-scoped variables (exposed via /api/vars)
 _DASH_VARS = {}
@@ -177,7 +178,7 @@ try:
 except Exception:
     pass
 
-def run_console_command(command_name, args_list):
+def run_console_command(command_name, args_list, properties=None):
     """
     Invoke the Console command pipeline.
     Preferred: in-process import of Modules.Console.run_command.
@@ -192,7 +193,7 @@ def run_console_command(command_name, args_list):
         sys.stdout, sys.stderr = out_buf, err_buf
         ok = True
         try:
-            ConsoleModule.run_command(command_name, args_list, {})
+            ConsoleModule.run_command(command_name, args_list, properties or {})
         except Exception as e:
             ok = False
             print(f"Error: {e}")
@@ -209,12 +210,117 @@ def run_console_command(command_name, args_list):
                 s = '"' + s.replace('"', '\\"') + '"'
             return s
 
-        cmdline = ' '.join([command_name] + [quote(a) for a in args_list])
+        merged_args = list(args_list or [])
+        props = properties or {}
+        if isinstance(props, dict) and props:
+            for k, v in props.items():
+                if isinstance(v, list):
+                    v_str = ", ".join(str(x) for x in v)
+                elif isinstance(v, bool):
+                    v_str = "true" if v else "false"
+                else:
+                    v_str = str(v)
+                tok = f"{k}:{v_str}"
+                if tok not in merged_args:
+                    merged_args.append(tok)
+
+        cmdline = ' '.join([command_name] + [quote(a) for a in merged_args])
         proc = subprocess.Popen([sys.executable, os.path.join(ROOT_DIR, 'Modules', 'Console.py'), cmdline],
                                 cwd=ROOT_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         out, err = proc.communicate(timeout=30)
         ok = proc.returncode == 0
         return ok, (out or '').strip(), (err or '').strip()
+
+
+def _list_system_databases():
+    data_dir = os.path.join(ROOT_DIR, "User", "Data")
+    registry_path = os.path.join(data_dir, "databases.yml")
+    databases = []
+    seen = set()
+
+    def _safe_getsize(path):
+        try:
+            return os.path.getsize(path)
+        except Exception:
+            return None
+
+    def _safe_getmtime(path):
+        try:
+            return datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
+        except Exception:
+            return None
+
+    if os.path.exists(registry_path):
+        try:
+            with open(registry_path, "r", encoding="utf-8") as fh:
+                registry = yaml.safe_load(fh) or {}
+            entries = registry.get("databases") if isinstance(registry, dict) else {}
+            if isinstance(entries, dict):
+                for key, entry in entries.items():
+                    if not isinstance(entry, dict):
+                        continue
+                    db_type = str(entry.get("type") or "").strip().lower()
+                    filename = str(entry.get("filename") or "").strip()
+                    path = str(entry.get("path") or "").strip()
+                    if db_type and db_type != "sqlite":
+                        continue
+                    if not db_type and filename and not filename.lower().endswith(".db"):
+                        continue
+                    if not db_type and not filename:
+                        continue
+                    if not path and filename:
+                        path = os.path.join(data_dir, filename)
+                    if db_type == "sqlite" and filename.lower().endswith(".db"):
+                        name = os.path.splitext(filename)[0]
+                    else:
+                        name = str(entry.get("key") or key or filename).strip()
+                    if not name:
+                        continue
+                    label = str(entry.get("name") or key or name).strip()
+                    info = {
+                        "name": name,
+                        "label": label,
+                        "key": str(entry.get("key") or key or "").strip() or None,
+                        "type": db_type or None,
+                        "filename": filename or None,
+                    }
+                    if path and os.path.exists(path):
+                        info["size"] = _safe_getsize(path)
+                        info["modified"] = _safe_getmtime(path)
+                    else:
+                        info["size"] = None
+                        info["modified"] = None
+                    databases.append(info)
+                    if filename:
+                        seen.add(filename)
+                    seen.add(name)
+        except Exception:
+            pass
+
+    if os.path.exists(data_dir):
+        try:
+            for filename in os.listdir(data_dir):
+                if not filename.lower().endswith(".db"):
+                    continue
+                if filename in seen:
+                    continue
+                path = os.path.join(data_dir, filename)
+                name = os.path.splitext(filename)[0]
+                info = {
+                    "name": name,
+                    "label": name,
+                    "key": None,
+                    "type": "sqlite",
+                    "filename": filename,
+                    "size": _safe_getsize(path),
+                    "modified": _safe_getmtime(path),
+                }
+                databases.append(info)
+        except Exception:
+            pass
+
+    databases.sort(key=lambda item: (item.get("label") or item.get("name") or "").lower())
+    return databases
 
 STICKY_NOTE_COLORS = {
     "amber": "#f4d482",
@@ -230,6 +336,7 @@ MEDIA_ROOT = os.path.join(ROOT_DIR, "User", "Media")
 MP3_DIR = os.path.join(MEDIA_ROOT, "MP3")
 PLAYLIST_DIR = os.path.join(MEDIA_ROOT, "Playlists")
 DEFAULT_PLAYLIST_SLUG = "default"
+CALENDAR_OVERLAY_PRESET_DIR = os.path.join(ROOT_DIR, "Presets", "Calendar_Overlays")
 
 
 def _normalize_bool(value):
@@ -240,6 +347,113 @@ def _normalize_bool(value):
     if isinstance(value, str):
         return value.strip().lower() in ("1", "true", "yes", "on")
     return False
+
+
+def _ensure_calendar_overlay_dir():
+    try:
+        os.makedirs(CALENDAR_OVERLAY_PRESET_DIR, exist_ok=True)
+    except Exception:
+        pass
+
+
+def _overlay_slug(name: str) -> str:
+    safe = "".join(ch if ch.isalnum() or ch in ("-", "_", " ") else "_" for ch in str(name or ""))
+    safe = "_".join(part for part in safe.strip().split())
+    return safe.lower() or "overlay"
+
+
+def _normalize_overlay_preset(raw):
+    if not isinstance(raw, dict):
+        return None
+    name = str(raw.get("name") or raw.get("label") or "").strip()
+    if not name:
+        return None
+    mode = str(raw.get("mode") or raw.get("key") or ("name" if raw.get("match") else "")).strip()
+    value = str(raw.get("value") or raw.get("match") or "").strip()
+    use_momentum = _normalize_bool(raw.get("use_momentum") or raw.get("momentum"))
+    kind = str(raw.get("kind") or "").strip().lower() or "custom"
+    if not mode or not value:
+        return None
+    return {
+        "name": name,
+        "mode": mode,
+        "value": value,
+        "use_momentum": use_momentum,
+        "kind": kind,
+    }
+
+
+def _list_calendar_overlay_presets():
+    _ensure_calendar_overlay_dir()
+    presets = []
+    try:
+        for entry in os.listdir(CALENDAR_OVERLAY_PRESET_DIR):
+            if not entry.lower().endswith((".yml", ".yaml")):
+                continue
+            path = os.path.join(CALENDAR_OVERLAY_PRESET_DIR, entry)
+            try:
+                with open(path, "r", encoding="utf-8") as fh:
+                    data = yaml.safe_load(fh) or {}
+                normalized = _normalize_overlay_preset(data)
+                if normalized:
+                    presets.append(normalized)
+            except Exception:
+                continue
+    except Exception:
+        return []
+    presets.sort(key=lambda item: (item.get("name") or "").lower())
+    return presets
+
+
+def _load_calendar_overlay_preset(name: str):
+    if not name:
+        return None
+    _ensure_calendar_overlay_dir()
+    slug = _overlay_slug(name)
+    for ext in (".yml", ".yaml"):
+        path = os.path.join(CALENDAR_OVERLAY_PRESET_DIR, f"{slug}{ext}")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as fh:
+                data = yaml.safe_load(fh) or {}
+            return _normalize_overlay_preset(data)
+    return None
+
+
+def _save_calendar_overlay_preset(preset: dict):
+    if not isinstance(preset, dict):
+        raise ValueError("Preset payload must be a map")
+    normalized = _normalize_overlay_preset(preset)
+    if not normalized:
+        raise ValueError("Preset must include name, mode, and value")
+    _ensure_calendar_overlay_dir()
+    slug = _overlay_slug(normalized["name"])
+    path = os.path.join(CALENDAR_OVERLAY_PRESET_DIR, f"{slug}.yml")
+    payload = {
+        "name": normalized["name"],
+        "mode": normalized["mode"],
+        "value": normalized["value"],
+        "use_momentum": normalized.get("use_momentum", False),
+        "kind": normalized.get("kind") or "custom",
+    }
+    with open(path, "w", encoding="utf-8") as fh:
+        yaml.safe_dump(payload, fh, allow_unicode=True, sort_keys=False)
+    return normalized
+
+
+def _delete_calendar_overlay_preset(name: str) -> bool:
+    if not name:
+        return False
+    slug = _overlay_slug(name)
+    removed = False
+    for ext in (".yml", ".yaml"):
+        path = os.path.join(CALENDAR_OVERLAY_PRESET_DIR, f"{slug}{ext}")
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                removed = True
+            except Exception:
+                pass
+    return removed
 
 
 def _coerce_sticky_color(value):
@@ -657,6 +871,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing name"}); return
                 
+                if name in ("wizards", "themes", "widgets", "views", "panels", "popups"):
+                    # Dynamic build
+                    from Utilities import registry_builder
+                    data = {}
+                    if name == "wizards":
+                        data = registry_builder.build_wizards_registry()
+                    elif name == "themes":
+                        data = registry_builder.build_themes_registry()
+                    elif name == "widgets":
+                        data = registry_builder.build_widgets_registry()
+                    elif name == "views":
+                        data = registry_builder.build_views_registry()
+                    elif name == "panels":
+                        data = registry_builder.build_panels_registry()
+                    elif name == "popups":
+                        data = registry_builder.build_popups_registry()
+                    self._write_json(200, {"ok": True, "registry": data})
+                    return
+
                 if name not in ("command", "item", "property"):
                     self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
 
@@ -1002,6 +1235,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "name": name, "background_hex": bg, "text_hex": fg, "theme": found})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read theme: {e}"})
+            return
+        if parsed.path == "/api/console/theme":
+            try:
+                from Modules import console_style
+                if hasattr(console_style, "reset_theme_cache"):
+                    try:
+                        console_style.reset_theme_cache()
+                    except Exception:
+                        pass
+                palette = console_style.load_palette() if hasattr(console_style, "load_palette") else {}
+                color_mode = console_style.load_color_mode() if hasattr(console_style, "load_color_mode") else "16"
+                self._write_json(200, {
+                    "ok": True,
+                    "palette": palette if isinstance(palette, dict) else {},
+                    "color_mode": str(color_mode or "16"),
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read console theme: {e}"})
             return
         if parsed.path == "/api/cockpit/matrix":
             try:
@@ -1384,6 +1635,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     items.append({
                         "name": name,
                         "description": raw.get('description') or raw.get('notes'),
+                        "title": raw.get('title'),
                         "category": raw.get('category'),
                         "priority": raw.get('priority'),
                         "status": status or state,
@@ -1414,7 +1666,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 from Modules.ItemManager import list_all_items
                 from Modules.Commitment import main as CommitmentModule  # type: ignore
                 commitments = list_all_items('commitment') or []
-                today_str = datetime.now().strftime('%Y-%m-%d')
+                today_key = datetime.now().strftime('%Y-%m-%d')
                 out = []
                 met_count = 0
                 violation_count = 0
@@ -1422,61 +1674,33 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     if not isinstance(raw, dict):
                         continue
                     name = str(raw.get('name') or 'Commitment')
-                    freq = raw.get('frequency') if isinstance(raw.get('frequency'), dict) else None
-                    assoc = raw.get('associated_items') if isinstance(raw.get('associated_items'), list) else []
-                    forb = raw.get('forbidden_items') if isinstance(raw.get('forbidden_items'), list) else []
-                    times = int(freq.get('times') or 0) if freq else 0
-                    period = str(freq.get('period') or 'week').lower() if freq else None
-                    progress = 0
-                    if freq and assoc:
-                        for it in assoc:
-                            if not isinstance(it, dict):
-                                continue
-                            t = str(it.get('type') or '').strip()
-                            n = str(it.get('name') or '').strip()
-                            if not t or not n:
-                                continue
-                            try:
-                                dates = CommitmentModule._get_completion_dates(t, n)
-                                progress += CommitmentModule._count_in_period(dates, period or 'week')
-                            except Exception:
-                                continue
-                    met = bool(freq and times > 0 and progress >= times)
-                    violation = False
-                    if raw.get('never') and forb:
-                        for it in forb:
-                            if not isinstance(it, dict):
-                                continue
-                            t = str(it.get('type') or '').strip()
-                            n = str(it.get('name') or '').strip()
-                            if not t or not n:
-                                continue
-                            try:
-                                dates = CommitmentModule._get_completion_dates(t, n)
-                                if today_str in (dates or []):
-                                    violation = True
-                                    break
-                            except Exception:
-                                continue
-                    state = 'violation' if violation else ('met' if met else 'pending')
+                    status = CommitmentModule.get_commitment_status(raw)
+                    met = bool(status.get('met'))
+                    violation = bool(status.get('violation'))
+                    state = status.get('state') or ('violation' if violation else ('met' if met else 'pending'))
                     if state == 'met':
                         met_count += 1
                     elif state == 'violation':
                         violation_count += 1
+                    manual_map = raw.get('manual_status_by_date') if isinstance(raw.get('manual_status_by_date'), dict) else {}
+                    manual_today = str(manual_map.get(today_key) or '').strip().lower()
                     out.append({
                         "name": name,
                         "description": raw.get('description') or raw.get('notes'),
-                        "frequency": freq,
-                        "period": period or 'week',
-                        "times_required": times,
-                        "progress": progress,
-                        "associated": assoc,
-                        "forbidden": forb,
-                        "never": bool(raw.get('never')),
-                        "triggers": raw.get('triggers'),
+                        "rule_kind": status.get('kind'),
+                        "period": status.get('period') or 'week',
+                        "times_required": status.get('times') or 0,
+                        "required_total": status.get('required_total') or status.get('times') or 0,
+                        "progress": status.get('progress') or 0,
+                        "remaining": status.get('remaining') or 0,
+                        "target_progress": status.get('target_progress') or [],
+                        "targets": status.get('targets') or [],
+                        "triggers": status.get('triggers'),
                         "status": state,
                         "met": met,
                         "violation": violation,
+                        "manual_today": manual_today,
+                        "needs_checkin": (state == 'pending' and manual_today not in ('met', 'violation')),
                         "last_met": raw.get('last_met'),
                         "last_violation": raw.get('last_violation'),
                     })
@@ -1489,6 +1713,427 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "commitments": out, "counts": counts})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Commitments error: {e}"})
+            return
+        if parsed.path == "/api/tracker/sources":
+            try:
+                from Modules.ItemManager import list_all_items
+                habits = list_all_items('habit') or []
+                commitments = list_all_items('commitment') or []
+
+                def _is_true(value):
+                    if isinstance(value, bool):
+                        return value
+                    text = str(value or '').strip().lower()
+                    return text in ('1', 'true', 'yes', 'y', 'on')
+
+                def _num(value):
+                    try:
+                        n = float(value)
+                        if n > 0:
+                            return n
+                    except Exception:
+                        return None
+                    return None
+
+                def _sleep_target_hours(raw):
+                    if not isinstance(raw, dict):
+                        return None
+                    keys = (
+                        'sleep_target_hours',
+                        'target_sleep_hours',
+                        'target_hours',
+                        'sleep_hours',
+                    )
+                    for key in keys:
+                        n = _num(raw.get(key))
+                        if n is not None:
+                            return n
+                    target = raw.get('target') if isinstance(raw.get('target'), dict) else {}
+                    for key in keys:
+                        n = _num(target.get(key))
+                        if n is not None:
+                            return n
+                    return None
+
+                sources = []
+
+                for raw in habits:
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get('name') or '').strip()
+                    if not name:
+                        continue
+                    polarity = str(raw.get('polarity') or 'good').strip().lower()
+                    if polarity not in ('good', 'bad'):
+                        polarity = 'good'
+                    sleep = _is_true(raw.get('sleep'))
+                    sleep_target_hours = _sleep_target_hours(raw)
+                    sources.append({
+                        "id": f"habit::{name.lower()}",
+                        "type": "habit",
+                        "name": name,
+                        "label": name,
+                        "polarity": polarity,
+                        "sleep": sleep,
+                        "sleep_target_hours": sleep_target_hours,
+                    })
+
+                for raw in commitments:
+                    if not isinstance(raw, dict):
+                        continue
+                    name = str(raw.get('name') or '').strip()
+                    if not name:
+                        continue
+                    rule = raw.get('rule') if isinstance(raw.get('rule'), dict) else {}
+                    kind = str(rule.get('kind') or raw.get('kind') or '').strip().lower()
+                    mode = 'negative' if kind in ('never', 'avoid', 'abstain', 'forbidden') else 'positive'
+                    sleep = _is_true(raw.get('sleep'))
+                    sleep_target_hours = _sleep_target_hours(raw)
+                    sources.append({
+                        "id": f"commitment::{name.lower()}",
+                        "type": "commitment",
+                        "name": name,
+                        "label": name,
+                        "rule_kind": kind or None,
+                        "mode": mode,
+                        "sleep": sleep,
+                        "sleep_target_hours": sleep_target_hours,
+                    })
+
+                sources.sort(key=lambda item: (str(item.get("type") or ""), str(item.get("name") or "").lower()))
+                self._write_json(200, {"ok": True, "sources": sources})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Tracker sources error: {e}"})
+            return
+        if parsed.path == "/api/tracker/year":
+            try:
+                from Modules.ItemManager import list_all_items
+
+                qs = parse_qs(parsed.query or '')
+                year_raw = str((qs.get('year') or [''])[0] or '').strip()
+                source_type = str((qs.get('type') or [''])[0] or '').strip().lower()
+                source_name = str((qs.get('name') or [''])[0] or '').strip()
+                if not source_type or not source_name:
+                    self._write_json(400, {"ok": False, "error": "Missing required query params: type, name"})
+                    return
+                if source_type not in ('habit', 'commitment'):
+                    self._write_json(400, {"ok": False, "error": "type must be habit or commitment"})
+                    return
+                try:
+                    year = int(year_raw) if year_raw else datetime.now().year
+                except Exception:
+                    year = datetime.now().year
+                year = max(1970, min(2200, year))
+                today_key = datetime.now().strftime('%Y-%m-%d')
+                start_dt = datetime(year, 1, 1)
+                end_dt = datetime(year, 12, 31)
+                sleep_target_qs = str((qs.get('sleep_target_hours') or [''])[0] or '').strip()
+
+                def _is_true(value):
+                    if isinstance(value, bool):
+                        return value
+                    text = str(value or '').strip().lower()
+                    return text in ('1', 'true', 'yes', 'y', 'on')
+
+                def _num(value):
+                    try:
+                        n = float(value)
+                        if n > 0:
+                            return n
+                    except Exception:
+                        return None
+                    return None
+
+                def _sleep_target_hours(raw):
+                    if not isinstance(raw, dict):
+                        return None
+                    keys = (
+                        'sleep_target_hours',
+                        'target_sleep_hours',
+                        'target_hours',
+                        'sleep_hours',
+                    )
+                    for key in keys:
+                        n = _num(raw.get(key))
+                        if n is not None:
+                            return n
+                    target = raw.get('target') if isinstance(raw.get('target'), dict) else {}
+                    for key in keys:
+                        n = _num(target.get(key))
+                        if n is not None:
+                            return n
+                    return None
+
+                def _hm_to_minutes(value):
+                    text = str(value or '').strip()
+                    if not text:
+                        return None
+                    if ':' not in text:
+                        return None
+                    parts = text.split(':')
+                    if len(parts) < 2:
+                        return None
+                    try:
+                        hh = int(str(parts[0]).strip())
+                        mm = int(str(parts[1]).strip()[:2])
+                    except Exception:
+                        return None
+                    hh = max(0, min(23, hh))
+                    mm = max(0, min(59, mm))
+                    return (hh * 60) + mm
+
+                def normalize_status(value):
+                    return str(value or '').strip().lower()
+
+                def map_outcome(raw_status, item_type, item_mode):
+                    status = normalize_status(raw_status)
+                    if not status:
+                        return None
+                    if item_type == 'habit':
+                        if item_mode == 'bad':
+                            if status in ('incident', 'completed', 'done', 'violation', 'broken', 'failed'):
+                                return 'done'
+                            if status in ('not_done', 'clean', 'abstained', 'kept', 'missed', 'skipped', 'cancelled'):
+                                return 'not_done'
+                            return None
+                        if status in ('completed', 'done', 'met', 'success'):
+                            return 'done'
+                        if status in ('incident', 'violation', 'broken', 'failed', 'missed', 'skipped', 'not_done', 'cancelled'):
+                            return 'not_done'
+                        return None
+                    if status in ('completed', 'done', 'met', 'kept', 'success'):
+                        return 'done'
+                    if status in ('violation', 'broken', 'failed', 'missed', 'skipped', 'not_done', 'cancelled'):
+                        return 'not_done'
+                    return None
+
+                tracked_meta = {
+                    "type": source_type,
+                    "name": source_name,
+                    "polarity": "good",
+                    "mode": "positive",
+                    "rule_kind": None,
+                    "sleep": False,
+                    "sleep_target_hours": None,
+                }
+                days = {}
+                sleep_minutes_by_date = {}
+
+                if source_type == 'habit':
+                    habits = list_all_items('habit') or []
+                    target = None
+                    for raw in habits:
+                        if not isinstance(raw, dict):
+                            continue
+                        if str(raw.get('name') or '').strip().lower() == source_name.lower():
+                            target = raw
+                            break
+                    if not target:
+                        self._write_json(404, {"ok": False, "error": "Habit not found"})
+                        return
+                    polarity = str(target.get('polarity') or 'good').strip().lower()
+                    if polarity not in ('good', 'bad'):
+                        polarity = 'good'
+                    tracked_meta['polarity'] = polarity
+                    tracked_meta['sleep'] = _is_true(target.get('sleep'))
+                    tracked_meta['sleep_target_hours'] = _sleep_target_hours(target)
+
+                    completion_dates = target.get('completion_dates') if isinstance(target.get('completion_dates'), list) else []
+                    incident_dates = target.get('incident_dates') if isinstance(target.get('incident_dates'), list) else []
+
+                    for raw_date in completion_dates:
+                        date_key = str(raw_date or '').strip()
+                        if not date_key.startswith(f"{year}-"):
+                            continue
+                        if polarity == 'bad':
+                            days[date_key] = {"state": "not_done", "status": "clean", "source": "habit_file"}
+                        else:
+                            days[date_key] = {"state": "done", "status": "completed", "source": "habit_file"}
+
+                    for raw_date in incident_dates:
+                        date_key = str(raw_date or '').strip()
+                        if not date_key.startswith(f"{year}-"):
+                            continue
+                        if polarity == 'bad':
+                            days[date_key] = {"state": "done", "status": "incident", "source": "habit_file"}
+                        else:
+                            days[date_key] = {"state": "not_done", "status": "incident", "source": "habit_file"}
+                else:
+                    commitments = list_all_items('commitment') or []
+                    target = None
+                    for raw in commitments:
+                        if not isinstance(raw, dict):
+                            continue
+                        if str(raw.get('name') or '').strip().lower() == source_name.lower():
+                            target = raw
+                            break
+                    if not target:
+                        self._write_json(404, {"ok": False, "error": "Commitment not found"})
+                        return
+                    rule = target.get('rule') if isinstance(target.get('rule'), dict) else {}
+                    kind = str(rule.get('kind') or target.get('kind') or '').strip().lower()
+                    mode = 'negative' if kind in ('never', 'avoid', 'abstain', 'forbidden') else 'positive'
+                    tracked_meta['mode'] = mode
+                    tracked_meta['rule_kind'] = kind or None
+                    tracked_meta['sleep'] = _is_true(target.get('sleep'))
+                    tracked_meta['sleep_target_hours'] = _sleep_target_hours(target)
+
+                    manual_map = target.get('manual_status_by_date') if isinstance(target.get('manual_status_by_date'), dict) else {}
+                    for raw_date, raw_status in manual_map.items():
+                        date_key = str(raw_date or '').strip()
+                        if not date_key.startswith(f"{year}-"):
+                            continue
+                        mapped = map_outcome(raw_status, 'commitment', mode)
+                        if mapped:
+                            days[date_key] = {"state": mapped, "status": normalize_status(raw_status), "source": "manual_status_by_date"}
+
+                # Overlay/augment from completion entries for the full year.
+                # This lets tracker reflect explicit check-ins saved by popups and schedule logs.
+                comp_dir = os.path.join(ROOT_DIR, 'User', 'Schedules', 'completions')
+                span_days = (end_dt - start_dt).days + 1
+                for offset in range(span_days):
+                    dt = start_dt + timedelta(days=offset)
+                    date_key = dt.strftime('%Y-%m-%d')
+                    comp_path = os.path.join(comp_dir, f"{date_key}.yml")
+                    if not os.path.exists(comp_path):
+                        continue
+                    try:
+                        with open(comp_path, 'r', encoding='utf-8') as f:
+                            payload = yaml.safe_load(f) or {}
+                    except Exception:
+                        continue
+                    entries = payload.get('entries') if isinstance(payload, dict) else {}
+                    if not isinstance(entries, dict):
+                        continue
+                    for key, raw_entry in entries.items():
+                        entry = raw_entry if isinstance(raw_entry, dict) else {"status": raw_entry}
+                        entry_name = str(entry.get('name') or '').strip()
+                        if not entry_name and isinstance(key, str) and '@' in key:
+                            entry_name = str(key.split('@', 1)[0]).strip()
+                        if entry_name.lower() != source_name.lower():
+                            continue
+                        entry_type = str(entry.get('type') or source_type).strip().lower()
+                        allow_mixed_sleep = bool(tracked_meta.get('sleep'))
+                        if entry_type != source_type and not allow_mixed_sleep:
+                            continue
+                        mapped = map_outcome(entry.get('status'), source_type, tracked_meta.get('polarity') if source_type == 'habit' else tracked_meta.get('mode'))
+                        if not mapped:
+                            continue
+                        days[date_key] = {
+                            "state": mapped,
+                            "status": normalize_status(entry.get('status')),
+                            "source": "completion_entries",
+                        }
+                        if tracked_meta.get('sleep') and mapped == 'done':
+                            start_m = _hm_to_minutes(entry.get('actual_start') or entry.get('scheduled_start'))
+                            end_m = _hm_to_minutes(entry.get('actual_end') or entry.get('scheduled_end'))
+                            if start_m is not None and end_m is not None:
+                                duration = end_m - start_m
+                                if duration <= 0:
+                                    duration += 24 * 60
+                                if 0 < duration <= 24 * 60:
+                                    prev = int(sleep_minutes_by_date.get(date_key) or 0)
+                                    sleep_minutes_by_date[date_key] = min(24 * 60, prev + int(duration))
+
+                day_count = (end_dt - start_dt).days + 1
+                if year < datetime.now().year:
+                    elapsed_days = day_count
+                elif year > datetime.now().year:
+                    elapsed_days = 0
+                else:
+                    elapsed_days = max(0, min(day_count, (datetime.now().date() - start_dt.date()).days + 1))
+                year_progress = int(round((elapsed_days / day_count) * 100)) if day_count else 0
+
+                sleep_analysis = None
+                if tracked_meta.get('sleep'):
+                    target_hours = _num(sleep_target_qs)
+                    if target_hours is None:
+                        target_hours = _num(tracked_meta.get('sleep_target_hours'))
+                    if target_hours is None:
+                        target_hours = 8.0
+                    target_minutes = int(round(target_hours * 60))
+
+                    if year < datetime.now().year:
+                        window_end = end_dt.strftime('%Y-%m-%d')
+                    elif year > datetime.now().year:
+                        window_end = f"{year}-01-01"
+                    else:
+                        window_end = datetime.now().strftime('%Y-%m-%d')
+
+                    window_start = f"{year}-01-01"
+                    logged_values = []
+                    for k, v in sleep_minutes_by_date.items():
+                        if k < window_start or k > window_end:
+                            continue
+                        try:
+                            iv = int(v)
+                        except Exception:
+                            continue
+                        if iv > 0:
+                            logged_values.append((k, iv))
+                    logged_values.sort(key=lambda row: row[0])
+                    logged_minutes = [row[1] for row in logged_values]
+                    logged_days = len(logged_minutes)
+                    total_logged = sum(logged_minutes)
+                    average_logged = int(round(total_logged / logged_days)) if logged_days else 0
+                    short_nights_7h = len([v for v in logged_minutes if v < (7 * 60)])
+                    below_target_nights = len([v for v in logged_minutes if v < target_minutes])
+
+                    debt_logged = max(0, (target_minutes * logged_days) - total_logged)
+                    surplus_logged = max(0, total_logged - (target_minutes * logged_days))
+
+                    def _rolling_avg(days_back):
+                        if days_back <= 0:
+                            return 0
+                        if year > datetime.now().year:
+                            return 0
+                        end_date = end_dt.date() if year < datetime.now().year else datetime.now().date()
+                        start_date = max(start_dt.date(), end_date - timedelta(days=days_back - 1))
+                        vals = []
+                        cursor = start_date
+                        while cursor <= end_date:
+                            k = cursor.strftime('%Y-%m-%d')
+                            if k in sleep_minutes_by_date:
+                                try:
+                                    iv = int(sleep_minutes_by_date[k])
+                                except Exception:
+                                    iv = 0
+                                if iv > 0:
+                                    vals.append(iv)
+                            cursor += timedelta(days=1)
+                        return int(round(sum(vals) / len(vals))) if vals else 0
+
+                    rolling_7d = _rolling_avg(7)
+                    rolling_30d = _rolling_avg(30)
+
+                    sleep_analysis = {
+                        "target_hours": float(target_hours),
+                        "target_minutes": int(target_minutes),
+                        "logged_day_count": int(logged_days),
+                        "total_logged_minutes": int(total_logged),
+                        "average_logged_minutes": int(average_logged),
+                        "debt_minutes": int(debt_logged),
+                        "surplus_minutes": int(surplus_logged),
+                        "short_nights_under_7h": int(short_nights_7h),
+                        "below_target_nights": int(below_target_nights),
+                        "rolling_7d_average_minutes": int(rolling_7d),
+                        "rolling_30d_average_minutes": int(rolling_30d),
+                    }
+
+                self._write_json(200, {
+                    "ok": True,
+                    "year": year,
+                    "today": today_key,
+                    "tracked": tracked_meta,
+                    "days": days,
+                    "sleep_minutes_by_date": sleep_minutes_by_date,
+                    "sleep_analysis": sleep_analysis,
+                    "year_progress_percent": year_progress,
+                    "elapsed_days": elapsed_days,
+                    "day_count": day_count,
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Tracker year error: {e}"})
             return
         if parsed.path == "/api/milestones":
             try:
@@ -1678,6 +2323,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 profile_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
                 profile_data = {}
                 nickname = None
+                title = None
                 avatar_rel = None
                 avatar_data_url = None
                 welcome_block = { 'line1': None, 'line2': None, 'line3': None }
@@ -1688,6 +2334,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     with open(profile_path, 'r', encoding='utf-8') as f:
                         profile_data = yaml.safe_load(f) or {}
                     nickname = profile_data.get('nickname')
+                    title = profile_data.get('title')
                     avatar_rel = profile_data.get('avatar')
                     # welcome: prefer 'welcome', fallback 'welcome_message'
                     try:
@@ -1742,7 +2389,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     except Exception:
                         avatar_data_url = None
 
-                response_data = {"ok": True, "profile": {"nickname": nickname, "avatar_path": avatar_rel, "avatar_data_url": avatar_data_url, "welcome": welcome_block, "exit": exit_block, "preferences": preferences_map}}
+                response_data = {"ok": True, "profile": {"nickname": nickname, "title": title, "avatar_path": avatar_rel, "avatar_data_url": avatar_data_url, "welcome": welcome_block, "exit": exit_block, "preferences": preferences_map}}
                 self._write_json(200, response_data)
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to load profile: {e}"})
@@ -2057,37 +2704,553 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Failed to load item: {e}"})
             return
+        if parsed.path == "/api/calendar/overlays":
+            try:
+                qs = parse_qs(parsed.query or "")
+                name = None
+                if qs:
+                    arr = qs.get("name") or []
+                    if arr:
+                        name = str(arr[0]).strip()
+                if name:
+                    preset = _load_calendar_overlay_preset(name)
+                    if not preset:
+                        self._write_json(404, {"ok": False, "error": "Preset not found"}); return
+                    self._write_json(200, {"ok": True, "preset": preset}); return
+                presets = _list_calendar_overlay_presets()
+                self._write_json(200, {"ok": True, "presets": presets})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Overlay presets error: {e}"})
+            return
+        if parsed.path == "/api/calendar/happiness":
+            try:
+                qs = parse_qs(parsed.query or "")
+                mode = (qs.get("mode") or ["completed"])[0].strip().lower()
+                if mode not in {"completed", "scheduled"}:
+                    self._write_json(400, {"ok": False, "error": "Invalid mode"}); return
+                now = datetime.now()
+                try:
+                    year = int((qs.get("year") or [now.year])[0])
+                except Exception:
+                    year = now.year
+                try:
+                    month = int((qs.get("month") or [now.month])[0])
+                except Exception:
+                    month = now.month
+                if month < 1 or month > 12:
+                    self._write_json(400, {"ok": False, "error": "Invalid month"}); return
+
+                import calendar
+                from Modules.Scheduler import get_flattened_schedule, build_block_key as scheduler_build_block_key
+                from Modules.ItemManager import read_item_data
+                from Utilities.happiness_assoc import infer_happiness_values
+
+                def to_hm(val):
+                    if not val:
+                        return None
+                    if isinstance(val, datetime):
+                        return val.strftime("%H:%M")
+                    try:
+                        s = str(val).strip()
+                    except Exception:
+                        return None
+                    if not s:
+                        return None
+                    # accept HH:MM anywhere
+                    try:
+                        parts = s.split(":")
+                        if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+                            return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+                    except Exception:
+                        return None
+                    return None
+
+                def extract_happiness_from_data(data):
+                    raw = None
+                    if isinstance(data, dict):
+                        raw = data.get("happiness")
+                    if isinstance(raw, list):
+                        return [str(v) for v in raw if v is not None and str(v).strip() != ""]
+                    if isinstance(raw, str) and raw.strip():
+                        return [raw.strip()]
+                    return []
+
+                def happiness_for_block(block):
+                    if not isinstance(block, dict):
+                        return []
+                    raw_vals = extract_happiness_from_data(block)
+                    if not raw_vals:
+                        raw_vals = extract_happiness_from_data(block.get("original_item_data") or {})
+                    item_type = block.get("type") or (block.get("original_item_data") or {}).get("type")
+                    name = block.get("name") or (block.get("original_item_data") or {}).get("name")
+                    if (not raw_vals) and item_type and name:
+                        data = read_item_data(str(item_type).lower(), str(name))
+                        if isinstance(data, dict):
+                            raw_vals = extract_happiness_from_data(data)
+                            inferred = infer_happiness_values(str(item_type).lower(), data)
+                            for v in inferred:
+                                if str(v).strip().lower() not in {str(x).strip().lower() for x in raw_vals}:
+                                    raw_vals.append(v)
+                    return raw_vals
+
+                def load_schedule_blocks(date_obj):
+                    date_str = date_obj.strftime("%Y-%m-%d")
+                    sched_path = schedule_path_for_date(date_str)
+                    if not os.path.exists(sched_path):
+                        return []
+                    try:
+                        with open(sched_path, "r", encoding="utf-8") as fh:
+                            schedule_data = yaml.safe_load(fh) or []
+                    except Exception:
+                        return []
+                    return [b for b in get_flattened_schedule(schedule_data) if isinstance(b, dict) and not b.get("is_buffer")]
+
+                def count_scheduled(date_obj):
+                    blocks = load_schedule_blocks(date_obj)
+                    total = 0
+                    for block in blocks:
+                        vals = happiness_for_block(block)
+                        if vals:
+                            total += max(1, len(vals))
+                    return total
+
+                def count_completed(date_obj):
+                    date_str = date_obj.strftime("%Y-%m-%d")
+                    comp_path = os.path.join(ROOT_DIR, "User", "Schedules", "completions", f"{date_str}.yml")
+                    if not os.path.exists(comp_path):
+                        return 0
+                    try:
+                        with open(comp_path, "r", encoding="utf-8") as fh:
+                            comp = yaml.safe_load(fh) or {}
+                    except Exception:
+                        return 0
+                    entries = comp.get("entries") if isinstance(comp, dict) else None
+                    if not isinstance(entries, dict):
+                        return 0
+                    blocks = load_schedule_blocks(date_obj)
+                    block_map = {}
+                    for block in blocks:
+                        name = block.get("name") or (block.get("original_item_data") or {}).get("name")
+                        start = to_hm(block.get("start_time") or (block.get("original_item_data") or {}).get("start_time"))
+                        if not name or not start:
+                            continue
+                        block_map[scheduler_build_block_key(str(name), start)] = block
+                    total = 0
+                    for _, entry in entries.items():
+                        if not isinstance(entry, dict):
+                            continue
+                        status = str(entry.get("status", "")).strip().lower()
+                        if status != "completed":
+                            continue
+                        name = entry.get("name")
+                        start = to_hm(entry.get("scheduled_start"))
+                        if not name or not start:
+                            continue
+                        block = block_map.get(scheduler_build_block_key(str(name), start))
+                        if not block:
+                            continue
+                        vals = happiness_for_block(block)
+                        if vals:
+                            total += max(1, len(vals))
+                    return total
+
+                days_in_month = calendar.monthrange(year, month)[1]
+                heatmap = {}
+                max_score = 1
+                for day in range(1, days_in_month + 1):
+                    date_obj = datetime(year, month, day)
+                    score = count_scheduled(date_obj) if mode == "scheduled" else count_completed(date_obj)
+                    key = date_obj.strftime("%Y-%m-%d")
+                    heatmap[key] = score
+                    if score > max_score:
+                        max_score = score
+                norm = {k: (v / max_score if max_score else 0) for k, v in heatmap.items()}
+                self._write_json(200, {"ok": True, "mode": mode, "year": year, "month": month, "heatmap": norm, "max": max_score})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Happiness overlay error: {e}"})
+            return
+        if parsed.path == "/api/logs":
+            try:
+                log_path = os.path.join(ROOT_DIR, "Logs", "engine.log")
+                if not os.path.exists(log_path):
+                    self._write_json(200, {"ok": True, "logs": []})
+                    return
+                qs = parse_qs(parsed.query or "")
+                limit = 50
+                try:
+                    limit = int((qs.get("limit") or [50])[0])
+                except Exception:
+                    pass
+                lines = []
+                with open(log_path, "r", encoding="utf-8") as f:
+                    all_lines = f.readlines()
+                    lines = [ln.strip() for ln in all_lines[-limit:]]
+                self._write_json(200, {"ok": True, "logs": lines})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read logs: {e}"})
+            return
+        if parsed.path == "/api/yesterday/checkin":
+            try:
+                from Modules.ItemManager import list_all_items
+                qs = parse_qs(parsed.query or "")
+                date_raw = str((qs.get("date") or [""])[0] or "").strip()
+                auto_miss_raw = str((qs.get("auto_miss") or ["true"])[0] or "true").strip().lower()
+                auto_miss = auto_miss_raw not in ("0", "false", "no", "off")
+                if date_raw:
+                    try:
+                        target_dt = datetime.strptime(date_raw, "%Y-%m-%d")
+                    except Exception:
+                        self._write_json(400, {"ok": False, "error": "Invalid date format; use YYYY-MM-DD"})
+                        return
+                else:
+                    target_dt = datetime.now() - timedelta(days=1)
+                target_date = target_dt.strftime("%Y-%m-%d")
+
+                sched_path = schedule_path_for_date(target_date)
+                schedule_data = []
+                if os.path.exists(sched_path):
+                    try:
+                        with open(sched_path, "r", encoding="utf-8") as fh:
+                            schedule_data = yaml.safe_load(fh) or []
+                    except Exception:
+                        schedule_data = []
+
+                def _hm(value):
+                    if value is None:
+                        return None
+                    if isinstance(value, datetime):
+                        return value.strftime("%H:%M")
+                    text = str(value)
+                    m = re.search(r"(\d{1,2}):(\d{2})", text)
+                    if not m:
+                        return None
+                    hh = max(0, min(23, int(m.group(1))))
+                    mm = max(0, min(59, int(m.group(2))))
+                    return f"{hh:02d}:{mm:02d}"
+
+                def _is_window_or_meta(block):
+                    try:
+                        if bool(block.get("is_buffer")):
+                            return True
+                        block_id = str(block.get("block_id") or "").lower()
+                        window_name = str(block.get("window_name") or "").strip().upper()
+                        if block_id.startswith("window::"):
+                            return True
+                        # Keep true meta-only rows filtered, but do not blanket-drop TIMEBLOCK
+                        # because user-authored timeblock entries are legitimate schedulables.
+                        if window_name and window_name in ("GAP", "HIERARCHY"):
+                            return True
+                        if bool(block.get("window")):
+                            return True
+                    except Exception:
+                        return False
+                    return False
+
+                flat = []
+                # Local cycle-safe walker (avoids relying on upstream flatteners).
+                def _walk(items, out, seen):
+                    if not isinstance(items, list):
+                        return
+                    for it in items:
+                        if not isinstance(it, dict):
+                            continue
+                        obj_id = id(it)
+                        if obj_id in seen:
+                            continue
+                        seen.add(obj_id)
+                        out.append(it)
+                        children = it.get("children") or it.get("items") or []
+                        if isinstance(children, list) and children:
+                            _walk(children, out, seen)
+
+                try:
+                    if isinstance(schedule_data, list):
+                        _walk(schedule_data, flat, set())
+                    elif isinstance(schedule_data, dict):
+                        root_items = (schedule_data.get("items") or schedule_data.get("children") or [])
+                        if isinstance(root_items, list):
+                            _walk(root_items, flat, set())
+                except Exception:
+                    flat = []
+
+                scheduled_blocks = []
+                for block in flat:
+                    if not isinstance(block, dict):
+                        continue
+                    if _is_window_or_meta(block):
+                        continue
+                    children = block.get("children") or []
+                    if isinstance(children, list) and children:
+                        continue
+                    name = str(block.get("name") or (block.get("original_item_data") or {}).get("name") or "").strip()
+                    start = _hm(block.get("start_time") or (block.get("original_item_data") or {}).get("start_time") or block.get("ideal_start_time"))
+                    end = _hm(block.get("end_time") or block.get("ideal_end_time"))
+                    item_type = str(block.get("type") or (block.get("original_item_data") or {}).get("type") or "").strip().lower() or "task"
+                    if not name or not start:
+                        continue
+                    key = build_block_key(name, start)
+                    scheduled_blocks.append({
+                        "key": key,
+                        "name": name,
+                        "type": item_type,
+                        "scheduled_start": start,
+                        "scheduled_end": end,
+                    })
+
+                completions_dir = os.path.join(ROOT_DIR, "User", "Schedules", "completions")
+                os.makedirs(completions_dir, exist_ok=True)
+                completion_path = os.path.join(completions_dir, f"{target_date}.yml")
+                completion_payload = {"entries": {}}
+                if os.path.exists(completion_path):
+                    try:
+                        with open(completion_path, "r", encoding="utf-8") as fh:
+                            completion_payload = yaml.safe_load(fh) or {"entries": {}}
+                    except Exception:
+                        completion_payload = {"entries": {}}
+                if not isinstance(completion_payload, dict):
+                    completion_payload = {"entries": {}}
+                entries = completion_payload.get("entries")
+                if not isinstance(entries, dict):
+                    entries = {}
+                    completion_payload["entries"] = entries
+
+                auto_added = 0
+                if auto_miss:
+                    now_iso = datetime.now().isoformat(timespec="seconds")
+                    for block in scheduled_blocks:
+                        key = str(block.get("key") or "")
+                        if not key or key in entries:
+                            continue
+                        entries[key] = {
+                            "name": block.get("name"),
+                            "status": "missed",
+                            "scheduled_start": block.get("scheduled_start"),
+                            "scheduled_end": block.get("scheduled_end"),
+                            "logged_at": now_iso,
+                            "source": "auto_miss_yesterday",
+                            "auto_missed": True,
+                        }
+                        auto_added += 1
+                    if auto_added > 0:
+                        with open(completion_path, "w", encoding="utf-8") as fh:
+                            yaml.safe_dump(completion_payload, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+                rows = []
+                for block in scheduled_blocks:
+                    key = str(block.get("key") or "")
+                    entry = entries.get(key) if isinstance(entries.get(key), dict) else {}
+                    status = str(entry.get("status") or "missed").strip().lower()
+                    rows.append({
+                        "key": key,
+                        "name": block.get("name"),
+                        "type": block.get("type"),
+                        "scheduled_start": block.get("scheduled_start"),
+                        "scheduled_end": block.get("scheduled_end"),
+                        "status": status,
+                        "auto_missed": bool(entry.get("auto_missed") or entry.get("source") == "auto_miss_yesterday"),
+                        "entry": entry,
+                    })
+
+                # Fallback: if we still have no scheduled rows but completion entries exist for the day,
+                # surface those rows so the popup can still reconcile and not silently disappear.
+                if not rows and isinstance(entries, dict) and entries:
+                    for key, raw in entries.items():
+                        entry = raw if isinstance(raw, dict) else {}
+                        name = str(entry.get("name") or (str(key).split("@", 1)[0] if isinstance(key, str) else "Untitled")).strip()
+                        start = _hm(entry.get("scheduled_start")) or (_hm(str(key).split("@", 1)[1]) if isinstance(key, str) and "@" in str(key) else None)
+                        end = _hm(entry.get("scheduled_end"))
+                        status = str(entry.get("status") or "missed").strip().lower()
+                        rows.append({
+                            "key": str(key),
+                            "name": name or "Untitled",
+                            "type": str(entry.get("type") or "task").strip().lower() or "task",
+                            "scheduled_start": start,
+                            "scheduled_end": end,
+                            "status": status,
+                            "auto_missed": bool(entry.get("auto_missed") or entry.get("source") == "auto_miss_yesterday"),
+                            "entry": entry,
+                        })
+
+                allowed_schedulables = ["habit", "task", "routine", "subroutine", "microroutine", "timeblock"]
+                schedulables = []
+                def _add_sched(name, itype):
+                    nm = str(name or "").strip()
+                    tp = str(itype or "").strip().lower()
+                    if not nm or not tp:
+                        return
+                    schedulables.append({"name": nm, "type": tp})
+
+                for itype in allowed_schedulables:
+                    try:
+                        items = list_all_items(itype) or []
+                    except Exception:
+                        items = []
+                    for item in items:
+                        if not isinstance(item, dict):
+                            continue
+                        nm = str(item.get("name") or "").strip()
+                        if not nm:
+                            continue
+                        _add_sched(nm, itype)
+                # Window-like entries currently live on microroutines with `window:true`.
+                try:
+                    micros = list_all_items("microroutine") or []
+                except Exception:
+                    micros = []
+                for item in micros:
+                    if not isinstance(item, dict):
+                        continue
+                    nm = str(item.get("name") or "").strip()
+                    if not nm:
+                        continue
+                    win = str(item.get("window") or "").strip().lower()
+                    if win in ("true", "1", "yes", "on"):
+                        _add_sched(nm, "window")
+
+                # Include commitment-related target items so check-in can quickly log
+                # things tied to active commitments.
+                try:
+                    commitments = list_all_items("commitment") or []
+                except Exception:
+                    commitments = []
+                for c in commitments:
+                    if not isinstance(c, dict):
+                        continue
+                    status = str(c.get("status") or "active").strip().lower()
+                    if status not in ("", "active", "pending"):
+                        continue
+                    targets = c.get("targets") if isinstance(c.get("targets"), list) else []
+                    if not targets:
+                        assoc = c.get("associated_items") if isinstance(c.get("associated_items"), list) else []
+                        forb = c.get("forbidden_items") if isinstance(c.get("forbidden_items"), list) else []
+                        targets = assoc or forb
+                    for t in targets:
+                        if not isinstance(t, dict):
+                            continue
+                        _add_sched(t.get("name"), t.get("type"))
+
+                    # Legacy singleton target patterns
+                    freq = c.get("frequency") if isinstance(c.get("frequency"), dict) else {}
+                    never = c.get("never") if isinstance(c.get("never"), dict) else {}
+                    one = None
+                    if isinstance(freq.get("of"), dict):
+                        one = freq.get("of")
+                    elif isinstance(never.get("of"), dict):
+                        one = never.get("of")
+                    if isinstance(one, dict):
+                        _add_sched(one.get("name"), one.get("type"))
+                    linked = c.get("linked_habit")
+                    if isinstance(linked, str) and linked.strip():
+                        _add_sched(linked.strip(), "habit")
+
+                dedupe = {}
+                for row in schedulables:
+                    k = f"{str(row.get('type') or '').lower()}::{str(row.get('name') or '').lower()}"
+                    dedupe[k] = row
+                schedulables = sorted(
+                    list(dedupe.values()),
+                    key=lambda r: (str(r.get("type") or "").lower(), str(r.get("name") or "").lower())
+                )
+
+                self._write_json(200, {
+                    "ok": True,
+                    "date": target_date,
+                    "schedule_path": sched_path,
+                    "completion_path": completion_path,
+                    "auto_miss_applied": bool(auto_miss),
+                    "auto_missed_added": int(auto_added),
+                    "scheduled_count": len(scheduled_blocks),
+                    "rows": rows,
+                    "schedulables": schedulables,
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Yesterday check-in error: {e}"})
+            return
         if parsed.path == "/api/completions":
             try:
                 qs = parse_qs(parsed.query or '')
                 date_str = None
+                start_str = None
+                end_str = None
+                days_raw = None
                 if qs:
                     arr = qs.get('date') or []
                     if arr:
                         date_str = str(arr[0])
-                # Default to today
-                if not date_str:
-                    date_str = datetime.now().strftime('%Y-%m-%d')
+                    arr = qs.get('start') or []
+                    if arr:
+                        start_str = str(arr[0])
+                    arr = qs.get('end') or []
+                    if arr:
+                        end_str = str(arr[0])
+                    arr = qs.get('days') or []
+                    if arr:
+                        days_raw = str(arr[0])
+
                 comp_dir = os.path.join(ROOT_DIR, 'User', 'Schedules', 'completions')
-                comp_path = os.path.join(comp_dir, f"{date_str}.yml")
-                completed = []
-                if os.path.exists(comp_path):
+
+                def _read_completed_for_date(target_date: str):
+                    comp_path = os.path.join(comp_dir, f"{target_date}.yml")
+                    completed = []
+                    if os.path.exists(comp_path):
+                        try:
+                            with open(comp_path, 'r', encoding='utf-8') as f:
+                                d = yaml.safe_load(f) or {}
+                            entries = d.get("entries") if isinstance(d, dict) else None
+                            if isinstance(entries, dict):
+                                for k, v in entries.items():
+                                    entry = v if isinstance(v, dict) else {"status": v}
+                                    status = str(entry.get("status", "")).strip().lower()
+                                    if status == 'completed':
+                                        name = entry.get("name")
+                                        if not name and isinstance(k, str) and "@" in k:
+                                            name = k.split("@", 1)[0]
+                                        completed.append(str(name or k))
+                        except Exception:
+                            pass
+                    return completed
+
+                if start_str or end_str or days_raw:
+                    # Range mode
+                    if not start_str:
+                        start_str = datetime.now().strftime('%Y-%m-%d')
                     try:
-                        with open(comp_path, 'r', encoding='utf-8') as f:
-                            d = yaml.safe_load(f) or {}
-                        entries = d.get("entries") if isinstance(d, dict) else None
-                        if isinstance(entries, dict):
-                            for k, v in entries.items():
-                                entry = v if isinstance(v, dict) else {"status": v}
-                                status = str(entry.get("status", "")).strip().lower()
-                                if status == 'completed':
-                                    name = entry.get("name")
-                                    if not name and isinstance(k, str) and "@" in k:
-                                        name = k.split("@", 1)[0]
-                                    completed.append(str(name or k))
+                        start_dt = datetime.strptime(start_str, '%Y-%m-%d')
                     except Exception:
-                        pass
-                self._write_yaml(200, { 'ok': True, 'date': date_str, 'completed': completed })
+                        start_dt = datetime.now()
+                        start_str = start_dt.strftime('%Y-%m-%d')
+                    if days_raw and not end_str:
+                        try:
+                            days = max(1, min(400, int(days_raw)))
+                        except Exception:
+                            days = 1
+                        end_dt = start_dt + timedelta(days=days - 1)
+                        end_str = end_dt.strftime('%Y-%m-%d')
+                    if not end_str:
+                        end_str = start_str
+                    try:
+                        end_dt = datetime.strptime(end_str, '%Y-%m-%d')
+                    except Exception:
+                        end_dt = start_dt
+                        end_str = start_dt.strftime('%Y-%m-%d')
+                    if end_dt < start_dt:
+                        start_dt, end_dt = end_dt, start_dt
+                        start_str = start_dt.strftime('%Y-%m-%d')
+                        end_str = end_dt.strftime('%Y-%m-%d')
+                    span_days = (end_dt - start_dt).days + 1
+                    span_days = max(1, min(400, span_days))
+                    completed_by_date = {}
+                    for offset in range(span_days):
+                        day = start_dt + timedelta(days=offset)
+                        key = day.strftime('%Y-%m-%d')
+                        completed_by_date[key] = _read_completed_for_date(key)
+                    self._write_yaml(200, { 'ok': True, 'start': start_str, 'end': end_str, 'completed_by_date': completed_by_date })
+                else:
+                    # Default to today
+                    if not date_str:
+                        date_str = datetime.now().strftime('%Y-%m-%d')
+                    completed = _read_completed_for_date(date_str)
+                    self._write_yaml(200, { 'ok': True, 'date': date_str, 'completed': completed })
             except Exception as e:
                 self._write_yaml(500, { 'ok': False, 'error': f'Completions error: {e}' })
             return
@@ -2128,6 +3291,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         return str(orig.get('duration','')).strip().lower() == 'parallel'
                     except Exception:
                         return False
+                
+                def is_anchored(it: dict) -> bool:
+                    try:
+                        if it.get('anchored'):
+                            return True
+                        reschedule = it.get('reschedule')
+                        if isinstance(reschedule, str) and reschedule.strip().lower() == 'never':
+                            return True
+                        orig = it.get('original_item_data') or {}
+                        res_orig = orig.get('reschedule')
+                        if isinstance(res_orig, str) and res_orig.strip().lower() == 'never':
+                            return True
+                    except Exception:
+                        return False
+                    return False
 
                 def walk(items, depth=0):
                     if not items:
@@ -2142,6 +3320,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         start_s = parse_hm(st)
                         end_s = parse_hm(et)
                         if start_s and end_s:
+                            block_id = str(it.get('block_id') or '')
+                            window_name = str(it.get('window_name') or '')
+                            is_window = bool(it.get('window')) or block_id.lower().startswith('window::') or window_name.strip().upper() not in ('', 'GAP', 'ANCHOR', 'HIERARCHY', 'TIMEBLOCK')
                             blocks.append({
                                 'start': start_s,
                                 'end': end_s,
@@ -2149,7 +3330,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                                 'type': str(item_type).lower(),
                                 'depth': int(depth),
                                 'is_parallel': bool(is_parallel(it)),
+                                'anchored': bool(is_anchored(it)),
+                                'reschedule': str(it.get('reschedule') or (it.get('original_item_data') or {}).get('reschedule') or ''),
                                 'order': int(order_idx),
+                                'block_id': block_id,
+                                'window_name': window_name,
+                                'window': is_window,
                             })
                         # Recurse children if present
                         child_list = it.get('children') or it.get('items') or []
@@ -2161,7 +3347,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 elif isinstance(schedule_data, dict):
                     walk((schedule_data.get('items') or schedule_data.get('children') or []), depth=0)
 
-                blocks.sort(key=lambda b: b.get('start') or "")
                 self._write_yaml(200, {"ok": True, "blocks": blocks})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Failed to read schedule: {e}"})
@@ -2195,6 +3380,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         return str(orig.get('duration', '')).strip().lower() == 'parallel'
                     except Exception:
                         return False
+                
+                def is_anchored(it: dict) -> bool:
+                    try:
+                        if it.get('anchored'):
+                            return True
+                        reschedule = it.get('reschedule')
+                        if isinstance(reschedule, str) and reschedule.strip().lower() == 'never':
+                            return True
+                        orig = it.get('original_item_data') or {}
+                        res_orig = orig.get('reschedule')
+                        if isinstance(res_orig, str) and res_orig.strip().lower() == 'never':
+                            return True
+                    except Exception:
+                        return False
+                    return False
 
                 def flatten(schedule_data):
                     blocks = []
@@ -2211,6 +3411,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                             start_s = parse_hm(st)
                             end_s = parse_hm(et)
                             if start_s and end_s:
+                                block_id = str(it.get('block_id') or '')
+                                window_name = str(it.get('window_name') or '')
+                                is_window = bool(it.get('window')) or block_id.lower().startswith('window::') or window_name.strip().upper() not in ('', 'GAP', 'ANCHOR', 'HIERARCHY', 'TIMEBLOCK')
                                 blocks.append({
                                     'start': start_s,
                                     'end': end_s,
@@ -2218,7 +3421,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                                     'type': str(item_type).lower(),
                                     'depth': int(depth),
                                     'is_parallel': bool(is_parallel(it)),
+                                    'anchored': bool(is_anchored(it)),
+                                    'reschedule': str(it.get('reschedule') or (it.get('original_item_data') or {}).get('reschedule') or ''),
                                     'order': int(order_idx),
+                                    'block_id': block_id,
+                                    'window_name': window_name,
+                                    'window': is_window,
                                 })
                             child_list = it.get('children') or it.get('items') or []
                             if isinstance(child_list, list):
@@ -2227,7 +3435,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         walk(schedule_data, depth=0)
                     elif isinstance(schedule_data, dict):
                         walk((schedule_data.get('items') or schedule_data.get('children') or []), depth=0)
-                    blocks.sort(key=lambda b: b.get('start') or "")
                     return blocks
 
                 from Modules.Planner import build_preview_for_date
@@ -2495,6 +3702,45 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Exec failed: {e}"})
             return
 
+        if parsed.path == "/api/system/command":
+            # Simple wrapper to run a full command string
+            cmd_str = str(payload.get('command') or '').strip()
+            if not cmd_str:
+                self._write_json(400, {"ok": False, "error": "Missing command"})
+                return
+            import shlex
+            try:
+                parts = shlex.split(cmd_str)
+            except Exception as e:
+                self._write_json(400, {"ok": False, "error": f"Invalid command format: {e}"}); return
+            
+            if not parts:
+                self._write_json(400, {"ok": False, "error": "Empty command"}); return
+            
+            ok, out, err = run_console_command(parts[0], parts[1:])
+            self._write_json(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err, "message": out})
+            return
+
+        if parsed.path == "/api/system/databases":
+            # List configured databases (registry + any orphan .db files)
+            try:
+                databases = _list_system_databases()
+                self._write_json(200, {"ok": True, "databases": databases})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": str(e)})
+            return
+
+        if parsed.path == "/api/system/registries":
+            # List available registry types
+            registries = [
+                {"name": "wizards", "description": "Wizard Registry"},
+                {"name": "themes", "description": "Theme Registry"},
+                {"name": "commands", "description": "Command Registry"},
+                {"name": "item_types", "description": "Item Types Registry"}
+            ]
+            self._write_json(200, {"ok": True, "registries": registries})
+            return
+
         if parsed.path == "/api/cli":
             # Expected payload: {command: str, args: [..], properties: {k:v}}
             cmd = str(payload.get('command', '')).strip()
@@ -2510,21 +3756,185 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_yaml(400, {"ok": False, "error": "'properties' must be a map"})
                 return
 
-            # Flatten properties to key:value tokens for the CLI parser
-            prop_tokens = []
-            for k, v in props.items():
-                if isinstance(v, list):
-                    # Convert lists to comma-separated values
-                    v_str = ", ".join(str(x) for x in v)
-                elif isinstance(v, bool):
-                    v_str = "true" if v else "false"
-                else:
-                    v_str = str(v)
-                prop_tokens.append(f"{k}:{v_str}")
-
-            ok, out, err = run_console_command(cmd, [*args, *prop_tokens])
+            # Pass args and properties separately. Appending property tokens into args
+            # breaks commands that parse colon syntax from positional arguments (e.g. mark).
+            ok, out, err = run_console_command(cmd, args, props)
             status = 200 if ok else 500
             self._write_json(status, {"ok": ok, "stdout": out, "stderr": err})
+            return
+
+        if parsed.path == "/api/yesterday/checkin":
+            try:
+                date_raw = str(payload.get("date") or "").strip()
+                if date_raw:
+                    try:
+                        target_dt = datetime.strptime(date_raw, "%Y-%m-%d")
+                    except Exception:
+                        self._write_json(400, {"ok": False, "error": "Invalid date format; use YYYY-MM-DD"})
+                        return
+                else:
+                    target_dt = datetime.now() - timedelta(days=1)
+                target_date = target_dt.strftime("%Y-%m-%d")
+
+                completions_dir = os.path.join(ROOT_DIR, "User", "Schedules", "completions")
+                os.makedirs(completions_dir, exist_ok=True)
+                completion_path = os.path.join(completions_dir, f"{target_date}.yml")
+                completion_payload = {"entries": {}}
+                if os.path.exists(completion_path):
+                    try:
+                        with open(completion_path, "r", encoding="utf-8") as fh:
+                            completion_payload = yaml.safe_load(fh) or {"entries": {}}
+                    except Exception:
+                        completion_payload = {"entries": {}}
+                if not isinstance(completion_payload, dict):
+                    completion_payload = {"entries": {}}
+                entries = completion_payload.get("entries")
+                if not isinstance(entries, dict):
+                    entries = {}
+                    completion_payload["entries"] = entries
+
+                updates = payload.get("updates") if isinstance(payload.get("updates"), list) else []
+                additional = payload.get("additional") if isinstance(payload.get("additional"), list) else []
+                allowed_statuses = {"completed", "partial", "skipped", "missed", "cancelled"}
+
+                def _hm(value):
+                    if value is None:
+                        return None
+                    if isinstance(value, datetime):
+                        return value.strftime("%H:%M")
+                    text = str(value)
+                    m = re.search(r"(\d{1,2}):(\d{2})", text)
+                    if not m:
+                        return None
+                    hh = max(0, min(23, int(m.group(1))))
+                    mm = max(0, min(59, int(m.group(2))))
+                    return f"{hh:02d}:{mm:02d}"
+
+                def _key_for(name, start):
+                    return build_block_key(str(name or "").strip(), str(start or "").strip())
+
+                now_iso = datetime.now().isoformat(timespec="seconds")
+                updated_count = 0
+                added_count = 0
+
+                for row in updates:
+                    if not isinstance(row, dict):
+                        continue
+                    name = str(row.get("name") or "").strip()
+                    key = str(row.get("key") or "").strip()
+                    start = _hm(row.get("scheduled_start"))
+                    end = _hm(row.get("scheduled_end"))
+                    status = str(row.get("status") or "").strip().lower()
+                    if status not in allowed_statuses:
+                        continue
+                    if not key:
+                        if not name or not start:
+                            continue
+                        key = _key_for(name, start)
+                    existing = entries.get(key) if isinstance(entries.get(key), dict) else {}
+                    if not name:
+                        name = str(existing.get("name") or key.split("@", 1)[0] or "").strip()
+                    if not start:
+                        start = _hm(existing.get("scheduled_start")) or _hm(key.split("@", 1)[1] if "@" in key else None)
+                    if not end:
+                        end = _hm(existing.get("scheduled_end"))
+                    entry = dict(existing)
+                    entry["name"] = name
+                    entry["status"] = status
+                    entry["scheduled_start"] = start
+                    entry["scheduled_end"] = end
+                    entry["logged_at"] = now_iso
+                    entry["source"] = "yesterday_checkin"
+                    entry["auto_missed"] = False
+                    if row.get("actual_start") is not None:
+                        entry["actual_start"] = _hm(row.get("actual_start"))
+                    if row.get("actual_end") is not None:
+                        entry["actual_end"] = _hm(row.get("actual_end"))
+                    note = row.get("note")
+                    if isinstance(note, str) and note.strip():
+                        entry["note"] = note.strip()
+                    quality = row.get("quality")
+                    if isinstance(quality, str) and quality.strip():
+                        entry["quality"] = quality.strip()
+                    entries[key] = entry
+                    updated_count += 1
+
+                for row in additional:
+                    if not isinstance(row, dict):
+                        continue
+                    name = str(row.get("name") or "").strip()
+                    item_type = str(row.get("type") or "task").strip().lower()
+                    status = str(row.get("status") or "completed").strip().lower()
+                    if not name or status not in allowed_statuses:
+                        continue
+                    start = _hm(row.get("scheduled_start")) or _hm(row.get("actual_start")) or "00:00"
+                    end = _hm(row.get("scheduled_end")) or _hm(row.get("actual_end")) or start
+                    base_key = _key_for(name, start)
+                    key = base_key
+                    n = 2
+                    while key in entries:
+                        key = f"{base_key}#{n}"
+                        n += 1
+                    entries[key] = {
+                        "name": name,
+                        "type": item_type,
+                        "status": status,
+                        "scheduled_start": start,
+                        "scheduled_end": end,
+                        "actual_start": _hm(row.get("actual_start")) or start,
+                        "actual_end": _hm(row.get("actual_end")) or end,
+                        "logged_at": now_iso,
+                        "source": "yesterday_checkin_additional",
+                        "additional": True,
+                        "auto_missed": False,
+                    }
+                    note = row.get("note")
+                    if isinstance(note, str) and note.strip():
+                        entries[key]["note"] = note.strip()
+                    added_count += 1
+
+                completion_payload["entries"] = entries
+                with open(completion_path, "w", encoding="utf-8") as fh:
+                    yaml.safe_dump(completion_payload, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+                self._write_json(200, {
+                    "ok": True,
+                    "date": target_date,
+                    "completion_path": completion_path,
+                    "updated": int(updated_count),
+                    "added_additional": int(added_count),
+                    "total_entries": len(entries),
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Yesterday check-in save failed: {e}"})
+            return
+
+        if parsed.path == "/api/commitments/override":
+            try:
+                from Modules.ItemManager import read_item_data, write_item_data
+                name = str(payload.get('name') or '').strip()
+                state = str(payload.get('state') or '').strip().lower()
+                date_key = str(payload.get('date') or datetime.now().strftime('%Y-%m-%d')).strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing commitment name"})
+                    return
+                if state not in ('met', 'violation', 'clear'):
+                    self._write_json(400, {"ok": False, "error": "State must be met, violation, or clear"})
+                    return
+                data = read_item_data('commitment', name)
+                if not isinstance(data, dict):
+                    self._write_json(404, {"ok": False, "error": "Commitment not found"})
+                    return
+                manual_map = data.get('manual_status_by_date') if isinstance(data.get('manual_status_by_date'), dict) else {}
+                if state == 'clear':
+                    manual_map.pop(date_key, None)
+                else:
+                    manual_map[date_key] = state
+                data['manual_status_by_date'] = manual_map
+                write_item_data('commitment', name, data)
+                self._write_json(200, {"ok": True, "name": name, "date": date_key, "state": state})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Commitment override failed: {e}"})
             return
 
         # /api/item POST - Save item (for Item Manager widget)
@@ -2635,6 +4045,86 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Delete failed: {e}"})
             return
 
+        if parsed.path.startswith("/api/datacards/"):
+            # /api/datacards/...
+            try:
+                from Modules import DataCardManager
+                subpath = parsed.path[len("/api/datacards/"):]
+                
+                # GET /api/datacards/series
+                if subpath == "series":
+                    series = DataCardManager.get_series_list()
+                    self._write_json(200, {"ok": True, "series": series})
+                    return
+
+                # POST /api/datacards/import
+                if subpath == "import" and self.command == "POST":
+                    length = int(self.headers.get('Content-Length', 0))
+                    body = self.rfile.read(length).decode('utf-8')
+                    try:
+                        payload = json.loads(body)
+                        itype = payload.get("item_type")
+                        iname = payload.get("item_name")
+                        target_series = payload.get("series")
+                        mapping = payload.get("mapping")
+                        
+                        ok, msg = DataCardManager.import_from_item(itype, iname, target_series, mapping)
+                        self._write_json(200 if ok else 400, {"ok": ok, "message": msg})
+                    except Exception as e:
+                        self._write_json(500, {"ok": False, "error": str(e)})
+                    return
+
+                # /api/datacards/:series/cards
+                # /api/datacards/:series/rules
+                parts = subpath.split('/')
+                if len(parts) >= 2:
+                    series_name = parts[0]
+                    action = parts[1]
+                    
+                    if action == "cards":
+                        if self.command == "POST":
+                            # Save card
+                            length = int(self.headers.get('Content-Length', 0))
+                            body = self.rfile.read(length).decode('utf-8')
+                            payload = json.loads(body)
+                            cid = payload.get("id") or "new_card"
+                            DataCardManager.save_card(series_name, cid, payload)
+                            self._write_json(200, {"ok": True})
+                            return
+                        else:
+                            # List cards
+                            cards = DataCardManager.get_cards(series_name)
+                            self._write_json(200, {"ok": True, "cards": cards})
+                            return
+
+                    if action == "rules":
+                        if self.command == "POST":
+                             # Save rules
+                            length = int(self.headers.get('Content-Length', 0))
+                            body = self.rfile.read(length).decode('utf-8')
+                            payload = json.loads(body)
+                            DataCardManager.save_series_rules(series_name, payload)
+                            self._write_json(200, {"ok": True})
+                            return
+                        else:
+                            rules = DataCardManager.get_series_rules(series_name)
+                            self._write_json(200, {"ok": True, "rules": rules})
+                            return
+                            
+                    if action == "visualize":
+                        # GET /api/datacards/:series/visualize
+                        # Return matrix-compatible data
+                        cards = DataCardManager.get_cards(series_name)
+                        rules = DataCardManager.get_series_rules(series_name)
+                        limit = 200 # Safety limit
+                        
+                        # Flatten for Matrix
+                        self._write_json(200, {"ok": True, "dataset": cards[:limit], "config": rules.get("visualization", {})})
+                        return
+
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"DataCard error: {e}"})
+            return
 
         if parsed.path == "/api/media/mp3/upload":
             try:
@@ -2942,6 +4432,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Preset delete failed: {e}"})
             return
 
+        if parsed.path == "/api/calendar/overlays":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Preset payload must be a map"}); return
+                preset = _save_calendar_overlay_preset(payload)
+                self._write_json(200, {"ok": True, "preset": preset})
+            except ValueError as e:
+                self._write_json(400, {"ok": False, "error": str(e)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Overlay preset save failed: {e}"})
+            return
+
+        if parsed.path == "/api/calendar/overlays/delete":
+            try:
+                name = (payload.get('name') or '').strip() if isinstance(payload, dict) else ''
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing preset name"}); return
+                removed = _delete_calendar_overlay_preset(name)
+                if not removed:
+                    self._write_json(404, {"ok": False, "error": "Preset not found"})
+                else:
+                    self._write_json(200, {"ok": True})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Overlay preset delete failed: {e}"})
+            return
+
         if parsed.path == "/api/vars":
             # Payload YAML: { set: {k:v}, unset: [k1,k2] }
             try:
@@ -3195,10 +4711,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             for k, v in payload.items():
                 if v is None:
                     continue
-                # Call 'status' once per indicator
-                ok, out, err = run_console_command("status", [f"{k}:{v}"])
+                # Call 'status' with properties so command handlers receive indicator:value correctly.
+                ok, out, err = run_console_command("status", [], {str(k): v})
+                if not ok:
+                    overall_ok = False
                 results[str(k)] = {"ok": ok, "stdout": out, "stderr": err}
-            self._write_json(200, {"ok": True, "details": results})
+            self._write_json(200 if overall_ok else 500, {"ok": overall_ok, "details": results})
             return
 
         if parsed.path == "/api/logs":
@@ -3271,6 +4789,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if isinstance(nickname, str):
                     data['nickname'] = nickname
 
+                title = payload.get('title')
+                if isinstance(title, str):
+                    data['title'] = title
+
                 # welcome lines
                 w = payload.get('welcome') or {}
                 if isinstance(w, dict):
@@ -3296,6 +4818,51 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Profile save failed: {e}"})
             return
+
+        if parsed.path == "/api/profile/avatar":
+            # Save avatar image and set profile avatar path to User/Profile/avatar.png
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                avatar_data_url = str(payload.get('avatar_data_url') or '').strip()
+                if not avatar_data_url.startswith('data:image/'):
+                    self._write_json(400, {"ok": False, "error": "Invalid avatar data"}); return
+                if ',' not in avatar_data_url:
+                    self._write_json(400, {"ok": False, "error": "Malformed avatar data URL"}); return
+
+                _, b64 = avatar_data_url.split(',', 1)
+                try:
+                    raw = base64.b64decode(b64, validate=True)
+                except Exception:
+                    self._write_json(400, {"ok": False, "error": "Invalid avatar base64 data"}); return
+                if not raw:
+                    self._write_json(400, {"ok": False, "error": "Empty avatar payload"}); return
+
+                prof_dir = os.path.join(ROOT_DIR, 'User', 'Profile')
+                prof_path = os.path.join(prof_dir, 'profile.yml')
+                avatar_path = os.path.join(prof_dir, 'avatar.png')
+                os.makedirs(prof_dir, exist_ok=True)
+                with open(avatar_path, 'wb') as af:
+                    af.write(raw)
+
+                data = {}
+                if os.path.exists(prof_path):
+                    try:
+                        with open(prof_path, 'r', encoding='utf-8') as f:
+                            data = yaml.safe_load(f) or {}
+                    except Exception:
+                        data = {}
+                if not isinstance(data, dict):
+                    data = {}
+                data['avatar'] = 'User/Profile/avatar.png'
+                with open(prof_path, 'w', encoding='utf-8') as f:
+                    yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
+
+                self._write_json(200, {"ok": True, "avatar_path": data['avatar']})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Avatar save failed: {e}"})
+            return
+
         if parsed.path == "/api/preferences":
             try:
                 if not isinstance(payload, dict):
@@ -3662,15 +5229,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/timer/confirm":
             try:
-                completed = True
-                if isinstance(payload, dict) and 'completed' in payload:
-                    val = payload.get('completed')
-                    if isinstance(val, str):
-                        completed = val.strip().lower() in {'1', 'true', 'yes', 'y', 'done'}
-                    else:
-                        completed = bool(val)
+                completed = None
+                action = None
+                stretch_minutes = None
+                if isinstance(payload, dict):
+                    action = payload.get('action')
+                    if 'stretch_minutes' in payload:
+                        try:
+                            stretch_minutes = int(payload.get('stretch_minutes'))
+                        except Exception:
+                            stretch_minutes = None
+                    if 'completed' in payload:
+                        val = payload.get('completed')
+                        if isinstance(val, str):
+                            completed = val.strip().lower() in {'1', 'true', 'yes', 'y', 'done'}
+                        else:
+                            completed = bool(val)
                 from Modules.Timer import main as Timer
-                st = Timer.confirm_schedule_block(completed)
+                st = Timer.confirm_schedule_block(completed, action, stretch_minutes=stretch_minutes)
                 self._write_json(200, {"ok": True, "status": st})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer confirm error: {e}"})

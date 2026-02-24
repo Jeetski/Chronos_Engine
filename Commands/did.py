@@ -3,8 +3,12 @@ import yaml
 from datetime import datetime
 
 from Modules.Scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
-from Commands.today import load_completion_payload
+from Commands.Today import load_completion_payload
 from Modules import quality_utils
+try:
+    from Utilities import points as Points
+except Exception:
+    Points = None
 
 
 def _normalize_time_str(value):
@@ -16,6 +20,20 @@ def _normalize_time_str(value):
         print(f"Invalid time '{value}'. Use HH:MM (24h).")
         return None
     return parsed.strftime("%H:%M")
+
+
+def _minutes_between(start_str, end_str):
+    if not start_str or not end_str:
+        return None
+    try:
+        start_dt = datetime.strptime(start_str, "%H:%M")
+        end_dt = datetime.strptime(end_str, "%H:%M")
+    except Exception:
+        return None
+    minutes = int((end_dt - start_dt).total_seconds() // 60)
+    if minutes <= 0:
+        return None
+    return minutes
 
 
 def _load_schedule(date_str):
@@ -89,11 +107,13 @@ def run(args, properties):
 
     scheduled_start = None
     scheduled_end = None
+    item_type = None
     if scheduled_block:
         if scheduled_block.get("start_time"):
             scheduled_start = scheduled_block["start_time"].strftime("%H:%M")
         if scheduled_block.get("end_time"):
             scheduled_end = scheduled_block["end_time"].strftime("%H:%M")
+        item_type = scheduled_block.get("type")
 
     if not scheduled_start:
         scheduled_start = normalized_start_prop
@@ -145,5 +165,12 @@ def run(args, properties):
 
     with open(completion_path, "w") as fh:
         yaml.dump(completion_data, fh, default_flow_style=False)
+
+    if Points and status in {"completed", "partial"} and item_type:
+        try:
+            minutes = _minutes_between(actual_start, actual_end)
+            Points.award_on_complete(item_type, block_name, minutes=minutes if isinstance(minutes, int) else None)
+        except Exception:
+            pass
 
     print(f"Logged {status} for '{block_name}' ({scheduled_start}-{scheduled_end}).")

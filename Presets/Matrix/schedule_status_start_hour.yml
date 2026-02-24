@@ -1,0 +1,11 @@
+name: schedule_status_start_hour
+label: Schedule Status x Start Hour
+rows:
+- item_status
+cols:
+- schedule_start_hour
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

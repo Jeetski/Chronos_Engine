@@ -1,0 +1,11 @@
+name: schedule_planned_status_by_type
+label: Schedule Planned Status x Type
+rows:
+- planned_status
+cols:
+- item_type
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

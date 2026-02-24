@@ -28,9 +28,10 @@ export function mount(el, context) {
         <label class="hint"><input type="checkbox" id="capError" checked /> error</label>
         <label class="hint"><input type="checkbox" id="capOnErr" checked /> onerror</label>
         <div class="spacer"></div>
+        <button class="btn" id="debugRefresh">Refresh</button>
         <button class="btn" id="debugCopy">Copy</button>
       </div>
-      <pre id="debugOut" style="flex:1 1 auto; min-height:120px; overflow:auto; background:#0f141d; border:1px solid #222835; border-radius:8px; padding:8px; white-space:pre-wrap;">(capturing logs...)</pre>
+      <pre id="debugOut" style="flex:1 1 auto; min-height:120px; overflow:auto; background:linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%); color:#e6e8ef; border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:8px; white-space:pre-wrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-family:var(--font-mono); font-size:12px;">(capturing logs...)</pre>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -48,6 +49,7 @@ export function mount(el, context) {
   const cbWarn = el.querySelector('#capWarn');
   const cbError = el.querySelector('#capError');
   const cbOnErr = el.querySelector('#capOnErr');
+  const btnRefresh = el.querySelector('#debugRefresh');
   const btnCopy = el.querySelector('#debugCopy');
 
   // Dragging
@@ -103,6 +105,13 @@ export function mount(el, context) {
   // Poll backend logs
   let pollTimer = null;
   const SEEN_LOGS = new Set();
+  let visibleObserver = null;
+
+  function isVisible() {
+    if (!el.isConnected) return false;
+    const st = window.getComputedStyle(el);
+    return st.display !== 'none' && st.visibility !== 'hidden' && st.opacity !== '0';
+  }
 
   async function pollLogs() {
     if (!el.parentNode) return; // Unmounted
@@ -130,14 +139,39 @@ export function mount(el, context) {
 
   pollTimer = setInterval(pollLogs, 2500);
   pollLogs(); // Initial check
+  btnRefresh?.addEventListener('click', () => { void pollLogs(); });
+
+  // Refresh every time widget is shown/opened again.
+  try {
+    let prevVisible = isVisible();
+    visibleObserver = new MutationObserver(() => {
+      const nowVisible = isVisible();
+      if (nowVisible && !prevVisible) {
+        void pollLogs();
+      }
+      prevVisible = nowVisible;
+    });
+    visibleObserver.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+  } catch { }
 
   // Basic resize handles
   (function enableResize() {
     const east = el.querySelector('.resizer.e'); const south = el.querySelector('.resizer.s'); const se = el.querySelector('.resizer.se');
+    function maxHeightPx() {
+      return Math.max(220, window.innerHeight - 16);
+    }
     function drag(elm, dir) {
       return (ev) => {
         ev.preventDefault(); const startX = ev.clientX, startY = ev.clientY; const rect = el.getBoundingClientRect();
-        function onMove(e) { if (dir.includes('e')) el.style.width = Math.max(280, rect.width + (e.clientX - startX)) + 'px'; if (dir.includes('s')) el.style.height = Math.max(160, rect.height + (e.clientY - startY)) + 'px'; }
+        function onMove(e) {
+          if (dir.includes('e')) {
+            el.style.width = Math.max(280, rect.width + (e.clientX - startX)) + 'px';
+          }
+          if (dir.includes('s')) {
+            const nextH = Math.max(160, rect.height + (e.clientY - startY));
+            el.style.height = Math.min(nextH, maxHeightPx()) + 'px';
+          }
+        }
         function onUp() { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); }
         window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
       }
@@ -150,6 +184,7 @@ export function mount(el, context) {
   return {
     unmount() {
       if (pollTimer) clearInterval(pollTimer);
+      try { visibleObserver?.disconnect(); } catch { }
       try { console.log = orig.log; console.info = orig.info; console.warn = orig.warn; console.error = orig.error; } catch { }
       try { window.removeEventListener('error', onWinErr); window.removeEventListener('unhandledrejection', onRejection); } catch { }
     }

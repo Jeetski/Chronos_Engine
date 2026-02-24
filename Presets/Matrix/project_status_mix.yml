@@ -1,0 +1,11 @@
+name: project_status_mix
+label: Project x Status
+rows:
+- project
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

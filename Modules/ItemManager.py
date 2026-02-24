@@ -13,6 +13,7 @@ SKIP_ITEM_DIRS = {
     "archive",
     "backups",
     "data",
+    "examples",
     "exports",
     "logs",
     "media",
@@ -147,8 +148,19 @@ def write_item_data(item_type, name, data):
     """
     path = get_item_path(item_type, name)
     ensure_dir(os.path.dirname(path))
+    try:
+        from Utilities.happiness_assoc import apply_happiness_associations
+        data = apply_happiness_associations(item_type, data)
+    except Exception:
+        pass
     with open(path, 'w', encoding='utf-8') as f:
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+    try:
+        # Reactive core-mirror update for Kairos data access.
+        from Modules.Sequence.core_builder import upsert_item_in_core_db
+        upsert_item_in_core_db(item_type, data.get("name", name), data)
+    except Exception as e:
+        Logger.debug_to_file("sequence_core_sync.txt", f"write hook failed for {item_type}:{name}: {e}")
 
 def list_all_items(item_type):
     """
@@ -226,6 +238,11 @@ def delete_item(item_type, name):
         return False
     os.remove(path)
     Logger.debug_to_file("item_manager_delete.txt", f"Successfully deleted: {path}")
+    try:
+        from Modules.Sequence.core_builder import delete_item_from_core_db
+        delete_item_from_core_db(item_type, name)
+    except Exception as e:
+        Logger.debug_to_file("sequence_core_sync.txt", f"delete hook failed for {item_type}:{name}: {e}")
     return True
 
 # --- Command Dispatcher ---

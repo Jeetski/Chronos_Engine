@@ -1,0 +1,11 @@
+name: schedule_parent_status
+label: Schedule Parent x Status
+rows:
+- schedule_parent
+cols:
+- item_status
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

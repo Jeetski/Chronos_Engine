@@ -1,0 +1,11 @@
+name: points_status_by_type
+label: Points by Status x Type
+rows:
+- item_status
+cols:
+- item_type
+metric: points
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

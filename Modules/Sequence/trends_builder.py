@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple, List
 
 from Modules.Sequence.registry import ensure_data_home, update_database_entry, load_registry
-from Modules.Sequence.memory_builder import build_memory_db
+from Modules.Sequence.behavior_builder import build_behavior_db
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = os.path.join(ROOT_DIR, "User")
 DATA_DIR = os.path.join(USER_DIR, "Data")
-MEMORY_DB_PATH = os.path.join(DATA_DIR, "chronos_memory.db")
+BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
 TRENDS_DB_PATH = os.path.join(DATA_DIR, "chronos_trends.db")
 TRENDS_MD_PATH = os.path.join(DATA_DIR, "trends.md")
 
@@ -32,14 +32,14 @@ def _timestamp() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-def _ensure_memory(registry: Dict[str, Any]) -> None:
-    if not os.path.exists(MEMORY_DB_PATH) or not _memory_has_completion_columns():
-        build_memory_db(registry)
+def _ensure_behavior(registry: Dict[str, Any]) -> None:
+    if not os.path.exists(BEHAVIOR_DB_PATH) or not _behavior_has_completion_columns():
+        build_behavior_db(registry)
 
 
-def _memory_has_completion_columns() -> bool:
+def _behavior_has_completion_columns() -> bool:
     try:
-        conn = sqlite3.connect(MEMORY_DB_PATH)
+        conn = sqlite3.connect(BEHAVIOR_DB_PATH)
         columns = {row[1] for row in conn.execute("PRAGMA table_info(activity_facts)").fetchall()}
         conn.close()
         return {"completion_quality", "completion_json"}.issubset(columns)
@@ -47,8 +47,8 @@ def _memory_has_completion_columns() -> bool:
         return False
 
 
-def _fetch_memory_stats() -> Dict[str, Any]:
-    conn = sqlite3.connect(MEMORY_DB_PATH)
+def _fetch_behavior_stats() -> Dict[str, Any]:
+    conn = sqlite3.connect(BEHAVIOR_DB_PATH)
     cursor = conn.cursor()
     stats = {}
     stats["blocks_total"] = cursor.execute("SELECT COUNT(*) FROM activity_facts").fetchone()[0]
@@ -61,9 +61,7 @@ def _fetch_memory_stats() -> Dict[str, Any]:
     stats["average_variance"] = cursor.execute(
         "SELECT COALESCE(AVG(variance_minutes), 0) FROM activity_facts"
     ).fetchone()[0] or 0
-    stats["latest_status_snapshot"] = cursor.execute(
-        "SELECT payload_json FROM status_snapshots ORDER BY timestamp DESC LIMIT 1"
-    ).fetchone()
+    stats["latest_status_snapshot"] = None
     quality_counts, custom_property_counts = _collect_completion_property_stats(cursor)
     stats["quality_counts"] = quality_counts
     stats["custom_property_counts"] = custom_property_counts
@@ -320,7 +318,7 @@ def _fetch_timer_stats() -> Dict[str, Any]:
 
 
 def _compute_adherence_stats(cursor: sqlite3.Cursor) -> Dict[str, Any]:
-    """Compute adherence metrics from memory database."""
+    """Compute adherence metrics from behavior database."""
     stats = {
         "on_time_count": 0,
         "late_count": 0,
@@ -751,7 +749,7 @@ def _format_counts(counts: Dict[str, int], limit: int = 8) -> str:
 
 def build_trends_report(registry: Dict[str, Any]) -> None:
     ensure_data_home()
-    _ensure_memory(registry)
+    _ensure_behavior(registry)
     entry = registry.get("databases", {}).get("trends")
     if not entry:
         entry = update_database_entry(registry, "trends")
@@ -764,16 +762,16 @@ def build_trends_report(registry: Dict[str, Any]) -> None:
         os.remove(tmp_path)
 
     # Collect all stats
-    stats = _fetch_memory_stats()
+    stats = _fetch_behavior_stats()
     stats["habit_stats"] = _fetch_habit_stats()
     stats["goal_stats"] = _fetch_goal_stats()
     stats["timer_stats"] = _fetch_timer_stats()
     
     # Get adherence stats from memory DB cursor
-    conn_mem = sqlite3.connect(MEMORY_DB_PATH)
-    cursor_mem = conn_mem.cursor()
-    stats["adherence_stats"] = _compute_adherence_stats(cursor_mem)
-    conn_mem.close()
+    conn_behavior = sqlite3.connect(BEHAVIOR_DB_PATH)
+    cursor_behavior = conn_behavior.cursor()
+    stats["adherence_stats"] = _compute_adherence_stats(cursor_behavior)
+    conn_behavior.close()
 
     conn = sqlite3.connect(tmp_path)
     try:

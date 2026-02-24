@@ -12,6 +12,8 @@ export function mount(el) {
 
   const tpl = `
     <style>
+      .clock-widget { display:flex; flex-direction:column; min-height:0; }
+      .clock-widget .content { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
       .clock-shell { display:flex; gap:16px; align-items:center; flex-wrap:wrap; justify-content:center; }
       .clock-face {
         position: relative;
@@ -70,6 +72,41 @@ export function mount(el) {
         background: linear-gradient(160deg, rgba(90,120,190,0.35), rgba(30,40,70,0.9));
         color: #f2f6ff;
       }
+      .clock-section {
+        margin-top: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        background: rgba(8,12,18,0.55);
+        overflow: hidden;
+      }
+      .clock-section summary {
+        list-style: none;
+        cursor: pointer;
+        user-select: none;
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: rgba(220,230,255,0.85);
+        background: rgba(255,255,255,0.04);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .clock-section summary::-webkit-details-marker { display: none; }
+      .clock-section summary::before {
+        content: '▸';
+        color: #8ea9ff;
+        transition: transform 140ms ease;
+        display: inline-block;
+        transform-origin: center;
+      }
+      .clock-section[open] summary::before { transform: rotate(90deg); }
+      .clock-section-content {
+        padding: 10px;
+      }
     </style>
     <div class="header" id="clockHeader">
       <div class="title">Chronos Clock</div>
@@ -95,47 +132,56 @@ export function mount(el) {
             <div class="clock-time" id="clockTime">00:00</div>
             <div class="clock-date" id="clockDate">---</div>
           </div>
-          <div class="row" style="gap:8px; margin:10px 0 8px; flex-wrap:wrap;">
+        </div>
+      </div>
+      <details class="clock-section" id="clockScheduleSection">
+        <summary>Schedule Alerts</summary>
+        <div class="clock-section-content">
+          <div class="row" style="gap:8px; margin:0 0 8px; flex-wrap:wrap;">
             <button class="btn btn-secondary" id="btnSetAppointment">Set Appointment</button>
             <button class="btn btn-secondary" id="btnSetAlarm">Set Alarm</button>
             <button class="btn btn-secondary" id="btnSetReminder">Set Reminder</button>
-            <button class="btn btn-secondary" id="btnManageAlerts">Manage</button>
           </div>
           <div id="formArea"></div>
         </div>
-      </div>
-      <div id="managePanel" style="margin-top:14px; padding-top:12px; border-top:1px solid #222835; display:none;">
-        <div class="row" style="gap:8px; align-items:center; margin-bottom:10px;">
-          <div class="hint">Manage alerts</div>
-          <div class="spacer"></div>
-          <button class="btn btn-secondary" id="alertsRefresh">Refresh</button>
-        </div>
-        <div style="margin-bottom:12px;">
-          <div class="hint" style="margin-bottom:6px;">Reminders</div>
-          <div id="reminderList"></div>
-        </div>
-        <div style="margin-bottom:12px;">
-          <div class="hint" style="margin-bottom:6px;">Alarms</div>
-          <div id="alarmList"></div>
-        </div>
-        <div style="margin-top:10px;">
-          <div class="hint" style="margin-bottom:8px;">Create reminder from item</div>
-          <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-            <select class="input" id="itemReminderType"></select>
-            <select class="input" id="itemReminderName" style="min-width:220px;"></select>
-            <button class="btn btn-secondary" id="itemReminderRefresh">Refresh</button>
+      </details>
+      <details class="clock-section" id="clockManageSection">
+        <summary>Manage Alerts</summary>
+        <div class="clock-section-content">
+          <div id="managePanel" style="display:block;">
+            <div class="row" style="gap:8px; align-items:center; margin-bottom:10px;">
+              <div class="hint">Manage alerts</div>
+              <div class="spacer"></div>
+              <button class="btn btn-secondary" id="alertsRefresh">Refresh</button>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div class="hint" style="margin-bottom:6px;">Reminders</div>
+              <div id="reminderList"></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div class="hint" style="margin-bottom:6px;">Alarms</div>
+              <div id="alarmList"></div>
+            </div>
+            <div style="margin-top:10px;">
+              <div class="hint" style="margin-bottom:8px;">Create reminder from item</div>
+              <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                <select class="input" id="itemReminderType"></select>
+                <select class="input" id="itemReminderName" style="min-width:220px;"></select>
+                <button class="btn btn-secondary" id="itemReminderRefresh">Refresh</button>
+              </div>
+              <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                <select class="input" id="itemReminderDateKind" style="min-width:140px;"></select>
+                <input class="input" id="itemReminderDate" type="date" />
+                <input class="input" id="itemReminderTime" type="time" step="60" />
+              </div>
+              <div class="row" style="gap:8px; flex-wrap:wrap;">
+                <input class="input" id="itemReminderMessage" placeholder="Message (optional)" style="min-width:240px;" />
+                <button class="btn btn-primary" id="itemReminderCreate">Create Reminder</button>
+              </div>
+            </div>
           </div>
-          <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-            <select class="input" id="itemReminderDateKind" style="min-width:140px;"></select>
-            <input class="input" id="itemReminderDate" type="date" />
-            <input class="input" id="itemReminderTime" type="time" step="60" />
-          </div>
-          <div class="row" style="gap:8px; flex-wrap:wrap;">
-            <input class="input" id="itemReminderMessage" placeholder="Message (optional)" style="min-width:240px;" />
-            <button class="btn btn-primary" id="itemReminderCreate">Create Reminder</button>
-          </div>
         </div>
-      </div>
+      </details>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -153,7 +199,7 @@ export function mount(el) {
   const clockTime = el.querySelector('#clockTime');
   const clockDate = el.querySelector('#clockDate');
   const formArea = el.querySelector('#formArea');
-  const manageBtn = el.querySelector('#btnManageAlerts');
+  const manageSection = el.querySelector('#clockManageSection');
   const managePanel = el.querySelector('#managePanel');
   const alertsRefreshBtn = el.querySelector('#alertsRefresh');
   const reminderList = el.querySelector('#reminderList');
@@ -526,10 +572,8 @@ export function mount(el) {
   el.querySelector('#btnSetAppointment').addEventListener('click', showAppointmentForm);
   el.querySelector('#btnSetAlarm').addEventListener('click', showAlarmForm);
   el.querySelector('#btnSetReminder').addEventListener('click', showReminderForm);
-  manageBtn.addEventListener('click', () => {
-    const isOpen = managePanel.style.display !== 'none';
-    managePanel.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) loadAlerts();
+  manageSection?.addEventListener('toggle', () => {
+    if (manageSection.open) loadAlerts();
   });
 
   // Reminder-from-item flow

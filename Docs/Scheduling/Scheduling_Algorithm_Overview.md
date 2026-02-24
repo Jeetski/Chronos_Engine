@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `today` command builds and resolves a daily schedule from templates and live data. The high-level flow is:
+The `today` command (`Commands/Today.py`) builds and resolves a daily schedule from templates and live data. The high-level flow is:
 1. Select the best day template
 2. Build an "impossible ideal" schedule
 3. Apply manual edits (trim/cut/change)
@@ -14,6 +14,10 @@ The `today` command builds and resolves a daily schedule from templates and live
 9. Insert buffers
 10. Save and display
 
+Kairos note:
+- Kairos is the active scheduling engine for `today` / `today reschedule`.
+- Legacy scheduling remains available via `today legacy ...`.
+
 ---
 
 ## Template Selection
@@ -24,6 +28,13 @@ Templates are loaded from `User/Days/` and scored by status alignment:
 - Templates with neither must match the weekday filename (e.g., `Monday.yml`).
 - The best score wins; a forced template can override selection.
 
+Kairos selection order (current behavior):
+1. Day-eligible + place match + status-requirements match (strict)
+2. Day-eligible + place match only
+3. Legacy score-only fallback (if no strict/place-only candidate)
+
+This prevents obvious mismatches such as selecting travel-day templates while current status place is at-home.
+
 ---
 
 ## Initial Schedule Build
@@ -33,6 +44,11 @@ The engine lays out the template tree into a full schedule:
 - Applies status variants before scheduling.
 - Honors `ideal_start_time` / `ideal_end_time` when present.
 - Records conflicts if a duration exceeds an ideal end time.
+
+Manual modifications:
+- Stored in `User/Schedules/manual_modifications_YYYY-MM-DD.yml`.
+- Applied during schedule build.
+- Persisted across reruns (not auto-cleared), so changes remain idempotent for repeated `today reschedule`.
 
 ---
 

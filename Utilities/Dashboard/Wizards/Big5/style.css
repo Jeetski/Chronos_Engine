@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: clamp(16px, 3vw, 32px);
-  background: var(--chronos-overlay-gradient, radial-gradient(circle at top, rgba(20,30,60,0.85), rgba(5,7,12,0.95)));
+  background: var(--chronos-overlay-gradient, radial-gradient(circle at top, rgba(20, 30, 60, 0.85), rgba(5, 7, 12, 0.95)));
   backdrop-filter: var(--chronos-overlay-blur, blur(6px));
 }
 
@@ -458,7 +458,7 @@
   display: none;
 }
 
-.likert-input:checked + .likert-circle {
+.likert-input:checked+.likert-circle {
   background: var(--chronos-accent, #3B82F6);
   border-color: var(--chronos-accent, #3B82F6);
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
@@ -477,7 +477,7 @@
 }
 
 .likert-option:hover .likert-label,
-.likert-input:checked ~ .likert-label {
+.likert-input:checked~.likert-label {
   opacity: 1;
   color: var(--chronos-text-soft, #94A3B8);
 }
@@ -601,7 +601,7 @@
 }
 
 .facet-code {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: var(--chronos-font-mono);
   color: var(--chronos-text, #E0E7FF);
 }
 
@@ -629,7 +629,7 @@
 }
 
 .trait-score {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: var(--chronos-font-mono);
   font-size: 13px;
   opacity: 0.8;
 }

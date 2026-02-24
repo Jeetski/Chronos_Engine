@@ -1,0 +1,11 @@
+name: status_tags_by_type
+label: Status Tags x Type
+rows:
+- status_tag
+cols:
+- item_type
+metric: count
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

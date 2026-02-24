@@ -1,0 +1,153 @@
+/* Admin Widget Glass Styling */
+.admin-widget {
+  background: transparent !important;
+  color: var(--text);
+}
+
+.admin-widget .content {
+  padding: 12px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 4px;
+}
+
+/* Use system glass variables or mimic theme-base .widget-glass-card */
+.admin-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.admin-card:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-color: rgba(122, 162, 247, 0.3);
+  /* Accent color hint */
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.admin-card h4 {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim, #9aa3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.admin-card .desc {
+  font-size: 11px;
+  color: var(--text-muted, #6a7488);
+  margin: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.3;
+}
+
+.admin-status-box {
+  margin-top: auto;
+  padding: 10px 12px;
+  /* Darker glass for text output */
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: var(--chronos-font-mono);
+  color: #73daca;
+  min-height: 38px;
+  font-size: 11px;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  white-space: pre-wrap;
+}
+
+.admin-status-box.error {
+  color: #f7768e;
+  border-color: rgba(247, 118, 142, 0.2);
+  background: linear-gradient(135deg, rgba(247, 118, 142, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+}
+
+/* Action Buttons refined */
+.btn-warn {
+  background: rgba(220, 120, 60, 0.15);
+  border-color: rgba(220, 120, 60, 0.3);
+  color: #e0af68;
+}
+
+.btn-warn:hover {
+  background: rgba(220, 120, 60, 0.25);
+  border-color: #ffc777;
+  color: #ffc777;
+}
+
+.btn-danger {
+  background: rgba(247, 118, 142, 0.15);
+  border-color: rgba(247, 118, 142, 0.3);
+  color: #f7768e;
+}
+
+.btn-danger:hover {
+  background: rgba(247, 118, 142, 0.25);
+  border-color: #ff9eaf;
+  color: #ff9eaf;
+}
+
+/* Advanced Section Styles */
+.admin-advanced {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.admin-advanced-toggle {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 4px 0;
+}
+
+.admin-advanced-toggle:hover {
+  color: var(--accent, #7aa2f7);
+}
+
+.admin-advanced-content {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim, #9aa3b8);
+  font-weight: 600;
+}

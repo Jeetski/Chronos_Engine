@@ -1,0 +1,5 @@
+name: Momentum (All)
+mode: all
+value: '*'
+use_momentum: true
+kind: default

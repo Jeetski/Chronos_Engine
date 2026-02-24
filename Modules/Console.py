@@ -4,7 +4,6 @@ import sys
 import importlib.util
 import time
 import shlex
-import subprocess
 import json
 import re
 
@@ -31,8 +30,8 @@ if os.name == "nt":
         os.system("chcp 65001 > nul")
     except Exception:
         pass
-    # Set title (colors handled later via theme/colorprint if available)
-    os.system("title Chronos Engine v1")
+    # Set title (colors handled later via console styling if available)
+    os.system("title Chronos Engine Alpha v0.2")
 else:
     os.system("clear")
 
@@ -57,8 +56,12 @@ if MODULES_DIR not in sys.path:
 
 # Now that MODULES_DIR is on sys.path, import Variables helper
 from Modules import Variables
-from Modules import theme_utils
+from Modules import console_style
 from Modules.Logger import Logger
+try:
+    from Modules import SoundFX
+except Exception:
+    SoundFX = None  # type: ignore
 
 try:
     from prompt_toolkit import PromptSession
@@ -67,11 +70,10 @@ try:
     from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
     from prompt_toolkit.history import InMemoryHistory
     from prompt_toolkit.styles import Style
-    from prompt_toolkit.output import ColorDepth
 except Exception:
     PromptSession = None
 
-# --- Theme + ColorPrint integration ---
+# --- Console Color integration ---
 def _safe_load_yaml(path):
     try:
         if yaml is None:
@@ -84,28 +86,47 @@ def _safe_load_yaml(path):
         return None
 
 
-def _find_colorprint_exe():
-    try:
-        exe = os.path.join(ROOT_DIR, 'Utilities', 'colorprint', 'colorprint.exe')
-        return exe if os.path.exists(exe) else None
-    except Exception:
-        return None
-
-
-def color_print(message: str, text: str = 'white', background: str = 'dark_blue'):
-    exe = _find_colorprint_exe()
-    if exe and os.name == 'nt':
-        try:
-            subprocess.run([exe, f"print:{message}", f"text:{text}", f"background:{background}"], check=False)
-            return
-        except Exception:
-            pass
-    print(message)
-
 
 REGISTRY_DIR = os.path.join(ROOT_DIR, "Registry")
 _REGISTRY_CACHE = {}
 _REGISTRY_MTIMES = {}
+_COMMAND_REGISTRY_CHECKED_AT = 0.0
+
+
+def _latest_command_mtime():
+    latest = None
+    try:
+        for root, _dirs, files in os.walk(COMMANDS_DIR):
+            for fname in files:
+                if not fname.lower().endswith(".py"):
+                    continue
+                path = os.path.join(root, fname)
+                try:
+                    mtime = os.path.getmtime(path)
+                except Exception:
+                    continue
+                if latest is None or mtime > latest:
+                    latest = mtime
+    except Exception:
+        return None
+    return latest
+
+
+def _maybe_refresh_command_registry():
+    global _COMMAND_REGISTRY_CHECKED_AT
+    now = time.time()
+    if (now - _COMMAND_REGISTRY_CHECKED_AT) < 2.0:
+        return
+    _COMMAND_REGISTRY_CHECKED_AT = now
+    try:
+        reg_path = os.path.join(REGISTRY_DIR, "command_registry.json")
+        reg_mtime = os.path.getmtime(reg_path) if os.path.exists(reg_path) else 0
+        latest_cmd = _latest_command_mtime()
+        if latest_cmd and latest_cmd > reg_mtime:
+            from Utilities import registry_builder
+            registry_builder.write_command_registry()
+    except Exception:
+        pass
 
 
 def _read_registry_json(name: str):
@@ -134,18 +155,33 @@ def _load_registry(name: str):
 
 
 def _load_registry_bundle():
+    _maybe_refresh_command_registry()
     cmd = _load_registry("command")
     item = _load_registry("item")
-    prop = _load_registry("property")
+    # Load settings (fast rules)
+    settings = _load_registry("settings")
+    # Load deep properties (slow scan)
+    deep = _load_registry("property")
+    
+    # Start with defaults from settings
+    defaults_by_type = settings.get("defaults_keys_by_type") or {}
+    
+    # Merge deep scan keys into defaults_by_type
+    deep_keys = deep.get("keys_by_type") or {}
+    for itype, keys_list in deep_keys.items():
+        existing = set(defaults_by_type.get(itype, []))
+        existing.update(keys_list)
+        defaults_by_type[itype] = sorted(existing)
+
     return {
         "commands": cmd.get("commands") or {},
         "aliases": cmd.get("aliases") or {},
         "item_types": item.get("item_types") or [],
         "item_names_by_type": item.get("item_names_by_type") or {},
-        "properties": prop.get("properties") or {},
-        "status_indicators": prop.get("status_indicators") or [],
-        "timer_profiles": prop.get("timer_profiles") or [],
-        "defaults_keys_by_type": prop.get("defaults_keys_by_type") or {},
+        "properties": settings.get("properties") or {},
+        "status_indicators": settings.get("status_indicators") or [],
+        "timer_profiles": settings.get("timer_profiles") or [],
+        "defaults_keys_by_type": defaults_by_type,
     }
 
 
@@ -160,68 +196,6 @@ def _normalize_token(token: str) -> str:
     return str(token or "").strip()
 
 
-def _load_color_palette():
-    if yaml is None:
-        return {}
-    path = os.path.join(ROOT_DIR, "Utilities", "colorprint", "colors.yml")
-    data = _safe_load_yaml(path)
-    if not isinstance(data, dict):
-        return {}
-    palette = {}
-    for group in data.values():
-        if isinstance(group, dict):
-            for name, value in group.items():
-                if isinstance(name, str) and isinstance(value, str):
-                    palette[name.lower()] = value
-    return palette
-
-
-def _resolve_theme_hex_colors():
-    try:
-        colors = theme_utils.resolve_theme_colors(ROOT_DIR)
-    except Exception:
-        return None, None
-    palette = _load_color_palette()
-    def _to_hex(value):
-        if not isinstance(value, str) or not value:
-            return None
-        val = value.strip()
-        if val.startswith("#") and len(val) in (4, 7):
-            return val
-        return palette.get(val.lower())
-    return _to_hex(colors.get("background")), _to_hex(colors.get("text"))
-
-
-def _normalize_hex_color(value: str) -> str | None:
-    if not isinstance(value, str):
-        return None
-    val = value.strip().lstrip("#")
-    if len(val) == 3:
-        val = "".join(ch * 2 for ch in val)
-    if len(val) != 6:
-        return None
-    try:
-        int(val, 16)
-    except Exception:
-        return None
-    return f"#{val}"
-
-
-def _blend_hex(fg: str, bg: str, alpha: float) -> str | None:
-    fg_hex = _normalize_hex_color(fg)
-    bg_hex = _normalize_hex_color(bg)
-    if not fg_hex or not bg_hex:
-        return None
-    fr = int(fg_hex[1:3], 16)
-    fg_g = int(fg_hex[3:5], 16)
-    fb = int(fg_hex[5:7], 16)
-    br = int(bg_hex[1:3], 16)
-    bg_g = int(bg_hex[3:5], 16)
-    bb = int(bg_hex[5:7], 16)
-    r = int(fr * alpha + br * (1 - alpha))
-    g = int(fg_g * alpha + bg_g * (1 - alpha))
-    b = int(fb * alpha + bb * (1 - alpha))
-    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 def _get_property_values(registry: dict, key: str):
@@ -229,6 +203,8 @@ def _get_property_values(registry: dict, key: str):
         return []
     props = registry.get("properties") or {}
     k = key.lower()
+    if k in props and isinstance(props.get(k), dict) and isinstance(props.get(k).get("values"), list):
+        return props.get(k, {}).get("values", [])
     if k == "category":
         return props.get("category", {}).get("values", [])
     if k == "priority":
@@ -550,7 +526,7 @@ def _load_welcome_lines():
     Expands @nickname and other variables via Variables.
     """
     defaults = [
-        "⌛ Chronos Engine v1",
+        "⌛ Chronos Engine Alpha v0.2",
         "🚀 Welcome, @nickname",
         "🌌 You are the navigator of your reality.",
     ]
@@ -611,7 +587,11 @@ def _load_exit_lines():
 
 def _apply_console_theme():
     try:
-        theme_utils.apply_theme_to_console(ROOT_DIR)
+        console_style.reset_theme_cache()
+    except Exception:
+        pass
+    try:
+        console_style.apply_global_colors()
     except Exception:
         pass
 
@@ -623,7 +603,55 @@ LOADED_MODULES = {}
 # Command aliases (lowercase) -> canonical command name
 COMMAND_ALIASES = {
     "dash": "dashboard",
+    "sounds": "sound",
 }
+
+
+def _play_cli_sound(sound_name: str, wait: bool = False):
+    try:
+        if SoundFX:
+            SoundFX.play(sound_name, wait=wait)
+    except Exception:
+        pass
+
+
+def _run_startup_core_sync_with_macro_hook():
+    """
+    Always refresh the core mirror at console startup.
+    Wrapped in MacroEngine before/after hooks via pseudo-command '__startup__'
+    so pilots can attach custom startup automation in macros.yml.
+    """
+    hook_cmd = "__startup__"
+    hook_args = ["core_sync"]
+    hook_props = {}
+    sync_ok = True
+
+    try:
+        from Modules import MacroEngine
+        MacroEngine.run_before(hook_cmd, hook_args, hook_props)
+    except Exception:
+        pass
+
+    try:
+        from Modules.Sequence.core_builder import sync_core_db
+        sync_core_db()
+        try:
+            console_style.print_role("Core mirror sync complete.", "info")
+        except Exception:
+            print("Core mirror sync complete.")
+    except Exception as e:
+        sync_ok = False
+        try:
+            Logger.error("Startup core sync failed", e)
+        except Exception:
+            pass
+        print(f"⚠️ Startup core sync failed: {e}")
+    finally:
+        try:
+            from Modules import MacroEngine
+            MacroEngine.run_after(hook_cmd, hook_args, hook_props, {"ok": sync_ok})
+        except Exception:
+            pass
 
 def _load_aliases():
     """Load aliases from User/Settings/aliases.yml"""
@@ -711,19 +739,28 @@ def run_command(command_name, args, properties):
     command_name = resolve_command_alias(command_name)
     command_file_path = os.path.join(COMMANDS_DIR, f"{command_name}.py")
     if os.path.isfile(command_file_path):
-        # Dynamically load the command module
-        spec = importlib.util.spec_from_file_location(command_name, command_file_path)
-        command_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(command_module)
-        
-        # Check if the module has a 'run' function and execute it
-        if hasattr(command_module, "run"):
-            command_module.run(args, properties)
-        else:
-            print(f"❌ Command '{command_name}' does not have a run() function.")
+        try:
+            # Dynamically load the command module
+            spec = importlib.util.spec_from_file_location(command_name, command_file_path)
+            command_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(command_module)
+
+            # Check if the module has a 'run' function and execute it
+            if hasattr(command_module, "run"):
+                command_module.run(args, properties)
+                if command_name.lower() == "today" and any(str(a).lower() == "reschedule" for a in (args or [])):
+                    _play_cli_sound("done")
+            else:
+                print(f"❌ Command '{command_name}' does not have a run() function.")
+                _play_cli_sound("error")
+        except Exception as e:
+            print(f"❌ Error running command '{command_name}': {e}")
+            Logger.error(f"Command failed: {command_name}", e)
+            _play_cli_sound("error")
         return
 
     print(f"❌ Unknown command: {command_name}")
+    _play_cli_sound("error")
 
 def _is_property_token(token: str) -> bool:
     if not isinstance(token, str):
@@ -1189,28 +1226,43 @@ if __name__ == "__main__":
         _load_profile_and_seed_vars()
     except Exception:
         pass
-    # Apply console theme via Windows 'color' command when available
+    # Apply console color defaults
     try:
-        theme_utils.apply_theme_to_console(ROOT_DIR)
+        console_style.apply_global_colors()
+    except Exception:
+        pass
+    try:
+        console_style.enable_themed_print()
+    except Exception:
+        pass
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+    except Exception:
+        pass
+    console_style.print_role("Aquiring hyperdimensional object at the end of time...", "info")
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
     except Exception:
         pass
     # Display Chronos Engine banner
-    print(" _____ _____ _____ _____ _____ _____ _____ ")
-    print("|     |  |  | __  |     |   | |     |   __|")
-    print("|   --|     |    -|  |  | | | |  |  |__   |")
-    print("|_____|__|__|__|__|_____|_|___|_____|_____|")
-    print()
+    console_style.print_role(" _____ _____ _____ _____ _____ _____ _____ ", "logo")
+    console_style.print_role("|     |  |  | __  |     |   | |     |   __|", "logo")
+    console_style.print_role("|   --|     |    -|  |  | | | |  |  |__   |", "logo")
+    console_style.print_role("|_____|__|__|__|__|_____|_|___|_____|_____|", "logo")
+    console_style.print_role("", "logo")
     try:
         _wl = _load_welcome_lines()
     except Exception:
         _wl = [
-            "⌛ Chronos Engine v1",
+            "⌛ Chronos Engine Alpha v0.2",
             "🚀 Welcome, @nickname",
             "🌌 You are the navigator of your reality.",
         ]
     for _ln in _wl:
-        print(_ln)
-    print("")
+        console_style.print_role(_ln, "info")
+    console_style.print_role("", "info")
+    _run_startup_core_sync_with_macro_hook()
+    _play_cli_sound("startup")
 
     # Check if a .chs script file is provided
     if len(sys.argv) > 1 and sys.argv[1].endswith('.chs'):
@@ -1227,6 +1279,13 @@ if __name__ == "__main__":
         parts = shlex.split(user_input_str)
         command, args, properties = parse_input(parts)
         if command:
+            if command.lower() in {"exit", "quit"}:
+                exit_lines = _load_exit_lines()
+                for line in exit_lines:
+                    console_style.print_role(line, "info")
+                    time.sleep(1)
+                _play_cli_sound("exit", wait=True)
+                sys.exit(0)
             # Set a best-effort line number for single-line if via CLI
             if command.lower() == 'if':
                 try:
@@ -1244,6 +1303,7 @@ if __name__ == "__main__":
                     pass
         else:
             print("❌ No command parsed from arguments.")
+            _play_cli_sound("error")
     else:
         # Enter interactive mode if no command-line arguments
         if PromptSession:
@@ -1252,28 +1312,8 @@ if __name__ == "__main__":
             autosuggest = RegistryAutoSuggest(registry)
             history = InMemoryHistory()
             kb = KeyBindings()
-            style = None
-            color_depth = None
-            bg_hex, fg_hex = _resolve_theme_hex_colors()
-            if bg_hex or fg_hex:
-                bg = _normalize_hex_color(bg_hex or "") or "default"
-                fg = _normalize_hex_color(fg_hex or "") or "default"
-                menu_bg = _blend_hex(fg, bg, 0.08) or bg
-                menu_sel_bg = _blend_hex(fg, bg, 0.18) or bg
-                auto_fg = _blend_hex(fg, bg, 0.45) or fg
-                try:
-                    style = Style.from_dict({
-                        "": f"bg:{bg} fg:{fg}",
-                        "prompt": f"fg:{fg}",
-                        "completion-menu": f"bg:{menu_bg} fg:{fg}",
-                        "completion-menu.completion": f"bg:{menu_bg} fg:{fg}",
-                        "completion-menu.completion.current": f"bg:{menu_sel_bg} fg:{fg}",
-                        "auto-suggestion": f"fg:{auto_fg}",
-                    })
-                    color_depth = ColorDepth.TRUE_COLOR
-                except Exception:
-                    style = None
-                    color_depth = None
+            style = console_style.build_style()
+            color_depth = console_style.get_color_depth()
 
             @kb.add("enter")
             def _(event):
@@ -1302,8 +1342,9 @@ if __name__ == "__main__":
                     if user_input.lower() in {"exit", "quit"}:
                         exit_lines = _load_exit_lines()
                         for line in exit_lines:
-                            print(line)
+                            console_style.print_role(line, "info")
                             time.sleep(1)
+                        _play_cli_sound("exit", wait=True)
                         break
                     parts = shlex.split(user_input)
                     command, args, properties = parse_input(parts)
@@ -1312,12 +1353,14 @@ if __name__ == "__main__":
                         _apply_console_theme()
                     else:
                         print("❌ No command parsed from input.")
+                        _play_cli_sound("error")
                 except KeyboardInterrupt:
-                    print()
+                    console_style.print_role("", "info")
                     exit_lines = _load_exit_lines()
                     for line in exit_lines:
-                        print(line)
+                        console_style.print_role(line, "info")
                         time.sleep(1)
+                    _play_cli_sound("exit", wait=True)
                     break
                 except EOFError:
                     break
@@ -1331,8 +1374,9 @@ if __name__ == "__main__":
                     if user_input.lower() in {"exit", "quit"}:
                         exit_lines = _load_exit_lines()
                         for line in exit_lines:
-                            print(line)
+                            console_style.print_role(line, "info")
                             time.sleep(1)
+                        _play_cli_sound("exit", wait=True)
                         break
 
                     # Use shlex.split for interactive input to handle quotes
@@ -1344,11 +1388,13 @@ if __name__ == "__main__":
                         _apply_console_theme()
                     else:
                         print("❌ No command parsed from input.")
+                        _play_cli_sound("error")
 
                 except KeyboardInterrupt:
-                    print() # Add a newline for cleaner exit
+                    console_style.print_role("", "info")
                     exit_lines = _load_exit_lines()
                     for line in exit_lines:
-                        print(line)
+                        console_style.print_role(line, "info")
                         time.sleep(1)
+                    _play_cli_sound("exit", wait=True)
                     break

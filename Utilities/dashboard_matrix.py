@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import sqlite3
+import shutil
 from collections import defaultdict
 from itertools import product
 from datetime import datetime, date
@@ -15,7 +16,8 @@ if ROOT_DIR not in sys.path:
 
 USER_DIR = os.path.join(ROOT_DIR, "User")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
-PRESET_DIR = os.path.join(ROOT_DIR, "matrix", "presets")
+PRESET_DIR = os.path.join(ROOT_DIR, "Presets", "Matrix")
+LEGACY_PRESET_DIR = os.path.join(ROOT_DIR, "matrix", "presets")
 DATA_DIR = os.path.join(USER_DIR, "Data")
 MATRIX_DB_PATH = os.path.join(DATA_DIR, "chronos_matrix.db")
 SCHEDULES_DIR = os.path.join(USER_DIR, "Schedules")
@@ -48,309 +50,6 @@ DEFAULT_METRIC = "count"
 TEMPLATE_TYPE_HINTS = ["week", "day", "routine", "subroutine", "microroutine"]
 MAX_PROPERTY_VALUES = 30
 
-BUILTIN_MATRIX_PRESETS = [
-    {
-        "name": "status_by_type",
-        "label": "Status x Type",
-        "rows": ["item_type"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "metric-desc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "task_priority_flow",
-        "label": "Task Priority vs Status",
-        "rows": ["priority"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item", "type": "task"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "tag_duration_mix",
-        "label": "Duration by Tag",
-        "rows": ["tag"],
-        "cols": ["item_type"],
-        "metric": "duration",
-        "filters": {"dataset": "item"},
-        "row_sort": "metric-desc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "points_by_category",
-        "label": "Points by Category",
-        "rows": ["category"],
-        "cols": ["item_status"],
-        "metric": "points",
-        "filters": {"dataset": "item"},
-        "row_sort": "metric-desc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "category_status_mix",
-        "label": "Category x Status",
-        "rows": ["category"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "project_status_mix",
-        "label": "Project x Status",
-        "rows": ["project"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "status_tags_by_type",
-        "label": "Status Tags x Type",
-        "rows": ["status_tag"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "template_type_by_type",
-        "label": "Template Type x Type",
-        "rows": ["template_type"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "priority_by_type",
-        "label": "Priority x Type",
-        "rows": ["priority"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "priority_by_status",
-        "label": "Priority x Status",
-        "rows": ["priority"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "tag_status_mix",
-        "label": "Tag x Status",
-        "rows": ["tag"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "metric-desc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "project_priority_mix",
-        "label": "Project x Priority",
-        "rows": ["project"],
-        "cols": ["priority"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "duration_project_status",
-        "label": "Duration by Project x Status",
-        "rows": ["project"],
-        "cols": ["item_status"],
-        "metric": "duration",
-        "filters": {"dataset": "item"},
-        "row_sort": "metric-desc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "template_status_mix",
-        "label": "Template Type x Status",
-        "rows": ["template_type"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "points_status_by_type",
-        "label": "Points by Status x Type",
-        "rows": ["item_status"],
-        "cols": ["item_type"],
-        "metric": "points",
-        "filters": {"dataset": "item"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_weekday_by_type",
-        "label": "Schedule Weekday x Type",
-        "rows": ["schedule_weekday"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_start_hour_by_type",
-        "label": "Schedule Start Hour x Type",
-        "rows": ["schedule_start_hour"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_minutes_weekday_category",
-        "label": "Schedule Minutes by Weekday x Category",
-        "rows": ["schedule_weekday"],
-        "cols": ["category"],
-        "metric": "duration",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_actual_status_by_type",
-        "label": "Schedule Actual Status x Type",
-        "rows": ["item_status"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_planned_status_by_type",
-        "label": "Schedule Planned Status x Type",
-        "rows": ["planned_status"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_start_vs_actual",
-        "label": "Schedule Start Hour vs Actual Hour",
-        "rows": ["schedule_start_hour"],
-        "cols": ["actual_start_hour"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_window_by_type",
-        "label": "Schedule Window x Type",
-        "rows": ["schedule_window"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_parent_status",
-        "label": "Schedule Parent x Status",
-        "rows": ["schedule_parent"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_weekday_by_project",
-        "label": "Schedule Weekday x Project",
-        "rows": ["schedule_weekday"],
-        "cols": ["project"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_weekday_by_priority",
-        "label": "Schedule Weekday x Priority",
-        "rows": ["schedule_weekday"],
-        "cols": ["priority"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_status_start_hour",
-        "label": "Schedule Status x Start Hour",
-        "rows": ["item_status"],
-        "cols": ["schedule_start_hour"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_planned_vs_actual",
-        "label": "Schedule Planned vs Actual Status",
-        "rows": ["planned_status"],
-        "cols": ["item_status"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_parallel_weekday",
-        "label": "Parallel Blocks x Weekday",
-        "rows": ["schedule_is_parallel"],
-        "cols": ["schedule_weekday"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_quality_weekday",
-        "label": "Quality x Weekday",
-        "rows": ["quality"],
-        "cols": ["schedule_weekday"],
-        "metric": "count",
-        "filters": {"dataset": "schedule", "status": "completed"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-    {
-        "name": "schedule_parent_type",
-        "label": "Schedule Parent x Type",
-        "rows": ["schedule_parent"],
-        "cols": ["item_type"],
-        "metric": "count",
-        "filters": {"dataset": "schedule"},
-        "row_sort": "label-asc",
-        "col_sort": "label-asc",
-    },
-]
-
 def _normalize_preset_dict(raw: Dict[str, Any]) -> Dict[str, Any] | None:
     if not isinstance(raw, dict):
         return None
@@ -368,17 +67,6 @@ def _normalize_preset_dict(raw: Dict[str, Any]) -> Dict[str, Any] | None:
         "col_sort": raw.get("col_sort") or DEFAULT_SORT_MODE,
     }
     return normalized
-
-
-def _build_builtin_preset_index() -> Dict[str, Dict[str, Any]]:
-    index: Dict[str, Dict[str, Any]] = {}
-    for entry in BUILTIN_MATRIX_PRESETS:
-        normalized = _normalize_preset_dict(entry)
-        if not normalized:
-            continue
-        slug = _preset_slug(normalized["name"])
-        index[slug] = normalized
-    return index
 
 
 def _load_status_keys() -> List[str]:
@@ -474,20 +162,33 @@ def _ensure_preset_dir():
         pass
 
 
+def _migrate_legacy_presets():
+    if not os.path.isdir(LEGACY_PRESET_DIR):
+        return
+    _ensure_preset_dir()
+    for entry in os.listdir(LEGACY_PRESET_DIR):
+        if not entry.lower().endswith((".yml", ".yaml")):
+            continue
+        src = os.path.join(LEGACY_PRESET_DIR, entry)
+        dest = os.path.join(PRESET_DIR, entry)
+        if os.path.exists(dest):
+            continue
+        try:
+            shutil.copy2(src, dest)
+        except Exception:
+            continue
+
+
 def _preset_slug(name: str) -> str:
     safe = "".join(ch if ch.isalnum() or ch in ("-", "_", " ") else "_" for ch in name or "")
     safe = "_".join(part for part in safe.strip().split())
     return safe.lower() or "preset"
 
 
-BUILTIN_PRESET_INDEX = _build_builtin_preset_index()
-
-
 def list_matrix_presets() -> List[Dict[str, Any]]:
     _ensure_preset_dir()
-    presets: Dict[str, Dict[str, Any]] = {
-        slug: _deepcopy_simple(payload) for slug, payload in BUILTIN_PRESET_INDEX.items()
-    }
+    _migrate_legacy_presets()
+    presets: Dict[str, Dict[str, Any]] = {}
     if os.path.isdir(PRESET_DIR):
         for entry in os.listdir(PRESET_DIR):
             if not entry.lower().endswith((".yml", ".yaml")):
@@ -508,6 +209,7 @@ def load_matrix_preset(name: str) -> Dict[str, Any]:
     if not name:
         raise ValueError("Missing preset name")
     _ensure_preset_dir()
+    _migrate_legacy_presets()
     slug = _preset_slug(name)
     for ext in (".yml", ".yaml"):
         path = os.path.join(PRESET_DIR, f"{slug}{ext}")
@@ -517,9 +219,6 @@ def load_matrix_preset(name: str) -> Dict[str, Any]:
             normalized = _normalize_preset_dict(data)
             if normalized:
                 return normalized
-    builtin = BUILTIN_PRESET_INDEX.get(slug)
-    if builtin:
-        return _deepcopy_simple(builtin)
     raise FileNotFoundError(f"Preset '{name}' not found")
 
 
@@ -550,8 +249,6 @@ def delete_matrix_preset(name: str) -> bool:
     if not name:
         return False
     slug = _preset_slug(name)
-    if slug in BUILTIN_PRESET_INDEX:
-        raise ValueError("Built-in presets cannot be deleted")
     removed = False
     for ext in (".yml", ".yaml"):
         path = os.path.join(PRESET_DIR, f"{slug}{ext}")

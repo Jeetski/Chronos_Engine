@@ -1,0 +1,11 @@
+name: category_status_mix
+label: Category x Status
+rows:
+- category
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

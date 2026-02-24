@@ -1,0 +1,11 @@
+name: duration_project_status
+label: Duration by Project x Status
+rows:
+- project
+cols:
+- item_status
+metric: duration
+filters:
+  dataset: item
+row_sort: metric-desc
+col_sort: label-asc

@@ -2,12 +2,13 @@
 
 This index points to the main documentation entry points in this repo and what each file covers.
 
-Core
+## Core
 - README: `README.md` - product overview, quickstart, and top-level feature map.
 - Docs Overview: `Docs/README.md` - doc set map with runtime, data model, and CLI entry points.
 - Philosophy: `Docs/Philosophy.md` - core principles and the weekly-cycle worldview.
+- Release Notes: `Docs/release_notes.md` - version history and highlights.
 
-Guides
+## Guides
 - Dashboard: `Docs/Guides/Dashboard.md` - UI tour, widgets, wizards, and API endpoints.
 - Canvas: `Docs/Guides/Canvas.md` - Canvas board data model and collaboration flow.
 - Cockpit: `Docs/Guides/Cockpit.md` - panel behaviors, data sources, and troubleshooting.
@@ -15,29 +16,33 @@ Guides
 - Common Workflows: `Docs/Guides/common_workflows.md` - practical command recipes.
 - Conditions Cookbook: `Docs/Guides/Conditions_Cookbook.md` - `if` patterns for scripting.
 
-Scheduling
+## Scheduling
 - Scheduling Overview: `Docs/Scheduling/Scheduling_Algorithm_Overview.md` - pipeline summary and rules.
 - Scheduling Deep Dive: `Docs/Scheduling/Scheduling_Algorithm_Deep_Dive.md` - code-aligned details.
 - Time Blocks: `Docs/Scheduling/TimeBlocks.md` - timeblock types and anchors.
 
-Agents
+## Agents
 - Agent Guide: `Docs/Agents/agents.md` - operator behavior and pilot directives.
 - Agent Dev Guide: `Docs/Agents/agents.dev.md` - extension guidance for commands/modules.
+- ADUC (Familiars): `Docs/Agents/ADUC.md` - local familiars UI and pilot integration.
 
-Development
+## Development
 - Architecture: `Docs/Dev/Architecture.md` - runtime modules and data flow.
+- Extensibility: `Docs/Dev/Extensibility.md` - dynamic registries (Wizards, Themes, Data Cards).
+- Data Cards: `Docs/Dev/DataCards.md` - generic item schema and backend details.
 - Sequence Mirrors: `Docs/Dev/Sequence.md` - SQLite mirrors and trends pipeline.
 - Macros (BEFORE/AFTER): `Docs/Dev/Macros.md` - command hooks and macro config.
 - CHS Scripting: `Docs/Dev/CHS_Scripting.md` - scripting language reference.
 - Autosuggest: `Docs/Dev/Autosuggest.md` - CLI and dashboard autosuggest/autocomplete design.
 
-Designs
+## Designs
 - Cockpit Matrix Panel: `Docs/Designs/cockpit_matrix_panel.md` - design notes for the matrix panel.
 
-Reference
+## Reference
 - CLI Commands: `Docs/Reference/CLI_Commands.md` - full command reference.
-
-Legal
+- Item Properties: `Docs/Reference/Item_Properties.md` - standard item fields used by Chronos.
+- Admin Tools: `Docs/Features/Admin_Tools.md` - system cleanup and cache management.
+## Legal
 - License (AGPL): `Docs/Legal/LICENSE.md`
 - Commercial License: `Docs/Legal/COMMERCIAL_LICENSE.md`
 - Marketplace Terms: `Docs/Legal/MARKETPLACE_TERMS.md`

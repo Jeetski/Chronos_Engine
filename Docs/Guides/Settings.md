@@ -44,6 +44,9 @@ Defines the dimensions of your human state (Energy, Focus, Mood).
 - **`points_settings.yml`**: How many points each item type yields.
 - **`level_settings.yml`**: XP curves for leveling up.
 
+### 6. Happiness Associations
+- **`happiness_value_name_assoc.yml`**: Auto-tag rules that append `happiness` values to items based on other properties (e.g., category, tags, status). Managed via the Map of Happiness wizard or edited directly.
+
 
 ## Safety Tips
 

@@ -1,0 +1,11 @@
+name: priority_by_type
+label: Priority x Type
+rows:
+- priority
+cols:
+- item_type
+metric: count
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

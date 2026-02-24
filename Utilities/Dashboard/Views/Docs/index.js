@@ -17,6 +17,7 @@ function injectStyles() {
     .docs-tree { flex:1; overflow:auto; }
     .docs-tree-item { display:flex; gap:8px; align-items:center; font-size:12px; padding:2px 4px; border-radius:6px; cursor:pointer; }
     .docs-tree-item:hover { background:#0f141d; }
+    .docs-tree-item.active { background: rgba(122, 162, 247, 0.2); border: 1px solid rgba(122, 162, 247, 0.45); }
     .docs-tree-label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .docs-tree-toggle { width:26px; text-align:center; color:var(--chronos-text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
     .docs-results { max-height: 200px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
@@ -76,6 +77,7 @@ export function mount(el) {
     tree: null,
     collapsed: new Set(),
     currentPath: '',
+    selectedPath: '',
   };
 
   const root = document.createElement('div');
@@ -117,12 +119,20 @@ export function mount(el) {
     if (statusEl) statusEl.textContent = msg || '';
   };
 
+  const normalizeDocPath = (path) => {
+    let p = String(path || '').trim().replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!p) return '';
+    if (p.toLowerCase().startsWith('docs/')) p = p.slice(5);
+    return p;
+  };
+
   const renderTree = () => {
     if (!state.tree || !treeEl) return;
     treeEl.innerHTML = '';
     const makeRow = (node, depth) => {
       const row = document.createElement('div');
       row.className = 'docs-tree-item';
+      if (state.selectedPath && node.path === state.selectedPath) row.classList.add('active');
       row.style.paddingLeft = `${depth * 12}px`;
       const toggle = document.createElement('span');
       toggle.className = 'docs-tree-toggle';
@@ -164,8 +174,10 @@ export function mount(el) {
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || data.ok === false) throw new Error(data.error || `HTTP ${resp.status}`);
       state.currentPath = data.path || path;
+      state.selectedPath = normalizeDocPath(state.currentPath);
       readerTitleEl.textContent = state.currentPath;
       readerEl.value = data.content || '';
+      renderTree();
       if (lineNumber && Number.isFinite(lineNumber)) {
         const lines = readerEl.value.split(/\r?\n/);
         const idx = Math.max(1, Math.floor(lineNumber)) - 1;
@@ -179,6 +191,27 @@ export function mount(el) {
     } catch (err) {
       setStatus(err?.message || 'Failed to read doc');
     }
+  };
+
+  const expandToPath = (path) => {
+    const rel = normalizeDocPath(path);
+    if (!rel) return;
+    const parts = rel.split('/').filter(Boolean);
+    let cur = '';
+    for (let i = 0; i < parts.length - 1; i++) {
+      cur = cur ? `${cur}/${parts[i]}` : parts[i];
+      state.collapsed.delete(cur);
+    }
+  };
+
+  const openRequestedDoc = (request) => {
+    const path = normalizeDocPath(request?.path || request);
+    if (!path) return;
+    expandToPath(path);
+    state.selectedPath = path;
+    renderTree();
+    const line = request && Number.isFinite(Number(request.line)) ? Number(request.line) : undefined;
+    openDoc(path, line);
   };
 
   const renderResults = (items) => {
@@ -240,10 +273,33 @@ export function mount(el) {
       state.tree = buildTree(data.paths || []);
       renderTree();
       setStatus(`Loaded ${data.paths?.length || 0} doc(s).`);
+      try {
+        const pending = window.__chronosDocsOpenRequest;
+        if (pending?.path) {
+          openRequestedDoc(pending);
+          try { window.__chronosDocsOpenRequest = null; } catch { }
+        }
+      } catch { }
     } catch (err) {
       setStatus(err?.message || 'Failed to load docs.');
     }
   };
 
+  let detachDocsOpen = null;
+  try {
+    detachDocsOpen = window.ChronosBus?.on?.('docs:open', (payload) => openRequestedDoc(payload)) || null;
+  } catch { }
+  try { window.ChronosDocsOpen = (payload) => openRequestedDoc(payload); } catch { }
+
   loadTree();
+
+  return {
+    openDoc(path, lineNumber) {
+      openRequestedDoc({ path, line: lineNumber });
+    },
+    dispose() {
+      try { if (typeof detachDocsOpen === 'function') detachDocsOpen(); } catch { }
+      try { if (window.ChronosDocsOpen) delete window.ChronosDocsOpen; } catch { }
+    }
+  };
 }

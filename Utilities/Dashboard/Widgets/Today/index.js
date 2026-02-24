@@ -22,141 +22,135 @@ export function mount(el, context) {
     <div class="content">
       <!-- Quick Actions Bar -->
       <div class="scheduler-actions-bar">
-        <button class="btn-large btn-start-day" id="todayStartDay">🚀 Start Day</button>
         <button class="btn-large btn-refresh" id="todayRefresh">↻ Refresh</button>
-        <button class="btn-large btn-reschedule" id="todayReschedule">📅 Reschedule</button>
-      </div>
-
-      <!-- Block Info Card -->
-      <div class="scheduler-block-card empty" id="blockInfoCard">
-        <div class="block-card-header">
-          <div class="block-card-title" id="blockTitle">No block selected</div>
-          <div class="block-status-badge pending" id="blockStatus">select</div>
-        </div>
-        <div class="block-card-details" id="blockDetails">
-          <div class="block-detail-item">
-            <span class="block-detail-icon">🕐</span>
-            <span id="blockTime">--:-- to --:--</span>
-          </div>
-          <div class="block-detail-item">
-            <span class="block-detail-icon">⏱️</span>
-            <span id="blockDuration">-- min</span>
-          </div>
-        </div>
-        <input class="scheduler-input" id="selectedItemInput" list="todayItemList" placeholder="Search or select block" style="margin-top:10px;" />
-        <datalist id="todayItemList"></datalist>
+        <button class="btn-large btn-reschedule" id="todayReschedule">📅 Generate / Reschedule</button>
       </div>
 
       <!-- Scheduling Controls -->
       <details class="scheduler-section" id="schedControls">
         <summary>⚙️ Scheduling Controls</summary>
         <div class="scheduler-section-content">
-          <div class="action-group">
-            <div class="action-group-title">Priority Weights (1-10)</div>
-            <div class="priority-sliders-grid">
-              <div class="slider-row">
-                <label for="sliderEnvironment">Environment</label>
-                <input type="range" id="sliderEnvironment" min="1" max="10" value="7" />
-                <span class="slider-value" id="valEnvironment">7</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderCategory">Category</label>
-                <input type="range" id="sliderCategory" min="1" max="10" value="6" />
-                <span class="slider-value" id="valCategory">6</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderHappiness">Happiness</label>
-                <input type="range" id="sliderHappiness" min="1" max="10" value="5" />
-                <span class="slider-value" id="valHappiness">5</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderDueDate">Due Date</label>
-                <input type="range" id="sliderDueDate" min="1" max="10" value="4" />
-                <span class="slider-value" id="valDueDate">4</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderDeadline">Deadline</label>
-                <input type="range" id="sliderDeadline" min="1" max="10" value="5" />
-                <span class="slider-value" id="valDeadline">5</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderStatus">Status Align</label>
-                <input type="range" id="sliderStatus" min="1" max="10" value="3" />
-                <span class="slider-value" id="valStatus">3</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderPriority">Priority Prop</label>
-                <input type="range" id="sliderPriority" min="1" max="10" value="2" />
-                <span class="slider-value" id="valPriority">2</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderTemplate">Template</label>
-                <input type="range" id="sliderTemplate" min="1" max="10" value="1" />
-                <span class="slider-value" id="valTemplate">1</span>
+          <details class="scheduler-subsection" open>
+            <summary>Priority Weights (1-10)</summary>
+            <div class="action-group">
+              <div class="priority-sliders-grid">
+                <div class="slider-row">
+                  <label for="sliderEnvironment">Environment</label>
+                  <input type="range" id="sliderEnvironment" min="1" max="10" value="7" />
+                  <span class="slider-value" id="valEnvironment">7</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderCategory">Category</label>
+                  <input type="range" id="sliderCategory" min="1" max="10" value="6" />
+                  <span class="slider-value" id="valCategory">6</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderHappiness">Happiness</label>
+                  <input type="range" id="sliderHappiness" min="1" max="10" value="5" />
+                  <span class="slider-value" id="valHappiness">5</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderDueDate">Due Date</label>
+                  <input type="range" id="sliderDueDate" min="1" max="10" value="4" />
+                  <span class="slider-value" id="valDueDate">4</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderDeadline">Deadline</label>
+                  <input type="range" id="sliderDeadline" min="1" max="10" value="5" />
+                  <span class="slider-value" id="valDeadline">5</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderStatus">Status Align</label>
+                  <input type="range" id="sliderStatus" min="1" max="10" value="3" />
+                  <span class="slider-value" id="valStatus">3</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderPriority">Priority Prop</label>
+                  <input type="range" id="sliderPriority" min="1" max="10" value="2" />
+                  <span class="slider-value" id="valPriority">2</span>
+                </div>
+                <div class="slider-row">
+                  <label for="sliderTemplate">Template</label>
+                  <input type="range" id="sliderTemplate" min="1" max="10" value="1" />
+                  <span class="slider-value" id="valTemplate">1</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="action-group" style="padding-top:8px; border-top:1px solid var(--border);">
-            <div class="action-group-title">Quick Toggles</div>
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px;">
-              <input type="checkbox" id="toggleCutting" />
-              Allow Item Cutting (Phase 3e)
-            </label>
-          </div>
-        </div>
-      </details>
-
-      <!-- Actions Panel -->
-      <details class="scheduler-section" id="actionControls">
-        <summary>⚡ Actions</summary>
-        <div class="scheduler-section-content">
-          <div class="action-group">
-            <div class="action-group-title">Quick Status</div>
-            <div class="button-row">
-              <button class="scheduler-btn btn-success" id="markDone">✓ Done (Today)</button>
-              <button class="scheduler-btn" id="markSkipped">⊘ Skipped</button>
-              <button class="scheduler-btn btn-warning" id="markDelayed">⏰ Delayed</button>
+          </details>
+          <details class="scheduler-subsection">
+            <summary>Advanced Weights</summary>
+            <div class="action-group">
+              <div class="slider-row">
+                <label for="sliderCustomProperty">Custom Property</label>
+                <input class="scheduler-input" id="customPropertyKey" placeholder="Property key (e.g. energy, focus_depth)" style="min-width:160px;" />
+                <input type="range" id="sliderCustomProperty" min="1" max="10" value="5" />
+                <span class="slider-value" id="valCustomProperty">5</span>
+              </div>
+              <div class="slider-row">
+                <label for="sliderBalance">Weekly Balance</label>
+                <input type="range" id="sliderBalance" min="1" max="10" value="5" />
+                <span class="slider-value" id="valBalance">5</span>
+              </div>
             </div>
-          </div>
-          
-          <div class="action-group">
-            <div class="action-group-title">Schedule Edits</div>
-            <div class="button-row">
-              <button class="scheduler-btn" id="trim5" title="Trim 5 minutes">Trim -5</button>
-              <button class="scheduler-btn" id="trim10" title="Trim 10 minutes">Trim -10</button>
-              <input class="scheduler-input" id="trimCustom" placeholder="min" style="width:72px;" />
-              <button class="scheduler-btn" id="trimGo">Trim</button>
+          </details>
+          <details class="scheduler-subsection">
+            <summary>Enforcers</summary>
+            <div class="action-group">
+              <div class="button-row">
+                <select class="scheduler-input" id="enforcerEnvironmentScope" style="min-width:110px;">
+                  <option value="day">Day</option>
+                  <option value="week">Week</option>
+                  <option value="slot">Slot</option>
+                </select>
+                <input class="scheduler-input" id="enforcerEnvironment" placeholder="Environment (e.g. library)" style="flex:1;" />
+              </div>
+              <div class="button-row">
+                <input class="scheduler-input" id="enforcerTemplateDay" type="date" style="min-width:150px;" />
+                <input class="scheduler-input" id="enforcerTemplate" placeholder="Template name" style="flex:1;" />
+              </div>
+              <div class="button-row">
+                <select class="scheduler-input" id="scheduleState" style="min-width:140px;">
+                  <option value="draft">Draft schedule</option>
+                  <option value="committed">Committed schedule</option>
+                </select>
+                <span class="scheduler-hint">Use draft before committing schedule changes.</span>
+              </div>
             </div>
-            <div class="button-row">
-              <input class="scheduler-input" id="changeTime" type="time" step="60" style="width:110px;" />
-              <button class="scheduler-btn" id="changeGo">Change Time</button>
-              <button class="scheduler-btn btn-danger" id="cutGo">✂️ Cut</button>
+          </details>
+          <details class="scheduler-subsection">
+            <summary>Quick Toggles</summary>
+            <div class="action-group">
+              <div class="button-row">
+                <label class="scheduler-check">
+                  <input type="checkbox" id="toggleKairosBuffers" checked />
+                  Buffers
+                </label>
+                <label class="scheduler-check">
+                  <input type="checkbox" id="toggleKairosTimerBreaks" />
+                  Timer Breaks
+                </label>
+                <label class="scheduler-check">
+                  <input type="checkbox" id="toggleKairosSprints" />
+                  Sprints
+                </label>
+                <label class="scheduler-check">
+                  <input type="checkbox" id="toggleKairosIgnoreTrends" />
+                  Ignore Trends
+                </label>
+                <label class="scheduler-check">
+                  <input type="checkbox" id="toggleCutting" />
+                  Allow Item Cutting
+                </label>
+              </div>
+              <div class="button-row">
+                <input class="scheduler-input" id="kairosTimerProfile" placeholder="Timer profile (optional)" style="min-width:180px; flex:1;" />
+                <input class="scheduler-input" id="kairosTemplateOverride" placeholder="Template override (optional)" style="min-width:180px; flex:1;" />
+              </div>
+              <div class="button-row">
+                <input class="scheduler-input" id="kairosQuickWins" type="number" min="0" max="240" step="5" placeholder="Quick wins max minutes (optional)" style="min-width:220px;" />
+              </div>
             </div>
-          </div>
-          
-          <div class="action-group">
-            <div class="action-group-title">Actuals (Did)</div>
-            <div class="button-row">
-              <input class="scheduler-input" id="didStart" type="time" step="60" style="width:110px;" placeholder="Start" />
-              <input class="scheduler-input" id="didEnd" type="time" step="60" style="width:110px;" placeholder="End" />
-              <select class="scheduler-input" id="didStatus" style="width:130px;">
-                <option value="completed">completed</option>
-                <option value="partial">partial</option>
-                <option value="skipped">skipped</option>
-              </select>
-            </div>
-            <div class="button-row">
-              <input class="scheduler-input" id="didNote" placeholder="note" style="min-width:140px; flex:1;" />
-              <button class="scheduler-btn btn-success" id="didGo">✓ Did</button>
-            </div>
-          </div>
-          
-          <div class="action-group">
-            <div class="action-group-title">Item State</div>
-            <div class="button-row">
-              <button class="scheduler-btn btn-success" id="completeItem">✓ Complete (Item)</button>
-            </div>
-          </div>
+          </details>
         </div>
       </details>
 
@@ -166,7 +160,7 @@ export function mount(el, context) {
           <span class="scheduler-hint" id="calendarDayLabel">Calendar day selected.</span>
           <span class="scheduler-hint" id="calendarDayNote"></span>
         </div>
-        <div class="scheduler-hint" id="selSummary">Select a block in the calendar.</div>
+        <div class="scheduler-hint">Scheduler controls apply to this day.</div>
       </div>
 
       <!-- Status Bar -->
@@ -286,9 +280,6 @@ export function mount(el, context) {
       const t = await r.text();
       const data = parseScheduleYaml(t) || {};
       const blocks = Array.isArray(data.blocks) ? data.blocks : [];
-      const blockRecords = normalizeScheduleBlocks(blocks);
-      updateItemList(blockRecords);
-
       const key = (function () { const d = new Date(); const y = d.getFullYear(), m = ('0' + (d.getMonth() + 1)).slice(-2), dd = ('0' + d.getDate()).slice(-2); return `${y}-${m}-${dd}`; })();
       const store = (function () { try { return JSON.parse(localStorage.getItem('pm_day_blocks')) || {} } catch { return {} } })();
       store[key] = blocks.map(b => {
@@ -317,6 +308,8 @@ export function mount(el, context) {
     status: el.querySelector('#sliderStatus'),
     priority: el.querySelector('#sliderPriority'),
     template: el.querySelector('#sliderTemplate'),
+    customProperty: el.querySelector('#sliderCustomProperty'),
+    balance: el.querySelector('#sliderBalance'),
   };
   const vals = {
     environment: el.querySelector('#valEnvironment'),
@@ -327,8 +320,23 @@ export function mount(el, context) {
     status: el.querySelector('#valStatus'),
     priority: el.querySelector('#valPriority'),
     template: el.querySelector('#valTemplate'),
+    customProperty: el.querySelector('#valCustomProperty'),
+    balance: el.querySelector('#valBalance'),
   };
   const toggleCutting = el.querySelector('#toggleCutting');
+  const toggleKairosBuffers = el.querySelector('#toggleKairosBuffers');
+  const toggleKairosTimerBreaks = el.querySelector('#toggleKairosTimerBreaks');
+  const toggleKairosSprints = el.querySelector('#toggleKairosSprints');
+  const toggleKairosIgnoreTrends = el.querySelector('#toggleKairosIgnoreTrends');
+  const kairosTimerProfile = el.querySelector('#kairosTimerProfile');
+  const kairosTemplateOverride = el.querySelector('#kairosTemplateOverride');
+  const kairosQuickWins = el.querySelector('#kairosQuickWins');
+  const customPropertyKey = el.querySelector('#customPropertyKey');
+  const enforcerEnvironmentScope = el.querySelector('#enforcerEnvironmentScope');
+  const enforcerEnvironment = el.querySelector('#enforcerEnvironment');
+  const enforcerTemplateDay = el.querySelector('#enforcerTemplateDay');
+  const enforcerTemplate = el.querySelector('#enforcerTemplate');
+  const scheduleState = el.querySelector('#scheduleState');
 
   const priorityNameMap = {
     "Environment": "environment",
@@ -369,7 +377,22 @@ export function mount(el, context) {
       status: sliders.status?.value,
       priority: sliders.priority?.value,
       template: sliders.template?.value,
+      customProperty: sliders.customProperty?.value,
+      balance: sliders.balance?.value,
+      customPropertyKey: customPropertyKey?.value,
+      enforcerEnvironmentScope: enforcerEnvironmentScope?.value,
+      enforcerEnvironment: enforcerEnvironment?.value,
+      enforcerTemplateDay: enforcerTemplateDay?.value,
+      enforcerTemplate: enforcerTemplate?.value,
+      scheduleState: scheduleState?.value,
       allowCutting: toggleCutting?.checked,
+      kairosBuffers: toggleKairosBuffers?.checked,
+      kairosTimerBreaks: toggleKairosTimerBreaks?.checked,
+      kairosSprints: toggleKairosSprints?.checked,
+      kairosIgnoreTrends: toggleKairosIgnoreTrends?.checked,
+      kairosTimerProfile: kairosTimerProfile?.value,
+      kairosTemplateOverride: kairosTemplateOverride?.value,
+      kairosQuickWins: kairosQuickWins?.value,
     };
   }
 
@@ -390,7 +413,22 @@ export function mount(el, context) {
       if (saved.status) sliders.status.value = saved.status;
       if (saved.priority) sliders.priority.value = saved.priority;
       if (saved.template) sliders.template.value = saved.template;
+      if (saved.customProperty) sliders.customProperty.value = saved.customProperty;
+      if (saved.balance) sliders.balance.value = saved.balance;
+      if (saved.customPropertyKey && customPropertyKey) customPropertyKey.value = saved.customPropertyKey;
+      if (saved.enforcerEnvironmentScope && enforcerEnvironmentScope) enforcerEnvironmentScope.value = saved.enforcerEnvironmentScope;
+      if (saved.enforcerEnvironment !== undefined && enforcerEnvironment) enforcerEnvironment.value = saved.enforcerEnvironment;
+      if (saved.enforcerTemplateDay !== undefined && enforcerTemplateDay) enforcerTemplateDay.value = saved.enforcerTemplateDay;
+      if (saved.enforcerTemplate !== undefined && enforcerTemplate) enforcerTemplate.value = saved.enforcerTemplate;
+      if (saved.scheduleState && scheduleState) scheduleState.value = saved.scheduleState;
       if (saved.allowCutting !== undefined) toggleCutting.checked = saved.allowCutting;
+      if (saved.kairosBuffers !== undefined && toggleKairosBuffers) toggleKairosBuffers.checked = !!saved.kairosBuffers;
+      if (saved.kairosTimerBreaks !== undefined && toggleKairosTimerBreaks) toggleKairosTimerBreaks.checked = !!saved.kairosTimerBreaks;
+      if (saved.kairosSprints !== undefined && toggleKairosSprints) toggleKairosSprints.checked = !!saved.kairosSprints;
+      if (saved.kairosIgnoreTrends !== undefined && toggleKairosIgnoreTrends) toggleKairosIgnoreTrends.checked = !!saved.kairosIgnoreTrends;
+      if (saved.kairosTimerProfile !== undefined && kairosTimerProfile) kairosTimerProfile.value = saved.kairosTimerProfile;
+      if (saved.kairosTemplateOverride !== undefined && kairosTemplateOverride) kairosTemplateOverride.value = saved.kairosTemplateOverride;
+      if (saved.kairosQuickWins !== undefined && kairosQuickWins) kairosQuickWins.value = saved.kairosQuickWins;
       syncSliderLabels();
     } catch { }
   }
@@ -500,37 +538,28 @@ export function mount(el, context) {
     });
   }
   toggleCutting?.addEventListener('change', () => saveLocalControls());
+  toggleKairosBuffers?.addEventListener('change', () => saveLocalControls());
+  toggleKairosTimerBreaks?.addEventListener('change', () => saveLocalControls());
+  toggleKairosSprints?.addEventListener('change', () => saveLocalControls());
+  toggleKairosIgnoreTrends?.addEventListener('change', () => saveLocalControls());
+  kairosTimerProfile?.addEventListener('input', () => saveLocalControls());
+  kairosTemplateOverride?.addEventListener('input', () => saveLocalControls());
+  kairosQuickWins?.addEventListener('input', () => saveLocalControls());
+  customPropertyKey?.addEventListener('change', () => saveLocalControls());
+  enforcerEnvironmentScope?.addEventListener('change', () => saveLocalControls());
+  enforcerEnvironment?.addEventListener('input', () => saveLocalControls());
+  enforcerTemplateDay?.addEventListener('change', () => saveLocalControls());
+  enforcerTemplate?.addEventListener('input', () => saveLocalControls());
+  scheduleState?.addEventListener('change', () => saveLocalControls());
 
   const content = el.querySelector('.content') || el;
   const btnRefresh = content.querySelector('#todayRefresh');
   const btnResched = content.querySelector('#todayReschedule');
-  const btnStartDay = content.querySelector('#todayStartDay');
-  const selSummary = content.querySelector('#selSummary');
   const selHint = content.querySelector('#selHint');
   const calendarContext = content.querySelector('#calendarContext');
   const calendarDayLabel = content.querySelector('#calendarDayLabel');
   const calendarDayNote = content.querySelector('#calendarDayNote');
-  const selectedItemInput = content.querySelector('#selectedItemInput');
-  const todayItemList = content.querySelector('#todayItemList');
-  const btnTrim5 = content.querySelector('#trim5');
-  const btnTrim10 = content.querySelector('#trim10');
-  const inputTrim = content.querySelector('#trimCustom');
-  const btnTrimGo = content.querySelector('#trimGo');
-  const inputChange = content.querySelector('#changeTime');
-  const btnChangeGo = content.querySelector('#changeGo');
-  const btnCutGo = content.querySelector('#cutGo');
-  const btnMarkDone = content.querySelector('#markDone');
-  const btnMarkSkipped = content.querySelector('#markSkipped');
-  const btnMarkDelayed = content.querySelector('#markDelayed');
-  const btnCompleteItem = content.querySelector('#completeItem');
-  const inputDidStart = content.querySelector('#didStart');
-  const inputDidEnd = content.querySelector('#didEnd');
-  const selectDidStatus = content.querySelector('#didStatus');
-  const inputDidNote = content.querySelector('#didNote');
-  const btnDidGo = content.querySelector('#didGo');
 
-  let selected = null;
-  let todayBlocks = [];
   let calendarOpen = false;
   let calendarDaySelected = false;
   let calendarDayIsToday = false;
@@ -544,21 +573,48 @@ export function mount(el, context) {
   });
   if (btnResched) btnResched.addEventListener('click', async () => {
     console.log('[Chronos][Today] Reschedule clicked');
+    const props = {};
+    if (toggleKairosBuffers) props.buffers = !!toggleKairosBuffers.checked;
+    if (toggleKairosTimerBreaks) props.breaks = toggleKairosTimerBreaks.checked ? 'timer' : 'none';
+    if (toggleKairosSprints) props.sprints = !!toggleKairosSprints.checked;
+    if (toggleKairosIgnoreTrends) props['ignore-trends'] = !!toggleKairosIgnoreTrends.checked;
+    const customPropKey = String(customPropertyKey?.value || '').trim();
+    if (customPropKey) {
+      props.custom_property = customPropKey;
+      const customWeight = Number.parseInt(String(sliders.customProperty?.value || '0'), 10);
+      if (!Number.isNaN(customWeight) && customWeight > 0) {
+        props.prioritize = `custom_property=${customWeight}`;
+      }
+    }
+    if (kairosTimerProfile && String(kairosTimerProfile.value || '').trim()) {
+      props.timer_profile = String(kairosTimerProfile.value).trim();
+    }
+    if (kairosTemplateOverride && String(kairosTemplateOverride.value || '').trim()) {
+      props.template = String(kairosTemplateOverride.value).trim();
+    }
+    if (kairosQuickWins && String(kairosQuickWins.value || '').trim()) {
+      const qwm = Number.parseInt(String(kairosQuickWins.value).trim(), 10);
+      if (!Number.isNaN(qwm) && qwm >= 0) props.quickwins = qwm;
+    }
     try {
-      const resp = await fetch(apiBase() + '/api/today/reschedule', { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body: 'reschedule: true' });
-      const text = await resp.text();
-      console.log('[Chronos][Today] Reschedule response:', text);
+      const resp = await fetch(apiBase() + '/api/cli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          command: 'today',
+          args: ['reschedule'],
+          properties: props,
+        }),
+      });
+      const payload = await resp.json().catch(() => ({}));
+      console.log('[Chronos][Today] Reschedule response:', payload);
+      if (!resp.ok) throw new Error(payload?.stderr || payload?.error || 'Reschedule failed');
     } catch (e) { console.error('[Chronos][Today] Reschedule error:', e); }
     fetchToday({ silent: true });
   });
-  if (btnStartDay) btnStartDay.addEventListener('click', () => startDay());
 
   const fxChk = content.querySelector('#todayFxToggle');
-  let fxEnabled = (fxChk ? fxChk.checked : true);
-  fxChk?.addEventListener('change', () => {
-    fxEnabled = !!fxChk.checked;
-    refreshSelectionSummary();
-  });
+  fxChk?.addEventListener('change', () => { });
 
   function pulseWidget() {
     try {
@@ -610,21 +666,9 @@ export function mount(el, context) {
       if (calendarDayNote) {
         calendarDayNote.textContent = canAct ? '' : 'Actions are available for today only.';
       }
-      setActionsEnabled(canAct);
     }
     const allowTodayActions = calendarDaySelected ? calendarDayIsToday : true;
     if (btnResched) btnResched.disabled = !allowTodayActions;
-    if (btnStartDay) btnStartDay.disabled = !allowTodayActions;
-  }
-
-  function setActionsEnabled(enabled) {
-    const controls = [
-      selectedItemInput, btnTrim5, btnTrim10, inputTrim, btnTrimGo,
-      inputChange, btnChangeGo, btnCutGo, btnMarkDone, btnMarkSkipped,
-      btnMarkDelayed, btnCompleteItem, inputDidStart, inputDidEnd,
-      selectDidStatus, inputDidNote, btnDidGo
-    ];
-    controls.forEach(ctrl => { if (ctrl) ctrl.disabled = !enabled; });
   }
 
   function hm(m) {
@@ -633,61 +677,6 @@ export function mount(el, context) {
     return String(h).padStart(2, '0') + ':' + String(n).padStart(2, '0');
   }
 
-  function refreshSelectionSummary() {
-    if (!selected) {
-      if (selSummary) selSummary.textContent = 'Select a block in the calendar.';
-      return;
-    }
-    const disp = (fxEnabled && window.ChronosVars && window.ChronosVars.expand)
-      ? window.ChronosVars.expand(String(selected.text || ''))
-      : String(selected.text || '');
-    if (selSummary) selSummary.textContent = `${disp} (${hm(selected.start)}-${hm(selected.end || selected.start)})`;
-  }
-
-  function setSelected(item) {
-    selected = item || null;
-    if (!selected) {
-      if (selectedItemInput) selectedItemInput.value = '';
-      if (selSummary) selSummary.textContent = 'Select a block in the calendar.';
-      return;
-    }
-    if (selectedItemInput) selectedItemInput.value = String(selected.text || '');
-    refreshSelectionSummary();
-    try { inputChange.value = hm(selected.start); } catch { }
-  }
-
-  function updateItemList(blocks) {
-    todayBlocks = blocks || [];
-    if (!todayItemList) return;
-    todayItemList.innerHTML = '';
-    todayBlocks.forEach(b => {
-      const opt = document.createElement('option');
-      opt.value = String(b.text || '');
-      opt.label = b.start != null ? hm(b.start) : '';
-      todayItemList.appendChild(opt);
-    });
-  }
-
-  function findBlockByText(text) {
-    if (!text) return null;
-    const raw = String(text);
-    const matches = todayBlocks.filter(b => String(b.text || '') === raw);
-    if (!matches.length) return null;
-    matches.sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
-    const pick = matches[0];
-    return { text: pick.text, type: pick.type, start: pick.start, end: pick.end };
-  }
-
-  selectedItemInput?.addEventListener('change', () => {
-    const match = findBlockByText(selectedItemInput.value);
-    if (match) setSelected(match);
-  });
-  selectedItemInput?.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter') {
-      const match = findBlockByText(selectedItemInput.value);
-      if (match) setSelected(match);
-    }
-  });
 
   async function runCliPreview(command, args) {
     const body = `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n`;
@@ -728,14 +717,10 @@ export function mount(el, context) {
     }
     const preview = await fetchSchedulePreview(targetDate);
     if (!preview.ok) {
-      updateItemList([]);
-      setSelected(null);
       if (selHint) selHint.textContent = preview.error || 'Preview unavailable for this day.';
       return;
     }
     if (Array.isArray(preview.blocks)) {
-      updateItemList(preview.blocks);
-      setSelected(null);
       if (selHint) selHint.textContent = `Previewing ${targetDate.toDateString()} (read-only).`;
     }
   }
@@ -751,13 +736,11 @@ export function mount(el, context) {
       calendarDayIsToday = false;
       calendarDayKey = null;
       calendarDayDate = null;
-      setSelected(null);
       updateCalendarContextVisibility();
       refreshScheduleForTarget({ force: true });
     });
     context?.bus?.on('calendar:day-selected', (payload) => {
       const nextKey = payload?.key || null;
-      if (calendarDayKey && nextKey && nextKey !== calendarDayKey) setSelected(null);
       calendarDaySelected = true;
       calendarDayKey = nextKey;
       calendarDayDate = payload?.date ? new Date(payload.date) : null;
@@ -771,56 +754,10 @@ export function mount(el, context) {
       calendarDayIsToday = false;
       calendarDayKey = null;
       calendarDayDate = null;
-      setSelected(null);
       updateCalendarContextVisibility();
       refreshScheduleForTarget({ force: true });
     });
-    context?.bus?.on('calendar:selected', (payload) => {
-      if (!payload) { setSelected(null); return; }
-      setSelected(payload || null);
-    });
   } catch { }
-
-  async function runCli(command, args, properties) {
-    const propLines = Object.entries(properties || {}).map(([k, v]) => `  ${k}: ${String(v)}`).join('\n');
-    const body = `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n${propLines ? 'properties:\n' + propLines + '\n' : ''}`;
-    const resp = await fetch(apiBase() + '/api/cli', { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body });
-    const text = await resp.text();
-    return { ok: resp.ok, text };
-  }
-
-  function ensureSel() {
-    if (!calendarDayIsToday) { alert('Actions are available for today only.'); return false; }
-    if (!selected) { alert('Select an item in the calendar first.'); return false; }
-    return true;
-  }
-
-  btnTrim5?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('trim', [selected.text, '5'], {}); });
-  btnTrim10?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('trim', [selected.text, '10'], {}); });
-  btnTrimGo?.addEventListener('click', async () => { if (!ensureSel()) return; const val = parseInt(inputTrim?.value || ''); if (!val || val <= 0) { alert('Enter minutes'); return; } await runCli('trim', [selected.text, String(val)], {}); });
-  btnChangeGo?.addEventListener('click', async () => { if (!ensureSel()) return; const t = inputChange?.value || ''; if (!/^\d{2}:\d{2}$/.test(t)) { alert('Enter time HH:MM'); return; } await runCli('change', [selected.text, t], {}); });
-  btnCutGo?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('cut', [selected.text], {}); });
-  btnMarkDone?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('mark', [`${selected.text}:completed`], {}); });
-  btnMarkSkipped?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('mark', [`${selected.text}:skipped`], {}); });
-  btnMarkDelayed?.addEventListener('click', async () => { if (!ensureSel()) return; await runCli('mark', [`${selected.text}:delayed`], {}); });
-  btnCompleteItem?.addEventListener('click', async () => {
-    if (!ensureSel()) return;
-    if (!selected.type) { alert('Selected item type is unknown.'); return; }
-    await runCli('complete', [selected.type, selected.text], {});
-  });
-  btnDidGo?.addEventListener('click', async () => {
-    if (!ensureSel()) return;
-    const props = {};
-    const st = inputDidStart?.value || '';
-    const en = inputDidEnd?.value || '';
-    const status = selectDidStatus?.value || '';
-    const note = inputDidNote?.value || '';
-    if (st) props.start_time = st;
-    if (en) props.end_time = en;
-    if (status) props.status = status;
-    if (note) props.note = note;
-    await runCli('did', [selected.text], props);
-  });
 
   // Dragging/min/close
   const header = el.querySelector('#todayHeader');
@@ -843,31 +780,6 @@ export function mount(el, context) {
   if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; })(ev); });
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
-
-  async function startDay() {
-    if (!btnStartDay) return;
-    if (btnStartDay.disabled) return;
-    btnStartDay.disabled = true;
-    const prev = btnStartDay.textContent;
-    btnStartDay.textContent = 'Starting...';
-    try {
-      if (typeof window.ChronosStartDay === 'function') {
-        await window.ChronosStartDay({ source: 'today-widget', target: 'day' });
-      } else {
-        const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'day' }) });
-        const data = await resp.json().catch(() => ({}));
-        if (!resp.ok || data.ok === false) throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
-      }
-      fetchToday({ silent: true });
-      try { window.ChronosBus?.emit?.('timer:show', { source: 'today-widget' }); } catch { }
-    } catch (err) {
-      console.error('[Chronos][Today] start failed', err);
-      alert(`Failed to start day: ${err?.message || err}`);
-    } finally {
-      btnStartDay.disabled = false;
-      btnStartDay.textContent = prev;
-    }
-  }
 
   refreshScheduleForTarget({ force: true });
   console.log('[Chronos][Today] Widget ready');

@@ -1,3 +1,21 @@
+"""
+Chronos `today` command orchestrator.
+
+This module currently hosts two scheduling engines:
+1) Kairos (active default path)
+2) Legacy scheduler (opt-in via `today legacy ...`)
+
+Why both exist:
+- Kairos provides modern candidate scoring/placement and DB-backed scheduling.
+- Legacy remains available for compatibility, regression checks, and gradual
+  migration of behavior.
+
+Reader map:
+- Status/template helpers: `build_status_context`, `extract_status_requirements`,
+  `select_template_for_day`
+- Legacy scheduling pipeline: `build_initial_schedule` through conflict phases
+- Main command router: `run(args, properties)`
+"""
 
 import os
 import yaml
@@ -181,6 +199,14 @@ def build_status_context(status_settings_data, current_status_data):
     """
     Normalizes status settings plus the pilot's current values so downstream scoring
     doesn't need to worry about file shapes.
+
+    Output contract:
+    {
+      "types": {
+        "<status_slug>": {"name": <display>, "rank": <int>, "values": {<level>: <numeric>}}
+      },
+      "current": {"<status_slug>": "<current_level>"}
+    }
     """
     context = {"types": {}, "current": {}}
 
@@ -235,6 +261,11 @@ def _collect_status_values(raw_value):
 def extract_status_requirements(source, status_context):
     """
     Returns { status_slug -> [allowed values] } based on status_requirements plus legacy keys.
+
+    Why this exists:
+    - New content usually uses explicit `status_requirements`.
+    - Older content may still use direct keys (e.g. `focus: high`).
+    - This function unifies both into one normalized requirement map.
     """
     if not isinstance(source, dict) or not status_context:
         return {}
@@ -271,6 +302,11 @@ def score_status_alignment(requirements, status_context):
     """
     Scores how well the current status matches a requirement dict.
     Positive scores mean closer alignment, negative scores penalize mismatches.
+
+    Scoring intent:
+    - Exact match: positive by status rank.
+    - Near miss with numeric level maps: mild penalty scaled by distance.
+    - Unknown/mismatch: gentle penalty (not catastrophic) to keep scheduler resilient.
     """
     if not requirements or not status_context:
         return 0
@@ -375,6 +411,10 @@ def select_template_for_day(day_of_week, status_context):
             total_score = score + day_bonus + status_bonus
             
             candidates.append((total_score, path, template))
+
+    # Note:
+    # this function is intentionally score-based (soft constraints). Kairos adds
+    # stricter place/status gating on top when resolving active windows.
 
     if not candidates:
         return {"path": fallback_path, "template": read_template(fallback_path), "score": 0}
@@ -1159,9 +1199,1091 @@ def identify_conflicts(schedule):
 
 def run(args, properties):
     """
-    The main entry point for the 'today' command.
-    Generates, resolves, and displays the daily schedule, with persistence.
+    Main entry point for `today`.
+
+    Execution modes (in priority order):
+    1) `today kairos ...`:
+       Explicit Kairos shadow/weekly tools (diagnostic-oriented; does not
+       always overwrite today's schedule).
+    2) `today ...` (without `legacy`):
+       Active Kairos scheduling path used by default for real schedule output.
+       Includes bridge conversion from Kairos blocks into legacy display/persist
+       shape for downstream compatibility.
+    3) `today legacy ...`:
+       Original legacy scheduler path kept for compatibility and fallback.
     """
+    args_lower = [str(a).lower() for a in (args or [])]
+    if "kairos" in args_lower:
+        # ---------------------------------------------------------------------
+        # Mode A: Explicit Kairos tooling (`today kairos ...`)
+        #
+        # This branch is intentionally verbose and diagnostic-first:
+        # - can run weekly skeleton generation
+        # - can run shadow schedule generation
+        # - prints debug summaries and decision metadata
+        # ---------------------------------------------------------------------
+        def _to_bool(raw, default=None):
+            if isinstance(raw, bool):
+                return raw
+            if raw is None:
+                return default
+            s = str(raw).strip().lower()
+            if s in ("1", "true", "yes", "on", "y"):
+                return True
+            if s in ("0", "false", "no", "off", "n"):
+                return False
+            return default
+
+        def _parse_kv_csv(raw):
+            out = {}
+            text = str(raw or "").strip()
+            if not text:
+                return out
+            for part in text.split(","):
+                p = part.strip()
+                if not p or "=" not in p:
+                    continue
+                k, v = p.split("=", 1)
+                k = str(k).strip()
+                v = str(v).strip()
+                if not k:
+                    continue
+                out[k] = v
+            return out
+
+        def _parse_kairos_context(raw_args):
+            # Parse CLI tail tokens into strongly-typed Kairos user_context.
+            #
+            # Convention:
+            # - parser is permissive (collects warnings instead of hard-failing)
+            # - unknown tokens are surfaced back to user for discoverability
+            ctx = {}
+            warnings = []
+            tail = list(raw_args or [])
+            for token_raw in tail:
+                token = str(token_raw).strip()
+                low = token.lower()
+                if not token:
+                    continue
+                if low == "week":
+                    ctx["_mode_week"] = True
+                elif low.startswith("template:"):
+                    ctx["force_template"] = token.split(":", 1)[1].strip()
+                elif low.startswith("days:"):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["_days"] = max(1, int(val))
+                    except Exception:
+                        warnings.append(f"Invalid days value: {val}")
+                elif low.startswith("status:"):
+                    kv = _parse_kv_csv(token.split(":", 1)[1].strip())
+                    if kv:
+                        ctx["status_overrides"] = kv
+                elif low.startswith("prioritize:"):
+                    kv = _parse_kv_csv(token.split(":", 1)[1].strip())
+                    if kv:
+                        ctx["prioritize"] = kv
+                elif low.startswith("custom_property:") or low.startswith("custom-property:"):
+                    prop_name = token.split(":", 1)[1].strip()
+                    if prop_name:
+                        ctx["custom_property"] = prop_name
+                    else:
+                        warnings.append("Invalid custom_property value: empty")
+                elif low.startswith("buffers:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid buffers value: {val}")
+                    else:
+                        ctx["use_buffers"] = bv
+                elif low.startswith("breaks:"):
+                    val = token.split(":", 1)[1].strip().lower()
+                    if val in ("timer", "profile", "true", "on", "yes"):
+                        ctx["use_timer_breaks"] = True
+                    elif val in ("none", "off", "false", "no"):
+                        ctx["use_timer_breaks"] = False
+                    else:
+                        warnings.append(f"Invalid breaks value: {val}")
+                elif low.startswith("sprints:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid sprints value: {val}")
+                    else:
+                        ctx["use_timer_sprints"] = bv
+                elif low.startswith("timer_profile:") or low.startswith("timer-profile:"):
+                    ctx["timer_profile"] = token.split(":", 1)[1].strip()
+                elif low == "ignore-trends":
+                    ctx["ignore_trends"] = True
+                elif low.startswith("ignore-trends:"):
+                    bv = _to_bool(token.split(":", 1)[1].strip(), None)
+                    ctx["ignore_trends"] = True if bv is None else bool(bv)
+                elif low.startswith("quickwins:"):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["quickwins_max_minutes"] = int(val)
+                    except Exception:
+                        warnings.append(f"Invalid quickwins value: {val}")
+                else:
+                    warnings.append(f"Unrecognized kairos arg: {token}")
+            return ctx, warnings
+
+        today_date = datetime.now().date()
+        today_str = today_date.strftime("%Y-%m-%d")
+        shadow_path = os.path.join(USER_DIR, "Schedules", f"schedule_{today_str}_kairos_shadow.yml")
+        # Only parse tokens *after* the `kairos` marker so base command args
+        # (e.g. `today`) do not leak into Kairos context.
+        kairos_index = next((idx for idx, value in enumerate(args_lower) if value == "kairos"), -1)
+        tail_args = args[kairos_index + 1:] if (args and kairos_index >= 0) else []
+        kairos_context, parse_warnings = _parse_kairos_context(tail_args)
+        try:
+            from Modules.Scheduler import KairosScheduler, WeeklyGenerator, save_weekly_skeleton
+            is_week_mode = bool(kairos_context.pop("_mode_week", False))
+            weekly_days = int(kairos_context.pop("_days", 7) or 7)
+            if is_week_mode:
+                # Weekly mode writes a planning scaffold (not today's executable
+                # schedule) so users can inspect load distribution first.
+                weekly = WeeklyGenerator(user_context=kairos_context)
+                payload = weekly.generate_skeleton(days=weekly_days, start_date=today_date)
+                weekly_path = os.path.join(USER_DIR, "Schedules", f"schedule_{today_str}_kairos_weekly_skeleton.yml")
+                save_weekly_skeleton(weekly_path, payload)
+                rows = payload.get("skeleton", []) if isinstance(payload, dict) else []
+                if not isinstance(rows, list):
+                    rows = []
+                plans = payload.get("commitment_plan", []) if isinstance(payload, dict) else []
+                if not isinstance(plans, list):
+                    plans = []
+                print(f"[Kairos] Weekly skeleton generated ({weekly_days} day(s)) from {today_str}.")
+                print(f"Saved to: {weekly_path}")
+                if kairos_context:
+                    print(f"Kairos context: {kairos_context}")
+                for warning in parse_warnings[:8]:
+                    print(f"[Kairos Arg] {warning}")
+                for row in rows[:14]:
+                    print(
+                        f"- {row.get('date')} {row.get('weekday')}: "
+                        f"valid={row.get('valid')} scheduled={row.get('scheduled_items')} "
+                        f"anchors={row.get('anchors')} windows={row.get('windows_found')}"
+                    )
+                if plans:
+                    print("Commitment load-balancer:")
+                    for plan in plans[:10]:
+                        print(
+                            f"- {plan.get('commitment')}: remaining={plan.get('remaining')} "
+                            f"days={plan.get('recommended_days')}"
+                        )
+                print("Main schedule unchanged (weekly skeleton mode).")
+                return
+
+            scheduler = KairosScheduler(user_context=kairos_context)
+            result = scheduler.generate_schedule(today_date) or {}
+            # Shadow output preserves raw Kairos payload for analysis/debug and
+            # intentionally avoids replacing main schedule file.
+            os.makedirs(os.path.dirname(shadow_path), exist_ok=True)
+            with open(shadow_path, "w", encoding="utf-8") as fh:
+                yaml.dump(result, fh, default_flow_style=False, allow_unicode=True)
+
+            blocks = result.get("blocks") if isinstance(result, dict) else []
+            if not isinstance(blocks, list):
+                blocks = []
+            notes = scheduler.phase_notes if isinstance(getattr(scheduler, "phase_notes", None), dict) else {}
+            gather = notes.get("gather", {}) if isinstance(notes.get("gather", {}), dict) else {}
+            filt = notes.get("filter", {}) if isinstance(notes.get("filter", {}), dict) else {}
+            construct = notes.get("construct", {}) if isinstance(notes.get("construct", {}), dict) else {}
+            print(f"[Kairos] Shadow schedule generated for {today_str}.")
+            print(f"Saved to: {shadow_path}")
+            if kairos_context:
+                print(f"Kairos context: {kairos_context}")
+            for warning in parse_warnings[:8]:
+                print(f"[Kairos Arg] {warning}")
+            print(f"Blocks: {len(blocks)}")
+            stats = result.get("stats") if isinstance(result, dict) else {}
+            if isinstance(stats, dict) and stats.get("valid") is False:
+                reason = stats.get("invalid_reason") or "unknown"
+                print(f"[Kairos] Schedule is INVALID ({reason}).")
+                anchors = notes.get("anchors", {}) if isinstance(notes, dict) else {}
+                conflicts = anchors.get("conflicts") if isinstance(anchors, dict) else []
+                if isinstance(conflicts, list) and conflicts:
+                    print("Anchor conflicts detected:")
+                    for c in conflicts[:5]:
+                        ov = c.get("overlaps") if isinstance(c, dict) else {}
+                        print(
+                            f"- {c.get('type')}:{c.get('name')} {c.get('start')}-{c.get('end')} "
+                            f"overlaps {ov.get('type')}:{ov.get('name')} {ov.get('start')}-{ov.get('end')}"
+                        )
+                print("What to do:")
+                print("- Edit one of the conflicting anchor items to remove overlap (start/end/duration).")
+                print("- Or make one item flexible by removing `reschedule: never` / `essential: true`.")
+                print("- Rerun: today kairos")
+            if notes:
+                print("Decision summary:")
+                print(
+                    f"- gather={gather.get('total', 0)} "
+                    f"kept={filt.get('kept', 0)} "
+                    f"rejected={filt.get('rejected', 0)}"
+                )
+                print(
+                    f"- dedupe_dropped={construct.get('dedupe_dropped', 0)} "
+                    f"scheduled={construct.get('scheduled', len(blocks))}"
+                )
+                windows = construct.get("windows") or []
+                if windows:
+                    for win in windows[:3]:
+                        print(
+                            f"- window {win.get('window')} {win.get('start')}-{win.get('end')}: "
+                            f"{win.get('placed', 0)} placed"
+                        )
+                unscheduled = construct.get("unscheduled_top") or []
+                if unscheduled:
+                    print("- top unscheduled:")
+                    for row in unscheduled[:3]:
+                        print(
+                            f"  - {row.get('type')}:{row.get('name')} "
+                            f"(score {row.get('score')})"
+                        )
+            for block in blocks[:25]:
+                name = block.get("name") or "Unnamed"
+                start = block.get("start_time") or "??:??"
+                score = block.get("kairos_score")
+                if score is None:
+                    print(f"- [{start}] {name}")
+                else:
+                    print(f"- [{start}] {name} (score {score})")
+            if len(blocks) > 25:
+                print(f"... {len(blocks) - 25} more blocks omitted.")
+            print("Main schedule unchanged (shadow mode).")
+        except Exception as e:
+            print(f"[Kairos] Shadow run failed: {e}")
+        return
+
+    # Kairos-first activation:
+    # Use Kairos as the default scheduler for `today` and `today reschedule`.
+    # Legacy scheduler remains below and can be reached with `today legacy ...`.
+    if "legacy" not in args_lower:
+        # ---------------------------------------------------------------------
+        # Mode B: Active Kairos path (default `today` behavior)
+        #
+        # Responsibilities of this bridge layer:
+        # - invoke Kairos with parsed runtime context
+        # - preserve old CLI semantics (`today inject`, display depth flags)
+        # - convert Kairos block schema into legacy schedule rows
+        # - persist schedule file in legacy-compatible shape
+        # ---------------------------------------------------------------------
+        today_date = datetime.now().date()
+        today_str = today_date.strftime("%Y-%m-%d")
+        schedule_path = schedule_path_for_date(today_str)
+        manual_mod_path = manual_modifications_path_for_date(today_str)
+        today_completion_data, _ = load_completion_payload(today_str)
+        completion_entries = normalize_completion_entries(today_completion_data)
+        reschedule_requested = "reschedule" in args_lower
+
+        # Keep old manual inject flow compatible.
+        if args and str(args[0]).lower() == "inject":
+            if len(args) < 4 or str(args[2]).lower() != "at":
+                print("Usage: today inject <name> at <HH:MM> [type:<type>]")
+                return
+            item_name = args[1]
+            time_str = args[3]
+            item_type = properties.get("type", "task")
+            from Modules.Scheduler import inject_item_in_file
+            inject_item_in_file(schedule_path, item_name, time_str, item_type)
+            reschedule_requested = True
+
+        def _parse_kv_csv(raw):
+            # Shared parser for status/prioritize inline key-value tokens:
+            # "a=1,b=2" -> {"a":"1","b":"2"}
+            out = {}
+            text = str(raw or "").strip()
+            if not text:
+                return out
+            for part in text.split(","):
+                p = part.strip()
+                if not p or "=" not in p:
+                    continue
+                k, v = p.split("=", 1)
+                k = str(k).strip()
+                v = str(v).strip()
+                if k:
+                    out[k] = v
+            return out
+
+        def _to_bool(raw, default=None):
+            # Tolerant bool parser for CLI property values.
+            if isinstance(raw, bool):
+                return raw
+            if raw is None:
+                return default
+            s = str(raw).strip().lower()
+            if s in ("1", "true", "yes", "on", "y"):
+                return True
+            if s in ("0", "false", "no", "off", "n"):
+                return False
+            return default
+
+        def _parse_active_kairos_context(raw_args):
+            """
+            Parse default `today` args into Kairos runtime context.
+
+            Notes for maintainers:
+            - this parser intentionally ignores display-only flags and `legacy`
+            - parsed values are passed directly to `KairosScheduler(user_context=...)`
+            """
+            ctx = {}
+            warnings = []
+            skip_tokens = {"reschedule", "routines", "subroutines", "microroutines", "legacy"}
+            for token_raw in (raw_args or []):
+                token = str(token_raw).strip()
+                low = token.lower()
+                if not token or low in skip_tokens:
+                    continue
+                if low.startswith("template:"):
+                    ctx["force_template"] = token.split(":", 1)[1].strip()
+                elif low.startswith("status:"):
+                    kv = _parse_kv_csv(token.split(":", 1)[1].strip())
+                    if kv:
+                        ctx["status_overrides"] = kv
+                elif low.startswith("prioritize:"):
+                    kv = _parse_kv_csv(token.split(":", 1)[1].strip())
+                    if kv:
+                        ctx["prioritize"] = kv
+                elif low.startswith("custom_property:") or low.startswith("custom-property:"):
+                    prop_name = token.split(":", 1)[1].strip()
+                    if prop_name:
+                        ctx["custom_property"] = prop_name
+                    else:
+                        warnings.append("Invalid custom_property value: empty")
+                elif low.startswith("buffers:"):
+                    bv = _to_bool(token.split(":", 1)[1].strip(), None)
+                    if bv is None:
+                        warnings.append(f"Invalid buffers value: {token}")
+                    else:
+                        ctx["use_buffers"] = bv
+                elif low.startswith("breaks:"):
+                    val = token.split(":", 1)[1].strip().lower()
+                    if val in ("timer", "profile", "true", "on", "yes"):
+                        ctx["use_timer_breaks"] = True
+                    elif val in ("none", "off", "false", "no"):
+                        ctx["use_timer_breaks"] = False
+                    else:
+                        warnings.append(f"Invalid breaks value: {val}")
+                elif low.startswith("sprints:"):
+                    bv = _to_bool(token.split(":", 1)[1].strip(), None)
+                    if bv is None:
+                        warnings.append(f"Invalid sprints value: {token}")
+                    else:
+                        ctx["use_timer_sprints"] = bv
+                elif low.startswith("timer_profile:") or low.startswith("timer-profile:"):
+                    ctx["timer_profile"] = token.split(":", 1)[1].strip()
+                elif low.startswith("quickwins:"):
+                    try:
+                        ctx["quickwins_max_minutes"] = int(token.split(":", 1)[1].strip())
+                    except Exception:
+                        warnings.append(f"Invalid quickwins value: {token}")
+                elif low == "ignore-trends":
+                    ctx["ignore_trends"] = True
+                elif low.startswith("ignore-trends:"):
+                    bv = _to_bool(token.split(":", 1)[1].strip(), None)
+                    ctx["ignore_trends"] = True if bv is None else bool(bv)
+            return ctx, warnings
+
+        def _to_dt(day_date, hhmm, fallback_dt=None):
+            # Convert HH:MM-like values from Kairos blocks into concrete datetime
+            # objects for legacy schedule display/persistence.
+            if isinstance(hhmm, datetime):
+                return hhmm
+            if hhmm is None:
+                return fallback_dt
+            try:
+                m = re.search(r"(\d{1,2}):(\d{2})", str(hhmm))
+                if not m:
+                    return fallback_dt
+                h = int(m.group(1))
+                mm = int(m.group(2))
+                return datetime.combine(day_date, datetime.min.time()).replace(hour=h, minute=mm)
+            except Exception:
+                return fallback_dt
+
+        def _kairos_blocks_to_legacy_schedule(blocks, day_date, window_defs=None):
+            """
+            Compatibility adapter: Kairos block payload -> legacy schedule row.
+
+            This keeps downstream display/completion/manual-modification code
+            working while Kairos is the active scheduler.
+            """
+            out = []
+            if not isinstance(blocks, list):
+                return out
+
+            # Build id->slug map for relation lookups (Kairos blocks usually carry
+            # numeric item IDs but not always explicit slugs).
+            id_to_slug = {}
+            try:
+                import sqlite3
+                from Modules.ItemManager import get_user_dir
+
+                db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+                ids = sorted({
+                    int(b.get("id"))
+                    for b in blocks
+                    if isinstance(b, dict) and str(b.get("id", "")).isdigit()
+                })
+                if ids and os.path.exists(db_path):
+                    conn = sqlite3.connect(db_path)
+                    cur = conn.cursor()
+                    placeholders = ",".join(["?"] * len(ids))
+                    rows = cur.execute(
+                        f"SELECT id, slug FROM items WHERE id IN ({placeholders})",
+                        ids,
+                    ).fetchall()
+                    conn.close()
+                    for rid, slug in rows:
+                        if rid is None or not slug:
+                            continue
+                        id_to_slug[int(rid)] = str(slug).strip()
+            except Exception:
+                id_to_slug = {}
+
+            for idx, b in enumerate(blocks):
+                if not isinstance(b, dict):
+                    continue
+                start_dt = _to_dt(day_date, b.get("start_time"))
+                end_dt = _to_dt(day_date, b.get("end_time"))
+                if start_dt is None:
+                    continue
+                dur = b.get("duration_minutes")
+                try:
+                    dur = int(dur) if dur is not None else None
+                except Exception:
+                    dur = None
+                if end_dt is None and dur is not None:
+                    end_dt = start_dt + timedelta(minutes=max(0, dur))
+                # Overnight blocks (for example Sleep 23:00 -> 07:00) may wrap
+                # in HH:MM form. Re-expand using duration when available.
+                if end_dt is not None and end_dt <= start_dt and dur is not None and dur > 0:
+                    end_dt = start_dt + timedelta(minutes=max(0, dur))
+                if end_dt is None:
+                    end_dt = start_dt + timedelta(minutes=30)
+                if dur is None:
+                    dur = max(0, int((end_dt - start_dt).total_seconds() / 60))
+                name = b.get("name") or f"Block {idx + 1}"
+                item_type = b.get("type") or "task"
+                anchored = str(b.get("window_name") or "").upper() == "ANCHOR" or str(b.get("reschedule") or "").strip().lower() in ("never", "false", "no")
+                block_slug = str(b.get("slug") or "").strip()
+                block_id = b.get("id")
+                if not block_slug:
+                    try:
+                        block_slug = id_to_slug.get(int(block_id), "") if block_id is not None else ""
+                    except Exception:
+                        block_slug = ""
+                row = {
+                    "name": name,
+                    "type": item_type,
+                    "start_time": start_dt,
+                    "end_time": end_dt,
+                    "duration": dur,
+                    "children": [],
+                    "importance": b.get("kairos_score", 0),
+                    "status": b.get("status", "pending"),
+                    "anchored": anchored,
+                    "reschedule": b.get("reschedule", "never" if anchored else "auto"),
+                    "window_name": b.get("window_name"),
+                    "block_id": b.get("block_id"),
+                    "_slug": block_slug or "",
+                }
+                raw_tags = b.get("tags")
+                norm_tags = []
+                if isinstance(raw_tags, list):
+                    norm_tags = [str(t).strip().lower() for t in raw_tags if str(t).strip()]
+                elif isinstance(raw_tags, str):
+                    txt = raw_tags.strip()
+                    if txt:
+                        try:
+                            parsed_tags = json.loads(txt)
+                            if isinstance(parsed_tags, list):
+                                norm_tags = [str(t).strip().lower() for t in parsed_tags if str(t).strip()]
+                            else:
+                                norm_tags = [str(t).strip().lower() for t in txt.split(",") if str(t).strip()]
+                        except Exception:
+                            norm_tags = [str(t).strip().lower() for t in txt.split(",") if str(t).strip()]
+                raw_payload = b.get("_raw")
+                if isinstance(raw_payload, dict):
+                    more_tags = raw_payload.get("tags")
+                    if isinstance(more_tags, list):
+                        norm_tags.extend([str(t).strip().lower() for t in more_tags if str(t).strip()])
+                    elif isinstance(more_tags, str):
+                        norm_tags.extend([str(t).strip().lower() for t in more_tags.split(",") if str(t).strip()])
+                row["_tags"] = sorted(set(t for t in norm_tags if t))
+                out.append(row)
+
+            out.sort(key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()))
+
+            # Surface real Kairos window placements as nested container nodes
+            # (for example "Workout Window" with its scheduled children).
+            reserved_windows = {"ANCHOR", "GAP", "INJECTION", "TIMEBLOCK", "HIERARCHY", "WINDOW"}
+            grouped_by_window = {}
+            for row in out:
+                wn = str(row.get("window_name") or "").strip()
+                if not wn or wn.upper() in reserved_windows:
+                    continue
+                grouped_by_window.setdefault(wn, []).append(row)
+
+            window_def_map = {}
+            window_def_order = []
+            if isinstance(window_defs, list):
+                for w in window_defs:
+                    if not isinstance(w, dict):
+                        continue
+                    nm = str(w.get("window") or w.get("name") or "").strip()
+                    if not nm:
+                        continue
+                    if nm not in window_def_map:
+                        window_def_order.append(nm)
+                    window_def_map[nm] = w
+
+            if grouped_by_window or window_def_map:
+                existing_ids = {id(r) for rows in grouped_by_window.values() for r in rows}
+                out = [r for r in out if id(r) not in existing_ids]
+
+                def _slug_text(value):
+                    s = str(value or "").strip().lower()
+                    return re.sub(r"[^a-z0-9]+", "_", s).strip("_") or "window"
+
+                def _tags_from_row(row):
+                    inline = row.get("_tags")
+                    if isinstance(inline, list) and inline:
+                        return {str(t).strip().lower() for t in inline if str(t).strip()}
+                    tags = row.get("tags")
+                    vals = []
+                    if isinstance(tags, list):
+                        vals.extend([str(t).strip().lower() for t in tags if str(t).strip()])
+                    elif isinstance(tags, str):
+                        txt = tags.strip()
+                        if txt:
+                            try:
+                                parsed = json.loads(txt)
+                                if isinstance(parsed, list):
+                                    vals.extend([str(t).strip().lower() for t in parsed if str(t).strip()])
+                                else:
+                                    vals.extend([str(t).strip().lower() for t in txt.split(",") if str(t).strip()])
+                            except Exception:
+                                vals.extend([str(t).strip().lower() for t in txt.split(",") if str(t).strip()])
+                    raw = row.get("_raw")
+                    if isinstance(raw, dict):
+                        raw_tags = raw.get("tags")
+                        if isinstance(raw_tags, list):
+                            vals.extend([str(t).strip().lower() for t in raw_tags if str(t).strip()])
+                        elif isinstance(raw_tags, str):
+                            vals.extend([str(t).strip().lower() for t in raw_tags.split(",") if str(t).strip()])
+                    return set(v for v in vals if v)
+
+                ordered_names = []
+                for nm in window_def_order:
+                    if nm not in ordered_names:
+                        ordered_names.append(nm)
+                for nm in grouped_by_window.keys():
+                    if nm not in ordered_names:
+                        ordered_names.append(nm)
+
+                for window_name in ordered_names:
+                    rows = grouped_by_window.get(window_name) or []
+                    w_meta = window_def_map.get(window_name) or {}
+                    # Fallback grouping: if Kairos couldn't place items directly
+                    # into this window (for example past window with start_from_now),
+                    # group matching items by filter tags under the window container.
+                    if not rows and isinstance(w_meta, dict):
+                        fmeta = w_meta.get("filter") if isinstance(w_meta.get("filter"), dict) else {}
+                        wanted_tags = set()
+                        if isinstance(fmeta, dict):
+                            rtags = fmeta.get("tags")
+                            if isinstance(rtags, list):
+                                wanted_tags = {str(t).strip().lower() for t in rtags if str(t).strip()}
+                            elif isinstance(rtags, str):
+                                wanted_tags = {str(t).strip().lower() for t in rtags.split(",") if str(t).strip()}
+                        if wanted_tags:
+                            captured = []
+                            remaining = []
+                            for candidate in out:
+                                ctype = str(candidate.get("type") or "").lower()
+                                if ctype in {"routine", "subroutine", "microroutine", "day", "week", "timeblock"}:
+                                    remaining.append(candidate)
+                                    continue
+                                if candidate.get("anchored"):
+                                    remaining.append(candidate)
+                                    continue
+                                if _tags_from_row(candidate) & wanted_tags:
+                                    captured.append(candidate)
+                                else:
+                                    remaining.append(candidate)
+                            if captured:
+                                out = remaining
+                                rows = captured
+                    rows.sort(key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()))
+                    starts = [r.get("start_time") for r in rows if isinstance(r.get("start_time"), datetime)]
+                    ends = [r.get("end_time") for r in rows if isinstance(r.get("end_time"), datetime)]
+                    w_start = min(starts) if starts else None
+                    w_end = max(ends) if ends else None
+                    if w_start is None and w_end is None and isinstance(w_meta, dict):
+                        # Empty surfaced window: seed from declared window
+                        # bounds so API/dashboard include it as a visible row.
+                        w_start = _to_dt(day_date, w_meta.get("start"))
+                        w_end = _to_dt(day_date, w_meta.get("end"))
+                        if (
+                            isinstance(w_start, datetime)
+                            and isinstance(w_end, datetime)
+                            and w_end <= w_start
+                        ):
+                            w_end = w_start + timedelta(minutes=30)
+                    w_dur = 0
+                    if isinstance(w_start, datetime) and isinstance(w_end, datetime) and w_end >= w_start:
+                        w_dur = int((w_end - w_start).total_seconds() / 60)
+                    parent = {
+                        "name": window_name,
+                        "type": "microroutine",
+                        "start_time": w_start,
+                        "end_time": w_end,
+                        "duration": w_dur,
+                        "children": rows,
+                        "importance": 0,
+                        "status": "active",
+                        "anchored": False,
+                        "reschedule": "auto",
+                        "window_name": "WINDOW",
+                        "block_id": f"window::{_slug_text(window_name)}",
+                        "_slug": f"microroutine::{str(window_name).strip().lower()}",
+                        "_synthetic_parent": True,
+                        "_window_container": True,
+                    }
+                    for child in rows:
+                        child["_window_parent_locked"] = True
+                    out.append(parent)
+
+                out.sort(key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()))
+
+            # Try to rebuild a nested tree using core mirror relations for any
+            # scheduled blocks that can be linked parent->child.
+            slugs_in_schedule = [r.get("_slug") for r in out if r.get("_slug")]
+            if not slugs_in_schedule:
+                for r in out:
+                    r.pop("_slug", None)
+                return out
+
+            parent_candidates = {}
+            relation_edges = []
+            try:
+                import sqlite3
+                from Modules.ItemManager import get_user_dir
+
+                db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+                if os.path.exists(db_path):
+                    conn = sqlite3.connect(db_path)
+                    cur = conn.cursor()
+                    frontier = set(slugs_in_schedule)
+                    seen_frontier = set()
+                    while frontier:
+                        current = sorted(frontier - seen_frontier)
+                        if not current:
+                            break
+                        seen_frontier.update(current)
+                        placeholders = ",".join(["?"] * len(current))
+                        rows = cur.execute(
+                            f"""
+                            SELECT parent_slug, child_slug
+                            FROM relations
+                            WHERE child_slug IN ({placeholders})
+                            """,
+                            current,
+                        ).fetchall()
+                        next_frontier = set()
+                        for parent_slug, child_slug in rows:
+                            if not parent_slug or not child_slug:
+                                continue
+                            pslug = str(parent_slug).strip()
+                            cslug = str(child_slug).strip()
+                            if not pslug or not cslug:
+                                continue
+                            relation_edges.append((pslug, cslug))
+                            parent_candidates.setdefault(cslug, []).append(pslug)
+                            if pslug not in seen_frontier:
+                                next_frontier.add(pslug)
+                        frontier = next_frontier
+                    conn.close()
+            except Exception:
+                parent_candidates = {}
+                relation_edges = []
+
+            if not parent_candidates:
+                for r in out:
+                    r.pop("_slug", None)
+                return out
+
+            row_by_slug = {r.get("_slug"): r for r in out if r.get("_slug")}
+            container_types = {"routine", "subroutine", "microroutine"}
+
+            # Add missing container ancestors so output can be nested even when
+            # Kairos only placed leaf items for this run.
+            missing_parent_slugs = sorted({
+                pslug
+                for pslug, _ in relation_edges
+                if pslug and pslug not in row_by_slug
+            })
+            if missing_parent_slugs:
+                try:
+                    import sqlite3
+                    import json
+                    from Modules.ItemManager import get_user_dir
+
+                    db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+                    if os.path.exists(db_path):
+                        conn = sqlite3.connect(db_path)
+                        cur = conn.cursor()
+                        chunk_size = 500
+                        for i in range(0, len(missing_parent_slugs), chunk_size):
+                            chunk = missing_parent_slugs[i:i + chunk_size]
+                            placeholders = ",".join(["?"] * len(chunk))
+                            rows = cur.execute(
+                                f"""
+                                SELECT slug, name, type, status, raw_json
+                                FROM items
+                                WHERE slug IN ({placeholders})
+                                """,
+                                chunk,
+                            ).fetchall()
+                            for slug, name, item_type, status, raw_json in rows:
+                                sslug = str(slug or "").strip()
+                                if not sslug or sslug in row_by_slug:
+                                    continue
+                                t = str(item_type or "").strip().lower()
+                                if t not in container_types:
+                                    continue
+                                raw = {}
+                                try:
+                                    parsed = json.loads(raw_json) if raw_json else {}
+                                    if isinstance(parsed, dict):
+                                        raw = parsed
+                                except Exception:
+                                    raw = {}
+                                row = {
+                                    "name": name or raw.get("name") or sslug.split("::", 1)[-1],
+                                    "type": t,
+                                    "start_time": None,
+                                    "end_time": None,
+                                    "duration": 0,
+                                    "children": [],
+                                    "importance": 0,
+                                    "status": status or raw.get("status") or "pending",
+                                    "anchored": False,
+                                    "reschedule": raw.get("reschedule", "auto"),
+                                    "window_name": "HIERARCHY",
+                                    "block_id": f"{sslug}@hierarchy",
+                                    "_slug": sslug,
+                                    "_synthetic_parent": True,
+                                }
+                                row_by_slug[sslug] = row
+                                out.append(row)
+                        conn.close()
+                except Exception:
+                    pass
+
+            def _time_contains(parent_row, child_row):
+                p_start = parent_row.get("start_time")
+                p_end = parent_row.get("end_time")
+                c_start = child_row.get("start_time")
+                c_end = child_row.get("end_time")
+                if child_row.get("_window_container"):
+                    return True
+                if not all(isinstance(v, datetime) for v in (p_start, p_end, c_start, c_end)):
+                    if parent_row.get("_synthetic_parent"):
+                        return True
+                    return False
+                return p_start <= c_start and c_end <= p_end
+
+            def _is_valid_hierarchy(parent_type, child_type):
+                pt = str(parent_type or "").lower()
+                ct = str(child_type or "").lower()
+                if pt not in container_types:
+                    return False
+                # Containers can nest flexibly, matching real template structures:
+                # routine -> subroutine|microroutine|leaf
+                # subroutine -> microroutine|leaf
+                # microroutine -> leaf
+                if ct == "subroutine":
+                    return pt == "routine"
+                if ct == "microroutine":
+                    return pt in ("routine", "subroutine")
+                # Leaf items can be children of any container.
+                return ct not in container_types
+
+            def pick_parent(child_row, parent_slugs):
+                if child_row.get("_window_parent_locked"):
+                    return None
+                best = None
+                best_start = None
+                for pslug in parent_slugs:
+                    prow = row_by_slug.get(pslug)
+                    if not prow:
+                        continue
+                    parent_type = str(prow.get("type") or "").lower()
+                    child_type = str(child_row.get("type") or "").lower()
+                    if not _is_valid_hierarchy(parent_type, child_type):
+                        continue
+                    if not _time_contains(prow, child_row):
+                        continue
+                    p_start = prow.get("start_time")
+                    if not isinstance(p_start, datetime):
+                        if prow.get("_synthetic_parent"):
+                            return pslug
+                        continue
+                    # Pick the closest containing parent by latest start-time.
+                    if best is None or p_start > best_start:
+                        best = pslug
+                        best_start = p_start
+                return best
+
+            parent_for_slug = {}
+            for child_slug, parents in parent_candidates.items():
+                child_row = row_by_slug.get(child_slug)
+                if not child_row:
+                    continue
+                chosen = pick_parent(child_row, parents or [])
+                if chosen:
+                    parent_for_slug[child_slug] = chosen
+
+            preserved_window_children = {}
+            for r in out:
+                if r.get("_window_container") and isinstance(r.get("children"), list) and r.get("children"):
+                    preserved_window_children[id(r)] = list(r.get("children") or [])
+            for r in out:
+                r["children"] = []
+
+            roots = []
+            for r in out:
+                slug = r.get("_slug")
+                parent_slug = parent_for_slug.get(slug)
+                if not slug or not parent_slug:
+                    roots.append(r)
+                    continue
+                parent_row = row_by_slug.get(parent_slug)
+                if not parent_row or parent_row is r:
+                    roots.append(r)
+                    continue
+                parent_row.setdefault("children", []).append(r)
+
+            # Re-attach children that were pre-bound to synthetic window
+            # containers during window grouping fallback.
+            if preserved_window_children:
+                for node in out:
+                    kids = preserved_window_children.get(id(node))
+                    if kids:
+                        node.setdefault("children", []).extend(kids)
+
+            # Final pass: if surfaced window containers still have no children,
+            # move matching top-level leaf rows under them by window filter tags.
+            window_tag_filters = {}
+            for wn, meta in (window_def_map or {}).items():
+                fmeta = {}
+                if isinstance(meta, dict):
+                    cand = meta.get("filter")
+                    if not isinstance(cand, dict):
+                        cand = meta.get("filters")
+                    if isinstance(cand, dict):
+                        fmeta = cand
+                wanted_tags = set()
+                rtags = fmeta.get("tags") if isinstance(fmeta, dict) else None
+                if isinstance(rtags, list):
+                    wanted_tags = {str(t).strip().lower() for t in rtags if str(t).strip()}
+                elif isinstance(rtags, str):
+                    wanted_tags = {str(t).strip().lower() for t in rtags.split(",") if str(t).strip()}
+                if wanted_tags:
+                    window_tag_filters[str(wn)] = wanted_tags
+
+            if window_tag_filters:
+                name_to_window = {}
+                for node in out:
+                    if node.get("_window_container"):
+                        name_to_window[str(node.get("name") or "")] = node
+                if name_to_window:
+                    # Only steal top-level leaves to avoid disturbing routine trees.
+                    remaining_roots = []
+                    staged_for_window = {k: [] for k in name_to_window.keys()}
+                    for r in roots:
+                        if (r.get("children") or []):
+                            remaining_roots.append(r)
+                            continue
+                        if str(r.get("type") or "").lower() in {"timeblock", "day", "week", "routine", "subroutine", "microroutine"}:
+                            remaining_roots.append(r)
+                            continue
+                        if r.get("anchored"):
+                            remaining_roots.append(r)
+                            continue
+                        moved = False
+                        row_tags = _tags_from_row(r)
+                        for wn, wanted in window_tag_filters.items():
+                            wnode = name_to_window.get(wn)
+                            if not wnode:
+                                continue
+                            if row_tags & wanted:
+                                staged_for_window[wn].append(r)
+                                moved = True
+                                break
+                        if not moved:
+                            remaining_roots.append(r)
+                    for wn, items_for_window in staged_for_window.items():
+                        if not items_for_window:
+                            continue
+                        wnode = name_to_window.get(wn)
+                        if not wnode:
+                            continue
+                        wnode.setdefault("children", []).extend(items_for_window)
+                    roots = remaining_roots
+
+            def sort_children(items):
+                items.sort(
+                    key=lambda x: (
+                        1 if x.get("_window_container") else 0,
+                        x.get("start_time") or datetime.now(),
+                        str(x.get("name") or "").lower(),
+                    )
+                )
+                for node in items:
+                    kids = node.get("children") or []
+                    if kids:
+                        sort_children(kids)
+
+            sort_children(roots)
+
+            # Backfill synthetic container timing from descendants so display
+            # renders proper spans and durations for routine hierarchy.
+            def _backfill_container_times(node):
+                kids = node.get("children") or []
+                for child in kids:
+                    _backfill_container_times(child)
+                if not kids:
+                    return
+                if not node.get("_synthetic_parent"):
+                    return
+                starts = [k.get("start_time") for k in kids if isinstance(k.get("start_time"), datetime)]
+                ends = [k.get("end_time") for k in kids if isinstance(k.get("end_time"), datetime)]
+                if not starts or not ends:
+                    return
+                sdt = min(starts)
+                edt = max(ends)
+                node["start_time"] = sdt
+                node["end_time"] = edt
+                node["duration"] = max(0, int((edt - sdt).total_seconds() / 60))
+
+            for root in roots:
+                _backfill_container_times(root)
+
+            def strip_internal(items):
+                for node in items:
+                    node.pop("_slug", None)
+                    node.pop("_tags", None)
+                    node.pop("_synthetic_parent", None)
+                    node.pop("_window_container", None)
+                    node.pop("_window_parent_locked", None)
+                    kids = node.get("children") or []
+                    if kids:
+                        strip_internal(kids)
+
+            strip_internal(roots)
+            return roots
+
+        if reschedule_requested or not os.path.exists(schedule_path):
+            # Fresh generation path: ask Kairos to build schedule now.
+            try:
+                from Modules.Scheduler import KairosScheduler
+                kairos_context, parse_warnings = _parse_active_kairos_context(args)
+                if reschedule_requested:
+                    kairos_context["start_from_now"] = True
+                scheduler = KairosScheduler(user_context=kairos_context)
+                result = scheduler.generate_schedule(today_date) or {}
+                notes = scheduler.phase_notes if isinstance(getattr(scheduler, "phase_notes", None), dict) else {}
+                stats = result.get("stats") if isinstance(result, dict) else {}
+                if isinstance(stats, dict) and stats.get("valid") is False:
+                    reason = stats.get("invalid_reason") or "unknown"
+                    print(f"[Kairos] Schedule is INVALID ({reason}).")
+                    anchors = notes.get("anchors", {}) if isinstance(notes, dict) else {}
+                    conflicts = anchors.get("conflicts") if isinstance(anchors, dict) else []
+                    if isinstance(conflicts, list) and conflicts:
+                        print("Anchor conflicts detected:")
+                        for c in conflicts[:5]:
+                            ov = c.get("overlaps") if isinstance(c, dict) else {}
+                            print(
+                                f"- {c.get('type')}:{c.get('name')} {c.get('start')}-{c.get('end')} "
+                                f"overlaps {ov.get('type')}:{ov.get('name')} {ov.get('start')}-{ov.get('end')}"
+                            )
+                    print("What to do:")
+                    print("- Edit one of the conflicting anchor items to remove overlap (start/end/duration).")
+                    print("- Or make one item flexible by removing `reschedule: never` / `essential: true`.")
+                    print("- Rerun: today reschedule")
+                    return
+
+                blocks = result.get("blocks") if isinstance(result, dict) else []
+                construct_notes = notes.get("construct", {}) if isinstance(notes, dict) else {}
+                resolved_schedule = _kairos_blocks_to_legacy_schedule(
+                    blocks,
+                    today_date,
+                    window_defs=(construct_notes.get("windows") if isinstance(construct_notes, dict) else None),
+                )
+
+                manual_modifications = load_manual_modifications(manual_mod_path)
+                if manual_modifications:
+                    # Manual modifications are still applied post-Kairos so
+                    # existing trim/cut/change workflows remain valid.
+                    print("Applying manual modifications...")
+                    try:
+                        resolved_schedule = apply_manual_modifications(resolved_schedule, manual_modifications)
+                    except Exception as mod_err:
+                        print(f"Warning: Failed applying manual modifications: {mod_err}")
+
+                if os.path.exists(schedule_path):
+                    try:
+                        archive_dir = os.path.join(USER_DIR, "Archive", "Schedules")
+                        os.makedirs(archive_dir, exist_ok=True)
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        archive_path = os.path.join(archive_dir, f"schedule_{today_str}_{timestamp}.yml")
+                        from shutil import copy2
+                        copy2(schedule_path, archive_path)
+                    except Exception as e:
+                        print(f"Warning: Failed to archive previous schedule: {e}")
+
+                with open(schedule_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(resolved_schedule, f, default_flow_style=False)
+                print(f"Kairos schedule saved to: {schedule_path}")
+                if kairos_context:
+                    print(f"[Kairos] Context: {kairos_context}")
+                for w in parse_warnings[:8]:
+                    print(f"[Kairos Arg] {w}")
+                all_conflicts = []
+            except Exception as e:
+                print(f"[Kairos] Active scheduling failed: {e}")
+                return
+        else:
+            # Reuse existing persisted schedule if no reschedule requested.
+            try:
+                with open(schedule_path, 'r', encoding='utf-8') as f:
+                    resolved_schedule = yaml.safe_load(f) or []
+            except Exception as e:
+                print(f"Failed loading schedule at {schedule_path}: {e}")
+                return
+            all_conflicts = []
+
+        display_level = float('inf')
+        if "routines" in args:
+            display_level = 0
+        elif "subroutines" in args:
+            display_level = 1
+        elif "microroutines" in args:
+            display_level = 2
+        display_schedule(resolved_schedule, all_conflicts, indent=0, display_level=display_level, today_completion_data=today_completion_data)
+        return
+
+    # -------------------------------------------------------------------------
+    # Mode C: Legacy scheduler path (`today legacy ...`)
+    #
+    # This path is preserved for compatibility and parity testing while Kairos
+    # continues to absorb legacy behaviors.
+    # -------------------------------------------------------------------------
     reschedule_requested = "reschedule" in args
     resolved_schedule = []
     all_conflicts = []
@@ -1174,6 +2296,21 @@ def run(args, properties):
     completion_entries = normalize_completion_entries(today_completion_data)
     rescheduled_items_summary = []
     skipped_reschedule_summary = []
+
+    # --- CLI Subcommand Parsing (Legacy) ---
+    if args and args[0] == "inject":
+        # usage: today inject <name> at <HH:MM> [type:<type>]
+        if len(args) < 4 or args[2].lower() != "at":
+             print("Usage: today inject <name> at <HH:MM> [type:<type>]")
+             return
+
+        item_name = args[1]
+        time_str = args[3]
+        item_type = properties.get("type", "task")
+         
+        from Modules.Scheduler import inject_item_in_file
+        inject_item_in_file(schedule_path, item_name, time_str, item_type)
+        reschedule_requested = True
 
     if reschedule_requested or not os.path.exists(schedule_path):
         # --- Full Generation and Resolution Process ---
@@ -1232,8 +2369,8 @@ def run(args, properties):
         if manual_modifications:
             print("Applying manual modifications...")
             schedule = apply_manual_modifications(schedule, manual_modifications)
-            # Clear manual modifications after applying them
-            save_manual_modifications([], manual_mod_path)
+            # CRITICAL FIX: Do NOT clear manual modifications. They must persist for future reschedules (idempotency).
+            # save_manual_modifications([], manual_mod_path)
 
         # Evaluate commitments and trigger actions before final resolution
         try:

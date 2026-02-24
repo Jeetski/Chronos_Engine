@@ -1,0 +1,5 @@
+name: 'Tag: Admin'
+mode: tags
+value: admin
+use_momentum: false
+kind: default

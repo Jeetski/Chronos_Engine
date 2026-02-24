@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-22T13:36:08Z",
+  "generated_at": "2026-02-24T21:50:23Z",
   "commands": {
     "add": {
       "aliases": [],
@@ -87,6 +87,25 @@
             "item_name"
           ],
           "allow_properties": false
+        }
+      ]
+    },
+    "anchor": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "anchor <item_name> [scope:today|item]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "scope"
+          ]
         }
       ]
     },
@@ -246,6 +265,13 @@
           "allow_properties": false
         }
       ]
+    },
+    "clear": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [],
+      "syntax": []
     },
     "cls": {
       "aliases": [],
@@ -888,6 +914,26 @@
       ],
       "syntax": []
     },
+    "merge": {
+      "aliases": [],
+      "subcommands": [
+        "with"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "merge <item_name> with <other_item_name>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name",
+            "kw:with",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
     "miss": {
       "aliases": [],
       "subcommands": [],
@@ -1113,6 +1159,30 @@
         }
       ]
     },
+    "quickwins": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "quickwins [minutes:N] [days:N] [limit:N] [missed:true|false] [overdue:true|false] [due:true|false] [date:YYYY-MM-DD] [format:json]"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": true,
+          "property_keys": [
+            "date",
+            "days",
+            "due",
+            "format",
+            "limit",
+            "minutes",
+            "missed",
+            "overdue"
+          ]
+        }
+      ]
+    },
     "redeem": {
       "aliases": [],
       "subcommands": [
@@ -1137,15 +1207,19 @@
       "subcommands": [
         "all",
         "commands",
+        "full",
         "items",
-        "properties"
+        "properties",
+        "settings"
       ],
       "subcommand_groups": {},
       "usage": [
         "register commands",
         "register items",
-        "register properties",
-        "register all"
+        "register settings   (Fast: categories, statuses, defaults)",
+        "register properties (Slow: deep scan of all file keys)",
+        "register all        (commands + items + settings)",
+        "register full       (all + properties)"
       ],
       "syntax": [
         {
@@ -1365,7 +1439,7 @@
         {
           "slots": [
             "kw:sync",
-            "choice*:matrix|core|events|memory|trends|trends_digest|all"
+            "choice*:matrix|core|events|behavior|journal|memory|trends|trends_digest|all"
           ],
           "allow_properties": false
         },
@@ -1422,6 +1496,23 @@
         }
       ]
     },
+    "shift": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "shift <item_name> <minutes>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
     "skip": {
       "aliases": [],
       "subcommands": [],
@@ -1451,6 +1542,82 @@
             "value"
           ],
           "allow_properties": false
+        }
+      ]
+    },
+    "sound": {
+      "aliases": [
+        "sounds"
+      ],
+      "subcommands": [
+        "all",
+        "s"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "sound",
+        "sound <startup|done|error|exit>",
+        "sound <startup|done|error|exit> <on|off>",
+        "sound <on|off>",
+        "sound all <on|off>",
+        "sounds <on|off>"
+      ],
+      "syntax": [
+        {
+          "slots": [],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "value",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:all",
+            "value"
+          ],
+          "allow_properties": false
+        },
+        {
+          "slots": [
+            "kw:s",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "split": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "split <item_name> [count:<n>]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "count"
+          ]
         }
       ]
     },
@@ -1498,6 +1665,47 @@
         }
       ]
     },
+    "stretch": {
+      "aliases": [],
+      "subcommands": [],
+      "subcommand_groups": {},
+      "usage": [
+        "stretch <item_name> <amount_in_minutes>"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "item_name",
+            "value"
+          ],
+          "allow_properties": false
+        }
+      ]
+    },
+    "template": {
+      "aliases": [],
+      "subcommands": [
+        "save"
+      ],
+      "subcommand_groups": {},
+      "usage": [
+        "template save day [name:<name>] [weekday:<Weekday>] [overwrite:true|false]"
+      ],
+      "syntax": [
+        {
+          "slots": [
+            "kw:save",
+            "kw:day"
+          ],
+          "allow_properties": true,
+          "property_keys": [
+            "name",
+            "overwrite",
+            "weekday"
+          ]
+        }
+      ]
+    },
     "theme": {
       "aliases": [],
       "subcommands": [],
@@ -1507,7 +1715,7 @@
         "Subcommands:",
         "list                 List available themes",
         "current              Show current theme/background/text",
-        "set <name>           Set theme by name (from theme_settings.yml)",
+        "set <name>           Set theme by name (from console_theme_settings.yml)",
         "set-colors [background:<name|#hex>] [text:<name|#hex>]",
         "Set explicit console colors (overrides theme)"
       ],
@@ -1541,9 +1749,12 @@
         "pause",
         "profiles",
         "resume",
+        "skip",
         "start",
+        "start_over",
         "status",
-        "stop"
+        "stop",
+        "stretch"
       ],
       "subcommand_groups": {
         "profiles": [
@@ -1556,7 +1767,7 @@
       "usage": [
         "timer start <profile> [type:<item_type> name:<item_name>] [cycles:N] [auto_advance:true|false]",
         "timer pause | resume | stop | status",
-        "timer confirm yes|no",
+        "timer confirm yes|skip|start_over|stretch [minutes]",
         "timer profiles list | view <name> | save <name> [k:v ...] | delete <name>"
       ],
       "syntax": [
@@ -1837,6 +2048,7 @@
     }
   },
   "aliases": {
-    "dash": "dashboard"
+    "dash": "dashboard",
+    "sounds": "sound"
   }
 }

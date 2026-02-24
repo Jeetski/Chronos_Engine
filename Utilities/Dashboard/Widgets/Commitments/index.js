@@ -23,7 +23,7 @@ export function mount(el) {
       .cm-status.success { color:#5bdc82; }
       .cm-list { display:flex; flex-direction:column; gap:10px; flex:1 1 auto; min-height:0; overflow:auto; }
       .cm-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
-      .cm-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+      .cm-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .cm-name { font-size:15px; font-weight:700; }
       .cm-pill { padding:2px 10px; border-radius:999px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
       .cm-pill.pending { background:rgba(122,162,247,0.15); color:#7aa2f7; }
@@ -33,6 +33,13 @@ export function mount(el) {
       .cm-tags { display:flex; flex-wrap:wrap; gap:4px; font-size:11px; }
       .cm-tag { padding:2px 6px; border-radius:999px; border:1px solid rgba(255,255,255,0.08); }
       .cm-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+      .cm-checkin { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+      .cm-checkin-note { font-size:12px; color:var(--text-dim); }
+      .cm-head-left { display:flex; align-items:center; gap:8px; min-width:0; }
+      .cm-expander { font-size:12px; color:var(--text-dim); width:14px; text-align:center; user-select:none; }
+      .cm-head-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+      .cm-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
+      .cm-item.expanded .cm-detail { display:flex; }
     </style>
     <div class="header">
       <div class="title">Commitments</div>
@@ -100,6 +107,7 @@ export function mount(el) {
   let commitments = [];
   let counts = { total: 0, met: 0, violations: 0, pending: 0 };
   let loading = false;
+  const expanded = new Set();
 
   function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
@@ -140,7 +148,7 @@ export function mount(el) {
     const filtered = commitments.filter(item => {
       if (wanted !== 'all' && (item.status || '').toLowerCase() !== wanted) return false;
       if (!term) return true;
-      const hay = `${item.name || ''} ${item.description || ''} ${item.period || ''} ${(item.associated || []).map(a => a.name || '').join(' ')}`.toLowerCase();
+      const hay = `${item.name || ''} ${item.description || ''} ${item.period || ''} ${(item.targets || []).map(a => a.name || '').join(' ')}`.toLowerCase();
       return hay.includes(term);
     });
     if (!filtered.length) {
@@ -163,16 +171,59 @@ export function mount(el) {
     filtered.forEach(item => {
       const card = document.createElement('div');
       card.className = 'cm-item';
+      const itemName = item.name || 'Commitment';
+      const isExpanded = expanded.has(itemName.toLowerCase());
+      if (isExpanded) card.classList.add('expanded');
+
       const head = document.createElement('div');
       head.className = 'cm-head';
+      const headLeft = document.createElement('div');
+      headLeft.className = 'cm-head-left';
+      const expander = document.createElement('div');
+      expander.className = 'cm-expander';
+      expander.textContent = isExpanded ? '▼' : '▶';
       const name = document.createElement('div');
       name.className = 'cm-name';
-      name.textContent = item.name || 'Commitment';
+      name.textContent = itemName;
       const pill = document.createElement('div');
       const state = (item.status || 'pending').toLowerCase();
       pill.className = `cm-pill ${state}`;
       pill.textContent = state.charAt(0).toUpperCase() + state.slice(1);
-      head.append(name, pill);
+      headLeft.append(expander, name);
+      const headActions = document.createElement('div');
+      headActions.className = 'cm-head-actions';
+
+      const markMet = document.createElement('button');
+      markMet.className = 'btn btn-secondary';
+      markMet.textContent = 'Met';
+      markMet.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        setDailyOverride(itemName, 'met');
+      });
+      headActions.appendChild(markMet);
+
+      const markViolation = document.createElement('button');
+      markViolation.className = 'btn btn-secondary';
+      markViolation.textContent = 'Violated';
+      markViolation.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        setDailyOverride(itemName, 'violation');
+      });
+      headActions.appendChild(markViolation);
+
+      if (item.manual_today) {
+        const clear = document.createElement('button');
+        clear.className = 'btn btn-secondary';
+        clear.textContent = 'Clear';
+        clear.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          setDailyOverride(itemName, 'clear');
+        });
+        headActions.appendChild(clear);
+      }
+
+      headActions.appendChild(pill);
+      head.append(headLeft, headActions);
 
       const desc = document.createElement('div');
       desc.className = 'cm-meta';
@@ -181,18 +232,35 @@ export function mount(el) {
       const freq = document.createElement('div');
       freq.className = 'cm-meta';
       const req = item.times_required || 0;
+      const reqTotal = item.required_total || req;
       const prog = item.progress || 0;
-      freq.textContent = req ? `Progress: ${prog}/${req} this ${item.period || 'period'}` : 'Progress: n/a';
+      if (reqTotal) {
+        freq.textContent = `Progress: ${prog}/${reqTotal} this ${item.period || 'period'}`;
+      } else if (item.rule_kind) {
+        freq.textContent = `Rule: ${item.rule_kind} (${item.period || 'period'})`;
+      } else {
+        freq.textContent = 'Progress: n/a';
+      }
 
-      const assoc = document.createElement('div');
-      assoc.className = 'cm-meta';
-      const assocNames = (item.associated || []).map(it => `${it.type || '?'}:${it.name || ''}`).filter(Boolean).join(', ');
-      if (assocNames) assoc.textContent = `Associated: ${assocNames}`;
+      const detail = document.createElement('div');
+      detail.className = 'cm-detail';
 
-      const forb = document.createElement('div');
-      forb.className = 'cm-meta';
-      const forbNames = (item.forbidden || []).map(it => `${it.type || '?'}:${it.name || ''}`).filter(Boolean).join(', ');
-      if (forbNames) forb.textContent = `Forbidden: ${forbNames}`;
+      if (Array.isArray(item.target_progress) && item.target_progress.length) {
+        const lines = item.target_progress
+          .map(tp => `${tp.name || ''} ${Number(tp.progress || 0)}/${Number(tp.required || 0)}`)
+          .filter(Boolean);
+        if (lines.length) {
+          const targetDetail = document.createElement('div');
+          targetDetail.className = 'cm-meta';
+          targetDetail.textContent = `Target progress: ${lines.join(' | ')}`;
+          detail.appendChild(targetDetail);
+        }
+      }
+
+      const targets = document.createElement('div');
+      targets.className = 'cm-meta';
+      const targetNames = (item.targets || []).map(it => `${it.type || '?'}:${it.name || ''}`).filter(Boolean).join(', ');
+      if (targetNames) targets.textContent = `Targets: ${targetNames}`;
 
       const stamps = document.createElement('div');
       stamps.className = 'cm-meta';
@@ -200,6 +268,19 @@ export function mount(el) {
       if (item.last_met) stampBits.push(`Last met: ${item.last_met}`);
       if (item.last_violation) stampBits.push(`Last violation: ${item.last_violation}`);
       stamps.textContent = stampBits.join(' | ');
+
+      const checkin = document.createElement('div');
+      checkin.className = 'cm-checkin';
+      const note = document.createElement('div');
+      note.className = 'cm-checkin-note';
+      if (item.manual_today === 'met' || item.manual_today === 'violation') {
+        note.textContent = `Today check-in: ${item.manual_today}`;
+      } else if (item.needs_checkin) {
+        note.textContent = 'Daily check-in: did you meet or break this today?';
+      } else {
+        note.textContent = 'Daily check-in: optional';
+      }
+      checkin.appendChild(note);
 
       const actions = document.createElement('div');
       actions.className = 'cm-actions';
@@ -209,13 +290,45 @@ export function mount(el) {
       evalBtn.addEventListener('click', () => runEvaluation());
       actions.appendChild(evalBtn);
 
-      card.append(head, desc, freq);
-      if (assocNames) card.appendChild(assoc);
-      if (forbNames) card.appendChild(forb);
-      if (stampBits.length) card.appendChild(stamps);
-      card.appendChild(actions);
+      detail.append(desc, freq);
+      if (targetNames) detail.appendChild(targets);
+      if (stampBits.length) detail.appendChild(stamps);
+      detail.appendChild(checkin);
+      detail.appendChild(actions);
+      card.append(head, detail);
+
+      head.addEventListener('click', () => {
+        const key = itemName.toLowerCase();
+        if (card.classList.contains('expanded')) {
+          card.classList.remove('expanded');
+          expanded.delete(key);
+          expander.textContent = '▶';
+        } else {
+          card.classList.add('expanded');
+          expanded.add(key);
+          expander.textContent = '▼';
+        }
+      });
       listEl.appendChild(card);
     });
+  }
+
+  async function setDailyOverride(name, state) {
+    setStatus('Saving daily check-in...');
+    try {
+      const resp = await fetch(apiBase() + "/api/commitments/override", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, state }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json.ok === false) throw new Error(json?.error || `HTTP ${resp.status}`);
+      await refresh(true);
+      setStatus('Daily check-in saved.', 'success');
+    } catch (err) {
+      console.warn('[Commitments] daily check-in failed', err);
+      setStatus(`Check-in failed: ${err.message || err}`, 'error');
+    }
   }
 
   async function runEvaluation() {

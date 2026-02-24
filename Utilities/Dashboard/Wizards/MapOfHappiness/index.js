@@ -8,6 +8,7 @@ const STEP_DEFS = [
   { id: 'consolidate', name: 'Consolidate', hint: 'Group into needs', render: renderConsolidateStep },
   { id: 'rank', name: 'Rank & Define', hint: 'Priorities, sufficiency, satisfaction', render: renderRankStep },
   { id: 'tagging', name: 'Tag Items', hint: 'Optionally tag existing items', render: renderTaggingStep },
+  { id: 'associations', name: 'Associations', hint: 'Auto-tag rules', render: renderAssociationsStep },
   { id: 'review', name: 'Review & Save', hint: 'Validate and persist', render: renderReviewStep },
 ];
 
@@ -138,6 +139,7 @@ function initialState() {
       loading: false,
       error: '',
     },
+    associationsRaw: '',
   };
 }
 
@@ -159,6 +161,7 @@ function loadStateFromStorage() {
       needKeys: Array.isArray(data?.tagging?.needKeys) ? data.tagging.needKeys : [],
       selected: new Set(Array.isArray(data?.tagging?.selected) ? data.tagging.selected : []),
     };
+    base.associationsRaw = typeof data?.associationsRaw === 'string' ? data.associationsRaw : '';
     return base;
   } catch (err) {
     console.warn('[MapOfHappiness] failed to load saved state', err);
@@ -246,6 +249,7 @@ function mountOverlay(context) {
     context,
   };
   wizardState = loadStateFromStorage();
+  loadAssociationsFile();
 
   overlayRefs.cancelBtn.addEventListener('click', closeWizard);
   overlayRefs.prevBtn.addEventListener('click', () => changeStep(-1));
@@ -656,6 +660,58 @@ function renderTaggingStep(container) {
   }
 }
 
+function buildAssociationsYaml() {
+  const entries = [...wizardState.mapEntries];
+  const happiness = {};
+  entries.forEach(entry => {
+    const key = entry.key || slugify(entry.label);
+    happiness[key] = {
+      category: [],
+      tags: [],
+      project: [],
+      status: [],
+      priority: [],
+      type: [],
+      name_contains: [],
+    };
+  });
+  const payload = { happiness };
+  return payloadToYaml(payload);
+}
+
+async function loadAssociationsFile() {
+  try {
+    const resp = await fetch(`${apiBase()}/api/settings?file=happiness_value_name_assoc.yml`);
+    if (!resp.ok) return;
+    const data = await resp.json().catch(() => null);
+    if (data?.content) {
+      wizardState.associationsRaw = data.content;
+      persistStateToStorage();
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function renderAssociationsStep(container) {
+  if (!wizardState.associationsRaw) {
+    wizardState.associationsRaw = buildAssociationsYaml();
+    persistStateToStorage();
+  }
+  container.innerHTML = `
+    <div class="moh-card">
+      <h3>Associations (auto-tagging)</h3>
+      <p class="moh-help">Define rules that automatically add <code>happiness</code> values to items when they match certain properties. Each happiness key can map to any item property. Suffix a property with <code>_contains</code> for substring matches (e.g., <code>name_contains</code>).</p>
+      <textarea class="moh-textarea" data-assoc-yaml style="min-height:260px;" spellcheck="false">${escapeHtml(wizardState.associationsRaw)}</textarea>
+      <p class="moh-small">Saved to <code>User/Settings/happiness_value_name_assoc.yml</code>.</p>
+    </div>
+  `;
+  container.querySelector('[data-assoc-yaml]')?.addEventListener('input', (ev) => {
+    wizardState.associationsRaw = ev.target.value || '';
+    persistStateToStorage();
+  });
+}
+
 async function ensureItemsLoaded(itemType) {
   const tagState = wizardState.tagging || {};
   tagState.loading = true;
@@ -769,7 +825,7 @@ function renderReviewStep(container) {
   container.innerHTML = `
     <div class="moh-card">
       <h3>Review & Save</h3>
-      <p class="moh-help">We will archive the previous file to <code>map_of_happiness.archive.*.yml</code> in User/Settings, then replace <code>map_of_happiness.yml</code>. Items can reference needs via <code>happiness: [&lt;key&gt;]</code>.</p>
+      <p class="moh-help">We will archive the previous file to <code>map_of_happiness.archive.*.yml</code> in User/Settings, then replace <code>map_of_happiness.yml</code>. Items can reference needs via <code>happiness: [&lt;key&gt;]</code>. Associations (if provided) are saved to <code>happiness_value_name_assoc.yml</code>.</p>
       <div class="moh-inline" style="margin-bottom:10px;">
         <span class="moh-badge">${mapCount} needs</span>
         <span class="moh-badge">${escapeHtml(derivedNote)}</span>
@@ -865,6 +921,13 @@ async function saveMap() {
       body: yaml,
     });
     if (!resp.ok) throw new Error(`Save failed (HTTP ${resp.status})`);
+    if (wizardState.associationsRaw && wizardState.associationsRaw.trim()) {
+      await fetch(`${apiBase()}/api/settings?file=happiness_value_name_assoc.yml`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: wizardState.associationsRaw,
+      });
+    }
     await applyTags();
     setStatus('Saved map_of_happiness.yml', 'success');
     clearStateStorage();

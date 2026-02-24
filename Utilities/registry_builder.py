@@ -1,5 +1,6 @@
 import ast
 import json
+import re
 import os
 from datetime import datetime
 
@@ -15,6 +16,7 @@ SKIP_ITEM_DIRS = {
     "archive",
     "backups",
     "data",
+    "examples",
     "exports",
     "logs",
     "media",
@@ -150,7 +152,7 @@ COMMAND_SYNTAX_OVERRIDES = {
     ],
     "sequence": [
         {"slots": ["kw:status"], "allow_properties": False},
-        {"slots": ["kw:sync", "choice*:matrix|core|events|memory|trends|trends_digest|all"], "allow_properties": False},
+        {"slots": ["kw:sync", "choice*:matrix|core|events|behavior|journal|memory|trends|trends_digest|all"], "allow_properties": False},
         {"slots": ["kw:trends"], "allow_properties": False},
     ],
     "register": [{"slots": ["choice:commands|items|properties|all"], "allow_properties": False}],
@@ -491,7 +493,11 @@ def build_item_registry():
     }
 
 
-def build_property_registry():
+
+def build_settings_registry():
+    """
+    Fast scan of User/Settings/ to build authoritative lists for UI/Autocomplete.
+    """
     # Status indicators + values
     status_settings = _read_yaml(os.path.join(SETTINGS_DIR, "status_settings.yml"))
     status_defs = status_settings.get("Status_Settings") if isinstance(status_settings, dict) else []
@@ -554,11 +560,52 @@ def build_property_registry():
             "category": {"values": categories},
             "priority": {"values": priorities},
             "quality": {"values": qualities},
+            "sleep": {"values": ["true", "false"]},
             "status": {"children": status_children},
         },
         "status_indicators": sorted({s.replace(" ", "_").lower() for s in status_indicators}),
         "timer_profiles": timer_profiles,
         "defaults_keys_by_type": defaults_keys_by_type,
+    }
+
+
+def build_property_registry():
+    """
+    Deep scan of ALL user items to discover ad-hoc property keys.
+    This is slower and should be run less frequently.
+    """
+    unique_keys_by_type = {}
+    
+    if os.path.isdir(USER_DIR):
+        for entry in os.scandir(USER_DIR):
+            if not entry.is_dir():
+                continue
+            dir_name = entry.name
+            if dir_name.lower() in SKIP_ITEM_DIRS:
+                continue
+            
+            item_type = _infer_type_from_dir(dir_name)
+            type_keys = unique_keys_by_type.setdefault(item_type, set())
+            
+            for root, _, files in os.walk(entry.path):
+                for filename in files:
+                    if not filename.lower().endswith((".yml", ".yaml")):
+                        continue
+                    path = os.path.join(root, filename)
+                    try:
+                        with open(path, "r", encoding="utf-8") as fh:
+                            data = yaml.safe_load(fh) or {}
+                    except Exception:
+                        continue
+                    
+                    if isinstance(data, dict):
+                        for k in data.keys():
+                            type_keys.add(str(k).lower())
+
+    # Convert sets to sorted lists
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "keys_by_type": {k: sorted(v) for k, v in unique_keys_by_type.items()}
     }
 
 
@@ -576,8 +623,336 @@ def write_item_registry(path: str = None) -> str:
     return path
 
 
+def write_settings_registry(path: str = None) -> str:
+    if path is None:
+        path = os.path.join(REGISTRY_DIR, "settings_registry.json")
+    _write_json(path, build_settings_registry())
+    return path
+
+
 def write_property_registry(path: str = None) -> str:
     if path is None:
         path = os.path.join(REGISTRY_DIR, "property_registry.json")
     _write_json(path, build_property_registry())
     return path
+
+
+def build_wizards_registry():
+    """Auto-discover wizards by scanning Dashboard/Wizards directory."""
+    wizards = []
+    dashboard_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard")
+    wizards_dir = os.path.join(dashboard_dir, "Wizards")
+    
+    if not os.path.exists(wizards_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "wizards": []
+        }
+    
+    for entry in os.scandir(wizards_dir):
+        if not entry.is_dir():
+            continue
+        
+        if entry.name.startswith(('.', '_')):
+            continue
+            
+        wizard_name = entry.name
+        # Generate readable label from PascalCase
+        import re
+        label = re.sub(r'(?<!^)(?=[A-Z])', ' ', wizard_name)
+        
+        wizard_def = {
+            "id": wizard_name.lower(),
+            "label": label,
+            "module": wizard_name,
+            "enabled": True
+        }
+        
+        # Check for optional metadata file
+        meta_path = os.path.join(entry.path, "wizard.yml")
+        if os.path.exists(meta_path):
+            try:
+                meta = _read_yaml(meta_path)
+                if isinstance(meta, dict):
+                    wizard_def.update(meta)
+            except:
+                pass
+        
+        wizards.append(wizard_def)
+    
+    wizards.sort(key=lambda w: w.get("label", w["id"]))
+    
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "wizards": wizards
+    }
+
+def build_themes_registry():
+    themes = []
+    
+    # 1. Core Themes
+    core_themes_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard", "Themes")
+    # 2. User Themes
+    user_themes_dir = os.path.join(USER_DIR, "Themes")
+    
+    seen_ids = set()
+    
+    def scan_themes(directory, is_core=False):
+        if not os.path.exists(directory):
+            return
+        for fn in os.listdir(directory):
+            if fn.lower().endswith(".css"):
+                # Try to parse comment header for metadata
+                path = os.path.join(directory, fn)
+                theme_def = {
+                    "id": os.path.splitext(fn)[0],
+                    "file": fn,
+                    "label": os.path.splitext(fn)[0].replace("-", " ").title(),
+                    "is_core": is_core
+                }
+                
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        css = f.read()
+                        # Optional legacy header format:
+                        # /* Theme: My Theme | Accent: #123456 | Desc: ... */
+                        line1 = css.splitlines()[0] if css else ""
+                        if line1.startswith("/*") and "Theme:" in line1:
+                            parts = line1.strip("/* \n\t").split("|")
+                            for p in parts:
+                                if "Theme:" in p:
+                                    theme_def["label"] = p.split(":")[1].strip()
+                                if "Accent:" in p:
+                                    theme_def["accent"] = p.split(":")[1].strip()
+                                if "Desc:" in p:
+                                    theme_def["description"] = p.split(":")[1].strip()
+
+                        # Modern themes define accent via CSS variables.
+                        if not theme_def.get("accent"):
+                            m = re.search(r"--chronos-accent\s*:\s*([^;]+);", css)
+                            if not m:
+                                m = re.search(r"--accent\s*:\s*([^;]+);", css)
+                            if m:
+                                theme_def["accent"] = m.group(1).strip()
+                except:
+                   pass
+                   
+                if theme_def["id"] not in seen_ids:
+                    themes.append(theme_def)
+                    seen_ids.add(theme_def["id"])
+
+    scan_themes(core_themes_dir, is_core=True)
+    scan_themes(user_themes_dir, is_core=False)
+    
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "themes": themes
+    }
+
+def write_wizards_registry(path: str = None) -> str:
+    if path is None:
+        path = os.path.join(REGISTRY_DIR, "wizards_registry.json")
+    _write_json(path, build_wizards_registry())
+    return path
+
+def write_themes_registry(path: str = None) -> str:
+    if path is None:
+        path = os.path.join(REGISTRY_DIR, "themes_registry.json")
+    _write_json(path, build_themes_registry())
+    return path
+
+
+def build_widgets_registry():
+    """Auto-discover widgets by scanning Dashboard/Widgets directory."""
+    widgets = []
+    dashboard_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard")
+    widgets_dir = os.path.join(dashboard_dir, "Widgets")
+    
+    if not os.path.exists(widgets_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "widgets": []
+        }
+    
+    for entry in os.scandir(widgets_dir):
+        if not entry.is_dir():
+            continue
+        
+        # Skip hidden/system directories
+        if entry.name.startswith(('.', '_')):
+            continue
+            
+        widget_name = entry.name
+        # Generate readable label from PascalCase
+        import re
+        label = re.sub(r'(?<!^)(?=[A-Z])', ' ', widget_name)
+        
+        widget_def = {
+            "name": widget_name,
+            "label": label,
+            "module": widget_name,
+            "dev": False
+        }
+        
+        # Check for optional metadata file
+        meta_path = os.path.join(entry.path, "widget.yml")
+        if os.path.exists(meta_path):
+            try:
+                meta = _read_yaml(meta_path)
+                if isinstance(meta, dict):
+                    widget_def.update(meta)
+            except:
+                pass
+        
+        widgets.append(widget_def)
+    
+    widgets.sort(key=lambda w: w.get("label", w["name"]))
+    
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "widgets": widgets
+    }
+
+
+def build_views_registry():
+    """Auto-discover views by scanning Dashboard/Views directory."""
+    views = []
+    dashboard_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard")
+    views_dir = os.path.join(dashboard_dir, "Views")
+    
+    if not os.path.exists(views_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "views": []
+        }
+    
+    for entry in os.scandir(views_dir):
+        if not entry.is_dir():
+            continue
+        
+        if entry.name.startswith(('.', '_')):
+            continue
+            
+        view_name = entry.name
+        # Generate readable label from PascalCase
+        import re
+        label = re.sub(r'(?<!^)(?=[A-Z])', ' ', view_name)
+        
+        view_def = {
+            "name": view_name,
+            "label": label,
+            "module": view_name,
+            "dev": False
+        }
+        
+        # Check for optional metadata file
+        meta_path = os.path.join(entry.path, "view.yml")
+        if os.path.exists(meta_path):
+            try:
+                meta = _read_yaml(meta_path)
+                if isinstance(meta, dict):
+                    view_def.update(meta)
+            except:
+                pass
+        
+        views.append(view_def)
+    
+    views.sort(key=lambda v: v.get("label", v["name"]))
+    
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "views": views
+    }
+
+
+def build_panels_registry():
+    """Auto-discover panels by scanning Dashboard/Panels directory."""
+    panels = []
+    dashboard_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard")
+    panels_dir = os.path.join(dashboard_dir, "Panels")
+    
+    if not os.path.exists(panels_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "panels": []
+        }
+    
+    for entry in os.scandir(panels_dir):
+        if not entry.is_dir():
+            continue
+        
+        if entry.name.startswith(('.', '_')):
+            continue
+            
+        panel_name = entry.name
+        panel_def = {
+            "id": panel_name.lower(),
+            "label": panel_name,
+            "module": panel_name,
+            "enabled": True
+        }
+        
+        # Check for optional metadata file
+        meta_path = os.path.join(entry.path, "panel.yml")
+        if os.path.exists(meta_path):
+            try:
+                meta = _read_yaml(meta_path)
+                if isinstance(meta, dict):
+                    panel_def.update(meta)
+            except:
+                pass
+        
+        panels.append(panel_def)
+    
+    panels.sort(key=lambda p: p.get("label", p["id"]))
+    
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "panels": panels
+    }
+
+
+def build_popups_registry():
+    """Auto-discover popups by scanning Dashboard/Popups directory."""
+    popups = []
+    dashboard_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard")
+    popups_dir = os.path.join(dashboard_dir, "Popups")
+    
+    if not os.path.exists(popups_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "popups": []
+        }
+    
+    for entry in os.scandir(popups_dir):
+        if not entry.is_dir():
+            continue
+        
+        if entry.name.startswith(('.', '_')):
+            continue
+            
+        popup_name = entry.name
+        popup_def = {
+            "id": popup_name.lower(),
+            "module": popup_name,
+            "enabled": True
+        }
+        
+        # Check for optional metadata file
+        meta_path = os.path.join(entry.path, "popup.yml")
+        if os.path.exists(meta_path):
+            try:
+                meta = _read_yaml(meta_path)
+                if isinstance(meta, dict):
+                    popup_def.update(meta)
+            except:
+                pass
+        
+        popups.append(popup_def)
+    
+    popups.sort(key=lambda p: p.get("module", p["id"]))
+    
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "popups": popups
+    }

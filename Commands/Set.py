@@ -94,8 +94,17 @@ def run(args, properties):
         if 'apply' in item_properties_to_set:
             item_properties_to_set.pop('apply', None)
 
+        prev_status = str(data.get('status') or '').lower()
         # Persist remaining property updates
         data.update(item_properties_to_set)
+        new_status = str(data.get('status') or '').lower()
+        if new_status == 'completed' and prev_status != 'completed' and not data.get('points_awarded'):
+            try:
+                from Utilities import points as Points
+                Points.award_on_complete('goal', item_name, minutes=None)
+                data['points_awarded'] = True
+            except Exception:
+                pass
         write_item_data(item_type, item_name, data)
         print(f"✅. Properties of {item_type} '{item_name}' updated.")
 

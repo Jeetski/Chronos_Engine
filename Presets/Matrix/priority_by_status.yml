@@ -1,0 +1,11 @@
+name: priority_by_status
+label: Priority x Status
+rows:
+- priority
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+row_sort: label-asc
+col_sort: label-asc

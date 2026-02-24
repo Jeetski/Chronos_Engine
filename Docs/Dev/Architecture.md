@@ -17,15 +17,14 @@ Items are the atoms of Chronos. They are stored as YAML files in the `User/` dir
 - **Fractal**: Items can nest indefinitely. The `Scheduler` creates a flattened view for execution but preserves the hierarchy for planning.
 - **Defaults**: Each item type has a `_defaults.yml` (e.g., `task_defaults.yml`) that defines its initial state.
 
-### 3. The Scheduler (`Modules/Scheduler.py`)
-The heart of the system. It builds your day from `User/Days/{Weekday}.yml`.
-- **Phase 1: Expansion**: Recursively reads the template and all child items.
-- **Phase 2: Ideal Layout**: Places items at their preferred times.
-- **Phase 3: Conflict Resolution**: A sophisticated constraint solver loop (Phase 3f) that resolves overlaps by:
-    1.  **Shifting**: Moving lower-priority items.
-    2.  **Trimming**: Reducing duration (down to a minimum of 5m).
-    3.  **Cutting**: Removing low-priority items entirely if they don't fit.
-- **Manual Modifications**: Persists user overrides (trim/cut/change) in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` so they survive rescheduling.
+### 3. The Scheduler
+- **Core Logic**: `Commands/Today.py` implements the full scheduling pipeline (template selection, initial build, importance scoring, and conflict resolution). I agree, "Today" is a great name for the command that builds your day.
+- **Helper Library**: `Modules/Scheduler.py` provides shared utilities (I/O, formatting, manual modification persistence) used by the command.
+- **Algorithm**:
+    - **Phase 1: Expansion**: Recursively reads templates and all child items.
+    - **Phase 2: Ideal Layout**: Places items at their preferred times.
+    - **Phase 3: Conflict Resolution**: A sophisticated constraint solver loop (Phase 3f) that resolves overlaps by shifting, trimming, or cutting based on importance.
+    - **Manual Modifications**: Persists user overrides (trim/cut/change) in `User/Schedules/manual_modifications_YYYY-MM-DD.yml`.
 
 ### 4. Conditions Engine (`Modules/Conditions.py`)
 A recursive descent parser that evaluates logic strings in scripts and triggers.
@@ -35,9 +34,14 @@ A recursive descent parser that evaluates logic strings in scripts and triggers.
 
 ### 5. Sequence System (`Modules/Sequence`)
 The "Long-Term Memory" of Chronos.
-- **Mirroring**: Mirrors the YAML data into a SQLite database (`chronos_memory.db`) for performant querying.
+- **Mirroring**: Mirrors the YAML data into SQLite databases (`chronos_behavior.db`, `chronos_journal.db`) for performant querying.
 - **Trends**: Analyzes history to build `chronos_trends.db` and generates a `trends.md` digest.
 - **Automation**: Runs automatically via `automation.py` hook during the nightly rollover.
+- **Cleanup Integration**: The `clear` command provides surgical control over Sequence Mirrors:
+  - `clear cache` - Deletes all `.db` files, forcing full rebuild
+  - `clear db:<name>` - Deletes specific mirror (e.g., `chronos_matrix.db`), auto-rebuilds on next access
+  - `clear registry:<name>` - Clears in-memory registry caches (wizards, themes, etc.) to force YAML reload
+  - See [Admin Tools](../Features/Admin_Tools.md) for full cleanup reference
 
 - Listener — `Modules/Listener/Listener.py`
   - Monitors time for alarms/reminders, triggers sounds (pygame.mixer), handles timer ticks.
@@ -121,11 +125,18 @@ A generic Vanilla JS Single Page Application (SPA).
   1. Create `Modules/My_Item/main.py` with `handle_<verb>` or `handle_command`.
   2. Reuse `ItemManager` for common behaviors (`new`, `append`, `delete`).
 
-- Add a widget or view
-  1. Create `Utilities/Dashboard/Widgets/<Name>/index.js` exporting `mount(el, context)`.
-  2. Add an `<aside class="widget" data-widget="Name">` in `dashboard.html`.
-  3. Add server endpoints if needed; prefer JSON responses for easy parsing.
-  4. Use `context.bus` to communicate with other widgets (e.g., emit `widget:show`, `vars:changed`).
+- Add a widget, view, panel, or popup
+  1. Create folder in `Utilities/Dashboard/Widgets/<Name>/` (or Views/Panels/Popups)
+  2. Create `index.js` with appropriate export function (`mount()` for widgets/views, `register()` for panels)
+  3. (Optional) Add metadata YAML file for custom labels or post-release badges
+  4. Refresh dashboard - component auto-discovered and added to menu
+  5. Add server endpoints if needed; prefer JSON responses for easy parsing
+
+- Add a Wizard or Theme
+  - Wizards: Create folder in `Utilities/Dashboard/Wizards/<Name>/` with `index.js`
+  - Themes: Drop CSS file into `Utilities/Dashboard/Themes/`
+  - Component auto-discovered on server restart
+  - See `Docs/Dev/Extensibility.md` for the full specification
 
 ## Best Practices
 

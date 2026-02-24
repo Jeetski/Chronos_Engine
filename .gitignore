@@ -51,6 +51,8 @@ debug_*.txt
 
 # Project notes/backups
 IDEAS/
+META/
+META.md
 backup/
 
 # User data: ignore everything under User, but allow empty directory placeholders, Settings, Profile, and example payloads

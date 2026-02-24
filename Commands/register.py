@@ -5,7 +5,7 @@ from Utilities import registry_builder
 
 def run(args, properties):
     """
-    register commands | items | properties | all
+    register commands | items | settings | properties | all | full
     """
     if not args or args[0].lower() in {"-h", "--help", "help"}:
         print(get_help_message())
@@ -14,14 +14,24 @@ def run(args, properties):
     sub = args[0].lower()
     outputs = []
 
-    if sub in {"commands", "all"}:
+    # Command Registry
+    if sub in {"commands", "all", "full"}:
         outputs.append(registry_builder.write_command_registry())
-    if sub in {"items", "all"}:
+
+    # Item Registry
+    if sub in {"items", "all", "full"}:
         outputs.append(registry_builder.write_item_registry())
-    if sub in {"properties", "all"}:
+
+    # Settings Registry (Fast)
+    if sub in {"settings", "all", "full"}:
+        outputs.append(registry_builder.write_settings_registry())
+
+    # Property Registry (Deep Scan)
+    if sub in {"properties", "full"}:
+        print("Performing deep scan of all properties... this may take a moment.")
         outputs.append(registry_builder.write_property_registry())
 
-    if sub not in {"commands", "items", "properties", "all"}:
+    if sub not in {"commands", "items", "settings", "properties", "all", "full"}:
         print(get_help_message())
         return
 
@@ -37,8 +47,10 @@ def get_help_message():
 Usage:
   register commands
   register items
-  register properties
-  register all
+  register settings   (Fast: categories, statuses, defaults)
+  register properties (Slow: deep scan of all file keys)
+  register all        (commands + items + settings)
+  register full       (all + properties)
 
 Description:
   Builds JSON registries used by autosuggest and tooling.

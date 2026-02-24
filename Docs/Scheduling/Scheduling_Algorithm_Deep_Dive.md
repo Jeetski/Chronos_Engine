@@ -1,6 +1,6 @@
 # Chronos Scheduling Algorithm (Deep Dive)
 
-This document is a detailed, code-aligned walkthrough of the `today` command pipeline.
+This document is a detailed, code-aligned walkthrough of the `today` command pipeline (`Commands/Today.py`).
 
 ## Core Philosophy
 - **Constraint-Based**: Fits items into a 24-hour container.
@@ -28,7 +28,7 @@ The template is expanded into a full schedule tree:
   - `ideal_end_time` can override computed end time and logs a conflict if exceeded.
 - **Parallel items**: `duration: parallel` marks items as parallel and zero-duration containers.
 
-Manual edits (trim/cut/change) stored in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` are applied here and then cleared.
+Manual edits (trim/cut/change) stored in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` are applied here and persist across reruns (not auto-cleared).
 
 ## 3. Importance Calculation (Subtractive Model)
 Every item starts at 100. Each factor subtracts a weighted penalty.

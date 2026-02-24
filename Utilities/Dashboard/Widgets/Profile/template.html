@@ -4,40 +4,55 @@
     <button class="icon-btn" id="profileClose" title="Close">✖</button>
   </div>
 </div>
-<div class="content"
-  style="display:flex; flex-direction:row; gap:12px; align-items:stretch; flex-wrap:nowrap; overflow:hidden;">
-  <div class="left" style="flex:1 1 50%; min-width:260px; display:flex; flex-direction:column; gap:8px;">
-    <div class="row">
-      <label for="nickname">Nickname:</label>
-      <input type="text" id="nickname" class="input">
-    </div>
-    <div class="row">
-      <label>Avatar:</label>
-      <div id="avatar-preview"></div>
-    </div>
-    <label>Welcome Message:</label>
-    <input type="text" id="welcome-line1" class="input" placeholder="Line 1">
-    <input type="text" id="welcome-line2" class="input" placeholder="Line 2">
-    <input type="text" id="welcome-line3" class="input" placeholder="Line 3">
-
-    <label>Exit Message:</label>
-    <input type="text" id="exit-line1" class="input" placeholder="Line 1">
-    <input type="text" id="exit-line2" class="input" placeholder="Line 2">
-
-    <div class="row" style="gap:8px; flex-wrap:wrap;">
-      <button id="save-profile" class="btn btn-primary">Save</button>
-      <button id="edit-preferences-md" class="btn">Edit Natural Language Preferences</button>
-      <button id="edit-pilot-brief" class="btn">Edit Pilot Brief</button>
-    </div>
+<div class="content profile-layout">
+  <div class="profile-pane profile-pane-left">
+    <section class="profile-card">
+      <h3 class="profile-card-title">Identity</h3>
+      <div class="row">
+        <label for="nickname">Nickname</label>
+        <input type="text" id="nickname" class="input">
+      </div>
+      <div class="row">
+        <label for="profile-title">Title</label>
+        <select id="profile-title" class="input">
+          <option value="">No unlocked titles</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Avatar</label>
+        <div class="profile-avatar-controls">
+          <div id="avatar-preview" class="profile-avatar-preview"></div>
+          <div class="profile-avatar-actions">
+            <button id="change-avatar" class="btn">Change Avatar</button>
+            <input id="avatar-file" type="file" accept="image/*" style="display:none;">
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
-  <div class="right" style="flex:1 1 50%; min-width:260px; display:flex; flex-direction:column; gap:8px;">
-    <div class="row" style="justify-content:space-between; align-items:center;">
-      <label style="margin:0;">Agent Preferences</label>
-      <span class="hint" style="color:var(--text-dim);">from preferences.yml/yaml</span>
-    </div>
-    <div id="agent-preferences-container"
-      style="display:flex; flex-direction:column; gap:6px; max-height:360px; overflow:auto; border:1px solid rgba(255, 255, 255, 0.08); border-radius:12px; padding:12px; background:linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
-    </div>
+  <div class="profile-pane profile-pane-right">
+    <section class="profile-card">
+      <h3 class="profile-card-title">Messages</h3>
+      <div class="profile-subtitle">Welcome</div>
+      <input type="text" id="welcome-line1" class="input" placeholder="Line 1">
+      <input type="text" id="welcome-line2" class="input" placeholder="Line 2">
+      <input type="text" id="welcome-line3" class="input" placeholder="Line 3">
+
+      <div class="profile-subtitle">Exit</div>
+      <input type="text" id="exit-line1" class="input" placeholder="Line 1">
+      <input type="text" id="exit-line2" class="input" placeholder="Line 2">
+    </section>
+  </div>
+  <div class="profile-pane profile-pane-bottom">
+    <section class="profile-card">
+      <h3 class="profile-card-title">Actions</h3>
+      <div class="profile-actions">
+        <button id="save-profile" class="btn btn-primary">Save Changes</button>
+        <button id="edit-preferences-md" class="btn">Edit Agent Preferences</button>
+        <button id="edit-preferences-settings" class="btn">Edit Preferences Settings</button>
+        <button id="edit-pilot-brief" class="btn">Edit Pilot Brief</button>
+      </div>
+    </section>
   </div>
   <div class="resizer e"></div>
   <div class="resizer s"></div>

@@ -22,6 +22,9 @@ SCHEDULE_PATH = schedule_path_for_date(datetime.now())
 COMPLETIONS_DIR = os.path.join(USER_DIR, "Schedules", "completions")
 
 SKIP_DIRS = {
+    "archive",
+    "backups",
+    "examples",
     "settings",
     "profile",
     "schedules",
@@ -606,3 +609,313 @@ def build_core_db(registry: Dict[str, Any]) -> None:
 def sync_core_db() -> None:
     registry = load_registry()
     build_core_db(registry)
+
+
+def _core_db_path(registry: Dict[str, Any]) -> str:
+    ensure_data_home()
+    entry = registry.get("databases", {}).get("core")
+    if not entry:
+        entry = update_database_entry(registry, "core")
+    path = entry.get("path")
+    if not path:
+        raise ValueError("Core database path is not configured.")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return path
+
+
+def _ensure_incremental_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            slug TEXT UNIQUE,
+            name TEXT,
+            type TEXT,
+            category TEXT,
+            status TEXT,
+            priority TEXT,
+            due_date TEXT,
+            duration_minutes INTEGER,
+            points_value REAL,
+            tags TEXT,
+            path TEXT,
+            relative_path TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            raw_json TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_items_type ON items(type);
+        CREATE INDEX IF NOT EXISTS idx_items_status ON items(status);
+
+        CREATE TABLE IF NOT EXISTS relations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            parent_id INTEGER,
+            child_id INTEGER,
+            parent_slug TEXT,
+            child_slug TEXT,
+            child_name TEXT,
+            child_type TEXT,
+            relation_type TEXT,
+            order_index INTEGER,
+            FOREIGN KEY(parent_id) REFERENCES items(id) ON DELETE CASCADE,
+            FOREIGN KEY(child_id) REFERENCES items(id) ON DELETE SET NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_rel_parent ON relations(parent_slug);
+
+        CREATE TABLE IF NOT EXISTS completions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            block_key TEXT,
+            source_date TEXT,
+            name TEXT,
+            item_slug TEXT,
+            item_type TEXT,
+            status TEXT,
+            quality TEXT,
+            scheduled_start TEXT,
+            scheduled_end TEXT,
+            actual_start TEXT,
+            actual_end TEXT,
+            logged_at TEXT,
+            note TEXT,
+            raw_json TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_completions_date ON completions(source_date);
+        CREATE INDEX IF NOT EXISTS idx_completions_slug ON completions(item_slug);
+
+        CREATE TABLE IF NOT EXISTS schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            schedule_date TEXT,
+            name TEXT,
+            type TEXT,
+            item_slug TEXT,
+            item_type TEXT,
+            parent_slug TEXT,
+            block_key TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            duration_minutes INTEGER,
+            status TEXT,
+            importance_score REAL,
+            is_parallel INTEGER,
+            depth INTEGER,
+            order_index INTEGER,
+            raw_json TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_schedules_date ON schedules(schedule_date);
+        CREATE INDEX IF NOT EXISTS idx_schedules_slug ON schedules(item_slug);
+        """
+    )
+
+
+def _record_from_payload(item_type: str, name: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    payload = data if isinstance(data, dict) else {}
+    normalized_type = (payload.get("type") or item_type or "").strip()
+    normalized_name = (payload.get("name") or name or "").strip()
+    if not normalized_type or not normalized_name:
+        raise ValueError("Item type and name are required for core mirror upsert.")
+
+    path = get_item_path(normalized_type, normalized_name)
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    created_at = now_iso
+    updated_at = now_iso
+    try:
+        if os.path.exists(path):
+            stat = os.stat(path)
+            created_at = datetime.fromtimestamp(stat.st_ctime).isoformat(timespec="seconds")
+            updated_at = datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds")
+    except Exception:
+        pass
+
+    return {
+        "slug": _item_slug(normalized_type, normalized_name),
+        "name": normalized_name,
+        "type": normalized_type,
+        "category": payload.get("category"),
+        "status": payload.get("status"),
+        "priority": payload.get("priority"),
+        "due_date": payload.get("due_date"),
+        "duration_minutes": _duration_minutes(payload.get("duration")),
+        "points_value": float(payload.get("points") or 0),
+        "tags": _normalize_tags(payload.get("tags")),
+        "path": path,
+        "relative_path": os.path.relpath(path, ROOT_DIR),
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "raw": payload,
+    }
+
+
+def _refresh_relations_for_record(conn: sqlite3.Connection, record: Dict[str, Any], parent_id: int) -> None:
+    parent_slug = record.get("slug") or ""
+    conn.execute("DELETE FROM relations WHERE parent_slug = ?", (parent_slug,))
+
+    rels = _collect_relations([record])
+    for rel in rels:
+        child_id = None
+        child_slug = rel.get("child_slug") or ""
+        if child_slug:
+            row = conn.execute("SELECT id FROM items WHERE slug = ?", (child_slug,)).fetchone()
+            if row:
+                child_id = row["id"]
+        conn.execute(
+            """
+            INSERT INTO relations (
+                parent_id, child_id, parent_slug, child_slug,
+                child_name, child_type, relation_type, order_index
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                parent_id,
+                child_id,
+                rel.get("parent_slug"),
+                rel.get("child_slug"),
+                rel.get("child_name"),
+                rel.get("child_type"),
+                rel.get("relation_type"),
+                rel.get("order_index"),
+            ),
+        )
+
+
+def _update_core_registry_state(registry: Dict[str, Any], conn: sqlite3.Connection, *, notes: str = "") -> None:
+    row = conn.execute("SELECT COUNT(*) AS c FROM items").fetchone()
+    count = int(row["c"]) if row and row["c"] is not None else 0
+    update_database_entry(
+        registry,
+        "core",
+        last_sync=_timestamp(),
+        status="ready",
+        records=count,
+        notes=notes,
+    )
+
+
+def upsert_item_in_core_db(item_type: str, name: str, data: Dict[str, Any]) -> None:
+    registry = load_registry()
+    db_path = _core_db_path(registry)
+
+    # First run should remain authoritative: bootstrap from a full mirror.
+    if not os.path.exists(db_path):
+        build_core_db(registry)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _ensure_incremental_schema(conn)
+        record = _record_from_payload(item_type, name, data)
+        slug = record["slug"]
+
+        existing = conn.execute(
+            "SELECT id, created_at FROM items WHERE slug = ?",
+            (slug,),
+        ).fetchone()
+        created_at = record["created_at"]
+        if existing and existing["created_at"]:
+            created_at = existing["created_at"]
+
+        if existing:
+            conn.execute(
+                """
+                UPDATE items
+                SET name = ?, type = ?, category = ?, status = ?, priority = ?,
+                    due_date = ?, duration_minutes = ?, points_value = ?, tags = ?,
+                    path = ?, relative_path = ?, created_at = ?, updated_at = ?, raw_json = ?
+                WHERE slug = ?
+                """,
+                (
+                    record["name"],
+                    record["type"],
+                    record.get("category"),
+                    record.get("status"),
+                    record.get("priority"),
+                    record.get("due_date"),
+                    record.get("duration_minutes"),
+                    record.get("points_value"),
+                    json.dumps(record.get("tags") or []),
+                    record.get("path"),
+                    record.get("relative_path"),
+                    created_at,
+                    record.get("updated_at"),
+                    _safe_json(record.get("raw")),
+                    slug,
+                ),
+            )
+            parent_id = int(existing["id"])
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO items (
+                    slug, name, type, category, status, priority, due_date,
+                    duration_minutes, points_value, tags, path, relative_path,
+                    created_at, updated_at, raw_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    slug,
+                    record["name"],
+                    record["type"],
+                    record.get("category"),
+                    record.get("status"),
+                    record.get("priority"),
+                    record.get("due_date"),
+                    record.get("duration_minutes"),
+                    record.get("points_value"),
+                    json.dumps(record.get("tags") or []),
+                    record.get("path"),
+                    record.get("relative_path"),
+                    created_at,
+                    record.get("updated_at"),
+                    _safe_json(record.get("raw")),
+                ),
+            )
+            parent_id = int(cursor.lastrowid)
+
+        _refresh_relations_for_record(conn, record, parent_id)
+        _update_core_registry_state(registry, conn)
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        update_database_entry(
+            registry,
+            "core",
+            last_attempt=_timestamp(),
+            status="error",
+            notes=str(exc),
+        )
+        raise
+    finally:
+        conn.close()
+
+
+def delete_item_from_core_db(item_type: str, name: str) -> None:
+    registry = load_registry()
+    db_path = _core_db_path(registry)
+    if not os.path.exists(db_path):
+        return
+
+    slug = _item_slug(item_type, name)
+    if not slug:
+        return
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _ensure_incremental_schema(conn)
+        conn.execute("DELETE FROM relations WHERE parent_slug = ? OR child_slug = ?", (slug, slug))
+        conn.execute("DELETE FROM items WHERE slug = ?", (slug,))
+        _update_core_registry_state(registry, conn)
+        conn.commit()
+    except Exception as exc:
+        conn.rollback()
+        update_database_entry(
+            registry,
+            "core",
+            last_attempt=_timestamp(),
+            status="error",
+            notes=str(exc),
+        )
+        raise
+    finally:
+        conn.close()

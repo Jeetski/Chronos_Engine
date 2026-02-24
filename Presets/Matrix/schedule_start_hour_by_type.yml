@@ -1,0 +1,11 @@
+name: schedule_start_hour_by_type
+label: Schedule Start Hour x Type
+rows:
+- schedule_start_hour
+cols:
+- item_type
+metric: count
+filters:
+  dataset: schedule
+row_sort: label-asc
+col_sort: label-asc

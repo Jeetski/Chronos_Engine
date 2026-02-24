@@ -1,0 +1,12 @@
+name: task_priority_flow
+label: Task Priority vs Status
+rows:
+- priority
+cols:
+- item_status
+metric: count
+filters:
+  dataset: item
+  type: task
+row_sort: label-asc
+col_sort: label-asc

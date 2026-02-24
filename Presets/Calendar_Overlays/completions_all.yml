@@ -1,0 +1,5 @@
+name: Completions (All)
+mode: all
+value: '*'
+use_momentum: false
+kind: default

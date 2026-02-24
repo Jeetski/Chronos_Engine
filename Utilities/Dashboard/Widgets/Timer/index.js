@@ -21,9 +21,11 @@ export function mount(el, context) {
     <div class="content" style="gap:10px;">
       <div id="twBanner" style="display:none; border:1px solid rgba(122,162,247,0.4); background:linear-gradient(135deg, rgba(42,92,255,0.15) 0%, rgba(42,92,255,0.08) 100%); border-radius:12px; padding:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);">
         <div id="twBannerText" style="font-weight:600; margin-bottom:8px;">Completed the current block?</div>
-        <div class="row" style="gap:8px;">
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
           <button class="btn btn-primary" id="twBannerYes">Yes</button>
-          <button class="btn btn-secondary" id="twBannerNo">No</button>
+          <button class="btn" id="twBannerSkip">Skip</button>
+          <button class="btn btn-secondary" id="twBannerRestart">Start Over</button>
+          <button class="btn" id="twBannerStretch">Stretch</button>
         </div>
       </div>
       <div class="row" style="gap:8px; align-items:center;">
@@ -89,7 +91,9 @@ export function mount(el, context) {
   const banner = el.querySelector('#twBanner');
   const bannerText = el.querySelector('#twBannerText');
   const bannerYes = el.querySelector('#twBannerYes');
-  const bannerNo = el.querySelector('#twBannerNo');
+  const bannerSkip = el.querySelector('#twBannerSkip');
+  const bannerRestart = el.querySelector('#twBannerRestart');
+  const bannerStretch = el.querySelector('#twBannerStretch');
   const blockMetaEl = el.querySelector('#twBlockMeta');
   const queueMetaEl = el.querySelector('#twQueueMeta');
 
@@ -212,8 +216,10 @@ export function mount(el, context) {
   cancelBtn.addEventListener('click', async () => { const r = await fetch(apiBase() + '/api/timer/cancel', { method: 'POST' }); if (!r.ok) alert('Cancel failed'); await status(); resetDisplayForSelected(); });
   refreshBtn.addEventListener('click', status);
   profSel.addEventListener('change', () => { try { localStorage.setItem('twProfile', profSel.value); } catch { } });
-  bannerYes?.addEventListener('click', () => confirmBlock(true));
-  bannerNo?.addEventListener('click', () => confirmBlock(false));
+  bannerYes?.addEventListener('click', () => confirmBlock('yes'));
+  bannerSkip?.addEventListener('click', () => confirmBlock('skip'));
+  bannerRestart?.addEventListener('click', () => confirmBlock('start_over'));
+  bannerStretch?.addEventListener('click', () => confirmBlock('stretch'));
 
   function updateButtons(stStatus) {
     const s = String(stStatus || 'idle').toLowerCase();
@@ -260,10 +266,10 @@ export function mount(el, context) {
     barEl.style.width = '0%';
   }
 
-  async function confirmBlock(completed) {
+  async function confirmBlock(action) {
     if (!pendingConfirmation) return;
     try {
-      await fetch(apiBase() + '/api/timer/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed }) });
+      await fetch(apiBase() + '/api/timer/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
       pendingConfirmation = null;
       await status();
     } catch (err) {

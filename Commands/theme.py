@@ -16,11 +16,11 @@ def get_help_message():
         "Subcommands:\n"
         "  list                 List available themes\n"
         "  current              Show current theme/background/text\n"
-        "  set <name>           Set theme by name (from theme_settings.yml)\n"
+        "  set <name>           Set theme by name (from console_theme_settings.yml)\n"
         "  set-colors [background:<name|#hex>] [text:<name|#hex>]\n"
         "                       Set explicit console colors (overrides theme)\n"
         "Notes:\n"
-        "- Themes come from User/Settings/theme_settings.yml (themes: { name: { background, text } }).\n"
+        "- Themes come from User/Settings/console_theme_settings.yml (themes: { name: { background, text } }).\n"
         "- Current selection is stored in User/Profile/profile.yml under 'theme' or 'console: { theme }'.\n"
         "- Explicit 'background'/'text' in profile override the theme.\n"
     )
@@ -49,9 +49,14 @@ def _save_yaml(path: str, data: Any) -> bool:
 
 
 def _read_themes() -> Dict[str, Dict[str, str]]:
-    cfg = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml'))
+    # Console themes live here.
+    cfg = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'console_theme_settings.yml'))
     if isinstance(cfg, dict) and isinstance(cfg.get('themes'), dict):
         return cfg['themes']  # type: ignore
+    # Backward-compatible fallback.
+    legacy = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml'))
+    if isinstance(legacy, dict) and isinstance(legacy.get('themes'), dict):
+        return legacy['themes']  # type: ignore
     return {}
 
 
@@ -151,7 +156,7 @@ def run(args, properties):
 
     if sub == 'list':
         if not themes:
-            print("No themes found. Ensure User/Settings/theme_settings.yml exists.")
+            print("No themes found. Ensure User/Settings/console_theme_settings.yml exists.")
             return
         print("Available themes:")
         for name, t in themes.items():

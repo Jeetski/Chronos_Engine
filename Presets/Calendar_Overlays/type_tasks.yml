@@ -1,0 +1,5 @@
+name: 'Type: Tasks'
+mode: type
+value: task
+use_momentum: false
+kind: default
