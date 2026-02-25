@@ -63,3 +63,13 @@ User/**
 !User/Scripts/**
 !User/Scripts/Macros/**
 !User/**/*_example.yml
+
+# Generated registries/logs
+Registry/*.json
+Logs/*.log
+
+# ADUC runtime state + memories (local/user-specific)
+Agents Dress Up Committee/familiars/*/state.json
+Agents Dress Up Committee/familiars/*/milestones.json
+Agents Dress Up Committee/familiars/*/memory.json
+Agents Dress Up Committee/familiars/*/docs/memories.md
