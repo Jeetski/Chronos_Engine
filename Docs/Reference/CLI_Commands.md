@@ -239,6 +239,16 @@ Creates custom command shortcuts.
 - `alias list`: List all aliases.
 - `alias remove <name>`: Delete an alias.
 
+### `autocomplete`
+Controls interactive CLI autocomplete suggestions.
+**Usage:**
+- `autocomplete`
+- `autocomplete on|off`
+- `autocomplete toggle`
+**Notes:**
+- Updates `User/Settings/console_settings.yml` (`autocomplete_enabled`).
+- Applies to new interactive sessions.
+
 ### `bulk`
 Executes a command on multiple items matching a filter.
 **Usage:** `bulk <command> [args...] [limit:<n>] [dry:true|false]`

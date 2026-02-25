@@ -305,18 +305,22 @@ def print_role(text: str, role: str = "default") -> None:
     if text is None:
         return
     if print_formatted_text and FormattedText:
-        style = build_style()
-        if str(text) == "":
-            apply_global_colors()
-            _raw_print(" " * max(1, shutil.get_terminal_size((80, 20)).columns))
+        try:
+            style = build_style()
+            if str(text) == "":
+                apply_global_colors()
+                _raw_print(" " * max(1, shutil.get_terminal_size((80, 20)).columns))
+                return
+            for line in str(text).splitlines():
+                padded = _pad_line(line)
+                print_formatted_text(FormattedText([(f"class:{role}", padded)]), style=style)
+            if str(text).endswith("\n"):
+                print_formatted_text(FormattedText([(f"class:{role}", _pad_line(""))]), style=style)
             return
-        for line in str(text).splitlines():
-            padded = _pad_line(line)
-            print_formatted_text(FormattedText([(f"class:{role}", padded)]), style=style)
-        if str(text).endswith("\n"):
-            print_formatted_text(FormattedText([(f"class:{role}", _pad_line(""))]), style=style)
-    else:
-        print(text)
+        except Exception:
+            # Non-interactive shells (agents/subprocesses) may not have a real console buffer.
+            pass
+    _raw_print(str(text))
 
 
 def enable_themed_print(default_role: str = "default") -> None:

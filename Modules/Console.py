@@ -38,6 +38,7 @@ else:
 # --- Path Configuration ---
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+CONSOLE_SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "console_settings.yml")
 
 # Add ROOT_DIR to sys.path to allow absolute imports from project root
 if ROOT_DIR not in sys.path:
@@ -58,6 +59,10 @@ if MODULES_DIR not in sys.path:
 from Modules import Variables
 from Modules import console_style
 from Modules.Logger import Logger
+
+# Suppress pygame's support prompt in non-interactive command usage.
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+
 try:
     from Modules import SoundFX
 except Exception:
@@ -84,6 +89,77 @@ def _safe_load_yaml(path):
             return yaml.safe_load(f)
     except Exception:
         return None
+
+
+def _to_bool_token(value):
+    s = str(value or "").strip().lower()
+    if s in {"true", "1", "yes", "on"}:
+        return True
+    if s in {"false", "0", "no", "off"}:
+        return False
+    return None
+
+
+def _load_console_settings():
+    defaults = {
+        "prompt_toolkit_default": False,
+        "autocomplete_enabled": True,
+        "show_startup_banner": False,
+        "run_startup_sync": False,
+        "play_startup_sound": False,
+    }
+    data = _safe_load_yaml(CONSOLE_SETTINGS_PATH)
+    if isinstance(data, dict):
+        out = dict(defaults)
+        out.update(data)
+        return out
+    return defaults
+
+
+def _extract_runtime_options(argv_tokens):
+    """
+    Parse runtime-only key:value tokens from argv without using -- switches.
+    Supported:
+      prompt_toolkit:true|false
+      autocomplete:true|false
+      startup_banner:true|false
+      startup_sync:true|false
+      startup_sound:true|false
+    Returns: (options_dict, remaining_tokens)
+    """
+    options = {
+        "prompt_toolkit": None,
+        "autocomplete": None,
+        "startup_banner": None,
+        "startup_sync": None,
+        "startup_sound": None,
+    }
+    remaining = []
+    for tok in (argv_tokens or []):
+        t = str(tok or "").strip()
+        if not _is_property_token(t):
+            remaining.append(tok)
+            continue
+        key, _sep, val = t.partition(":")
+        k = key.strip().lower()
+        b = _to_bool_token(val)
+        if k in {"prompt_toolkit", "ptk"} and b is not None:
+            options["prompt_toolkit"] = b
+            continue
+        if k in {"autocomplete", "autosuggest", "suggestions"} and b is not None:
+            options["autocomplete"] = b
+            continue
+        if k in {"startup_banner", "banner"} and b is not None:
+            options["startup_banner"] = b
+            continue
+        if k in {"startup_sync", "sync_on_startup"} and b is not None:
+            options["startup_sync"] = b
+            continue
+        if k in {"startup_sound", "sound_on_startup"} and b is not None:
+            options["startup_sound"] = b
+            continue
+        remaining.append(tok)
+    return options, remaining
 
 
 
@@ -1221,60 +1297,88 @@ def execute_script(script_path):
 
 
 if __name__ == "__main__":
+    runtime_options, cli_args = _extract_runtime_options(sys.argv[1:])
+    console_cfg = _load_console_settings()
+
+    has_cli_input = bool(cli_args)
+
+    startup_banner_enabled = runtime_options.get("startup_banner")
+    if startup_banner_enabled is None:
+        startup_banner_enabled = bool(_to_bool_token(console_cfg.get("show_startup_banner")))
+
+    startup_sync_enabled = runtime_options.get("startup_sync")
+    if startup_sync_enabled is None:
+        startup_sync_enabled = bool(_to_bool_token(console_cfg.get("run_startup_sync")))
+
+    startup_sound_enabled = runtime_options.get("startup_sound")
+    if startup_sound_enabled is None:
+        startup_sound_enabled = bool(_to_bool_token(console_cfg.get("play_startup_sound")))
+
+    # In one-shot command/script mode, keep IO clean unless explicitly enabled.
+    if has_cli_input:
+        startup_banner_enabled = bool(startup_banner_enabled)
+        startup_sync_enabled = bool(startup_sync_enabled)
+        startup_sound_enabled = bool(startup_sound_enabled)
+
     # Seed variables (e.g., @nickname from profile)
     try:
         _load_profile_and_seed_vars()
     except Exception:
         pass
-    # Apply console color defaults
-    try:
-        console_style.apply_global_colors()
-    except Exception:
-        pass
-    try:
-        console_style.enable_themed_print()
-    except Exception:
-        pass
-    try:
-        os.system("cls" if os.name == "nt" else "clear")
-    except Exception:
-        pass
-    console_style.print_role("Aquiring hyperdimensional object at the end of time...", "info")
-    try:
-        os.system("cls" if os.name == "nt" else "clear")
-    except Exception:
-        pass
-    # Display Chronos Engine banner
-    console_style.print_role(" _____ _____ _____ _____ _____ _____ _____ ", "logo")
-    console_style.print_role("|     |  |  | __  |     |   | |     |   __|", "logo")
-    console_style.print_role("|   --|     |    -|  |  | | | |  |  |__   |", "logo")
-    console_style.print_role("|_____|__|__|__|__|_____|_|___|_____|_____|", "logo")
-    console_style.print_role("", "logo")
-    try:
-        _wl = _load_welcome_lines()
-    except Exception:
-        _wl = [
-            "⌛ Chronos Engine Alpha v0.2",
-            "🚀 Welcome, @nickname",
-            "🌌 You are the navigator of your reality.",
-        ]
-    for _ln in _wl:
-        console_style.print_role(_ln, "info")
-    console_style.print_role("", "info")
-    _run_startup_core_sync_with_macro_hook()
-    _play_cli_sound("startup")
+
+    if startup_banner_enabled:
+        # Apply console color defaults for the interactive startup experience.
+        try:
+            console_style.apply_global_colors()
+        except Exception:
+            pass
+        try:
+            console_style.enable_themed_print()
+        except Exception:
+            pass
+        try:
+            os.system("cls" if os.name == "nt" else "clear")
+        except Exception:
+            pass
+        console_style.print_role("Aquiring hyperdimensional object at the end of time...", "info")
+        try:
+            os.system("cls" if os.name == "nt" else "clear")
+        except Exception:
+            pass
+        # Display Chronos Engine banner
+        console_style.print_role(" _____ _____ _____ _____ _____ _____ _____ ", "logo")
+        console_style.print_role("|     |  |  | __  |     |   | |     |   __|", "logo")
+        console_style.print_role("|   --|     |    -|  |  | | | |  |  |__   |", "logo")
+        console_style.print_role("|_____|__|__|__|__|_____|_|___|_____|_____|", "logo")
+        console_style.print_role("", "logo")
+        try:
+            _wl = _load_welcome_lines()
+        except Exception:
+            _wl = [
+                "⌛ Chronos Engine Alpha v0.2",
+                "🚀 Welcome, @nickname",
+                "🌌 You are the navigator of your reality.",
+            ]
+        for _ln in _wl:
+            console_style.print_role(_ln, "info")
+        console_style.print_role("", "info")
+
+    if startup_sync_enabled:
+        _run_startup_core_sync_with_macro_hook()
+    if startup_sound_enabled:
+        _play_cli_sound("startup")
 
     # Check if a .chs script file is provided
-    if len(sys.argv) > 1 and sys.argv[1].endswith('.chs'):
-        script_path = os.path.join(ROOT_DIR, sys.argv[1])
+    if cli_args and str(cli_args[0]).endswith('.chs'):
+        script_path = os.path.join(ROOT_DIR, cli_args[0])
         success = execute_script(script_path)
         sys.exit(0 if success else 1)
 
 
     # Check if command-line arguments are provided
-    if len(sys.argv) > 1:
+    if cli_args:
         # Join all arguments into a single string to handle quotes correctly
-        user_input_str = ' '.join(sys.argv[1:])
+        user_input_str = ' '.join(cli_args)
         # Use shlex.split to parse the string, respecting quotes
         parts = shlex.split(user_input_str)
         command, args, properties = parse_input(parts)
@@ -1294,7 +1398,8 @@ if __name__ == "__main__":
                 except Exception:
                     pass
             invoke_command(command, args, properties.copy())
-            _apply_console_theme()
+            if startup_banner_enabled:
+                _apply_console_theme()
             if command.lower() == 'if':
                 try:
                     import Modules.Conditions as Conditions
@@ -1306,33 +1411,55 @@ if __name__ == "__main__":
             _play_cli_sound("error")
     else:
         # Enter interactive mode if no command-line arguments
-        if PromptSession:
-            registry = _load_registry_bundle()
-            completer = RegistryCompleter(registry)
-            autosuggest = RegistryAutoSuggest(registry)
+        console_cfg = _load_console_settings()
+        prompt_toolkit_enabled = runtime_options.get("prompt_toolkit")
+        if prompt_toolkit_enabled is None:
+            prompt_toolkit_enabled = bool(_to_bool_token(console_cfg.get("prompt_toolkit_default")))
+        autocomplete_enabled = runtime_options.get("autocomplete")
+        if autocomplete_enabled is None:
+            autocomplete_enabled = bool(_to_bool_token(console_cfg.get("autocomplete_enabled")))
+
+        if PromptSession and prompt_toolkit_enabled:
             history = InMemoryHistory()
             kb = KeyBindings()
             style = console_style.build_style()
             color_depth = console_style.get_color_depth()
+            completer = None
+            autosuggest = None
+
+            if autocomplete_enabled:
+                registry = _load_registry_bundle()
+                completer = RegistryCompleter(registry)
+                autosuggest = RegistryAutoSuggest(registry)
 
             @kb.add("enter")
             def _(event):
                 buf = event.app.current_buffer
-                if buf.complete_state and buf.complete_state.current_completion:
-                    buf.apply_completion(buf.complete_state.current_completion)
-                    return
-                if buf.suggestion:
-                    buf.insert_text(buf.suggestion.text)
-                    return
+                if autocomplete_enabled:
+                    if buf.complete_state and buf.complete_state.current_completion:
+                        buf.apply_completion(buf.complete_state.current_completion)
+                        return
+                    if buf.suggestion:
+                        buf.insert_text(buf.suggestion.text)
+                        return
                 buf.validate_and_handle()
 
-            session = PromptSession(completer=completer, auto_suggest=autosuggest, history=history, key_bindings=kb, complete_while_typing=True, style=style, color_depth=color_depth)
+            session = PromptSession(
+                completer=completer,
+                auto_suggest=autosuggest,
+                history=history,
+                key_bindings=kb,
+                complete_while_typing=bool(autocomplete_enabled),
+                style=style,
+                color_depth=color_depth,
+            )
 
             while True:
                 try:
                     _apply_console_theme()
-                    completer.registry = _load_registry_bundle()
-                    autosuggest.registry = completer.registry
+                    if autocomplete_enabled:
+                        completer.registry = _load_registry_bundle()
+                        autosuggest.registry = completer.registry
                     user_input = session.prompt([("class:prompt", "> ")])
                     if user_input is None:
                         continue

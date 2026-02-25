@@ -37,6 +37,8 @@ Defines the dimensions of your human state (Energy, Focus, Mood).
 
 ### 4. Interface & Themes
 - **`theme_settings.yml`**: Controls CLI colors and prompts.
+- **`console_settings.yml`**: Controls interactive console behavior (`prompt_toolkit_default`, `autocomplete_enabled`).
+  - Also controls startup behavior: `show_startup_banner`, `run_startup_sync`, `play_startup_sound`.
 - **`User/Profile/preferences_settings.yml`**: Controls Agent/System verbosity and behavior.
 - **`User/Profile/profile.yml`**: The "User Object" (Nickname, preferences).
 
