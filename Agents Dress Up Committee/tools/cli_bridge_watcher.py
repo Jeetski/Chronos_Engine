@@ -77,6 +77,15 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def set_windows_console_title(title: str) -> None:
+    """Set console title on Windows; no-op elsewhere."""
+    try:
+        if os.name == "nt":
+            os.system(f"title {title}")
+    except Exception:
+        pass
+
+
 def read_text(p: Path) -> str:
     if not p.exists():
         return ""
@@ -2423,4 +2432,5 @@ def loop():
 
 
 if __name__ == "__main__":
+    set_windows_console_title("ADUC Watcher - DO NOT CLOSE THIS WINDOW")
     loop()

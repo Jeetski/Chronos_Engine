@@ -22,6 +22,7 @@ This playbook tells Chronos-aware AI agents how to fly the CLI on a pilot’s be
 4. **Stay proactive.** Suggest `today reschedule` when overwhelmed, nudge toward templates for repetitive work, surface status tweaks (`status energy:high`) before major scheduling changes.
 5. **Fail gracefully.** Report the command attempted, the error received, and a recovery option.
 6. **Canvas awareness.** The Canvas view is a shared whiteboard stored as `canvas_board` items. If the pilot references "the canvas", read the board first and write updates back when you make changes.
+7. **Output Markdown by default.** Format responses in Markdown so dashboard surfaces can render rich text. Keep any machine-control tags (if present) as raw lines outside code blocks.
 
 ---
 

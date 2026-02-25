@@ -1,0 +1,413 @@
+.nia-assistant-widget {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  right: 20px !important;
+  bottom: 24px !important;
+  top: auto !important;
+  left: auto !important;
+}
+
+.nia-shell {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+
+.nia-orb {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 1px solid var(--accent, rgba(122, 162, 247, 0.95));
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 12px 28px rgba(5, 10, 24, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.nia-orb:hover {
+  transform: translateY(-1px) scale(1.02);
+  border-color: var(--accent, rgba(122, 162, 247, 0.95));
+}
+
+.nia-orb-letter {
+  position: relative;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #eaf3ff;
+  text-shadow: none;
+}
+
+.nia-panel {
+  position: absolute;
+  right: 6px;
+  bottom: 82px;
+  width: 340px;
+  height: 380px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: saturate(120%) blur(8px);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
+  display: none;
+  overflow: hidden;
+  transform-origin: bottom right;
+}
+
+.nia-shell.is-open .nia-panel {
+  display: flex;
+  flex-direction: column;
+  animation: niaPanelIn 170ms ease-out;
+}
+
+@keyframes niaPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nia-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: move;
+}
+
+.nia-title-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nia-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #edf5ff;
+}
+
+.nia-subtitle {
+  font-size: 11px;
+  color: rgba(210, 225, 255, 0.75);
+}
+
+.nia-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  position: relative;
+}
+
+.nia-settings {
+  position: absolute;
+  inset: 10px;
+  z-index: 30;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: saturate(120%) blur(8px);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nia-settings[hidden] {
+  display: none !important;
+}
+
+.nia-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nia-settings-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.nia-settings-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.nia-settings-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.nia-settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+  user-select: none;
+}
+
+.nia-settings-toggle input {
+  margin: 0;
+}
+
+.nia-settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.nia-panel.is-settings-open .nia-log,
+.nia-panel.is-settings-open .nia-input-row {
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.nia-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(15, 20, 29, 0.42);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nia-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.nia-row-user {
+  justify-content: flex-end;
+}
+
+.nia-row-assistant {
+  justify-content: flex-start;
+}
+
+.nia-person {
+  width: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.nia-person-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(7, 11, 18, 0.72);
+}
+
+.nia-person-name {
+  width: 100%;
+  font-size: 10px;
+  line-height: 1.1;
+  color: rgba(220, 234, 255, 0.82);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nia-msg {
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 8px 10px;
+  border-radius: 10px;
+  max-width: calc(100% - 56px);
+}
+
+.nia-msg p,
+.nia-msg ul,
+.nia-msg ol,
+.nia-msg pre,
+.nia-msg blockquote,
+.nia-msg h1,
+.nia-msg h2,
+.nia-msg h3,
+.nia-msg h4,
+.nia-msg h5,
+.nia-msg h6 {
+  margin: 0 0 8px;
+}
+
+.nia-msg :last-child {
+  margin-bottom: 0;
+}
+
+.nia-msg ul,
+.nia-msg ol {
+  padding-left: 18px;
+}
+
+.nia-msg code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+  background: rgba(6, 10, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  padding: 1px 4px;
+}
+
+.nia-msg pre {
+  background: rgba(6, 10, 18, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 8px;
+  overflow: auto;
+}
+
+.nia-msg pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.nia-msg blockquote {
+  border-left: 2px solid rgba(160, 200, 255, 0.45);
+  padding-left: 8px;
+  color: rgba(226, 236, 255, 0.86);
+}
+
+.nia-msg a {
+  color: #9bd1ff;
+  text-decoration: underline;
+}
+
+.nia-msg-assistant {
+  align-self: flex-start;
+  background: rgba(120, 180, 255, 0.18);
+  border: 1px solid rgba(120, 180, 255, 0.35);
+  color: #ecf4ff;
+}
+
+.nia-msg-user {
+  align-self: flex-end;
+  background: rgba(180, 220, 255, 0.16);
+  border: 1px solid rgba(180, 220, 255, 0.35);
+  color: #f3f8ff;
+}
+
+.nia-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nia-add-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.nia-attach {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eaf3ff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.nia-add-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  backdrop-filter: saturate(120%) blur(8px);
+  -webkit-backdrop-filter: saturate(120%) blur(8px);
+  display: none;
+  z-index: 20;
+}
+
+.nia-add-menu.open {
+  display: block;
+}
+
+.nia-add-item {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nia-add-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.nia-add-icon {
+  width: 18px;
+  text-align: center;
+}
+
+.nia-add-label {
+  font-size: 12px;
+}
+
+.nia-input {
+  flex: 1 1 auto;
+}
+
+.nia-send {
+  flex: 0 0 auto;
+}

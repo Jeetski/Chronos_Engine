@@ -1002,6 +1002,8 @@ export function mount(el, context) {
 
   let overlayMode = null;
   let overlayData = {}; // { 'YYYY-MM-DD': score 0..1 }
+  const dateMarkerCache = new Map(); // year -> Map(YYYY-MM-DD -> { deadline, due })
+  const dateMarkerLoads = new Map(); // year -> Promise<Map>
 
   try {
     window.__calendarSetOverlay = (mode, data) => {
@@ -1013,12 +1015,111 @@ export function mount(el, context) {
     };
   } catch { }
 
+  function normalizeDateKey(raw) {
+    if (raw == null) return null;
+    const text = String(raw).trim();
+    if (!text) return null;
+    const iso = text.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return dayKey(parsed);
+  }
+
+  async function ensureDateMarkersForYear(year) {
+    const safeYear = Number(year);
+    if (!Number.isFinite(safeYear)) return new Map();
+    if (dateMarkerCache.has(safeYear)) return dateMarkerCache.get(safeYear);
+    if (dateMarkerLoads.has(safeYear)) return dateMarkerLoads.get(safeYear);
+    const loader = (async () => {
+      const byDate = new Map();
+      try {
+        const resp = await fetch(apiBase() + '/api/items');
+        const payload = await resp.json().catch(() => ({}));
+        const items = Array.isArray(payload?.items) ? payload.items : (Array.isArray(payload) ? payload : []);
+        const add = (key, kind) => {
+          if (!key || !String(key).startsWith(`${safeYear}-`)) return;
+          const row = byDate.get(key) || { deadline: 0, due: 0 };
+          if (kind === 'deadline') row.deadline += 1;
+          else row.due += 1;
+          byDate.set(key, row);
+        };
+        for (const item of items) {
+          add(normalizeDateKey(item?.deadline), 'deadline');
+          add(normalizeDateKey(item?.due_date ?? item?.due), 'due');
+        }
+      } catch (err) {
+        console.error('[Chronos][Calendar] Failed to load date markers', err);
+      }
+      dateMarkerCache.set(safeYear, byDate);
+      return byDate;
+    })().finally(() => {
+      dateMarkerLoads.delete(safeYear);
+    });
+    dateMarkerLoads.set(safeYear, loader);
+    return loader;
+  }
+
+  function requestDateMarkersForYear(year) {
+    const safeYear = Number(year);
+    if (!Number.isFinite(safeYear)) return;
+    if (dateMarkerCache.has(safeYear) || dateMarkerLoads.has(safeYear)) return;
+    void ensureDateMarkersForYear(safeYear).then(() => {
+      if (selectedYear !== safeYear) return;
+      if (viewMode === 'year' || viewMode === 'month') redrawCurrentView();
+    });
+  }
+
+  function drawMarkerDots(x, y, marker, size = 2.5) {
+    if (!marker) return;
+    let dx = x;
+    if (marker.deadline > 0) {
+      ctx.fillStyle = '#ff6b6b';
+      ctx.beginPath();
+      ctx.arc(dx, y, size, 0, Math.PI * 2);
+      ctx.fill();
+      dx += size * 2 + 2;
+    }
+    if (marker.due > 0) {
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.arc(dx, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawMarkerBadges(x, y, marker) {
+    if (!marker) return;
+    const tokens = [];
+    if (marker.deadline > 0) tokens.push({ text: marker.deadline > 1 ? `!${marker.deadline}` : '!', fg: '#ffb3b3', bg: 'rgba(120,20,20,0.72)' });
+    if (marker.due > 0) tokens.push({ text: marker.due > 1 ? `•${marker.due}` : '•', fg: '#ffe8a3', bg: 'rgba(120,90,20,0.72)' });
+    if (!tokens.length) return;
+    ctx.save();
+    ctx.font = '700 10px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    let cx = x;
+    for (const token of tokens) {
+      const tw = Math.max(10, Math.ceil(ctx.measureText(token.text).width) + 8);
+      const th = 12;
+      ctx.fillStyle = token.bg;
+      roundRect(ctx, cx, y, tw, th, 6);
+      ctx.fill();
+      ctx.fillStyle = token.fg;
+      ctx.fillText(token.text, cx + 4, y + th / 2 + 0.5);
+      cx += tw + 4;
+    }
+    ctx.restore();
+  }
+
   function drawYearGrid() {
     setDayListVisible(false);
     const now = new Date();
     const year = selectedYear || now.getFullYear();
     const currentMonth = now.getMonth();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const markerMap = dateMarkerCache.get(year) || null;
+    if (!markerMap) requestDateMarkersForYear(year);
     const w = canvas.clientWidth, h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#0b0f16';
@@ -1045,8 +1146,59 @@ export function mount(el, context) {
       ctx.strokeStyle = withAlpha(fill, 0.55);
       roundRect(ctx, x, y, cellW, cellH, 10);
       ctx.stroke();
+      const innerPad = 8;
+      const titleY = y + innerPad + 8;
+      const weekdaysY = y + innerPad + 24;
+      const weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+      const gridTop = weekdaysY + 8;
+      const colGap = 3;
+      const rowGap = 3;
+      const dayW = Math.max(4, (cellW - innerPad * 2 - colGap * 6) / 7);
+      const dayH = Math.max(4, (cellH - (gridTop - y) - innerPad - rowGap * 5) / 6);
+
       ctx.fillStyle = '#e6e8ef';
-      ctx.fillText(`${months[i]}`, x + cellW / 2, y + cellH / 2);
+      ctx.fillText(`${months[i]}`, x + cellW / 2, titleY);
+
+      ctx.font = '600 10px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+      ctx.fillStyle = '#8d95a4';
+      for (let dow = 0; dow < 7; dow++) {
+        const wx = x + innerPad + dow * (dayW + colGap) + dayW / 2;
+        ctx.fillText(weekdayLabels[dow], wx, weekdaysY);
+      }
+
+      const firstOfMonth = new Date(year, i, 1);
+      const monthStart = weekMonday(firstOfMonth);
+      const todayMidnight = dateAtMidnight(now);
+      ctx.font = '600 9px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+      for (let row = 0; row < 6; row++) {
+        for (let col = 0; col < 7; col++) {
+          const dayDate = new Date(monthStart);
+          dayDate.setDate(monthStart.getDate() + row * 7 + col);
+          const inMonth = dayDate.getMonth() === i;
+          const dx = x + innerPad + col * (dayW + colGap);
+          const dy = gridTop + row * (dayH + rowGap);
+          const dayColor = colorForDay(dayDate, todayMidnight);
+
+          ctx.fillStyle = withAlpha(dayColor, inMonth ? 0.2 : 0.08);
+          roundRect(ctx, dx, dy, dayW, dayH, 3);
+          ctx.fill();
+          ctx.strokeStyle = withAlpha(dayColor, inMonth ? 0.45 : 0.2);
+          roundRect(ctx, dx, dy, dayW, dayH, 3);
+          ctx.stroke();
+
+          if (dayW >= 9 && dayH >= 8) {
+            ctx.fillStyle = inMonth ? '#e6e8ef' : '#6b7382';
+            ctx.textAlign = 'center';
+            ctx.fillText(String(dayDate.getDate()), dx + dayW / 2, dy + dayH / 2 + 0.5);
+          }
+          if (inMonth && markerMap) {
+            const marker = markerMap.get(dayKey(dayDate));
+            if (marker) drawMarkerDots(dx + 4, dy + 4, marker, Math.max(1.6, Math.min(2.6, dayW * 0.16)));
+          }
+        }
+      }
+      ctx.textAlign = 'center';
+      ctx.font = '600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
       monthRects.push({ i, x, y, w: cellW, h: cellH });
     }
     ctx.restore();
@@ -1059,6 +1211,8 @@ export function mount(el, context) {
     setDayListVisible(false);
     selectedMonth = month;
     selectedYear = year;
+    const markerMap = dateMarkerCache.get(year) || null;
+    if (!markerMap) requestDateMarkersForYear(year);
     const w = canvas.clientWidth, h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
     const pad = 14, headerH = 36;
@@ -1089,7 +1243,7 @@ export function mount(el, context) {
         d.setDate(start.getDate() + r * 7 + c);
         const inMonth = d.getMonth() === month;
 
-        const dateKey = d.toISOString().split('T')[0];
+        const dateKey = dayKey(d);
         const score = overlayMode ? (overlayData[dateKey] || 0) : null;
 
         let dayColor = colorForDay(d, today);
@@ -1113,6 +1267,10 @@ export function mount(el, context) {
         ctx.textAlign = 'right';
         ctx.fillText(String(d.getDate()), x + colW - 6, y + 14);
         ctx.textAlign = 'left';
+        if (inMonth && markerMap) {
+          const marker = markerMap.get(dateKey);
+          if (marker) drawMarkerBadges(x + 6, y + 6, marker);
+        }
 
         // Draw score indicator if relevant?
         if (score !== null && score > 0.1) {
@@ -1223,20 +1381,6 @@ export function mount(el, context) {
     window.__calendarCanGoBack = () => navStack.length > 0;
   } catch { }
 
-  const backBtn = document.createElement('button');
-  backBtn.className = 'pane-back';
-  backBtn.textContent = 'Back';
-  backBtn.title = 'Return to previous calendar level';
-  backBtn.style.padding = '0 10px';
-  backBtn.style.height = '28px';
-  backBtn.style.background = 'linear-gradient(180deg, #24324a, #1a2436)';
-  backBtn.style.border = '1px solid #2f3b56';
-  backBtn.style.color = '#e6e8ef';
-  backBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.04)';
-  backBtn.style.borderRadius = '7px';
-  backBtn.style.display = '';
-  backBtn.style.zIndex = '13';
-  backBtn.addEventListener('click', (e) => { e.stopPropagation(); goBack(); });
   const viewControls = document.createElement('div');
   viewControls.style.position = 'absolute';
   viewControls.style.top = '10px';
@@ -1245,12 +1389,6 @@ export function mount(el, context) {
   viewControls.style.gap = '8px';
   viewControls.style.alignItems = 'center';
   viewControls.style.zIndex = '13';
-
-  const refreshBtn = document.createElement('button');
-  refreshBtn.type = 'button';
-  refreshBtn.className = 'btn calendar-daylist-refresh';
-  refreshBtn.textContent = 'Refresh';
-  refreshBtn.title = 'Refresh day list';
 
   const fxWrap = document.createElement('label');
   fxWrap.className = 'hint';
@@ -1268,16 +1406,12 @@ export function mount(el, context) {
     renderDayListTree();
   });
 
-  viewControls.append(backBtn, refreshBtn, fxWrap);
+  viewControls.append(fxWrap);
   el.appendChild(viewControls);
-  dayListRefreshBtn = refreshBtn;
+  dayListRefreshBtn = null;
   function updateBackBtn() {
     const hasHistory = navStack.length > 0;
-    backBtn.style.display = '';
-    // Keep always clickable; just soften when empty
-    backBtn.style.opacity = hasHistory ? '1' : '0.6';
-    backBtn.style.pointerEvents = 'auto';
-    backBtn.style.cursor = 'pointer';
+    try { window.__calendarSetBackState?.(hasHistory); } catch { }
     try { window.__calendarHasHistory = hasHistory; } catch { }
   }
 
@@ -1480,7 +1614,6 @@ export function mount(el, context) {
   dayListTreeEl?.addEventListener('click', onDayListClick);
   dayListTreeEl?.addEventListener('dragover', handleDayListDragOver);
   dayListTreeEl?.addEventListener('drop', handleDayListDrop);
-  dayListRefreshBtn?.addEventListener('click', () => refreshDayList(true));
   canvas.addEventListener('pointerdown', onPointerDown);
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
@@ -1505,7 +1638,6 @@ export function mount(el, context) {
       window.removeEventListener('pointermove', onSplitterPointerMove);
       window.removeEventListener('pointerup', onSplitterPointerUp);
       try { document.body.style.cursor = ''; } catch { }
-      try { backBtn.remove(); } catch { }
       try { delete window.__calendarGoBack; delete window.__calendarCanGoBack; } catch { }
     }
   };

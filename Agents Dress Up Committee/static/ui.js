@@ -13,6 +13,130 @@ function el(tag, cls, text) {
   return e;
 }
 
+function escapeHtml(text) {
+  return String(text || '').replace(/[&<>"']/g, (ch) => (
+    ch === '&' ? '&amp;'
+      : ch === '<' ? '&lt;'
+      : ch === '>' ? '&gt;'
+      : ch === '"' ? '&quot;'
+      : '&#39;'
+  ));
+}
+
+function formatInlineMarkdown(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  return s;
+}
+
+function markdownToHtml(md) {
+  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
+  const out = [];
+  let inCode = false;
+  let code = [];
+  let listType = null;
+  let para = [];
+
+  const flushPara = () => {
+    if (!para.length) return;
+    out.push(`<p>${formatInlineMarkdown(para.join(' '))}</p>`);
+    para = [];
+  };
+  const closeList = () => {
+    if (!listType) return;
+    out.push(listType === 'ol' ? '</ol>' : '</ul>');
+    listType = null;
+  };
+
+  for (const lineRaw of lines) {
+    const line = lineRaw || '';
+    const trim = line.trim();
+
+    if (inCode) {
+      if (/^```/.test(trim)) {
+        out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+        inCode = false;
+        code = [];
+      } else {
+        code.push(line);
+      }
+      continue;
+    }
+    if (/^```/.test(trim)) {
+      flushPara();
+      closeList();
+      inCode = true;
+      code = [];
+      continue;
+    }
+    if (!trim) {
+      flushPara();
+      closeList();
+      continue;
+    }
+
+    const heading = trim.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      flushPara();
+      closeList();
+      const level = heading[1].length;
+      out.push(`<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    const ol = trim.match(/^\d+\.\s+(.+)$/);
+    if (ol) {
+      flushPara();
+      if (listType !== 'ol') {
+        closeList();
+        out.push('<ol>');
+        listType = 'ol';
+      }
+      out.push(`<li>${formatInlineMarkdown(ol[1])}</li>`);
+      continue;
+    }
+
+    const ul = trim.match(/^[-*]\s+(.+)$/);
+    if (ul) {
+      flushPara();
+      if (listType !== 'ul') {
+        closeList();
+        out.push('<ul>');
+        listType = 'ul';
+      }
+      out.push(`<li>${formatInlineMarkdown(ul[1])}</li>`);
+      continue;
+    }
+
+    para.push(trim);
+  }
+
+  if (inCode) out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+  flushPara();
+  closeList();
+  return out.join('\n');
+}
+
+function stripControlTags(text) {
+  let s = String(text || '');
+  s = s.replace(/<\s*prompt\s*:[^>]*>/gi, '');
+  s = s.replace(/<\s*avatar\s*:[^>]*>/gi, '');
+  s = s.replace(/<\s*emotion\s*:[^>]*>/gi, '');
+  s = s.replace(/<\s*location\s*:[^>]*>/gi, '');
+  return s.trim();
+}
+
+function setBubbleContent(bubble, text, { markdown = false } = {}) {
+  if (!bubble) return;
+  const target = bubble.querySelector('.bubble-text') || bubble;
+  const clean = stripControlTags(text);
+  if (markdown) target.innerHTML = markdownToHtml(clean);
+  else target.textContent = clean;
+}
+
 // Global map for layout configs: famId -> { "rel_path": { scale, x, y, transform_origin } }
 const FAM_LAYOUTS = new Map();
 // Global map for background-specific layout overrides: famId -> { "background.png": { "avatar.png": { ... } } }
@@ -792,7 +916,8 @@ function appendBubble(text, who, senderName = null, avatarUrl = null) {
   // Create bubble with text
   const bubble = el('div', `bubble ${who}`);
   const msgText = el('div', 'bubble-text');
-  msgText.textContent = text;
+  if (who === 'bot') msgText.innerHTML = markdownToHtml(stripControlTags(text));
+  else msgText.textContent = stripControlTags(text);
   bubble.appendChild(msgText);
 
   // Assemble: avatar on left for bot, right for user
@@ -1164,7 +1289,7 @@ async function sendGreet(famId) {
         if (s.status === 'responded' && token === POLL_TOKEN && famAtSend === document.getElementById('familiar').value) {
           done = true;
           clearInterval(timer);
-          bubble.textContent = s.reply;
+          setBubbleContent(bubble, s.reply, { markdown: true });
           // Remove greeting class BEFORE setting avatar so layout applies correctly
           try { document.body.classList.remove('greeting'); } catch { }
 

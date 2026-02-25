@@ -67,6 +67,23 @@ function injectStyles() {
       font-weight: 700;
       font-size: 16px;
     }
+    .alpha-launch-credit {
+      margin-top: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--chronos-text-muted, #b4c2dd);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .alpha-launch-credit-logo {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      display: block;
+      opacity: 0.95;
+      filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
+    }
     .alpha-launch-actions {
       margin-top: 14px;
       display: grid;
@@ -193,6 +210,7 @@ function buildPopup(done) {
   const overlay = document.createElement('div');
   overlay.className = 'alpha-launch-overlay';
   const logoSrc = `${apiBase()}/assets/Logo_No_Background.png`;
+  const hiveLogoSrc = `${apiBase()}/assets/Hivemind_Studio_Icon.ico`;
   overlay.innerHTML = `
     <div class="alpha-launch-card" role="dialog" aria-modal="true" aria-label="Chronos Engine Alpha">
       <img class="alpha-launch-logo" src="${logoSrc}" alt="Chronos Engine Logo" />
@@ -200,6 +218,10 @@ function buildPopup(done) {
         <h2 class="alpha-launch-title">Chronos Engine</h2>
         <p class="alpha-launch-subtitle">Alpha v0.2</p>
         <a class="alpha-launch-link" href="https://chronosengine.online" target="_blank" rel="noopener noreferrer">chronosengine.online</a>
+        <div class="alpha-launch-credit">
+          <img class="alpha-launch-credit-logo" src="${hiveLogoSrc}" alt="Hivemind Studio Logo" />
+          <span>Developed by Hivemind Studio</span>
+        </div>
         <div class="alpha-launch-whatsnew">
           <div class="alpha-launch-whatsnew-header">
             <p class="alpha-launch-whatsnew-label">What's New</p>
@@ -210,7 +232,8 @@ function buildPopup(done) {
         <div class="alpha-launch-actions">
           <p class="alpha-launch-actions-label">Don't know where to start?</p>
           <div class="alpha-launch-actions-main">
-            <button type="button" class="alpha-launch-btn secondary" data-action="setup" title="Coming soon">Setup</button>
+            <button type="button" class="alpha-launch-btn secondary" data-action="setup-chronos">Set Up Chronos Engine</button>
+            <button type="button" class="alpha-launch-btn secondary" data-action="setup-nia">Set Up Nia AI</button>
             <button type="button" class="alpha-launch-btn secondary" data-action="tour" title="Coming soon">Tour</button>
           </div>
           <div class="alpha-launch-actions-enter">

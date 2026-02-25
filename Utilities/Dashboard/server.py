@@ -11,7 +11,8 @@ import tempfile
 import secrets
 from datetime import datetime, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs, unquote, quote
+from urllib.parse import urlparse, parse_qs, unquote, quote, urlencode
+from urllib import request as urlrequest, error as urlerror
 
 import subprocess, shlex
 
@@ -47,6 +48,39 @@ _ADUC_LOG_PATH = os.path.join(tempfile.gettempdir(), "aduc_launch.log")
 _ADUC_NO_BROWSER_FLAG = os.path.join(tempfile.gettempdir(), "ADUC", "no_browser.flag")
 _ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "temp", "no_browser.flag")
 _LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "link_settings.yml")
+
+
+def _aduc_proxy_request(path: str, method: str = "GET", payload: dict | None = None, timeout: float = 8.0):
+    """Proxy a request to the local ADUC server and return (status, body_dict)."""
+    host = "127.0.0.1"
+    url = f"http://{host}:{_ADUC_PORT}{path}"
+    headers = {"Accept": "application/json"}
+    data = None
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urlrequest.Request(url, data=data, headers=headers, method=method.upper())
+    try:
+        with urlrequest.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            try:
+                body = json.loads(raw) if raw.strip() else {}
+            except Exception:
+                body = {"ok": False, "error": raw}
+            return int(getattr(resp, "status", 200) or 200), body
+    except urlerror.HTTPError as e:
+        raw = ""
+        try:
+            raw = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            raw = str(e)
+        try:
+            body = json.loads(raw) if raw.strip() else {"ok": False, "error": str(e)}
+        except Exception:
+            body = {"ok": False, "error": raw or str(e)}
+        return int(getattr(e, "code", 502) or 502), body
+    except Exception as e:
+        return 502, {"ok": False, "error": f"ADUC request failed: {e}"}
 
 def _load_link_settings():
     data = {}
@@ -968,6 +1002,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read profile: {e}"})
             return
+        if parsed.path == "/api/nia/profile/avatar":
+            try:
+                p = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "familiars", "nia", "profile", "profile.png")
+                if os.path.exists(p):
+                    with open(p, "rb") as f:
+                        blob = f.read()
+                    self.send_response(200)
+                    self._set_cors()
+                    self.send_header("Content-Type", "image/png")
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Content-Length", str(len(blob)))
+                    self.end_headers()
+                    self.wfile.write(blob)
+                else:
+                    self._write_json(404, {"ok": False, "error": "Nia profile image not found"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to read Nia profile image: {e}"})
+            return
         if parsed.path == "/api/media/mp3":
             try:
                 tracks = _list_mp3_files()
@@ -1131,6 +1183,28 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "path": _ADUC_LOG_PATH, "content": content})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to read log: {e}"})
+            return
+        if parsed.path == "/api/aduc/familiars":
+            status, body = _aduc_proxy_request("/familiars", method="GET")
+            self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
+            return
+        if parsed.path == "/api/aduc/cli/status":
+            try:
+                qs = parse_qs(parsed.query or "")
+                familiar = (qs.get("familiar") or [""])[0].strip()
+                turn_id = (qs.get("turn_id") or [""])[0].strip()
+                if not familiar or not turn_id:
+                    self._write_json(400, {"ok": False, "error": "Missing familiar or turn_id"})
+                    return
+                path = "/cli/status?" + urlencode({"familiar": familiar, "turn_id": turn_id})
+                status, body = _aduc_proxy_request(path, method="GET")
+                self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to query ADUC status: {e}"})
+            return
+        if parsed.path == "/api/aduc/settings":
+            status, body = _aduc_proxy_request("/settings", method="GET")
+            self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
             return
         if parsed.path == "/api/docs/tree":
             try:
@@ -3664,6 +3738,43 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = yaml.safe_load(text) or {}
         except Exception as e:
             self._write_yaml(400, {"ok": False, "error": f"Invalid YAML: {e}"})
+            return
+
+        if parsed.path == "/api/aduc/chat":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"})
+                    return
+                familiar = str(payload.get("familiar") or "nia").strip() or "nia"
+                message = str(payload.get("message") or "").strip()
+                if not message:
+                    self._write_json(400, {"ok": False, "error": "Missing message"})
+                    return
+                aduc_payload = {"familiar": familiar, "message": message}
+                status, body = _aduc_proxy_request("/chat", method="POST", payload=aduc_payload)
+                self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to send ADUC chat: {e}"})
+            return
+        if parsed.path == "/api/aduc/settings":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"})
+                    return
+                status, body = _aduc_proxy_request("/settings", method="POST", payload=payload)
+                self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to update ADUC settings: {e}"})
+            return
+        if parsed.path == "/api/aduc/cli/memory/clear":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"})
+                    return
+                status, body = _aduc_proxy_request("/cli/memory/clear", method="POST", payload=payload)
+                self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Failed to clear ADUC memory: {e}"})
             return
 
         if parsed.path == "/api/shell/exec":

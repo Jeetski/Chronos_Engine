@@ -434,13 +434,38 @@ ready(async () => {
     const title = document.createElement('span');
     title.className = 'pane-title';
     title.textContent = label || name;
+    let calendarBackBtn = null;
+    let calendarRefreshBtn = null;
+    if (name === 'Calendar') {
+      calendarBackBtn = document.createElement('button');
+      calendarBackBtn.type = 'button';
+      calendarBackBtn.className = 'pane-back';
+      calendarBackBtn.textContent = 'Back';
+      calendarBackBtn.title = 'Return to previous calendar level';
+      calendarBackBtn.style.padding = '0 10px';
+      calendarBackBtn.style.height = '28px';
+      calendarBackBtn.style.marginLeft = '8px';
+
+      calendarRefreshBtn = document.createElement('button');
+      calendarRefreshBtn.type = 'button';
+      calendarRefreshBtn.className = 'pane-back';
+      calendarRefreshBtn.textContent = 'Refresh';
+      calendarRefreshBtn.title = 'Refresh day list';
+      calendarRefreshBtn.style.padding = '0 10px';
+      calendarRefreshBtn.style.height = '28px';
+    }
     const helpBtn = window.ChronosHelp?.create?.(name, { className: 'icon-btn', fallbackLabel: name });
     const close = document.createElement('button');
     close.className = 'pane-close';
     close.textContent = '✕';
     close.title = 'Close view';
-    if (helpBtn) tab.append(title, helpBtn, close);
-    else tab.append(title, close);
+    if (helpBtn) {
+      if (calendarBackBtn && calendarRefreshBtn) tab.append(title, calendarBackBtn, calendarRefreshBtn, helpBtn, close);
+      else tab.append(title, helpBtn, close);
+    } else {
+      if (calendarBackBtn && calendarRefreshBtn) tab.append(title, calendarBackBtn, calendarRefreshBtn, close);
+      else tab.append(title, close);
+    }
     const content = document.createElement('div');
     content.className = 'pane-content';
     const viewport = document.createElement('div');
@@ -454,6 +479,29 @@ ready(async () => {
       if (name === 'Calendar') {
         try {
           window.__calendarTitleEl = title;
+          window.__calendarHeaderBackBtn = calendarBackBtn || null;
+          window.__calendarHeaderRefreshBtn = calendarRefreshBtn || null;
+          window.__calendarSetBackState = (enabled) => {
+            try {
+              const hasHistory = !!enabled;
+              if (calendarBackBtn) {
+                calendarBackBtn.disabled = !hasHistory;
+                calendarBackBtn.setAttribute('aria-disabled', hasHistory ? 'false' : 'true');
+              }
+            } catch { }
+          };
+          if (calendarBackBtn) {
+            calendarBackBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              try { window.__calendarGoBack?.(); } catch { }
+            });
+          }
+          if (calendarRefreshBtn) {
+            calendarRefreshBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              try { window.__calendarRefreshDayList?.(); } catch { }
+            });
+          }
           window.__calendarUpdateTitle = () => {
             try {
               const base = label || name;
@@ -487,6 +535,10 @@ ready(async () => {
             }
           };
           window.__calendarUpdateTitle();
+          try {
+            const hasHistory = !!window.__calendarCanGoBack?.();
+            window.__calendarSetBackState?.(hasHistory);
+          } catch { }
         } catch { }
         try {
           const todayWidget = document.querySelector('[data-widget="Today"]');
@@ -546,7 +598,13 @@ ready(async () => {
       }
     } catch { }
     if (name === 'Calendar') {
-      try { delete window.__calendarTitleEl; delete window.__calendarUpdateTitle; } catch { }
+      try {
+        delete window.__calendarTitleEl;
+        delete window.__calendarUpdateTitle;
+        delete window.__calendarHeaderBackBtn;
+        delete window.__calendarHeaderRefreshBtn;
+        delete window.__calendarSetBackState;
+      } catch { }
     }
     try { pane.pane.remove(); } catch { }
     openPanes.splice(idx, 1);
@@ -568,6 +626,80 @@ ready(async () => {
 
   // Simple topbar menus
   function closeMenus() { document.querySelectorAll('#topbar .dropdown').forEach(d => d.classList.remove('open')); }
+  function positionDropdownInViewport(dropdown) {
+    if (!dropdown) return;
+    const margin = 8;
+    try {
+      dropdown.style.left = '0';
+      dropdown.style.right = 'auto';
+      const rect = dropdown.getBoundingClientRect();
+      let shift = 0;
+      if (rect.right > window.innerWidth - margin) shift -= (rect.right - (window.innerWidth - margin));
+      if (rect.left + shift < margin) shift += (margin - (rect.left + shift));
+      dropdown.style.left = `${Math.round(shift)}px`;
+    } catch { }
+  }
+  function positionOpenDropdowns() {
+    try {
+      document.querySelectorAll('#topbar .dropdown.open').forEach((d) => positionDropdownInViewport(d));
+    } catch { }
+  }
+  function attachDropdownSearch(menu, placeholder = 'Search...') {
+    if (!menu) return;
+    const old = menu.querySelector('.menu-search-wrap');
+    if (old) old.remove();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'menu-search-wrap';
+    wrap.style.padding = '2px 0 6px 0';
+
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.placeholder = placeholder;
+    input.className = 'menu-search-input';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.style.width = '100%';
+    input.style.boxSizing = 'border-box';
+    input.style.padding = '6px 8px';
+    input.style.borderRadius = '8px';
+    input.style.border = '1px solid var(--border)';
+    input.style.background = 'rgba(12, 16, 24, 0.9)';
+    input.style.color = 'var(--text)';
+
+    wrap.addEventListener('click', (ev) => ev.stopPropagation());
+    input.addEventListener('click', (ev) => ev.stopPropagation());
+
+    const applyFilter = () => {
+      const q = String(input.value || '').trim().toLowerCase();
+      const items = menu.querySelectorAll('.item[data-search]');
+      items.forEach((item) => {
+        const hay = String(item.getAttribute('data-search') || '').toLowerCase();
+        item.style.display = (!q || hay.includes(q)) ? '' : 'none';
+      });
+    };
+    input.addEventListener('input', applyFilter);
+
+    wrap.appendChild(input);
+    const firstColumn = menu.querySelector('.column');
+    if (firstColumn) firstColumn.prepend(wrap);
+    else menu.prepend(wrap);
+  }
+  function chunkForSearchLayout(entries, firstColumnCap = 9, otherColumnCap = 10) {
+    const list = Array.isArray(entries) ? entries : [];
+    if (!list.length) return [];
+    const chunks = [];
+    const firstCap = Math.max(1, Number(firstColumnCap) || 9);
+    const otherCap = Math.max(1, Number(otherColumnCap) || 10);
+    let idx = 0;
+    chunks.push(list.slice(idx, idx + firstCap));
+    idx += firstCap;
+    while (idx < list.length) {
+      chunks.push(list.slice(idx, idx + otherCap));
+      idx += otherCap;
+    }
+    return chunks;
+  }
   document.querySelectorAll('#topbar .menubtn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -581,7 +713,10 @@ ready(async () => {
       if (id === 'dev') buildDevMenu();
       closeMenus();
       const menu = document.getElementById('menu-' + id);
-      if (menu) menu.classList.add('open');
+      if (menu) {
+        menu.classList.add('open');
+        positionDropdownInViewport(menu);
+      }
     });
   });
   document.addEventListener('click', closeMenus);
@@ -605,6 +740,7 @@ ready(async () => {
     const createItem = ({ el, label, name }) => {
       const item = document.createElement('div');
       item.className = 'item';
+      item.setAttribute('data-search', `${label} ${name}`);
       const check = document.createElement('span');
       check.className = 'check';
       check.textContent = (el.style.display === 'none') ? '' : '✓';
@@ -653,17 +789,18 @@ ready(async () => {
       return item;
     };
 
-    const MAX_PER_COLUMN = 10;
     const frag = document.createDocumentFragment();
-    for (let i = 0; i < entries.length; i += MAX_PER_COLUMN) {
+    const chunks = chunkForSearchLayout(entries, 9, 10);
+    for (const group of chunks) {
       const column = document.createElement('div');
       column.className = 'column';
-      for (const entry of entries.slice(i, i + MAX_PER_COLUMN)) {
+      for (const entry of group) {
         column.appendChild(createItem(entry));
       }
       frag.appendChild(column);
     }
     widgetsMenu.appendChild(frag);
+    attachDropdownSearch(widgetsMenu, 'Search widgets...');
   }
   // Initial build
   buildWidgetsMenu();
@@ -1148,11 +1285,11 @@ ready(async () => {
       primary: group.primary || group.entries[0],
       visible: group.entries.some(p => p.visible),
     })).sort((a, b) => String(a.label || a.key).localeCompare(String(b.label || b.key), undefined, { sensitivity: 'base' }));
-    const MAX_PER_COLUMN = 10;
     const frag = document.createDocumentFragment();
     const createPanelItem = (panel) => {
       const item = document.createElement('div');
       item.className = 'item';
+      item.setAttribute('data-search', `${panel.label || panel.key} ${panel.key || ''}`);
       item.setAttribute('data-panel', panel.primary?.id || panel.key);
       const check = document.createElement('span');
       check.className = 'check';
@@ -1208,15 +1345,17 @@ ready(async () => {
       });
       return item;
     };
-    for (let i = 0; i < panels.length; i += MAX_PER_COLUMN) {
+    const chunks = chunkForSearchLayout(panels, 9, 10);
+    for (const group of chunks) {
       const column = document.createElement('div');
       column.className = 'column';
-      for (const panel of panels.slice(i, i + MAX_PER_COLUMN)) {
+      for (const panel of group) {
         column.appendChild(createPanelItem(panel));
       }
       frag.appendChild(column);
     }
     menu.appendChild(frag);
+    attachDropdownSearch(menu, 'Search panels...');
   }
 
   document.addEventListener('chronos:cockpit-panels', () => {
@@ -1266,23 +1405,34 @@ ready(async () => {
       menu.appendChild(empty);
       return;
     }
-    const MAX_PER_COLUMN = 10;
+    const showPostRelease = arePostReleaseItemsVisible();
+    const normalize = (value) => String(value || '').trim().toLowerCase();
+    const isPostReleaseWizard = (wizard) => {
+      const wizardRawKey = String(wizard?.module || wizard?.id || '').trim();
+      const wizardKey = normalize(wizardRawKey);
+      const wizardLabel = normalize(wizard?.label);
+      return Boolean(wizard?.postRelease)
+        || POST_RELEASE_WIZARDS.has(wizardRawKey)
+        || POST_RELEASE_WIZARDS.has(wizardKey)
+        || POST_RELEASE_WIZARDS.has(wizardLabel);
+    };
     const frag = document.createDocumentFragment();
     const createWizardItem = (wizard) => {
       const item = document.createElement('div');
       item.className = 'item wizard-item';
+      item.setAttribute('data-search', `${wizard.label || wizard.id || ''} ${wizard.module || ''}`);
       item.setAttribute('data-wizard', wizard.id);
       if (!wizard.enabled) item.classList.add('disabled');
       const title = document.createElement('div');
       title.className = 'wizard-title';
       title.textContent = wizard.label;
       item.appendChild(title);
-      const normalize = (value) => String(value || '').trim().toLowerCase();
       const wizardRawKey = String(wizard.module || wizard.id || '').trim();
       const wizardKey = normalize(wizardRawKey);
       const wizardLabel = normalize(wizard.label);
       const isUrgentWizard = URGENT_WIZARDS.has(wizardKey) || URGENT_WIZARDS.has(wizardLabel);
       const isPriorityWizard = PRIORITY_WIZARDS.has(wizardKey) || PRIORITY_WIZARDS.has(wizardLabel);
+      const postRelease = isPostReleaseWizard(wizard);
       if (areBadgesVisible()) {
         if (isUrgentWizard) {
           const badge = document.createElement('span');
@@ -1296,7 +1446,7 @@ ready(async () => {
           badge.textContent = 'priority';
           badge.title = 'Priority wizard';
           item.appendChild(badge);
-        } else if (POST_RELEASE_WIZARDS.has(wizardRawKey)) {
+        } else if (postRelease) {
           const badge = document.createElement('span');
           badge.className = 'post-release-badge';
           badge.textContent = 'later';
@@ -1315,16 +1465,20 @@ ready(async () => {
       }
       return item;
     };
-    const sortedWizards = [...wizardCatalog].sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id), undefined, { sensitivity: 'base' }));
-    for (let i = 0; i < sortedWizards.length; i += MAX_PER_COLUMN) {
+    const sortedWizards = [...wizardCatalog]
+      .filter(wizard => showPostRelease || !isPostReleaseWizard(wizard))
+      .sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id), undefined, { sensitivity: 'base' }));
+    const chunks = chunkForSearchLayout(sortedWizards, 9, 10);
+    for (const group of chunks) {
       const column = document.createElement('div');
       column.className = 'column';
-      for (const wizard of sortedWizards.slice(i, i + MAX_PER_COLUMN)) {
+      for (const wizard of group) {
         column.appendChild(createWizardItem(wizard));
       }
       frag.appendChild(column);
     }
     menu.appendChild(frag);
+    attachDropdownSearch(menu, 'Search wizards...');
   }
 
   async function launchPopupFromMenu(popup) {
@@ -1367,74 +1521,61 @@ ready(async () => {
       const head = document.createElement('div');
       head.className = 'titlebar';
       head.textContent = title;
-      head.style.fontWeight = '600';
-      head.style.padding = '2px 8px 6px 8px';
       col.appendChild(head);
       return col;
     };
 
     const mkAction = (label, onClick, { check = '', disabled = false, badge = '' } = {}) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = disabled ? 'item disabled' : 'item';
-      btn.style.border = '0';
-      btn.style.background = 'transparent';
-      btn.style.textAlign = 'left';
-      btn.style.font = 'inherit';
-      btn.style.width = '100%';
-      btn.style.padding = '6px 10px';
+      const item = document.createElement('div');
+      item.className = disabled ? 'item disabled' : 'item';
       const checkEl = document.createElement('span');
       checkEl.className = 'check';
       checkEl.textContent = check;
       const textEl = document.createElement('span');
       textEl.textContent = label;
-      btn.append(checkEl, textEl);
+      item.append(checkEl, textEl);
       if (badge === 'later') {
         const el = document.createElement('span');
         el.className = 'post-release-badge';
         el.textContent = 'later';
         el.title = 'Post-release feature';
-        btn.appendChild(el);
+        item.appendChild(el);
       } else if (badge === 'dev') {
         const el = document.createElement('span');
         el.className = 'dev-badge';
         el.textContent = 'dev';
         el.title = 'Development feature';
-        btn.appendChild(el);
+        item.appendChild(el);
       } else if (badge === 'good-enough') {
         const el = document.createElement('span');
         el.className = 'good-enough-badge';
         el.textContent = 'good enough';
         el.title = 'Stable enough for now';
-        btn.appendChild(el);
+        item.appendChild(el);
       }
       if (!disabled && typeof onClick === 'function') {
-        btn.addEventListener('click', () => {
+        item.addEventListener('click', () => {
           try { onClick(); } finally { closeMenus(); }
         });
-      } else {
-        btn.disabled = true;
       }
-      return btn;
+      return item;
     };
 
     const mkToggle = (label, checked, onChange) => {
-      const row = document.createElement('label');
+      const row = document.createElement('div');
       row.className = 'item';
       row.style.cursor = 'pointer';
       const checkEl = document.createElement('span');
       checkEl.className = 'check';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = !!checked;
-      input.style.margin = '0';
-      input.addEventListener('change', () => {
-        try { onChange(!!input.checked); } catch { }
-      });
-      checkEl.appendChild(input);
+      checkEl.textContent = checked ? '✓' : '';
       const text = document.createElement('span');
       text.textContent = label;
       row.append(checkEl, text);
+      row.addEventListener('click', () => {
+        const next = !checked;
+        try { onChange(next); } catch { }
+        checkEl.textContent = next ? '✓' : '';
+      });
       return row;
     };
 
@@ -1509,6 +1650,7 @@ ready(async () => {
         setPostReleaseItemsVisible(enabled);
         buildWidgetsMenu();
         buildViewsMenu();
+        buildWizardsMenu();
       }),
       mkToggle('Show Badges', areBadgesVisible(), (enabled) => {
         setBadgesVisible(enabled);
@@ -1570,7 +1712,25 @@ ready(async () => {
       slider.value = String(next);
       scaleValue.textContent = `${next}%`;
     });
-    scaleRow.append(scaleLabel, slider, scaleValue, resetBtn);
+    const fullscreenBtn = document.createElement('button');
+    fullscreenBtn.className = 'btn';
+    fullscreenBtn.style.padding = '4px 8px';
+    fullscreenBtn.style.marginTop = '8px';
+    const syncFullscreenButton = () => {
+      fullscreenBtn.textContent = document.fullscreenElement ? 'Exit Fullscreen' : 'Enter Fullscreen';
+    };
+    syncFullscreenButton();
+    fullscreenBtn.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+      } catch (err) {
+        console.warn('[Chronos][app] Fullscreen toggle failed', err);
+      } finally {
+        syncFullscreenButton();
+      }
+    });
+    scaleRow.append(scaleLabel, slider, scaleValue, resetBtn, fullscreenBtn);
     scaleCol.append(scaleHeader, scaleRow);
 
     const themeCol = document.createElement('div');
@@ -1621,28 +1781,22 @@ ready(async () => {
     header.textContent = 'Popups';
     col.appendChild(header);
 
-    const toggleWrap = document.createElement('label');
+    const toggleWrap = document.createElement('div');
     toggleWrap.className = 'item';
-    toggleWrap.style.display = 'flex';
-    toggleWrap.style.alignItems = 'center';
-    toggleWrap.style.gap = '8px';
     toggleWrap.style.cursor = 'pointer';
-    const toggle = document.createElement('input');
-    toggle.type = 'checkbox';
-    toggle.checked = !arePopupsEnabled();
+    const toggleCheck = document.createElement('span');
+    toggleCheck.className = 'check';
+    const popupsDisabled = !arePopupsEnabled();
+    toggleCheck.textContent = popupsDisabled ? '✓' : '';
     const text = document.createElement('span');
     text.textContent = 'Disable popups';
-    toggleWrap.append(toggle, text);
-    toggleWrap.addEventListener('click', (ev) => ev.stopPropagation());
-    toggle.addEventListener('change', () => {
-      setPopupsEnabled(!toggle.checked);
+    toggleWrap.append(toggleCheck, text);
+    toggleWrap.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      setPopupsEnabled(popupsDisabled);
+      toggleCheck.textContent = popupsDisabled ? '' : '✓';
     });
     col.appendChild(toggleWrap);
-
-    const hint = document.createElement('div');
-    hint.className = 'item disabled';
-    hint.textContent = 'Launch-required popups only.';
-    col.appendChild(hint);
 
     const listHeader = document.createElement('div');
     listHeader.className = 'titlebar';
@@ -1667,21 +1821,10 @@ ready(async () => {
         const item = document.createElement('div');
         item.className = 'item';
         item.style.cursor = 'pointer';
-        const check = document.createElement('span');
-        check.className = 'check';
-        check.textContent = popup?.enabled === false ? '' : '✓';
         const label = document.createElement('span');
         label.textContent = formatLabel(popup);
-        item.append(check, label);
-        const meta = [];
-        const moduleName = String(popup?.module || popup?.id || '').trim();
-        const priority = Number(popup?.priority || 0);
-        if (moduleName) meta.push(moduleName);
-        if (Number.isFinite(priority) && priority !== 0) meta.push(`p${priority}`);
-        const metaText = document.createElement('span');
-        metaText.className = 'hint';
-        metaText.textContent = meta.join(' ');
-        item.appendChild(metaText);
+        item.setAttribute('data-search', `${label.textContent} ${popup?.module || popup?.id || ''}`);
+        item.append(label);
         item.addEventListener('click', () => {
           void launchPopupFromMenu(popup);
         });
@@ -1690,6 +1833,7 @@ ready(async () => {
     }
 
     menu.appendChild(col);
+    attachDropdownSearch(menu, 'Search popups...');
   }
   hookWidgetCloseButtons();
   // Also observe visibility changes as a fallback
@@ -1709,6 +1853,7 @@ ready(async () => {
     const createViewItem = (v) => {
       const it = document.createElement('div');
       it.className = 'item';
+      it.setAttribute('data-search', `${v.label || v.name} ${v.name || ''}`);
       it.setAttribute('data-name', v.name);
       const check = document.createElement('span');
       check.className = 'check';
@@ -1768,20 +1913,21 @@ ready(async () => {
       });
       return it;
     };
-    const MAX_PER_COLUMN = 10;
     const frag = document.createDocumentFragment();
     const sortedViews = [...availableViews]
       .filter(v => showPostRelease || !v.postRelease)
       .sort((a, b) => String(a.label || a.name).localeCompare(String(b.label || b.name), undefined, { sensitivity: 'base' }));
-    for (let i = 0; i < sortedViews.length; i += MAX_PER_COLUMN) {
+    const chunks = chunkForSearchLayout(sortedViews, 9, 10);
+    for (const group of chunks) {
       const column = document.createElement('div');
       column.className = 'column';
-      for (const view of sortedViews.slice(i, i + MAX_PER_COLUMN)) {
+      for (const view of group) {
         column.appendChild(createViewItem(view));
       }
       frag.appendChild(column);
     }
     viewMenu.appendChild(frag);
+    attachDropdownSearch(viewMenu, 'Search views...');
   }
 
   // Restore last view layout (fallback to default Calendar)
@@ -1810,6 +1956,8 @@ ready(async () => {
 
 window.addEventListener('resize', () => {
   try { applyPaneSizes(); } catch { }
+  try { positionOpenDropdowns(); } catch { }
 });
 
 export { };
+

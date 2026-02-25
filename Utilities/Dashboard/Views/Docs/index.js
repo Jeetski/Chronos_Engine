@@ -26,7 +26,69 @@ function injectStyles() {
     .docs-result-line { font-size:11px; color:var(--chronos-text-muted); }
     .docs-right { flex:1; min-width: 320px; display:flex; flex-direction:column; gap:8px; min-height:0; }
     .docs-reader-header { font-size:12px; color:var(--chronos-text-muted); }
-    .docs-reader { flex:1; width:100%; resize:none; border:1px solid #222835; border-radius:10px; padding:10px; background:#0b0f16; color:#e6e8ef; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:12px; line-height:1.5; }
+    .docs-reader { flex:1; width:100%; resize:none; border:1px solid #222835; border-radius:10px; padding:10px; background:#0b0f16; color:#e6e8ef; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:12px; line-height:1.5; display:none; }
+    .docs-render {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      border: 1px solid #222835;
+      border-radius: 10px;
+      padding: 14px;
+      background: #0b0f16;
+      color: #e6e8ef;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .docs-render pre {
+      background: #0a0d13;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 10px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .docs-render code {
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+    .docs-render pre code { background: transparent; padding: 0; }
+    .docs-render h1, .docs-render h2, .docs-render h3, .docs-render h4, .docs-render h5, .docs-render h6 {
+      margin: 14px 0 8px;
+      line-height: 1.25;
+    }
+    .docs-render h1 { font-size: 24px; }
+    .docs-render h2 { font-size: 20px; }
+    .docs-render h3 { font-size: 17px; }
+    .docs-render p { margin: 8px 0; }
+    .docs-render ul, .docs-render ol { margin: 8px 0 8px 20px; }
+    .docs-render blockquote {
+      margin: 10px 0;
+      padding: 8px 12px;
+      border-left: 3px solid rgba(122, 162, 247, 0.8);
+      background: rgba(122, 162, 247, 0.08);
+      border-radius: 0 8px 8px 0;
+    }
+    .docs-render hr {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.16);
+      margin: 14px 0;
+    }
+    .docs-render a {
+      color: #8ec5ff;
+      text-decoration: underline;
+    }
+    .docs-render a:hover { filter: brightness(1.08); }
+    .docs-render .docs-pre {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -71,6 +133,154 @@ function sortChildren(node) {
   return entries;
 }
 
+function escapeHtml(text) {
+  return String(text || '').replace(/[&<>"']/g, (ch) => (
+    ch === '&' ? '&amp;'
+      : ch === '<' ? '&lt;'
+      : ch === '>' ? '&gt;'
+      : ch === '"' ? '&quot;'
+      : '&#39;'
+  ));
+}
+
+function formatInlineMarkdown(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  return s;
+}
+
+function markdownToHtml(md) {
+  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
+  const out = [];
+  let inCode = false;
+  let code = [];
+  let listType = null;
+  let quoteOpen = false;
+  let para = [];
+
+  const flushPara = () => {
+    if (!para.length) return;
+    out.push(`<p>${formatInlineMarkdown(para.join(' '))}</p>`);
+    para = [];
+  };
+  const closeList = () => {
+    if (!listType) return;
+    out.push(listType === 'ol' ? '</ol>' : '</ul>');
+    listType = null;
+  };
+  const closeQuote = () => {
+    if (!quoteOpen) return;
+    out.push('</blockquote>');
+    quoteOpen = false;
+  };
+
+  for (const lineRaw of lines) {
+    const line = lineRaw || '';
+    const trim = line.trim();
+
+    if (inCode) {
+      if (/^```/.test(trim)) {
+        out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+        inCode = false;
+        code = [];
+      } else {
+        code.push(line);
+      }
+      continue;
+    }
+
+    if (/^```/.test(trim)) {
+      flushPara();
+      closeList();
+      closeQuote();
+      inCode = true;
+      code = [];
+      continue;
+    }
+
+    if (!trim) {
+      flushPara();
+      closeList();
+      closeQuote();
+      continue;
+    }
+
+    const heading = trim.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      flushPara();
+      closeList();
+      closeQuote();
+      const level = heading[1].length;
+      out.push(`<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    if (/^---+$/.test(trim) || /^\*\*\*+$/.test(trim)) {
+      flushPara();
+      closeList();
+      closeQuote();
+      out.push('<hr/>');
+      continue;
+    }
+
+    const quote = trim.match(/^>\s?(.*)$/);
+    if (quote) {
+      flushPara();
+      closeList();
+      if (!quoteOpen) {
+        out.push('<blockquote>');
+        quoteOpen = true;
+      }
+      out.push(`<p>${formatInlineMarkdown(quote[1])}</p>`);
+      continue;
+    }
+
+    const ol = trim.match(/^\d+\.\s+(.+)$/);
+    if (ol) {
+      flushPara();
+      closeQuote();
+      if (listType !== 'ol') {
+        closeList();
+        out.push('<ol>');
+        listType = 'ol';
+      }
+      out.push(`<li>${formatInlineMarkdown(ol[1])}</li>`);
+      continue;
+    }
+
+    const ul = trim.match(/^[-*]\s+(.+)$/);
+    if (ul) {
+      flushPara();
+      closeQuote();
+      if (listType !== 'ul') {
+        closeList();
+        out.push('<ul>');
+        listType = 'ul';
+      }
+      out.push(`<li>${formatInlineMarkdown(ul[1])}</li>`);
+      continue;
+    }
+
+    closeList();
+    closeQuote();
+    para.push(trim);
+  }
+
+  flushPara();
+  closeList();
+  closeQuote();
+
+  if (inCode) out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+  return out.join('\n');
+}
+
+function isMarkdownPath(path) {
+  return /\.(md|markdown)$/i.test(String(path || ''));
+}
+
 export function mount(el) {
   injectStyles();
   const state = {
@@ -102,6 +312,7 @@ export function mount(el) {
       </div>
       <div class="docs-right">
         <div class="docs-reader-header" data-reader-title>Pick a doc...</div>
+        <div class="docs-render" data-render></div>
         <textarea class="docs-reader" data-reader readonly></textarea>
       </div>
     </div>
@@ -113,6 +324,7 @@ export function mount(el) {
   const resultsEl = root.querySelector('[data-results]');
   const treeEl = root.querySelector('[data-tree]');
   const readerEl = root.querySelector('[data-reader]');
+  const renderEl = root.querySelector('[data-render]');
   const readerTitleEl = root.querySelector('[data-reader-title]');
 
   const setStatus = (msg) => {
@@ -177,6 +389,15 @@ export function mount(el) {
       state.selectedPath = normalizeDocPath(state.currentPath);
       readerTitleEl.textContent = state.currentPath;
       readerEl.value = data.content || '';
+      if (renderEl) {
+        const content = String(data.content || '');
+        if (isMarkdownPath(state.currentPath)) {
+          renderEl.innerHTML = markdownToHtml(content);
+        } else {
+          renderEl.innerHTML = `<pre class="docs-pre">${escapeHtml(content)}</pre>`;
+        }
+        renderEl.scrollTop = 0;
+      }
       renderTree();
       if (lineNumber && Number.isFinite(lineNumber)) {
         const lines = readerEl.value.split(/\r?\n/);

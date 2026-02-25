@@ -342,6 +342,62 @@ export function Inspector() {
     return new Date(y, m - 1, d);
   }
 
+  function formatDateLabel(dateObj) {
+    if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) return '';
+    return dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function collectDeadlineDueEntries(startDate, endDate) {
+    if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return [];
+    if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) return [];
+    const out = [];
+    (loadedItems || []).forEach((item) => {
+      if (!item || typeof item !== 'object' || isCompletedStatus(item)) return;
+      const name = item.name || 'Untitled';
+      const type = String(item.type || 'item');
+      const priority = String(item.priority || '').trim();
+      const deadline = parseDateOnly(item.deadline);
+      const dueDate = parseDateOnly(item.due_date || item.due);
+      if (deadline && deadline >= startDate && deadline <= endDate) {
+        out.push({ kind: 'deadline', date: deadline, name, type, priority });
+      }
+      if (dueDate && dueDate >= startDate && dueDate <= endDate) {
+        out.push({ kind: 'due_date', date: dueDate, name, type, priority });
+      }
+    });
+    out.sort((a, b) => {
+      const delta = a.date - b.date;
+      if (delta !== 0) return delta;
+      if (a.kind === 'deadline' && b.kind !== 'deadline') return -1;
+      if (a.kind !== 'deadline' && b.kind === 'deadline') return 1;
+      return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' });
+    });
+    return out;
+  }
+
+  function renderDeadlineDueSection(startDate, endDate, options = {}) {
+    const entries = collectDeadlineDueEntries(startDate, endDate);
+    const maxRows = Number(options.maxRows || 16);
+    const visible = entries.slice(0, maxRows);
+    const deadlineCount = entries.filter(e => e.kind === 'deadline').length;
+    const dueCount = entries.filter(e => e.kind === 'due_date').length;
+    return `
+      <div class="inspector-kv">
+        <div><span>Deadlines</span><span>${deadlineCount}</span></div>
+        <div><span>Due Dates</span><span>${dueCount}</span></div>
+        <div><span>Total</span><span>${entries.length}</span></div>
+      </div>
+      <div class="inspector-list">
+        ${visible.length ? visible.map((entry) => {
+        const kindLabel = entry.kind === 'deadline' ? 'DEADLINE' : 'DUE';
+        const pr = entry.priority ? ` • ${entry.priority}` : '';
+        return `<div class="inspector-card">${formatDateLabel(entry.date)} • ${kindLabel} • ${entry.type}${pr}<br/>${entry.name}</div>`;
+      }).join('') : '<div class="inspector-muted">No deadlines or due dates in this range.</div>'}
+      </div>
+      ${entries.length > visible.length ? `<div class="inspector-muted">Showing ${visible.length} of ${entries.length} entries.</div>` : ''}
+    `;
+  }
+
   function isCompletedStatus(item) {
     const s = String(item?.status || '').toLowerCase();
     return s === 'complete' || s === 'completed' || !!item?.complete;
@@ -861,8 +917,9 @@ export function Inspector() {
 
   function renderCollapsibleSection(title, bodyHtml, options = {}) {
     const attrs = options.attrs ? ` ${options.attrs}` : '';
+    const openAttr = options.open ? ' open' : '';
     return `
-      <details class="inspector-section inspector-collapsible"${attrs}>
+      <details class="inspector-section inspector-collapsible"${openAttr}${attrs}>
         <summary class="inspector-section-title">${title}</summary>
         <div class="inspector-section-content">${bodyHtml}</div>
       </details>
@@ -1044,6 +1101,10 @@ export function Inspector() {
   }
 
   function renderMonthContent() {
+    const monthCtx = getSelectedMonthContext();
+    const monthDeadlinesHtml = monthCtx
+      ? renderDeadlineDueSection(monthCtx.first, monthCtx.last, { maxRows: 20 })
+      : '<div class="inspector-muted">No month selected.</div>';
     const presets = getOverlayPresets();
     const monthSnapshotHtml = monthSnapshotState.loading
       ? '<div class="inspector-muted">Calculating month snapshot...</div>'
@@ -1073,6 +1134,9 @@ export function Inspector() {
           `;
         })());
     return `
+      ${renderCollapsibleSection('Deadlines & Due Dates', `
+        ${monthDeadlinesHtml}
+      `)}
       ${renderCollapsibleSection('Default Presets', `
         <div class="inspector-grid">
           <button class="inspector-btn" data-action="overlay-clear">Clear</button>
@@ -1138,6 +1202,8 @@ export function Inspector() {
     const quickSettings = normalizeQuickWinsSettings(quickWinsState.settings);
     const quickDateKey = currentData?.dateKey || currentData?.dateISO || getDayKey(new Date());
     const isQuickToday = quickDateKey === getDayKey(new Date());
+    const dayDate = parseDateOnly(quickDateKey) || new Date();
+    const dayDeadlinesHtml = renderDeadlineDueSection(dayDate, dayDate, { maxRows: 30 });
     const quickItems = Array.isArray(quickWinsState.items) ? quickWinsState.items : [];
     const quickLabel = quickSettings.quick_label || 'quick';
     const quickListHtml = quickWinsState.loading
@@ -1162,6 +1228,9 @@ export function Inspector() {
         `;
       }).join('') : '<div class="inspector-muted">No quick wins found.</div>');
     return `
+      ${renderCollapsibleSection('Deadlines & Due Dates', `
+        ${dayDeadlinesHtml}
+      `)}
       ${renderCollapsibleSection('Insert Schedulables', `
         <div class="inspector-field">
           <label>Search items</label>

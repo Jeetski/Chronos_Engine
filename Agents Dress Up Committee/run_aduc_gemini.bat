@@ -55,7 +55,7 @@ if not defined PYCMD (
 echo [ADUC] Using Python: %PYCMD%
 echo [ADUC] Using Gemini CLI as backend
 echo [ADUC] Starting server on http://localhost:%PORT%
-start "ADUC Server" cmd /k "%PYCMD% server.py"
+start "ADUC Server - DO NOT CLOSE THIS WINDOW" cmd /k "title ADUC Server - DO NOT CLOSE THIS WINDOW && %PYCMD% server.py"
 
 timeout /t 1 >nul 2>&1
 if defined ADUC_NO_BROWSER (
@@ -65,7 +65,7 @@ if defined ADUC_NO_BROWSER (
 )
 
 echo [ADUC] Starting minimal CLI watcher (Gemini backend)
-start "ADUC Watcher" cmd /k "%PYCMD% tools\cli_bridge_watcher.py"
+start "ADUC Watcher - DO NOT CLOSE THIS WINDOW" cmd /k "title ADUC Watcher - DO NOT CLOSE THIS WINDOW && %PYCMD% tools\cli_bridge_watcher.py"
 
 echo [ADUC] Launched. Close windows to stop processes.
 endlocal

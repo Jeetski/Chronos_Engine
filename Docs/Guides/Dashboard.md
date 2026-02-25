@@ -57,6 +57,17 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
   - Widget rows are collapsible (compact list then expand for full details/actions).
 - **Inventory Manager** - Browse inventories, linked inventory items, and tools; add/remove items from kits without leaving the dashboard.
 - **Notes, Journal, Profile, Review** - Quick editors/viewers for common flows. Review surfaces recent completions; Profile shows nickname/theme.
+- **Nia AI Assistant** - Floating glass widget backed by ADUC bridge endpoints.
+  - Shows identity rows (avatar + name) for Nia and user.
+  - Renders markdown replies in chat bubbles.
+  - Displays live thinking state with animated dots and elapsed seconds while waiting for agent replies.
+  - `+` action menu currently includes:
+    - `Attach a file`
+    - `Wizards` (placeholder).
+  - Header settings (`⚙`) include:
+    - Open `Agent Preferences`, `Preference Settings`, `Pilot Brief`, and `Manage Memories` in Notes widget.
+    - `Use memories` toggle (ADUC include-memory setting).
+    - `Delete memories` action (clears Nia memory + Nia conversation history in ADUC).
 - **Sticky Notes** - A colorful board backed by actual Chronos notes with `sticky:true`. Capture quick thoughts, pick a color, pin favorites, edit inline, and spawn reminders without opening the CLI.
 - **Timer** - Start/pause/resume/stop, select profiles, show bound item state.
 - **Sleep Settings** - Persistent sleep-anchor manager for day templates (mode presets, segments, day toggles, conflict checks, apply to selected/all/new templates).
@@ -122,6 +133,17 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - Endpoints:
   - `GET /api/yesterday/checkin`
   - `POST /api/yesterday/checkin`
+
+### ADUC / Nia Bridge Endpoints
+- `GET /api/aduc/status` - check ADUC server availability and URL.
+- `GET /api/aduc/familiars` - list available ADUC familiars.
+- `POST /api/aduc/start` - launch ADUC in dashboard mode if not running.
+- `POST /api/aduc/chat` - enqueue familiar chat turn.
+- `GET /api/aduc/cli/status?familiar=<id>&turn_id=<id>` - poll reply status/result.
+- `GET /api/aduc/settings` - read ADUC prompt behavior settings.
+- `POST /api/aduc/settings` - update ADUC prompt behavior settings (e.g., `include_memory`).
+- `POST /api/aduc/cli/memory/clear` - clear ADUC conversation history for a familiar.
+- `GET /api/nia/profile/avatar` - serve Nia profile picture from ADUC familiar assets for immediate widget rendering.
 
 ### Settings
 - `GET /api/settings`

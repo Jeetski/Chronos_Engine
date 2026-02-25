@@ -42,6 +42,15 @@ FOCUS_PATH = TEMP_DIR / "focus_cycle.json"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
 
 
+def set_windows_console_title(title: str) -> None:
+    """Set console title on Windows; no-op elsewhere."""
+    try:
+        if os.name == "nt":
+            os.system(f"title {title}")
+    except Exception:
+        pass
+
+
 # ---- Small utility functions -------------------------------------------------
 
 def read_text(path: Path) -> str:
@@ -1916,6 +1925,7 @@ def reset_all_familiar_states():
 
 
 if __name__ == "__main__":
+    set_windows_console_title("ADUC Server - DO NOT CLOSE THIS WINDOW")
     # Reset all familiar states on boot
     reset_all_familiar_states()
     port = int(os.environ.get("PORT", "8080"))

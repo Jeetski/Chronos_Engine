@@ -514,6 +514,47 @@ body {
   line-height: 1.4;
 }
 
+.bubble-text p {
+  margin: 0 0 8px 0;
+}
+
+.bubble-text p:last-child {
+  margin-bottom: 0;
+}
+
+.bubble-text ul,
+.bubble-text ol {
+  margin: 6px 0 8px 18px;
+  padding: 0;
+}
+
+.bubble-text code {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.bubble-text pre {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  overflow: auto;
+}
+
+.bubble-text pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.bubble-text a {
+  color: #9ad3ff;
+  text-decoration: underline;
+}
+
 .prompt-suggestions {
   display: flex;
   flex-wrap: wrap;

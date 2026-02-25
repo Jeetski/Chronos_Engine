@@ -1,5 +1,153 @@
 # Changelog
 
+## 2026-02-25
+
+### Dashboard - Nia Assistant Widget (ADUC-Backed)
+- Added a new floating widget: `Nia AI Assistant` (`Utilities/Dashboard/Widgets/NiaAssistant/`).
+- Nia is available as a floating bottom-right orb and as a standard dashboard widget entry.
+- Widget now communicates through dashboard ADUC proxy APIs (no direct browser-to-ADUC coupling).
+- Added live waiting indicator while replies are pending:
+  - `Thinking.` / `Thinking..` / `Thinking...`
+  - elapsed seconds counter (e.g. `(12s)`).
+- Added markdown rendering in Nia message bubbles:
+  - headings, emphasis, inline/fenced code, lists, blockquotes, links.
+- Added message identity rows (ADUC-style) with avatar + name for both Nia and user.
+- Nia startup greeting updated to:
+  - `Hello <nickname>, I'm Nia. How can I help you today?`
+- Nia control-output cleanup in widget:
+  - hearts directives are stripped from display replies.
+
+### Dashboard - Nia Widget UX and Settings
+- Replaced single paperclip action with a `+` action button.
+- Added `+` action menu entries:
+  - `Attach a file` (paperclip icon)
+  - `Wizards` (magic-wand placeholder).
+- Added header gear button (`⚙`) to open Nia settings (left of close button).
+- Nia settings now mirror Profile-widget file-edit flow (open in Notes widget):
+  - `Edit Agent Preferences`
+  - `Edit Preference Settings`
+  - `Edit Pilot Brief`
+  - `Manage Memories`
+- Added `Use memories` toggle in Nia settings (maps to ADUC `include_memory`).
+- Added `Delete memories` action:
+  - clears Nia memory store and Nia conversation history in ADUC.
+- Fixed Nia settings pane visibility bug so settings are closed by default on mount.
+
+### Dashboard - Nia Glass/Visual Coherence
+- Updated Nia panel styling to match base dashboard widget glass behavior:
+  - `var(--panel)`, `var(--border)`, `var(--shadow)`
+  - consistent blur/saturation treatment with other widgets.
+
+### Dashboard Server - ADUC Proxy/Integration Endpoints
+- Added ADUC proxy endpoints in `Utilities/Dashboard/server.py`:
+  - `GET /api/aduc/familiars`
+  - `GET /api/aduc/cli/status`
+  - `POST /api/aduc/chat`
+  - `GET /api/aduc/settings`
+  - `POST /api/aduc/settings`
+  - `POST /api/aduc/cli/memory/clear`
+- Added direct dashboard-served Nia profile avatar endpoint:
+  - `GET /api/nia/profile/avatar`
+
+### ADUC - New Nia Familiar and Prompt Contract Updates
+- Added minimal ADUC familiar: `Agents Dress Up Committee/familiars/nia/` with:
+  - neutral copilot role docs
+  - minimal avatar/state setup
+  - merge config docs (`merge.json`, `chronos-merge.json`).
+- Updated Nia familiar docs to enforce direct execution behavior in Chronos mode:
+  - execute requested actions immediately
+  - avoid promise-only replies without execution
+  - explicit schedule/reschedule execution expectations.
+- Updated shared ADUC contract (`docs/agents/AGENTS.md`) with global Chronos-mode action execution rules:
+  - execute-first responses
+  - no promise-only defer replies
+  - explicit schedule/reschedule execution guidance.
+
+### ADUC - Windows Window Titles
+- Updated ADUC launcher windows to clearly warn users not to close them:
+  - `ADUC Server - DO NOT CLOSE THIS WINDOW`
+  - `ADUC Watcher - DO NOT CLOSE THIS WINDOW`
+- Applied in:
+  - `run_aduc_codex.bat`
+  - `run_aduc_gemini.bat`
+- Added Python-side fallback title setters for direct script runs:
+  - `Agents Dress Up Committee/server.py`
+  - `Agents Dress Up Committee/tools/cli_bridge_watcher.py`
+
+### Dashboard - Calendar Inspector UX
+- Calendar Inspector `Deadlines & Due Dates` sections now default to collapsed in both:
+  - Month view
+  - Day view
+- File: `Utilities/Dashboard/Views/Calendar/Inspector.js`
+
+### Dashboard - Startup Popup Buttons
+- Added new startup popup action button:
+  - `Set Up Chronos Engine` (currently inert / no action attached)
+- Added startup popup action button:
+  - `Set Up Nia AI` (currently inert / no action attached)
+- Kept existing `Tour` button as placeholder.
+- File: `Utilities/Dashboard/Popups/Startup/index.js`
+
+### Dashboard - Docs View Markdown Rendering
+- Docs view now renders `.md` / `.markdown` files with formatted HTML instead of raw textarea-only output.
+- Added lightweight markdown rendering support for:
+  - headings
+  - paragraphs
+  - bullet/numbered lists
+  - code blocks and inline code
+  - blockquotes
+  - horizontal rules
+  - links
+- Non-markdown files continue to render as preformatted plain text.
+- File: `Utilities/Dashboard/Views/Docs/index.js`
+
+### CLI - Prompt Toolkit and Autocomplete Controls
+- Added `User/Settings/console_settings.yml` for console runtime behavior:
+  - `prompt_toolkit_default`
+  - `autocomplete_enabled`
+  - `show_startup_banner`
+  - `run_startup_sync`
+  - `play_startup_sound`
+- Added new CLI command:
+  - `autocomplete`
+  - `autocomplete on|off|toggle|status`
+  - Persists to `console_settings.yml`
+- File added: `Commands/autocomplete.py`
+
+### CLI - Chronos-Syntax Runtime Options (No `--` switches)
+- Console runtime now accepts command-style key/value runtime options:
+  - `prompt_toolkit:true|false`
+  - `autocomplete:true|false`
+  - `startup_banner:true|false`
+  - `startup_sync:true|false`
+  - `startup_sound:true|false`
+- Runtime options are parsed before command/script handling.
+- File: `Modules/Console.py`
+
+### CLI - Launcher vs Direct Invocation Behavior Split
+- Direct invocation (`python Modules/Console.py <command>`) now runs quiet by default via settings.
+- Launcher invocation still boots full experience by passing explicit runtime options:
+  - `prompt_toolkit:true startup_banner:true startup_sync:true startup_sound:true`
+- File: `console_launcher.ps1`
+
+### CLI - Non-Interactive IO Stability
+- Suppressed pygame support prompt noise in console startup path (`PYGAME_HIDE_SUPPORT_PROMPT=1`).
+- Hardened `console_style.print_role` fallback when prompt_toolkit cannot access a real console buffer.
+- Fixed recursion in fallback printing path by routing to raw printer.
+- Gated post-command theme repaint so one-shot command mode remains clean.
+- Files:
+  - `Modules/Console.py`
+  - `Modules/console_style.py`
+
+### Documentation
+- Updated autosuggest docs with new runtime and settings controls.
+- Updated settings guide to include console startup behavior keys.
+- Updated CLI command reference with `autocomplete` command.
+- Files:
+  - `Docs/Dev/Autosuggest.md`
+  - `Docs/Guides/Settings.md`
+  - `Docs/Reference/CLI_Commands.md`
+
 ## 2026-02-24
 
 ### Dashboard - Popups Menu + Manual Popup Launch

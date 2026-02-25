@@ -71,7 +71,56 @@ function CalendarView() {
         let fill; if (year<now.getFullYear() || (year===now.getFullYear() && i<currentMonth)) fill=getCss('--danger','#ef6a6a');
         else if (year===now.getFullYear() && i===currentMonth) fill=getCss('--accent','#7aa2f7'); else fill=getCss('--ok','#5bdc82');
         ctx.fillStyle=withAlpha(fill,0.18); roundRect(ctx,x,y,cellW,cellH,10); ctx.fill(); ctx.strokeStyle=withAlpha(fill,0.55); roundRect(ctx,x,y,cellW,cellH,10); ctx.stroke();
-        ctx.fillStyle='#e6e8ef'; ctx.fillText(`${months[i]} ${year}`, x+cellW/2, y+cellH/2);
+        const innerPad = 8;
+        const titleY = y + innerPad + 8;
+        const weekdaysY = y + innerPad + 24;
+        const weekdayLabels = ['M','T','W','T','F','S','S'];
+        const gridTop = weekdaysY + 8;
+        const colGap = 3;
+        const rowGap = 3;
+        const dayW = Math.max(4, (cellW - innerPad * 2 - colGap * 6) / 7);
+        const dayH = Math.max(4, (cellH - (gridTop - y) - innerPad - rowGap * 5) / 6);
+
+        ctx.fillStyle = '#e6e8ef';
+        ctx.fillText(`${months[i]} ${year}`, x + cellW / 2, titleY);
+
+        ctx.font = '600 10px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+        ctx.fillStyle = '#8d95a4';
+        for (let dow = 0; dow < 7; dow++) {
+          const wx = x + innerPad + dow * (dayW + colGap) + dayW / 2;
+          ctx.fillText(weekdayLabels[dow], wx, weekdaysY);
+        }
+
+        const firstOfMonth = new Date(year, i, 1);
+        const monthStart = weekMonday(firstOfMonth);
+        const todayMidnight = dateAtMidnight(now);
+        ctx.font = '600 9px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
+
+        for (let row = 0; row < 6; row++) {
+          for (let col = 0; col < 7; col++) {
+            const dayDate = new Date(monthStart);
+            dayDate.setDate(monthStart.getDate() + row * 7 + col);
+            const inMonth = dayDate.getMonth() === i;
+            const dx = x + innerPad + col * (dayW + colGap);
+            const dy = gridTop + row * (dayH + rowGap);
+            const dayColor = colorForDay(dayDate, todayMidnight);
+
+            ctx.fillStyle = withAlpha(dayColor, inMonth ? 0.2 : 0.08);
+            roundRect(ctx, dx, dy, dayW, dayH, 3);
+            ctx.fill();
+            ctx.strokeStyle = withAlpha(dayColor, inMonth ? 0.45 : 0.2);
+            roundRect(ctx, dx, dy, dayW, dayH, 3);
+            ctx.stroke();
+
+            if (dayW >= 9 && dayH >= 8) {
+              ctx.fillStyle = inMonth ? '#e6e8ef' : '#6b7382';
+              ctx.textAlign = 'center';
+              ctx.fillText(String(dayDate.getDate()), dx + dayW / 2, dy + dayH / 2 + 0.5);
+            }
+          }
+        }
+        ctx.textAlign = 'center';
+        ctx.font = '600 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
         monthRects.push({ i, x, y, w: cellW, h: cellH });
       }
       ctx.restore();
