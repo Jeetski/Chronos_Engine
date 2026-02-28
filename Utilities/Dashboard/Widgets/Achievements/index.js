@@ -18,6 +18,32 @@ export function mount(el) {
       .ac-card h4 { margin:0 0 4px; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); }
       .ac-card-value { font-size:28px; font-weight:800; margin:2px 0 4px; }
       .ac-card-meta { font-size:12px; color:var(--text-dim); }
+      .ac-level-card { flex:0 0 120px; display:flex; align-items:center; justify-content:center; }
+      .ac-level-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+      .ac-level-ring {
+        --p: 18;
+        --ring-size: 84px;
+        width: var(--ring-size);
+        height: var(--ring-size);
+        border-radius: 50%;
+        background: conic-gradient(var(--chronos-accent, #7aa2f7) calc(var(--p) * 1%), rgba(255,255,255,0.12) 0);
+        display: grid;
+        place-items: center;
+      }
+      .ac-level-ring-center {
+        width: calc(var(--ring-size) - 16px);
+        height: calc(var(--ring-size) - 16px);
+        border-radius: 50%;
+        background: rgba(12,16,23,0.95);
+        border: 1px solid rgba(255,255,255,0.08);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        color: var(--text);
+      }
+      .ac-level-meta { font-size:11px; color:var(--text-dim); text-align:center; line-height:1.2; }
       .ac-status { min-height:18px; font-size:13px; color:var(--text-dim); }
       .ac-status.error { color:#ef6a6a; }
       .ac-status.success { color:#5bdc82; }
@@ -67,6 +93,14 @@ export function mount(el) {
           <div class="ac-card-value" id="acPending">--</div>
           <div class="ac-card-meta">Still waiting to celebrate.</div>
         </div>
+        <div class="ac-card ac-level-card" aria-label="Level progress">
+          <div class="ac-level-wrap">
+            <div class="ac-level-ring" id="acLevelRing">
+              <div class="ac-level-ring-center" id="acLevelText">LVL 1</div>
+            </div>
+            <div class="ac-level-meta" id="acLevelMeta">0 / 1000 XP</div>
+          </div>
+        </div>
       </div>
       <div class="row" style="gap:8px; flex-wrap:wrap; align-items:center;">
         <input id="acSearch" class="input" placeholder="Search achievements..." style="flex:1 1 220px; min-width:160px;" />
@@ -106,6 +140,9 @@ export function mount(el) {
   const totalEl = el.querySelector('#acTotal');
   const awardedEl = el.querySelector('#acAwarded');
   const pendingEl = el.querySelector('#acPending');
+  const levelRingEl = el.querySelector('#acLevelRing');
+  const levelTextEl = el.querySelector('#acLevelText');
+  const levelMetaEl = el.querySelector('#acLevelMeta');
 
   btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
   btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Achievements'); } catch { } });
@@ -125,6 +162,7 @@ export function mount(el) {
 
   let achievements = [];
   let currentTitle = '';
+  let profileProgress = { level: 1, xpTotal: 0, xpIntoLevel: 0, xpToNextLevel: 1000 };
   let counts = { total: 0, awarded: 0, pending: 0 };
   let loading = false;
   const expanded = new Set();
@@ -163,6 +201,17 @@ export function mount(el) {
       if (!resp.ok) return;
       const json = await resp.json();
       currentTitle = json?.profile?.title || '';
+      const profile = json?.profile || {};
+      const level = Number.parseInt(String(profile.level ?? ''), 10);
+      const xpTotal = Number.parseInt(String(profile.xp_total ?? ''), 10);
+      const xpInto = Number.parseInt(String(profile.xp_into_level ?? ''), 10);
+      const xpToNext = Number.parseInt(String(profile.xp_to_next_level ?? ''), 10);
+      profileProgress = {
+        level: Number.isFinite(level) && level > 0 ? level : 1,
+        xpTotal: Number.isFinite(xpTotal) && xpTotal >= 0 ? xpTotal : 0,
+        xpIntoLevel: Number.isFinite(xpInto) && xpInto >= 0 ? xpInto : 0,
+        xpToNextLevel: Number.isFinite(xpToNext) && xpToNext >= 0 ? xpToNext : 1000,
+      };
     } catch { }
   }
 
@@ -188,6 +237,22 @@ export function mount(el) {
     totalEl.textContent = (counts?.total ?? achievements.length).toString();
     awardedEl.textContent = (counts?.awarded ?? achievements.filter(a => a.state === 'awarded').length).toString();
     pendingEl.textContent = (counts?.pending ?? achievements.filter(a => a.state !== 'awarded' && a.state !== 'archived').length).toString();
+    renderLevelRing();
+  }
+
+  function renderLevelRing() {
+    if (!levelRingEl || !levelTextEl || !levelMetaEl) return;
+    const level = Number.parseInt(String(profileProgress.level || 1), 10) || 1;
+    const xpInto = Math.max(0, Number.parseInt(String(profileProgress.xpIntoLevel || 0), 10) || 0);
+    const xpToNext = Math.max(0, Number.parseInt(String(profileProgress.xpToNextLevel || 0), 10) || 0);
+    const pct = xpToNext > 0 ? Math.max(0, Math.min(100, Math.round((xpInto / xpToNext) * 100))) : 100;
+    levelRingEl.style.setProperty('--p', String(pct));
+    levelTextEl.textContent = `LVL ${level}`;
+    if (xpToNext <= 0) {
+      levelMetaEl.textContent = `MAX • ${profileProgress.xpTotal || 0} XP`;
+    } else {
+      levelMetaEl.textContent = `${xpInto} / ${xpToNext} XP`;
+    }
   }
 
   function renderList() {

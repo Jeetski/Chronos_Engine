@@ -87,6 +87,16 @@ function injectDayListStyles() {
     .calendar-daylist-row.is-primary {
       box-shadow: inset 0 0 0 1px rgba(122,162,247,0.55);
     }
+    .calendar-daylist-row.is-completed .calendar-daylist-node-name {
+      text-decoration: line-through;
+      opacity: 0.72;
+    }
+    .calendar-daylist-row.is-completed .calendar-daylist-node-type {
+      opacity: 0.66;
+    }
+    .calendar-daylist-row.is-completed .calendar-daylist-time {
+      opacity: 0.72;
+    }
     .calendar-daylist-time {
       font-family: "IBM Plex Mono", "Cascadia Code", monospace;
       color: var(--calendar-time-color, #a5b1d5);
@@ -147,6 +157,42 @@ function injectDayListStyles() {
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+    .calendar-daylist-quick-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 2px;
+    }
+    .calendar-daylist-quick-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      color: var(--chronos-text, #e6e8ef);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .calendar-daylist-quick-btn:hover {
+      background: rgba(255,255,255,0.12);
+    }
+    .calendar-daylist-quick-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .calendar-daylist-quick-btn[data-daylist-action="complete"] {
+      border-color: rgba(91,220,130,0.45);
+      color: #6bff95;
+    }
+    .calendar-daylist-quick-btn[data-daylist-action="skip"] {
+      border-color: rgba(255,176,92,0.45);
+      color: #ffb05c;
     }
     .calendar-daylist-node-label {
       display: flex;
@@ -558,6 +604,18 @@ export function mount(el, context) {
       completionsCache.set(key, names); return names;
     } catch { return new Set(); }
   }
+  function normalizeCompletionName(name) {
+    return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+  function completionSetForNames(names) {
+    const out = new Set();
+    if (!names) return out;
+    for (const name of names) {
+      const normalized = normalizeCompletionName(name);
+      if (normalized) out.add(normalized);
+    }
+    return out;
+  }
   // (removed duplicate helpers)
 
   function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch { } }
@@ -674,13 +732,15 @@ export function mount(el, context) {
     if (t === 'habit' || t === 'chore') return '↻';
     return '';
   }
-  function normalizeDayListBlocks(blocks) {
+  function normalizeDayListBlocks(blocks, completedNames = new Set()) {
     return (blocks || []).map((block, idx) => {
       const startMinutes = typeof block.start === 'number' ? block.start : null;
       const endMinutes = typeof block.end === 'number' ? block.end : null;
+      const text = String(block.text || 'Untitled block');
+      const completed = completedNames.has(normalizeCompletionName(text));
       return {
         key: `block-${idx}`,
-        text: String(block.text || 'Untitled block'),
+        text,
         type: String(block.type || 'item'),
         depth: Number(block.depth || 0),
         startMinutes,
@@ -691,6 +751,7 @@ export function mount(el, context) {
         anchored: !!block.anchored,
         reschedule: String(block.reschedule || ''),
         isWindow: !!block.isWindow,
+        completed,
       };
     });
   }
@@ -760,6 +821,9 @@ export function mount(el, context) {
         if (lastSelectedKey === key) {
           row.classList.add('is-primary');
         }
+        if (node.completed) {
+          row.classList.add('is-completed');
+        }
         row.classList.toggle('is-anchored', !!node.anchored);
 
         const time = document.createElement('div');
@@ -810,6 +874,25 @@ export function mount(el, context) {
           spacer.className = 'calendar-daylist-toggle-spacer';
           nodeCell.appendChild(spacer);
         }
+        const quickActions = document.createElement('div');
+        quickActions.className = 'calendar-daylist-quick-actions';
+        const completeBtn = document.createElement('button');
+        completeBtn.type = 'button';
+        completeBtn.className = 'calendar-daylist-quick-btn';
+        completeBtn.dataset.daylistAction = 'complete';
+        completeBtn.title = node.completed ? 'Already completed' : 'Mark completed';
+        completeBtn.setAttribute('aria-label', 'Mark completed');
+        completeBtn.textContent = '✓';
+        completeBtn.disabled = !!node.completed;
+        const skipBtn = document.createElement('button');
+        skipBtn.type = 'button';
+        skipBtn.className = 'calendar-daylist-quick-btn';
+        skipBtn.dataset.daylistAction = 'skip';
+        skipBtn.title = 'Mark skipped';
+        skipBtn.setAttribute('aria-label', 'Mark skipped');
+        skipBtn.textContent = '⏭';
+        quickActions.append(completeBtn, skipBtn);
+        nodeCell.appendChild(quickActions);
         const label = document.createElement('div');
         label.className = 'calendar-daylist-node-label';
         const name = document.createElement('span');
@@ -866,7 +949,9 @@ export function mount(el, context) {
     renderDayListTree();
     try {
       const blocks = await loadTodayBlocks(force);
-      const normalized = normalizeDayListBlocks(blocks);
+      const completedRaw = await loadCompletions(selectedDayDate);
+      const completedNames = completionSetForNames(completedRaw);
+      const normalized = normalizeDayListBlocks(blocks, completedNames);
       dayListTreeData = buildTreeFromBlocks(normalized);
       const expandableKeys = new Set(collectExpandableKeys(dayListTreeData, 'root'));
       const rootExpandable = new Set(collectRootExpandableKeys(dayListTreeData, 'root'));
@@ -888,6 +973,22 @@ export function mount(el, context) {
     } finally {
       dayListLoading = false;
       renderDayListTree();
+    }
+  }
+  async function markDayListNodeStatus(node, status) {
+    const name = String(node?.text || '').trim();
+    if (!name || !status) return;
+    const actionLabel = status === 'completed' ? 'done' : status;
+    try {
+      const result = await runCli('mark', [`${name}:${status}`], {});
+      if (!result?.ok) {
+        throw new Error(String(result?.error || 'Action failed'));
+      }
+      try { context?.bus?.emit('toast:success', `Marked "${name}" as ${actionLabel}.`); } catch { }
+      await refreshDayList(true);
+    } catch (error) {
+      console.error('[Chronos][Calendar] Day-list mark failed', error);
+      try { context?.bus?.emit('toast:error', `Failed to mark "${name}" as ${actionLabel}.`); } catch { }
     }
   }
   function expandAllDayList() {
@@ -1474,7 +1575,24 @@ export function mount(el, context) {
   function handleViewPointerMove(e, x, y) { return; }
   function handleViewPointerUp(e) { return; }
 
-  function onDayListClick(ev) {
+  async function onDayListClick(ev) {
+    const actionBtn = ev.target?.closest?.('[data-daylist-action]');
+    if (actionBtn) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (actionBtn.disabled) return;
+      const rowEl = actionBtn.closest('.calendar-daylist-row');
+      const keyFromAction = rowEl?.getAttribute('data-node-key');
+      const actionNode = getNodeByKey(keyFromAction);
+      const action = actionBtn.getAttribute('data-daylist-action');
+      if (!actionNode || !action) return;
+      if (action === 'complete') {
+        await markDayListNodeStatus(actionNode, 'completed');
+      } else if (action === 'skip') {
+        await markDayListNodeStatus(actionNode, 'skipped');
+      }
+      return;
+    }
     const toggle = ev.target?.closest?.('[data-toggle]');
     if (toggle) {
       const key = toggle.getAttribute('data-toggle');

@@ -122,24 +122,28 @@ export function mount(el, context) {
             <div class="action-group">
               <div class="button-row">
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosBuffers" checked />
+                  <input type="checkbox" id="toggleKairosBuffers" checked title="Insert buffers between work blocks based on your buffer rules." />
                   Buffers
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosTimerBreaks" />
+                  <input type="checkbox" id="toggleKairosTimerBreaks" title="Use timer-profile break logic instead of plain break handling." />
                   Timer Breaks
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosSprints" />
+                  <input type="checkbox" id="toggleKairosSprints" title="Enable sprint-style clustering for focused execution blocks." />
                   Sprints
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosIgnoreTrends" />
+                  <input type="checkbox" id="toggleKairosIgnoreTrends" title="Ignore historical trend bias when scoring candidates." />
                   Ignore Trends
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleCutting" />
-                  Allow Item Cutting
+                  <input type="checkbox" id="toggleKairosRepairTrim" checked title="Allow repair phase to trim items before stronger conflict actions." />
+                  Repair Trim
+                </label>
+                <label class="scheduler-check">
+                  <input type="checkbox" id="toggleCutting" title="Allow repair phase to cut low-priority items if conflicts remain." />
+                  Repair Cut
                 </label>
               </div>
               <div class="button-row">
@@ -148,6 +152,26 @@ export function mount(el, context) {
               </div>
               <div class="button-row">
                 <input class="scheduler-input" id="kairosQuickWins" type="number" min="0" max="240" step="5" placeholder="Quick wins max minutes (optional)" style="min-width:220px;" />
+                <input class="scheduler-input" id="kairosRepairMinDuration" type="number" min="1" max="180" step="1" placeholder="Repair min duration (minutes)" style="min-width:220px;" />
+              </div>
+              <div class="button-row">
+                <input class="scheduler-input" id="kairosRepairCutThreshold" type="number" min="0" max="1" step="0.05" placeholder="Repair cut threshold (0.0 - 1.0)" style="min-width:240px;" />
+              </div>
+              <div class="button-row">
+                <span class="scheduler-hint" style="min-width:120px;">Kairos Presets</span>
+                <button type="button" class="scheduler-btn" id="kairosPresetSafe" title="Trim on, cut off, min duration 20m, cut threshold 0.85.">Safe</button>
+                <button type="button" class="scheduler-btn" id="kairosPresetBalanced" title="Trim on, cut on, min duration 12m, cut threshold 0.60.">Balanced</button>
+                <button type="button" class="scheduler-btn" id="kairosPresetAggressive" title="Trim on, cut on, min duration 8m, cut threshold 0.40.">Aggressive</button>
+              </div>
+              <div class="button-row">
+                <span class="scheduler-hint" id="kairosPresetHint">Safe: trim on, cut off, min 20m, threshold 0.85. Balanced: trim on, cut on, min 12m, threshold 0.60. Aggressive: trim on, cut on, min 8m, threshold 0.40.</span>
+              </div>
+              <div class="button-row" style="align-items:flex-start; flex-direction:column; width:100%;">
+                <div class="button-row" style="width:100%; justify-content:space-between;">
+                  <span class="scheduler-hint">Window Filter Overrides</span>
+                  <button type="button" class="scheduler-btn" id="addKairosWindowFilterRow" title="Add another window filter override row.">+ Add Override</button>
+                </div>
+                <div id="kairosWindowFilterRows" style="display:flex; flex-direction:column; gap:8px; width:100%;"></div>
               </div>
             </div>
           </details>
@@ -165,8 +189,8 @@ export function mount(el, context) {
 
       <!-- Status Bar -->
       <div class="scheduler-status-bar">
-        <label class="scheduler-toggle">
-          <input type="checkbox" id="todayFxToggle" checked />
+        <label class="scheduler-toggle" title="Enable visual effects in this widget.">
+          <input type="checkbox" id="todayFxToggle" checked title="Enable visual effects in this widget." />
           fx
         </label>
         <span class="scheduler-hint" id="selHint">Select a day in Calendar to preview the schedule.</span>
@@ -328,9 +352,18 @@ export function mount(el, context) {
   const toggleKairosTimerBreaks = el.querySelector('#toggleKairosTimerBreaks');
   const toggleKairosSprints = el.querySelector('#toggleKairosSprints');
   const toggleKairosIgnoreTrends = el.querySelector('#toggleKairosIgnoreTrends');
+  const toggleKairosRepairTrim = el.querySelector('#toggleKairosRepairTrim');
   const kairosTimerProfile = el.querySelector('#kairosTimerProfile');
   const kairosTemplateOverride = el.querySelector('#kairosTemplateOverride');
   const kairosQuickWins = el.querySelector('#kairosQuickWins');
+  const kairosRepairMinDuration = el.querySelector('#kairosRepairMinDuration');
+  const kairosRepairCutThreshold = el.querySelector('#kairosRepairCutThreshold');
+  const kairosPresetSafe = el.querySelector('#kairosPresetSafe');
+  const kairosPresetBalanced = el.querySelector('#kairosPresetBalanced');
+  const kairosPresetAggressive = el.querySelector('#kairosPresetAggressive');
+  const kairosPresetButtons = [kairosPresetSafe, kairosPresetBalanced, kairosPresetAggressive].filter(Boolean);
+  const kairosWindowFilterRows = el.querySelector('#kairosWindowFilterRows');
+  const addKairosWindowFilterRow = el.querySelector('#addKairosWindowFilterRow');
   const customPropertyKey = el.querySelector('#customPropertyKey');
   const enforcerEnvironmentScope = el.querySelector('#enforcerEnvironmentScope');
   const enforcerEnvironment = el.querySelector('#enforcerEnvironment');
@@ -367,6 +400,64 @@ export function mount(el, context) {
     }
   }
 
+  function collectWindowFilterOverrides() {
+    if (!kairosWindowFilterRows) return [];
+    const rows = Array.from(kairosWindowFilterRows.querySelectorAll('.window-filter-row'));
+    const out = [];
+    for (const row of rows) {
+      const name = String(row.querySelector('.window-filter-name')?.value || '').trim();
+      const key = String(row.querySelector('.window-filter-key')?.value || '').trim();
+      const value = String(row.querySelector('.window-filter-value')?.value || '').trim();
+      if (!key || !value) continue;
+      out.push({ window: name || '', key, value });
+    }
+    return out;
+  }
+
+  function addWindowFilterRow(initial = {}) {
+    if (!kairosWindowFilterRows) return;
+    const row = document.createElement('div');
+    row.className = 'button-row window-filter-row';
+    row.innerHTML = `
+      <input class="scheduler-input window-filter-name" placeholder="Window name (optional, blank = all windows)" style="min-width:220px; flex:1;" />
+      <input class="scheduler-input window-filter-key" placeholder="Filter key override (e.g. energy_mode)" style="min-width:220px; flex:1;" />
+      <input class="scheduler-input window-filter-value" placeholder="Filter value override (CSV allowed)" style="min-width:220px; flex:1;" />
+      <button type="button" class="scheduler-btn window-filter-remove" title="Remove this override row.">Remove</button>
+    `;
+    const nameInput = row.querySelector('.window-filter-name');
+    const keyInput = row.querySelector('.window-filter-key');
+    const valueInput = row.querySelector('.window-filter-value');
+    const removeBtn = row.querySelector('.window-filter-remove');
+    if (nameInput) nameInput.value = String(initial.window || '').trim();
+    if (keyInput) keyInput.value = String(initial.key || '').trim();
+    if (valueInput) valueInput.value = String(initial.value || '').trim();
+    const onChange = () => saveLocalControls();
+    nameInput?.addEventListener('input', onChange);
+    keyInput?.addEventListener('input', onChange);
+    valueInput?.addEventListener('input', onChange);
+    removeBtn?.addEventListener('click', () => {
+      row.remove();
+      if (!kairosWindowFilterRows.querySelector('.window-filter-row')) addWindowFilterRow({});
+      saveLocalControls();
+    });
+    kairosWindowFilterRows.appendChild(row);
+  }
+
+  function setWindowFilterOverrides(rows) {
+    if (!kairosWindowFilterRows) return;
+    kairosWindowFilterRows.innerHTML = '';
+    const source = Array.isArray(rows) ? rows : [];
+    if (!source.length) {
+      addWindowFilterRow({});
+      return;
+    }
+    for (const row of source) {
+      if (!row || typeof row !== 'object') continue;
+      addWindowFilterRow(row);
+    }
+    if (!kairosWindowFilterRows.querySelector('.window-filter-row')) addWindowFilterRow({});
+  }
+
   function getControlSnapshot() {
     return {
       environment: sliders.environment?.value,
@@ -390,9 +481,13 @@ export function mount(el, context) {
       kairosTimerBreaks: toggleKairosTimerBreaks?.checked,
       kairosSprints: toggleKairosSprints?.checked,
       kairosIgnoreTrends: toggleKairosIgnoreTrends?.checked,
+      kairosRepairTrim: toggleKairosRepairTrim?.checked,
       kairosTimerProfile: kairosTimerProfile?.value,
       kairosTemplateOverride: kairosTemplateOverride?.value,
       kairosQuickWins: kairosQuickWins?.value,
+      kairosRepairMinDuration: kairosRepairMinDuration?.value,
+      kairosRepairCutThreshold: kairosRepairCutThreshold?.value,
+      kairosWindowFilterOverrides: collectWindowFilterOverrides(),
     };
   }
 
@@ -426,11 +521,65 @@ export function mount(el, context) {
       if (saved.kairosTimerBreaks !== undefined && toggleKairosTimerBreaks) toggleKairosTimerBreaks.checked = !!saved.kairosTimerBreaks;
       if (saved.kairosSprints !== undefined && toggleKairosSprints) toggleKairosSprints.checked = !!saved.kairosSprints;
       if (saved.kairosIgnoreTrends !== undefined && toggleKairosIgnoreTrends) toggleKairosIgnoreTrends.checked = !!saved.kairosIgnoreTrends;
+      if (saved.kairosRepairTrim !== undefined && toggleKairosRepairTrim) toggleKairosRepairTrim.checked = !!saved.kairosRepairTrim;
       if (saved.kairosTimerProfile !== undefined && kairosTimerProfile) kairosTimerProfile.value = saved.kairosTimerProfile;
       if (saved.kairosTemplateOverride !== undefined && kairosTemplateOverride) kairosTemplateOverride.value = saved.kairosTemplateOverride;
       if (saved.kairosQuickWins !== undefined && kairosQuickWins) kairosQuickWins.value = saved.kairosQuickWins;
+      if (saved.kairosRepairMinDuration !== undefined && kairosRepairMinDuration) kairosRepairMinDuration.value = saved.kairosRepairMinDuration;
+      if (saved.kairosRepairCutThreshold !== undefined && kairosRepairCutThreshold) kairosRepairCutThreshold.value = saved.kairosRepairCutThreshold;
+      if (Array.isArray(saved.kairosWindowFilterOverrides)) {
+        setWindowFilterOverrides(saved.kairosWindowFilterOverrides);
+      } else {
+        const migrated = [];
+        const mKey = String(saved.kairosWindowFilterKey || '').trim();
+        const mValue = String(saved.kairosWindowFilterValue || '').trim();
+        const mName = String(saved.kairosWindowFilterName || '').trim();
+        if (mKey && mValue) migrated.push({ window: mName, key: mKey, value: mValue });
+        setWindowFilterOverrides(migrated);
+      }
       syncSliderLabels();
     } catch { }
+  }
+
+  const KAIROS_REPAIR_PRESETS = {
+    safe: { trim: true, cut: false, minDuration: 20, cutThreshold: 0.85 },
+    balanced: { trim: true, cut: true, minDuration: 12, cutThreshold: 0.60 },
+    aggressive: { trim: true, cut: true, minDuration: 8, cutThreshold: 0.40 },
+  };
+
+  function setKairosPresetActive(name) {
+    kairosPresetButtons.forEach(btn => btn.classList.remove('is-active'));
+    const button =
+      name === 'safe' ? kairosPresetSafe :
+        name === 'balanced' ? kairosPresetBalanced :
+          name === 'aggressive' ? kairosPresetAggressive : null;
+    button?.classList.add('is-active');
+  }
+
+  function detectKairosPreset() {
+    const trim = !!toggleKairosRepairTrim?.checked;
+    const cut = !!toggleCutting?.checked;
+    const minDuration = Number.parseInt(String(kairosRepairMinDuration?.value || ''), 10);
+    const cutThreshold = Number.parseFloat(String(kairosRepairCutThreshold?.value || ''));
+    if (!trim || Number.isNaN(minDuration) || Number.isNaN(cutThreshold)) return null;
+    for (const [name, cfg] of Object.entries(KAIROS_REPAIR_PRESETS)) {
+      if (cfg.trim !== trim) continue;
+      if (cfg.cut !== cut) continue;
+      if (cfg.minDuration !== minDuration) continue;
+      if (Math.abs(cfg.cutThreshold - cutThreshold) < 0.001) return name;
+    }
+    return null;
+  }
+
+  function applyKairosRepairPreset(name) {
+    const cfg = KAIROS_REPAIR_PRESETS[name];
+    if (!cfg) return;
+    if (toggleKairosRepairTrim) toggleKairosRepairTrim.checked = !!cfg.trim;
+    if (toggleCutting) toggleCutting.checked = !!cfg.cut;
+    if (kairosRepairMinDuration) kairosRepairMinDuration.value = String(cfg.minDuration);
+    if (kairosRepairCutThreshold) kairosRepairCutThreshold.value = String(cfg.cutThreshold);
+    saveLocalControls();
+    setKairosPresetActive(name);
   }
 
   async function loadSchedulingPriorities() {
@@ -527,6 +676,9 @@ export function mount(el, context) {
   }
 
   loadLocalControls();
+  if (kairosWindowFilterRows && !kairosWindowFilterRows.querySelector('.window-filter-row')) {
+    setWindowFilterOverrides([]);
+  }
   loadSchedulingPriorities();
 
   for (const [key, slider] of Object.entries(sliders)) {
@@ -537,20 +689,43 @@ export function mount(el, context) {
       queueSettingsSave();
     });
   }
-  toggleCutting?.addEventListener('change', () => saveLocalControls());
+  toggleCutting?.addEventListener('change', () => {
+    saveLocalControls();
+    setKairosPresetActive(detectKairosPreset());
+  });
   toggleKairosBuffers?.addEventListener('change', () => saveLocalControls());
   toggleKairosTimerBreaks?.addEventListener('change', () => saveLocalControls());
   toggleKairosSprints?.addEventListener('change', () => saveLocalControls());
   toggleKairosIgnoreTrends?.addEventListener('change', () => saveLocalControls());
+  toggleKairosRepairTrim?.addEventListener('change', () => {
+    saveLocalControls();
+    setKairosPresetActive(detectKairosPreset());
+  });
   kairosTimerProfile?.addEventListener('input', () => saveLocalControls());
   kairosTemplateOverride?.addEventListener('input', () => saveLocalControls());
   kairosQuickWins?.addEventListener('input', () => saveLocalControls());
+  kairosRepairMinDuration?.addEventListener('input', () => {
+    saveLocalControls();
+    setKairosPresetActive(detectKairosPreset());
+  });
+  kairosRepairCutThreshold?.addEventListener('input', () => {
+    saveLocalControls();
+    setKairosPresetActive(detectKairosPreset());
+  });
+  addKairosWindowFilterRow?.addEventListener('click', () => {
+    addWindowFilterRow({});
+    saveLocalControls();
+  });
   customPropertyKey?.addEventListener('change', () => saveLocalControls());
   enforcerEnvironmentScope?.addEventListener('change', () => saveLocalControls());
   enforcerEnvironment?.addEventListener('input', () => saveLocalControls());
   enforcerTemplateDay?.addEventListener('change', () => saveLocalControls());
   enforcerTemplate?.addEventListener('input', () => saveLocalControls());
   scheduleState?.addEventListener('change', () => saveLocalControls());
+  kairosPresetSafe?.addEventListener('click', () => applyKairosRepairPreset('safe'));
+  kairosPresetBalanced?.addEventListener('click', () => applyKairosRepairPreset('balanced'));
+  kairosPresetAggressive?.addEventListener('click', () => applyKairosRepairPreset('aggressive'));
+  setKairosPresetActive(detectKairosPreset());
 
   const content = el.querySelector('.content') || el;
   const btnRefresh = content.querySelector('#todayRefresh');
@@ -578,6 +753,8 @@ export function mount(el, context) {
     if (toggleKairosTimerBreaks) props.breaks = toggleKairosTimerBreaks.checked ? 'timer' : 'none';
     if (toggleKairosSprints) props.sprints = !!toggleKairosSprints.checked;
     if (toggleKairosIgnoreTrends) props['ignore-trends'] = !!toggleKairosIgnoreTrends.checked;
+    if (toggleKairosRepairTrim) props['repair-trim'] = !!toggleKairosRepairTrim.checked;
+    if (toggleCutting) props['repair-cut'] = !!toggleCutting.checked;
     const customPropKey = String(customPropertyKey?.value || '').trim();
     if (customPropKey) {
       props.custom_property = customPropKey;
@@ -595,6 +772,18 @@ export function mount(el, context) {
     if (kairosQuickWins && String(kairosQuickWins.value || '').trim()) {
       const qwm = Number.parseInt(String(kairosQuickWins.value).trim(), 10);
       if (!Number.isNaN(qwm) && qwm >= 0) props.quickwins = qwm;
+    }
+    if (kairosRepairMinDuration && String(kairosRepairMinDuration.value || '').trim()) {
+      const minDuration = Number.parseInt(String(kairosRepairMinDuration.value).trim(), 10);
+      if (!Number.isNaN(minDuration) && minDuration >= 1) props['repair-min-duration'] = minDuration;
+    }
+    if (kairosRepairCutThreshold && String(kairosRepairCutThreshold.value || '').trim()) {
+      const cutThreshold = Number.parseFloat(String(kairosRepairCutThreshold.value).trim());
+      if (!Number.isNaN(cutThreshold)) props['repair-cut-threshold'] = cutThreshold;
+    }
+    const windowFilterOverrides = collectWindowFilterOverrides();
+    if (windowFilterOverrides.length) {
+      props.window_filter_overrides = windowFilterOverrides;
     }
     try {
       const resp = await fetch(apiBase() + '/api/cli', {

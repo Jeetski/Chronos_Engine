@@ -42,6 +42,7 @@ This index points to the main documentation entry points in this repo and what e
 - CLI Commands: `Docs/Reference/CLI_Commands.md` - full command reference.
 - Item Properties: `Docs/Reference/Item_Properties.md` - standard item fields used by Chronos.
 - Admin Tools: `Docs/Features/Admin_Tools.md` - system cleanup and cache management.
+- Achievements Progression: `Docs/Features/Achievements_Progression_System.md` - evaluator flow, XP/level fields, popup delivery, and reset commands.
 ## Legal
 - License (AGPL): `Docs/Legal/LICENSE.md`
 - Commercial License: `Docs/Legal/COMMERCIAL_LICENSE.md`

@@ -2081,7 +2081,9 @@ def run_llm(prompt: str, timeout_sec: float | None = None) -> str:
 
     Set ADUC_CLI_BACKEND=gemini to use Gemini CLI, otherwise defaults to Codex.
     """
-    backend = os.environ.get("ADUC_CLI_BACKEND", "codex").strip().lower()
+    settings_backend = str(read_json(SETTINGS_PATH, {}).get("cli_backend", "") or "").strip().lower()
+    env_backend = os.environ.get("ADUC_CLI_BACKEND", "").strip().lower()
+    backend = settings_backend if settings_backend in ("codex", "gemini") else (env_backend if env_backend in ("codex", "gemini") else "codex")
     if backend == "gemini":
         return run_gemini(prompt, timeout_sec)
     else:
@@ -2110,7 +2112,9 @@ def run_llm_interruptible(prompt: str, turn_id: str, timeout_sec: float | None =
     Returns (output, was_cancelled).
     Uses Popen and polls for completion while checking cancel signals.
     """
-    backend = os.environ.get("ADUC_CLI_BACKEND", "codex").strip().lower()
+    settings_backend = str(read_json(SETTINGS_PATH, {}).get("cli_backend", "") or "").strip().lower()
+    env_backend = os.environ.get("ADUC_CLI_BACKEND", "").strip().lower()
+    backend = settings_backend if settings_backend in ("codex", "gemini") else (env_backend if env_backend in ("codex", "gemini") else "codex")
 
     # Determine which CLI to use
     if backend == "gemini":

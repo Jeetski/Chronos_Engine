@@ -1707,6 +1707,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     elif not isinstance(tags, list):
                         tags = []
                     items.append({
+                        "id": raw.get('id'),
                         "name": name,
                         "description": raw.get('description') or raw.get('notes'),
                         "title": raw.get('title'),
@@ -1717,6 +1718,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         "awarded": awarded_flag,
                         "awarded_at": awarded_at,
                         "points": parse_int(raw.get('points') or raw.get('value')) or 0,
+                        "xp": parse_int(raw.get('xp')) or 0,
                         "tags": tags,
                         "created": raw.get('created') or raw.get('date_created'),
                         "updated": raw.get('updated') or raw.get('last_updated'),
@@ -3921,12 +3923,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     mm = max(0, min(59, int(m.group(2))))
                     return f"{hh:02d}:{mm:02d}"
 
-                def _key_for(name, start):
-                    return build_block_key(str(name or "").strip(), str(start or "").strip())
-
-                now_iso = datetime.now().isoformat(timespec="seconds")
                 updated_count = 0
                 added_count = 0
+                errors = []
 
                 for row in updates:
                     if not isinstance(row, dict):
@@ -3938,10 +3937,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     status = str(row.get("status") or "").strip().lower()
                     if status not in allowed_statuses:
                         continue
-                    if not key:
-                        if not name or not start:
-                            continue
-                        key = _key_for(name, start)
+                    if not key and (not name or not start):
+                        continue
                     existing = entries.get(key) if isinstance(entries.get(key), dict) else {}
                     if not name:
                         name = str(existing.get("name") or key.split("@", 1)[0] or "").strip()
@@ -3949,26 +3946,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         start = _hm(existing.get("scheduled_start")) or _hm(key.split("@", 1)[1] if "@" in key else None)
                     if not end:
                         end = _hm(existing.get("scheduled_end"))
-                    entry = dict(existing)
-                    entry["name"] = name
-                    entry["status"] = status
-                    entry["scheduled_start"] = start
-                    entry["scheduled_end"] = end
-                    entry["logged_at"] = now_iso
-                    entry["source"] = "yesterday_checkin"
-                    entry["auto_missed"] = False
-                    if row.get("actual_start") is not None:
-                        entry["actual_start"] = _hm(row.get("actual_start"))
-                    if row.get("actual_end") is not None:
-                        entry["actual_end"] = _hm(row.get("actual_end"))
+                    if not name or not start or not end:
+                        continue
+                    did_props = {
+                        "date": target_date,
+                        "start_time": start,
+                        "end_time": end,
+                        "status": status,
+                        "source": "yesterday_checkin",
+                    }
+                    actual_start = _hm(row.get("actual_start")) if row.get("actual_start") is not None else None
+                    actual_end = _hm(row.get("actual_end")) if row.get("actual_end") is not None else None
+                    if actual_start:
+                        did_props["actual_start"] = actual_start
+                    if actual_end:
+                        did_props["actual_end"] = actual_end
                     note = row.get("note")
                     if isinstance(note, str) and note.strip():
-                        entry["note"] = note.strip()
+                        did_props["note"] = note.strip()
                     quality = row.get("quality")
                     if isinstance(quality, str) and quality.strip():
-                        entry["quality"] = quality.strip()
-                    entries[key] = entry
-                    updated_count += 1
+                        did_props["quality"] = quality.strip()
+                    ok, out, err = run_console_command("did", [name], did_props)
+                    if ok:
+                        updated_count += 1
+                    else:
+                        errors.append({"name": name, "kind": "update", "stdout": out, "stderr": err})
 
                 for row in additional:
                     if not isinstance(row, dict):
@@ -3980,41 +3983,50 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         continue
                     start = _hm(row.get("scheduled_start")) or _hm(row.get("actual_start")) or "00:00"
                     end = _hm(row.get("scheduled_end")) or _hm(row.get("actual_end")) or start
-                    base_key = _key_for(name, start)
-                    key = base_key
-                    n = 2
-                    while key in entries:
-                        key = f"{base_key}#{n}"
-                        n += 1
-                    entries[key] = {
-                        "name": name,
-                        "type": item_type,
+                    did_props = {
+                        "date": target_date,
+                        "start_time": start,
+                        "end_time": end,
                         "status": status,
-                        "scheduled_start": start,
-                        "scheduled_end": end,
-                        "actual_start": _hm(row.get("actual_start")) or start,
-                        "actual_end": _hm(row.get("actual_end")) or end,
-                        "logged_at": now_iso,
+                        "type": item_type,
                         "source": "yesterday_checkin_additional",
                         "additional": True,
-                        "auto_missed": False,
                     }
+                    did_props["actual_start"] = _hm(row.get("actual_start")) or start
+                    did_props["actual_end"] = _hm(row.get("actual_end")) or end
                     note = row.get("note")
                     if isinstance(note, str) and note.strip():
-                        entries[key]["note"] = note.strip()
-                    added_count += 1
+                        did_props["note"] = note.strip()
+                    quality = row.get("quality")
+                    if isinstance(quality, str) and quality.strip():
+                        did_props["quality"] = quality.strip()
+                    ok, out, err = run_console_command("did", [name], did_props)
+                    if ok:
+                        added_count += 1
+                    else:
+                        errors.append({"name": name, "kind": "additional", "stdout": out, "stderr": err})
 
-                completion_payload["entries"] = entries
-                with open(completion_path, "w", encoding="utf-8") as fh:
-                    yaml.safe_dump(completion_payload, fh, default_flow_style=False, sort_keys=False, allow_unicode=True)
+                # Read back current total after CLI writes.
+                total_entries = 0
+                try:
+                    if os.path.exists(completion_path):
+                        with open(completion_path, "r", encoding="utf-8") as fh:
+                            refreshed = yaml.safe_load(fh) or {}
+                        refreshed_entries = refreshed.get("entries") if isinstance(refreshed, dict) else {}
+                        if isinstance(refreshed_entries, dict):
+                            total_entries = len(refreshed_entries)
+                except Exception:
+                    total_entries = 0
 
-                self._write_json(200, {
-                    "ok": True,
+                overall_ok = len(errors) == 0
+                self._write_json(200 if overall_ok else 207, {
+                    "ok": overall_ok,
                     "date": target_date,
                     "completion_path": completion_path,
                     "updated": int(updated_count),
                     "added_additional": int(added_count),
-                    "total_entries": len(entries),
+                    "total_entries": int(total_entries),
+                    "errors": errors,
                 })
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Yesterday check-in save failed: {e}"})
@@ -4048,32 +4060,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Commitment override failed: {e}"})
             return
 
-        # /api/item POST - Save item (for Item Manager widget)
-        if parsed.path == "/api/item":
-            try:
-                item_type = str(payload.get("type") or "task")
-                name = str(payload.get("name") or "").strip()
-                content = payload.get("content") or ""
-                if not name:
-                    self._write_json(400, {"ok": False, "error": "Missing name"})
-                    return
-                # Parse YAML content to dict
-                try:
-                    data = yaml.safe_load(content) if isinstance(content, str) else content
-                    if not isinstance(data, dict):
-                        data = {"raw": content}
-                except Exception:
-                    data = {"raw": content}
-                # Ensure name and type
-                data["name"] = name
-                data["type"] = item_type
-                # Write via ItemManager
-                from Modules.ItemManager import write_item_data
-                write_item_data(item_type, name, data)
-                self._write_json(200, {"ok": True})
-            except Exception as e:
-                self._write_json(500, {"ok": False, "error": f"Save failed: {e}"})
-            return
         if parsed.path == "/api/link/board":
             if not _link_auth_ok(self.headers):
                 self._write_json(401, {"ok": False, "error": "Unauthorized"})
@@ -4096,64 +4082,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Save failed: {e}"})
-            return
-
-        # /api/item/copy - Copy item
-        if parsed.path == "/api/item/copy":
-            try:
-                item_type = str(payload.get("type") or "task")
-                source = str(payload.get("source") or "").strip()
-                new_name = str(payload.get("new_name") or "").strip()
-                if not source or not new_name:
-                    self._write_json(400, {"ok": False, "error": "Missing source or new_name"})
-                    return
-                from Modules.ItemManager import read_item_data, write_item_data
-                data = read_item_data(item_type, source)
-                if data is None:
-                    self._write_json(404, {"ok": False, "error": "Source item not found"})
-                    return
-                data["name"] = new_name
-                write_item_data(item_type, new_name, data)
-                self._write_json(200, {"ok": True})
-            except Exception as e:
-                self._write_json(500, {"ok": False, "error": f"Copy failed: {e}"})
-            return
-
-        # /api/item/rename - Rename item
-        if parsed.path == "/api/item/rename":
-            try:
-                item_type = str(payload.get("type") or "task")
-                old_name = str(payload.get("old_name") or "").strip()
-                new_name = str(payload.get("new_name") or "").strip()
-                if not old_name or not new_name:
-                    self._write_json(400, {"ok": False, "error": "Missing old_name or new_name"})
-                    return
-                from Modules.ItemManager import read_item_data, write_item_data, delete_item
-                data = read_item_data(item_type, old_name)
-                if data is None:
-                    self._write_json(404, {"ok": False, "error": "Item not found"})
-                    return
-                data["name"] = new_name
-                write_item_data(item_type, new_name, data)
-                delete_item(item_type, old_name)
-                self._write_json(200, {"ok": True})
-            except Exception as e:
-                self._write_json(500, {"ok": False, "error": f"Rename failed: {e}"})
-            return
-
-        # /api/item/delete - Delete item
-        if parsed.path == "/api/item/delete":
-            try:
-                item_type = str(payload.get("type") or "task")
-                name = str(payload.get("name") or "").strip()
-                if not name:
-                    self._write_json(400, {"ok": False, "error": "Missing name"})
-                    return
-                from Modules.ItemManager import delete_item
-                delete_item(item_type, name)
-                self._write_json(200, {"ok": True})
-            except Exception as e:
-                self._write_json(500, {"ok": False, "error": f"Delete failed: {e}"})
             return
 
         if parsed.path.startswith("/api/datacards/"):
@@ -4466,11 +4394,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 name = str(payload.get('name') or '').strip()
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing note name"}); return
-                from Modules.ItemManager import delete_item
-                delete_item('note', name)
-                self._write_json(200, {"ok": True})
-            except FileNotFoundError:
-                self._write_json(404, {"ok": False, "error": "Note not found"})
+                force = bool(payload.get('force'))
+                ok, out, err = run_console_command("delete", ["note", name], {"force": force} if force else {})
+                self._write_json(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to delete sticky note: {e}"})
             return
@@ -4667,25 +4593,22 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 archive_now = bool(payload.get('archive') or payload.get('archive_now'))
                 if not fields and not award_now and not archive_now:
                     self._write_json(400, {"ok": False, "error": "Nothing to update"}); return
-                from Modules.ItemManager import read_item_data, write_item_data
-                data = read_item_data('achievement', name)
-                if not data:
-                    self._write_json(404, {"ok": False, "error": "Achievement not found"}); return
-                updated = dict(data)
-                for k, v in fields.items():
-                    if k is None:
-                        continue
-                    updated[str(k).lower()] = v
-                now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                # 1) Apply generic field updates through CLI set.
+                if fields:
+                    safe_fields = {str(k): v for k, v in fields.items() if k is not None}
+                    ok, out, err = run_console_command("set", ["achievement", name], safe_fields)
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to update achievement fields", "stdout": out, "stderr": err}); return
+                # 2) Award through dedicated achievements command so evaluator side-effects stay centralized.
                 if award_now:
-                    updated['awarded'] = True
-                    if not updated.get('awarded_at'):
-                        updated['awarded_at'] = now
-                    updated['status'] = 'awarded'
+                    ok, out, err = run_console_command("achievements", ["award", name])
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to award achievement", "stdout": out, "stderr": err}); return
+                # 3) Archive state uses set to avoid direct file mutation.
                 if archive_now:
-                    updated['status'] = 'archived'
-                    updated['archived'] = True
-                write_item_data('achievement', name, updated)
+                    ok, out, err = run_console_command("set", ["achievement", name], {"status": "archived", "archived": True})
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to archive achievement", "stdout": out, "stderr": err}); return
                 self._write_json(200, {"ok": True})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Achievement update failed: {e}"})
@@ -4699,30 +4622,24 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(400, {"ok": False, "error": "Missing milestone name"}); return
                 action = (payload.get('action') or '').strip().lower()
                 fields = payload.get('fields') if isinstance(payload.get('fields'), dict) else {}
-                from Modules.ItemManager import read_item_data, write_item_data
-                data = read_item_data('milestone', name)
-                if not data:
-                    self._write_json(404, {"ok": False, "error": "Milestone not found"}); return
-                updated = dict(data)
-                for k, v in fields.items():
-                    if k is None:
-                        continue
-                    updated[str(k).lower()] = v
+                if fields:
+                    safe_fields = {str(k): v for k, v in fields.items() if k is not None}
+                    ok, out, err = run_console_command("set", ["milestone", name], safe_fields)
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to update milestone fields", "stdout": out, "stderr": err}); return
                 if action == 'complete':
-                    updated['status'] = 'completed'
-                    updated['completed'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    prog = updated.get('progress') if isinstance(updated.get('progress'), dict) else {}
-                    prog['percent'] = 100
-                    if 'current' in prog and 'target' in prog:
-                        prog['current'] = prog['target']
-                    updated['progress'] = prog
+                    ok, out, err = run_console_command("set", ["milestone", name], {
+                        "status": "completed",
+                        "completed": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    })
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to complete milestone", "stdout": out, "stderr": err}); return
                 elif action == 'reset':
-                    updated['status'] = 'pending'
-                    prog = updated.get('progress') if isinstance(updated.get('progress'), dict) else {}
-                    prog['percent'] = min(float(prog.get('percent') or 0), 99)
-                    updated['progress'] = prog
-                    updated.pop('completed', None)
-                write_item_data('milestone', name, updated)
+                    ok, out, err = run_console_command("set", ["milestone", name], {"status": "pending"})
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to reset milestone status", "stdout": out, "stderr": err}); return
+                    # Remove completed timestamp through CLI, keeping behavior in command layer.
+                    run_console_command("remove", ["milestone", name, "completed"])
                 self._write_json(200, {"ok": True})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Milestone update failed: {e}"})
@@ -5017,13 +4934,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 else:
                     # Treat payload itself as the item map
                     data = payload
-                # Ensure canonical fields are present/updated
-                if isinstance(data, dict):
-                    data['name'] = name
-                    data['type'] = item_type
-                from Modules.ItemManager import write_item_data
-                write_item_data(item_type, name, data)
-                self._write_yaml(200, {"ok": True})
+                props_map = data if isinstance(data, dict) else {}
+                props_map = {str(k): v for k, v in props_map.items() if k is not None}
+                props_map.pop('name', None)
+                props_map.pop('type', None)
+                exists = False
+                try:
+                    from Modules.ItemManager import read_item_data
+                    exists = bool(read_item_data(item_type, name))
+                except Exception:
+                    exists = False
+                if exists:
+                    ok, out, err = run_console_command("set", [item_type, name], props_map)
+                else:
+                    ok, out, err = run_console_command("new", [item_type, name], props_map)
+                self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Failed to write item: {e}"})
             return
@@ -5036,14 +4961,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 new_name = (payload.get('new_name') or '').strip()
                 if not item_type or not source or not new_name:
                     self._write_yaml(400, {"ok": False, "error": "Missing type, source, or new_name"}); return
-                from Modules.ItemManager import read_item_data, write_item_data
-                data = read_item_data(item_type, source) or {}
-                data['name'] = new_name
-                # Optional overlay
-                if isinstance(payload.get('properties'), dict):
-                    data.update(payload['properties'])
-                write_item_data(item_type, new_name, data)
-                self._write_yaml(200, {"ok": True})
+                props = payload.get('properties') if isinstance(payload.get('properties'), dict) else {}
+                ok, out, err = run_console_command("copy", [item_type, source, new_name], props)
+                self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Copy failed: {e}"})
             return
@@ -5056,14 +4976,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 new_name = (payload.get('new_name') or '').strip()
                 if not item_type or not old_name or not new_name:
                     self._write_yaml(400, {"ok": False, "error": "Missing type, old_name, or new_name"}); return
-                from Modules.ItemManager import read_item_data, write_item_data, delete_item
-                data = read_item_data(item_type, old_name)
-                if not data:
-                    self._write_yaml(404, {"ok": False, "error": "Source not found"}); return
-                data['name'] = new_name
-                write_item_data(item_type, new_name, data)
-                delete_item(item_type, old_name)
-                self._write_yaml(200, {"ok": True})
+                ok, out, err = run_console_command("rename", [item_type, old_name, new_name])
+                self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Rename failed: {e}"})
             return
@@ -5158,8 +5072,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 children = payload.get('children') if isinstance(payload.get('children'), list) else None
                 if not t or not n or children is None:
                     self._write_json(400, {"ok": False, "error": "Missing type, name, or children[]"}); return
-                from Modules.ItemManager import read_item_data, write_item_data
-                data = read_item_data(t, n) or {}
+                props = {}
                 if t == "inventory":
                     inv_items = []
                     tools = []
@@ -5177,12 +5090,51 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                             tools.append(entry)
                         else:
                             inv_items.append(entry)
-                    data['inventory_items'] = inv_items
-                    data['tools'] = tools
-                    data.pop('children', None)
+                    props['inventory_items'] = inv_items
+                    props['tools'] = tools
+                    props['children'] = None
                 else:
-                    data['children'] = children
-                write_item_data(t, n, data)
+                    props['children'] = children
+                exists = False
+                try:
+                    from Modules.ItemManager import read_item_data
+                    exists = bool(read_item_data(t, n))
+                except Exception:
+                    exists = False
+                if exists:
+                    ok, out, err = run_console_command("set", [t, n], props)
+                else:
+                    ok, out, err = run_console_command("new", [t, n], props)
+                if not ok:
+                    self._write_json(500, {"ok": False, "error": "Template save failed", "stdout": out, "stderr": err}); return
+                try:
+                    def _has_habit_stack(nodes):
+                        stack = list(nodes or [])
+                        while stack:
+                            node = stack.pop()
+                            if not isinstance(node, dict):
+                                continue
+                            node_type = str(node.get("type") or "").strip().lower()
+                            if node.get("habit_stack") or node.get("habit_stack") is True or node_type == "habit_stack":
+                                return True
+                            child = node.get("children")
+                            if isinstance(child, list) and child:
+                                stack.extend(child)
+                        return False
+
+                    run_console_command("achievements", ["event", "template_saved"], {
+                        "template_type": t,
+                        "name": n,
+                        "source": "dashboard:/api/template",
+                    })
+                    if _has_habit_stack(children):
+                        run_console_command("achievements", ["event", "habit_stack_created"], {
+                            "template_type": t,
+                            "name": n,
+                            "source": "dashboard:/api/template",
+                        })
+                except Exception:
+                    pass
                 self._write_json(200, {"ok": True})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Template save error: {e}"})
@@ -5195,9 +5147,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 name = (payload.get('name') or '').strip()
                 if not item_type or not name:
                     self._write_yaml(400, {"ok": False, "error": "Missing type or name"}); return
-                from Modules.ItemManager import delete_item
-                ok = delete_item(item_type, name)
-                self._write_yaml(200 if ok else 404, {"ok": bool(ok)})
+                force = bool(payload.get('force'))
+                ok, out, err = run_console_command("delete", [item_type, name], {"force": force} if force else {})
+                self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Delete failed: {e}"})
             return
@@ -5209,12 +5161,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 names = payload.get('names') or []
                 if not item_type or not isinstance(names, list) or not names:
                     self._write_yaml(400, {"ok": False, "error": "Missing type or names[]"}); return
-                from Modules.ItemManager import delete_item
                 results = {}
                 overall_ok = True
                 for n in names:
-                    ok = bool(delete_item(item_type, n))
-                    results[n] = ok
+                    ok, out, err = run_console_command("delete", [item_type, str(n)])
+                    results[str(n)] = {"ok": ok, "stdout": out, "stderr": err}
                     if not ok:
                         overall_ok = False
                 self._write_yaml(200 if overall_ok else 207, {"ok": overall_ok, "results": results})
@@ -5231,14 +5182,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 val = payload.get('value')
                 if not item_type or not isinstance(names, list) or not names or not prop:
                     self._write_yaml(400, {"ok": False, "error": "Missing type, names[] or property"}); return
-                from Modules.ItemManager import read_item_data, write_item_data
                 results = {}
                 for n in names:
-                    d = read_item_data(item_type, n) or {}
-                    d[prop] = val
-                    write_item_data(item_type, n, d)
-                    results[n] = True
-                self._write_yaml(200, {"ok": True, "results": results})
+                    ok, out, err = run_console_command("set", [item_type, str(n)], {prop: val})
+                    results[str(n)] = {"ok": ok, "stdout": out, "stderr": err}
+                overall_ok = all(bool(v.get("ok")) for v in results.values())
+                self._write_yaml(200 if overall_ok else 207, {"ok": overall_ok, "results": results})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Bulk set failed: {e}"})
             return
@@ -5252,15 +5201,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 suffix = payload.get('suffix') or ' Copy'
                 if not item_type or not isinstance(sources, list) or not sources:
                     self._write_yaml(400, {"ok": False, "error": "Missing type or sources[]"}); return
-                from Modules.ItemManager import read_item_data, write_item_data
                 results = {}
                 for s in sources:
                     new_name = f"{prefix}{s}{suffix}".strip()
-                    data = read_item_data(item_type, s) or {}
-                    data['name'] = new_name
-                    write_item_data(item_type, new_name, data)
-                    results[s] = new_name
-                self._write_yaml(200, {"ok": True, "results": results})
+                    ok, out, err = run_console_command("copy", [item_type, str(s), new_name])
+                    results[str(s)] = {"ok": ok, "new_name": new_name, "stdout": out, "stderr": err}
+                overall_ok = all(bool(v.get("ok")) for v in results.values())
+                self._write_yaml(200 if overall_ok else 207, {"ok": overall_ok, "results": results})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Bulk copy failed: {e}"})
             return
@@ -5291,50 +5238,86 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         if parsed.path == "/api/timer/start":
             try:
-                from Modules.Timer import main as Timer
                 prof = (payload.get('profile') or '').strip()
                 if not prof:
                     self._write_json(400, {"ok": False, "error": "Missing 'profile'"}); return
-                st = Timer.start_timer(
-                    prof,
-                    bind_type=(payload.get('bind_type') or None),
-                    bind_name=(payload.get('bind_name') or None),
-                    cycles=(int(payload.get('cycles')) if isinstance(payload.get('cycles'), int) or (isinstance(payload.get('cycles'), str) and str(payload.get('cycles')).isdigit()) else None),
-                    auto_advance=(bool(payload.get('auto_advance')) if payload.get('auto_advance') is not None else True)
-                )
-                self._write_json(200, {"ok": True, "status": st})
+                props = {}
+                if payload.get('bind_type') not in (None, ''):
+                    props['type'] = payload.get('bind_type')
+                if payload.get('bind_name') not in (None, ''):
+                    props['name'] = payload.get('bind_name')
+                if payload.get('cycles') is not None:
+                    try:
+                        props['cycles'] = int(payload.get('cycles'))
+                    except Exception:
+                        pass
+                if payload.get('auto_advance') is not None:
+                    props['auto_advance'] = bool(payload.get('auto_advance'))
+                ok, out, err = run_console_command("timer", ["start", prof], props)
+                if not ok:
+                    self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
+                try:
+                    from Modules.Timer import main as Timer
+                    st = Timer.status()
+                except Exception:
+                    st = {}
+                self._write_json(200, {"ok": True, "status": st, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer start error: {e}"})
             return
         if parsed.path == "/api/timer/pause":
             try:
-                from Modules.Timer import main as Timer
-                st = Timer.pause_timer()
-                self._write_json(200, {"ok": True, "status": st})
+                ok, out, err = run_console_command("timer", ["pause"])
+                if not ok:
+                    self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
+                try:
+                    from Modules.Timer import main as Timer
+                    st = Timer.status()
+                except Exception:
+                    st = {}
+                self._write_json(200, {"ok": True, "status": st, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer pause error: {e}"})
             return
         if parsed.path == "/api/timer/resume":
             try:
-                from Modules.Timer import main as Timer
-                st = Timer.resume_timer()
-                self._write_json(200, {"ok": True, "status": st})
+                ok, out, err = run_console_command("timer", ["resume"])
+                if not ok:
+                    self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
+                try:
+                    from Modules.Timer import main as Timer
+                    st = Timer.status()
+                except Exception:
+                    st = {}
+                self._write_json(200, {"ok": True, "status": st, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer resume error: {e}"})
             return
         if parsed.path == "/api/timer/stop":
             try:
-                from Modules.Timer import main as Timer
-                st = Timer.stop_timer()
-                self._write_json(200, {"ok": True, "status": st})
+                ok, out, err = run_console_command("timer", ["stop"])
+                if not ok:
+                    self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
+                try:
+                    from Modules.Timer import main as Timer
+                    st = Timer.status()
+                except Exception:
+                    st = {}
+                self._write_json(200, {"ok": True, "status": st, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer stop error: {e}"})
             return
         if parsed.path == "/api/timer/cancel":
             try:
-                from Modules.Timer import main as Timer
-                st = Timer.cancel_timer()
-                self._write_json(200, {"ok": True, "status": st})
+                ok, out, err = run_console_command("timer", ["cancel"])
+                if not ok:
+                    self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
+                try:
+                    from Modules.Timer import main as Timer
+                    st = Timer.status()
+                except Exception:
+                    st = {}
+                self._write_json(200, {"ok": True, "status": st, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer cancel error: {e}"})
             return
@@ -5356,21 +5339,40 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                             completed = val.strip().lower() in {'1', 'true', 'yes', 'y', 'done'}
                         else:
                             completed = bool(val)
-                from Modules.Timer import main as Timer
-                st = Timer.confirm_schedule_block(completed, action, stretch_minutes=stretch_minutes)
-                self._write_json(200, {"ok": True, "status": st})
+                act = str(action or '').strip().lower()
+                if not act:
+                    if completed is True:
+                        act = "yes"
+                    elif completed is False:
+                        act = "start_over"
+                    else:
+                        act = "yes"
+                args = ["confirm", act]
+                if stretch_minutes is not None and act in {"stretch", "extend"}:
+                    args.append(str(int(stretch_minutes)))
+                ok, out, err = run_console_command("timer", args)
+                if not ok:
+                    self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
+                try:
+                    from Modules.Timer import main as Timer
+                    st = Timer.status()
+                except Exception:
+                    st = {}
+                self._write_json(200, {"ok": True, "status": st, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer confirm error: {e}"})
             return
         if parsed.path == "/api/listener/start":
             try:
-                global _LISTENER_PROC
-                if _LISTENER_PROC and _LISTENER_PROC.poll() is None:
-                    self._write_json(200, {"ok": True, "status": "already running"}); return
-                py = sys.executable or "python"
-                listener_path = os.path.join(ROOT_DIR, 'Modules', 'Listener', 'Listener.py')
-                _LISTENER_PROC = subprocess.Popen([py, listener_path], cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                self._write_json(200, {"ok": True, "status": "started"})
+                ok, out, err = run_console_command("listener", ["start"])
+                status_text = (out or "").lower()
+                if "already running" in status_text:
+                    state = "already running"
+                elif "started" in status_text:
+                    state = "started"
+                else:
+                    state = "unknown"
+                self._write_json(200 if ok else 500, {"ok": ok, "status": state, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Listener start error: {e}"})
             return

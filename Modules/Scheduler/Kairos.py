@@ -20,7 +20,7 @@ High-level pipeline:
 import json
 import os
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
@@ -77,6 +77,7 @@ class KairosScheduler:
         self.phase_notes = {}
         self.last_schedule = {}
         self.last_target_date = target_date
+        self._run_pre_schedule_hooks()
         self.runtime = self._load_runtime()
         self.windows = self._resolve_windows(target_date)
         print(f"[Kairos] Generating schedule for {target_date}...")
@@ -89,6 +90,37 @@ class KairosScheduler:
         self.last_schedule = schedule
         self.explain_decisions()
         return schedule
+
+    def _run_pre_schedule_hooks(self) -> None:
+        """
+        Run legacy-parity pre-schedule evaluators (commitments/milestones).
+
+        Hook is non-fatal and can be disabled via user_context `evaluate_hooks:false`.
+        """
+        enabled = self._as_bool((self.user_context or {}).get("evaluate_hooks"), True)
+        if not enabled:
+            self.phase_notes["pre_schedule_hooks"] = {"enabled": False, "reason": "evaluate_hooks=false", "results": []}
+            return
+
+        results: List[Dict[str, Any]] = []
+
+        try:
+            from Modules.Commitment import main as CommitmentModule  # type: ignore
+
+            CommitmentModule.evaluate_and_trigger()
+            results.append({"hook": "commitment", "ok": True})
+        except Exception as e:
+            results.append({"hook": "commitment", "ok": False, "error": str(e)})
+
+        try:
+            from Modules.Milestone import main as MilestoneModule  # type: ignore
+
+            MilestoneModule.evaluate_and_update_milestones()
+            results.append({"hook": "milestone", "ok": True})
+        except Exception as e:
+            results.append({"hook": "milestone", "ok": False, "error": str(e)})
+
+        self.phase_notes["pre_schedule_hooks"] = {"enabled": True, "results": results}
 
     def _load_runtime(self) -> Dict[str, Any]:
         """
@@ -130,6 +162,29 @@ class KairosScheduler:
                         continue
                     curr[nk] = str(v).strip().lower()
             trend_map, trend_notes = self._load_trend_map(ignore_trends=bool(options.get("ignore_trends")))
+            target = self.last_target_date or date.today()
+            start_from_now = bool(self._as_bool(self.user_context.get("start_from_now"), False))
+            missed_promo_enabled = bool(target == date.today() and start_from_now)
+            missed_promo_threshold = 30
+            missed_promo_boost = 20.0
+            if T and hasattr(T, "load_scheduling_config"):
+                try:
+                    cfg = T.load_scheduling_config() or {}
+                    rescheduling_cfg = cfg.get("rescheduling", {}) if isinstance(cfg, dict) else {}
+                    missed_promo_threshold = int(rescheduling_cfg.get("importance_threshold", 30) or 30)
+                except Exception:
+                    missed_promo_threshold = 30
+            if self.user_context.get("missed_promotion_threshold") is not None:
+                try:
+                    missed_promo_threshold = int(self.user_context.get("missed_promotion_threshold"))
+                except Exception:
+                    pass
+            if self.user_context.get("missed_promotion_boost") is not None:
+                try:
+                    missed_promo_boost = float(self.user_context.get("missed_promotion_boost"))
+                except Exception:
+                    pass
+            missed_by_name, missed_notes = self._load_recent_missed_entries(target, enabled=missed_promo_enabled)
             return {
                 "Today": T,
                 "status_context": status_context,
@@ -141,10 +196,97 @@ class KairosScheduler:
                 "timer_profiles": timer_profiles,
                 "options": options,
                 "trend_map": trend_map,
+                "missed_promotions": {
+                    "enabled": missed_promo_enabled,
+                    "threshold": missed_promo_threshold,
+                    "boost": missed_promo_boost,
+                    "by_name": missed_by_name,
+                    "notes": missed_notes,
+                },
             }
         except Exception as e:
             self.phase_notes["runtime"] = {"error": str(e)}
             return {"status_context": {"types": {}, "current": {}}, "happiness_map": None, "weights": self._weights_from_settings({})}
+
+    def _load_recent_missed_entries(self, target_date: date, *, enabled: bool) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Any]]:
+        """
+        Read completion logs for target day and previous day to detect missed items.
+
+        Output map key is normalized item name -> signal metadata.
+        """
+        notes: Dict[str, Any] = {"enabled": bool(enabled), "files": [], "items": 0}
+        if not enabled:
+            notes["reason"] = "disabled"
+            self.phase_notes["missed_promotion"] = notes
+            return {}, notes
+        try:
+            from Modules.Scheduler import USER_DIR, read_template, normalize_completion_entries
+        except Exception as e:
+            notes["enabled"] = False
+            notes["reason"] = f"import_error:{e}"
+            self.phase_notes["missed_promotion"] = notes
+            return {}, notes
+
+        out: Dict[str, Dict[str, Any]] = {}
+        statuses_done = {"completed", "done", "skipped"}
+        statuses_missed = {"missed"}
+        days = [target_date, target_date - timedelta(days=1)]
+        for d in days:
+            day_str = d.isoformat()
+            path = os.path.join(USER_DIR, "Schedules", "completions", f"{day_str}.yml")
+            file_note = {"date": day_str, "path": path, "exists": os.path.exists(path), "entries": 0}
+            if not os.path.exists(path):
+                notes["files"].append(file_note)
+                continue
+            payload = read_template(path) or {}
+            entries = normalize_completion_entries(payload or {})
+            if not isinstance(entries, dict):
+                notes["files"].append(file_note)
+                continue
+            file_note["entries"] = len(entries)
+            notes["files"].append(file_note)
+            for key, entry in entries.items():
+                if not isinstance(entry, dict):
+                    continue
+                name = str(entry.get("name") or "").strip()
+                if not name and isinstance(key, str) and "@" in key:
+                    name = str(key.split("@", 1)[0] or "").strip()
+                if not name:
+                    continue
+                status = str(entry.get("status") or "").strip().lower()
+                if not status:
+                    continue
+                name_key = self._normalize_key(name)
+                if not name_key:
+                    continue
+                row = out.setdefault(
+                    name_key,
+                    {"name": name, "missed": 0, "done": 0, "sources": set()},
+                )
+                if status in statuses_missed:
+                    row["missed"] = int(row.get("missed", 0)) + 1
+                elif status in statuses_done:
+                    row["done"] = int(row.get("done", 0)) + 1
+                row["sources"].add(day_str)
+
+        result: Dict[str, Dict[str, Any]] = {}
+        for name_key, row in out.items():
+            missed = int(row.get("missed", 0) or 0)
+            done = int(row.get("done", 0) or 0)
+            net = missed - done
+            if net <= 0:
+                continue
+            result[name_key] = {
+                "name": row.get("name"),
+                "missed": missed,
+                "done": done,
+                "net_missed": net,
+                "sources": sorted(list(row.get("sources") or [])),
+            }
+        notes["items"] = len(result)
+        notes["sample"] = list(result.values())[:20]
+        self.phase_notes["missed_promotion"] = notes
+        return result, notes
 
     def _load_trend_map(self, ignore_trends: bool = False) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Any]]:
         """
@@ -505,6 +647,39 @@ class KairosScheduler:
             info = {"error": str(e)}
         if not windows:
             windows = [{"name": "Deep Work", "start": "09:00", "end": "11:00", "filter": {"category": "work"}}]
+
+        window_overrides = self.user_context.get("window_filter_overrides")
+        override_events: List[Dict[str, Any]] = []
+        if isinstance(window_overrides, list):
+            for raw in window_overrides:
+                if not isinstance(raw, dict):
+                    continue
+                key = str(raw.get("key") or "").strip()
+                if not key:
+                    continue
+                value = raw.get("value")
+                target_name = str(raw.get("window") or "").strip()
+                target_name_norm = self._normalize_key(target_name) if target_name else ""
+                touched = 0
+                for win in windows:
+                    win_name_norm = self._normalize_key(win.get("name"))
+                    if target_name_norm and win_name_norm != target_name_norm:
+                        continue
+                    filt = win.get("filter")
+                    if not isinstance(filt, dict):
+                        filt = {}
+                        win["filter"] = filt
+                    filt[key] = value
+                    touched += 1
+                override_events.append(
+                    {
+                        "window": target_name or "*",
+                        "key": key,
+                        "value": value,
+                        "applied_windows": touched,
+                    }
+                )
+
         self.template_timeblocks = timeblocks
         self.phase_notes["template"] = {
             "day": day_name,
@@ -513,6 +688,7 @@ class KairosScheduler:
             "forced": bool(self.user_context.get("force_template")),
             "windows_found": len(windows),
             "timeblocks_found": len(timeblocks),
+            "window_filter_overrides": override_events,
         }
         return windows
 
@@ -699,7 +875,7 @@ class KairosScheduler:
         rejected: List[Dict[str, Any]] = []
         status_context = self.runtime.get("status_context", {}) or {}
         current = status_context.get("current", {}) if isinstance(status_context, dict) else {}
-        place = str(current.get("place") or "").strip().lower()
+        place = self._normalize_key(current.get("place"))
         T = self.runtime.get("Today")
         for item in candidates:
             src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
@@ -717,7 +893,7 @@ class KairosScheduler:
             if dur > 960:
                 rejected.append({"name": item.get("name"), "type": item.get("type"), "reason": "duration_gt_day"})
                 continue
-            item_place = str(src.get("place") or item.get("place") or "").strip().lower()
+            item_place = self._normalize_key(src.get("place") or item.get("place"))
             if item_place and place and item_place != place:
                 rejected.append({"name": item.get("name"), "type": item.get("type"), "reason": "place_mismatch"})
                 continue
@@ -757,6 +933,11 @@ class KairosScheduler:
         status_context = self.runtime.get("status_context", {}) or {}
         happiness_map = self.runtime.get("happiness_map")
         trend_map = self.runtime.get("trend_map", {}) if isinstance(self.runtime, dict) else {}
+        missed_cfg = self.runtime.get("missed_promotions", {}) if isinstance(self.runtime, dict) else {}
+        missed_enabled = bool((missed_cfg or {}).get("enabled"))
+        missed_threshold = float((missed_cfg or {}).get("threshold", 30) or 30)
+        missed_boost = float((missed_cfg or {}).get("boost", 20.0) or 20.0)
+        missed_by_name = (missed_cfg or {}).get("by_name", {}) if isinstance(missed_cfg, dict) else {}
         T = self.runtime.get("Today")
         target_date = self.last_target_date or date.today()
         rows = []
@@ -788,6 +969,15 @@ class KairosScheduler:
             score += c; reasons.append(f"status_alignment={c:.2f}")
             c = self._trend_contribution(item, trend_map) * float(weights.get("trend_reliability", 3.0))
             score += c; reasons.append(f"trend_reliability={c:.2f}")
+            if missed_enabled and isinstance(missed_by_name, dict):
+                key = self._normalize_key(item.get("name") or src.get("name"))
+                signal = missed_by_name.get(key)
+                if isinstance(signal, dict) and float(signal.get("net_missed", 0) or 0) > 0 and score >= missed_threshold:
+                    score += missed_boost
+                    reasons.append(
+                        f"missed_promotion=+{missed_boost:.2f}"
+                        f" net={signal.get('net_missed')} src={','.join(signal.get('sources') or [])}"
+                    )
             custom_key = str((self.runtime.get("options", {}) or {}).get("custom_property") or "").strip()
             if custom_key:
                 # Optional extension hook lets operators steer ranking by one
@@ -824,8 +1014,8 @@ class KairosScheduler:
 
     def _env_score(self, src: Dict[str, Any], status_context: Dict[str, Any], weight: float) -> float:
         """Environment/place compatibility contribution."""
-        need = str(src.get("place") or "").strip().lower()
-        curr = str((status_context.get("current", {}) or {}).get("place") or "").strip().lower()
+        need = self._normalize_key(src.get("place"))
+        curr = self._normalize_key((status_context.get("current", {}) or {}).get("place"))
         if not need:
             return 0.0
         return weight if (curr and curr == need) else (-0.5 * weight)
@@ -963,25 +1153,74 @@ class KairosScheduler:
         """Stable runtime id used for dedupe and remaining-duration tracking."""
         return str(item.get("id") or item.get("slug") or f"{item.get('type', '')}::{item.get('name', '')}")
 
+    def _window_filter_match(self, item: Dict[str, Any], win_filter: Dict[str, Any]) -> bool:
+        """
+        Generic legacy-style filter matching for work windows.
+
+        Rules:
+        - Filter value can be scalar or list of allowed values.
+        - Item value can be scalar or list; lists match by intersection.
+        - Lookup checks both resolved item fields and raw payload.
+        """
+        if not isinstance(win_filter, dict) or not win_filter:
+            return True
+        src = item.get("_raw") if isinstance(item.get("_raw"), dict) else {}
+
+        def _get_prop(record: Dict[str, Any], key: str) -> Any:
+            if key in record:
+                return record.get(key)
+            nk = self._normalize_key(key)
+            for rk, rv in record.items():
+                if self._normalize_key(rk) == nk:
+                    return rv
+            return None
+
+        def _to_tokens(value: Any) -> List[str]:
+            vals = value if isinstance(value, (list, tuple, set)) else [value]
+            out: List[str] = []
+            for v in vals:
+                if v is None:
+                    continue
+                if isinstance(v, bool):
+                    out.append("true" if v else "false")
+                elif isinstance(v, (int, float)):
+                    out.append(str(v))
+                else:
+                    s = str(v).strip()
+                    if not s:
+                        continue
+                    out.append(self._normalize_key(s))
+            return out
+
+        for raw_key, raw_expected in win_filter.items():
+            key = str(raw_key or "").strip()
+            if not key:
+                continue
+            item_value = _get_prop(item, key)
+            if item_value is None:
+                item_value = _get_prop(src, key)
+            # Backward-compat alias: `tag` filter checks against `tags` list.
+            if item_value is None and self._normalize_key(key) == "tag":
+                item_value = _get_prop(item, "tags")
+                if item_value is None:
+                    item_value = _get_prop(src, "tags")
+
+            want = set(_to_tokens(raw_expected))
+            if not want:
+                continue
+            have = set(_to_tokens(item_value))
+            if not have or have.isdisjoint(want):
+                return False
+        return True
+
     def _window_candidates(self, ranked: List[Dict[str, Any]], used: set, win: Dict[str, Any], fill: int, cap: int, remaining: Dict[str, int], sprint_cap: int) -> List[Dict[str, Any]]:
         """
         Return sorted candidates that can still fit in the active window segment.
 
         This is the main "what can be scheduled next here?" predicate.
         """
-        wanted = ""
-        wanted_tags: set[str] = set()
         f = win.get("filter") if isinstance(win, dict) else {}
-        if isinstance(f, dict):
-            wanted = str(f.get("category") or "").strip().lower()
-            raw_tags = f.get("tags")
-            if isinstance(raw_tags, list):
-                wanted_tags = {str(t).strip().lower() for t in raw_tags if str(t).strip()}
-            elif isinstance(raw_tags, str):
-                wanted_tags = {str(t).strip().lower() for t in raw_tags.split(",") if str(t).strip()}
-            raw_tag = f.get("tag")
-            if isinstance(raw_tag, str) and raw_tag.strip():
-                wanted_tags.add(raw_tag.strip().lower())
+        win_filter = f if isinstance(f, dict) else {}
         out = []
         for item in ranked:
             iid = self._item_id(item)
@@ -993,20 +1232,8 @@ class KairosScheduler:
             dur = min(rem, sprint_cap) if sprint_cap > 0 else rem
             if fill + dur > cap:
                 continue
-            if wanted:
-                cat = str(item.get("category") or "").strip().lower()
-                if cat != wanted:
-                    continue
-            if wanted_tags:
-                src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
-                raw_item_tags = src.get("tags", item.get("tags"))
-                item_tags: set[str] = set()
-                if isinstance(raw_item_tags, list):
-                    item_tags = {str(t).strip().lower() for t in raw_item_tags if str(t).strip()}
-                elif isinstance(raw_item_tags, str):
-                    item_tags = {str(t).strip().lower() for t in raw_item_tags.split(",") if str(t).strip()}
-                if not (item_tags & wanted_tags):
-                    continue
+            if not self._window_filter_match(item, win_filter):
+                continue
             out.append(item)
         out.sort(key=lambda x: (-float(x.get("kairos_score") or 0), str(x.get("name") or "").lower(), str(x.get("type") or "").lower()))
         return out
@@ -1027,6 +1254,30 @@ class KairosScheduler:
             return hh * 60 + mm
         except Exception:
             return None
+
+    def _build_manual_injection_stub(self, name: str, item_type: str) -> Dict[str, Any]:
+        """
+        Create a fallback candidate when a manual injection references an item
+        that is not present in the ranked candidate pool.
+        """
+        n = str(name or "").strip() or "Injected Item"
+        t = str(item_type or "task").strip().lower() or "task"
+        key = self._normalize_key(f"{t}::{n}") or "manual_inject"
+        return {
+            "id": f"manual_inject::{key}",
+            "name": n,
+            "type": t,
+            "priority": "high",
+            "status": "pending",
+            "kairos_score": 100.0,
+            "_raw": {
+                "name": n,
+                "type": t,
+                "duration": "15m",
+                "manual_injection": True,
+            },
+            "_manual_injection_stub": True,
+        }
 
     def _timeblock_slot(self, tb: Dict[str, Any]) -> Optional[Tuple[int, int]]:
         """Resolve template timeblock slot from start/end or start+duration."""
@@ -1105,6 +1356,165 @@ class KairosScheduler:
         """Detect status-triggered injection items (`auto_inject: true`)."""
         src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
         return bool(src.get("auto_inject", item.get("auto_inject")))
+
+    def _depends_on_tokens(self, block: Dict[str, Any]) -> List[str]:
+        """
+        Normalize a block's depends_on payload into a list of comparable tokens.
+
+        Supported shapes: string (comma-separated), list/tuple/set, or dict keys.
+        """
+        if not isinstance(block, dict):
+            return []
+        src = block.get("_raw") if isinstance(block.get("_raw"), dict) else {}
+        raw = block.get("depends_on")
+        if raw is None:
+            raw = src.get("depends_on")
+        out: List[str] = []
+        if isinstance(raw, str):
+            out.extend([part.strip() for part in raw.split(",") if part.strip()])
+        elif isinstance(raw, (list, tuple, set)):
+            out.extend([str(v).strip() for v in raw if str(v).strip()])
+        elif isinstance(raw, dict):
+            out.extend([str(k).strip() for k in raw.keys() if str(k).strip()])
+        normalized = []
+        seen = set()
+        for token in out:
+            n = self._normalize_key(token)
+            if not n or n in seen:
+                continue
+            seen.add(n)
+            normalized.append(n)
+        return normalized
+
+    def _propagate_dependency_shifts(
+        self,
+        timeline: List[Tuple[int, int, Dict[str, Any]]],
+        *,
+        day_floor: int = 0,
+        day_ceiling: int = 24 * 60,
+        max_iterations: int = 200,
+    ) -> Tuple[List[Tuple[int, int, Dict[str, Any]]], Dict[str, Any]]:
+        """
+        Enforce `depends_on` ordering by shifting dependent blocks after their prerequisites.
+
+        This runs after conflict repair so dependencies remain valid even when earlier
+        phases moved blocks. Shifts are non-overlapping and may cascade.
+        """
+        rows = sorted(list(timeline or []), key=lambda x: (int(x[0]), str((x[2] or {}).get("name") or "").lower()))
+        events: List[Dict[str, Any]] = []
+        unresolved: List[Dict[str, Any]] = []
+        shifted = 0
+        max_iter = max(1, int(max_iterations or 1))
+
+        for _ in range(max_iter):
+            changed = False
+            rows.sort(key=lambda x: (int(x[0]), str((x[2] or {}).get("name") or "").lower()))
+            end_by_name: Dict[str, int] = {}
+            for s, e, block in rows:
+                name_key = self._normalize_key((block or {}).get("name"))
+                if not name_key:
+                    continue
+                end_by_name[name_key] = max(int(e or 0), int(end_by_name.get(name_key, 0)))
+
+            for idx, (s, e, block) in enumerate(rows):
+                b = block or {}
+                deps = self._depends_on_tokens(b)
+                if not deps:
+                    continue
+                own = self._normalize_key(b.get("name"))
+                req_start = int(day_floor or 0)
+                dep_hits: List[str] = []
+                for dep in deps:
+                    if own and dep == own:
+                        continue
+                    dep_end = end_by_name.get(dep)
+                    if dep_end is None:
+                        continue
+                    req_start = max(req_start, int(dep_end))
+                    dep_hits.append(dep)
+                if not dep_hits:
+                    continue
+                if int(s) >= req_start:
+                    continue
+
+                dur = max(1, int(e) - int(s))
+                occupied = [row for j, row in enumerate(rows) if j != idx]
+                new_start = self._find_non_overlapping_start(
+                    req_start,
+                    dur,
+                    occupied,
+                    day_floor=day_floor,
+                    day_ceiling=day_ceiling,
+                )
+                if new_start is None:
+                    unresolved.append(
+                        {
+                            "reason": "no_space_after_dependencies",
+                            "item": b.get("name"),
+                            "depends_on": dep_hits,
+                            "required_start": self._to_hhmm(req_start),
+                            "duration_minutes": dur,
+                        }
+                    )
+                    continue
+
+                new_end = int(new_start) + dur
+                moved = dict(b)
+                moved["start_time"] = self._to_hhmm(int(new_start))
+                moved["end_time"] = self._to_hhmm(int(new_end))
+                moved["dependency_shifted"] = True
+                rows[idx] = (int(new_start), int(new_end), moved)
+                shifted += 1
+                changed = True
+                events.append(
+                    {
+                        "action": "dependency_shift",
+                        "item": moved.get("name"),
+                        "from": self._to_hhmm(int(s)),
+                        "to": self._to_hhmm(int(new_start)),
+                        "depends_on": dep_hits,
+                    }
+                )
+                break
+            if not changed:
+                break
+
+        rows.sort(key=lambda x: (int(x[0]), str((x[2] or {}).get("name") or "").lower()))
+        end_by_name: Dict[str, int] = {}
+        for s, e, block in rows:
+            name_key = self._normalize_key((block or {}).get("name"))
+            if not name_key:
+                continue
+            end_by_name[name_key] = max(int(e or 0), int(end_by_name.get(name_key, 0)))
+
+        remaining_violations = 0
+        for s, _e, block in rows:
+            b = block or {}
+            deps = self._depends_on_tokens(b)
+            if not deps:
+                continue
+            own = self._normalize_key(b.get("name"))
+            req_start = int(day_floor or 0)
+            hit = False
+            for dep in deps:
+                if own and dep == own:
+                    continue
+                dep_end = end_by_name.get(dep)
+                if dep_end is None:
+                    continue
+                hit = True
+                req_start = max(req_start, int(dep_end))
+            if hit and int(s) < req_start:
+                remaining_violations += 1
+
+        return rows, {
+            "enabled": True,
+            "max_iterations": max_iter,
+            "shifted": shifted,
+            "events": events[:100],
+            "remaining_violations": remaining_violations,
+            "unresolved": unresolved[:50],
+        }
 
     def _anchor_slot(self, item: Dict[str, Any]) -> Optional[Dict[str, int]]:
         """Resolve anchor slot from explicit start/end or start+duration."""
@@ -1324,6 +1734,329 @@ class KairosScheduler:
         out.sort(key=lambda x: (x[0], str(x[2].get("name") or "").lower()))
         return out, events
 
+    def _is_locked_block_for_repair(self, block: Dict[str, Any]) -> bool:
+        """Return True when block should not be moved by repair pass."""
+        if not isinstance(block, dict):
+            return True
+        if str(block.get("window_name") or "").strip().upper() == "ANCHOR":
+            return True
+        if bool(block.get("essential")):
+            return True
+        if str(block.get("injection_mode") or "").strip().lower() == "hard":
+            return True
+        reschedule = block.get("reschedule")
+        if isinstance(reschedule, bool):
+            if reschedule is False:
+                return True
+        elif isinstance(reschedule, str) and reschedule.strip().lower() in ("never", "false", "no"):
+            return True
+        return False
+
+    def _find_non_overlapping_start(
+        self,
+        start: int,
+        duration: int,
+        occupied: List[Tuple[int, int, Dict[str, Any]]],
+        *,
+        day_floor: int = 0,
+        day_ceiling: int = 24 * 60,
+    ) -> Optional[int]:
+        """
+        Find earliest start >= `start` that does not overlap with occupied spans.
+        """
+        dur = max(1, int(duration or 0))
+        cursor = max(day_floor, int(start or 0))
+        if cursor + dur > day_ceiling:
+            return None
+        rows = sorted(occupied, key=lambda x: (int(x[0]), int(x[1])))
+        for s, e, _ in rows:
+            s = int(s or 0)
+            e = int(e or s)
+            if cursor + dur <= s:
+                return cursor
+            if cursor < e:
+                cursor = max(cursor, e)
+                if cursor + dur > day_ceiling:
+                    return None
+        return cursor if cursor + dur <= day_ceiling else None
+
+    def _available_span_from(
+        self,
+        start: int,
+        occupied: List[Tuple[int, int, Dict[str, Any]]],
+        *,
+        day_floor: int = 0,
+        day_ceiling: int = 24 * 60,
+    ) -> int:
+        """
+        Return free minutes available from `start` until the next occupied span.
+        Returns 0 when `start` is already inside an occupied span.
+        """
+        s0 = max(day_floor, int(start or 0))
+        if s0 >= day_ceiling:
+            return 0
+        rows = sorted(occupied, key=lambda x: (int(x[0]), int(x[1])))
+        for s, e, _ in rows:
+            s = int(s or 0)
+            e = int(e or s)
+            if s0 < s:
+                return max(0, min(day_ceiling, s) - s0)
+            if s0 >= s and s0 < e:
+                return 0
+        return max(0, day_ceiling - s0)
+
+    def _repair_timeline_shift(
+        self,
+        timeline: List[Tuple[int, int, Dict[str, Any]]],
+        *,
+        max_iterations: int = 3,
+        enable_trim: bool = False,
+        min_duration_minutes: int = 5,
+        enable_cut: bool = False,
+        cut_score_threshold: Optional[float] = None,
+        day_floor: int = 0,
+        day_ceiling: int = 24 * 60,
+    ) -> Tuple[List[Tuple[int, int, Dict[str, Any]]], Dict[str, Any]]:
+        """
+        Phase 6 repair pass: resolve overlaps by shifting movable blocks, with
+        optional bounded trim fallback.
+        """
+        rows = sorted(list(timeline or []), key=lambda x: (x[0], str((x[2] or {}).get("name") or "").lower()))
+        events: List[Dict[str, Any]] = []
+        unresolved: List[Dict[str, Any]] = []
+        moved = 0
+        trimmed = 0
+        cut = 0
+        min_dur = max(1, int(min_duration_minutes or 1))
+
+        for _ in range(max(1, int(max_iterations or 1))):
+            changed = False
+            rows.sort(key=lambda x: (x[0], str((x[2] or {}).get("name") or "").lower()))
+            local_overlap_found = False
+            i = 0
+            while i < len(rows) - 1:
+                s1, e1, b1 = rows[i]
+                s2, e2, b2 = rows[i + 1]
+                if int(s2) >= int(e1):
+                    i += 1
+                    continue
+                local_overlap_found = True
+
+                lock1 = self._is_locked_block_for_repair(b1 or {})
+                lock2 = self._is_locked_block_for_repair(b2 or {})
+                score1 = float((b1 or {}).get("kairos_score") or 0.0)
+                score2 = float((b2 or {}).get("kairos_score") or 0.0)
+
+                move_idx = None
+                anchor_idx = None
+                if not lock1 and lock2:
+                    move_idx = i
+                    anchor_idx = i + 1
+                elif lock1 and not lock2:
+                    move_idx = i + 1
+                    anchor_idx = i
+                elif not lock1 and not lock2:
+                    if score1 <= score2:
+                        move_idx = i
+                        anchor_idx = i + 1
+                    else:
+                        move_idx = i + 1
+                        anchor_idx = i
+
+                if move_idx is None:
+                    unresolved.append(
+                        {
+                            "reason": "both_locked",
+                            "a": {"name": (b1 or {}).get("name"), "start": self._to_hhmm(int(s1)), "end": self._to_hhmm(int(e1))},
+                            "b": {"name": (b2 or {}).get("name"), "start": self._to_hhmm(int(s2)), "end": self._to_hhmm(int(e2))},
+                        }
+                    )
+                    i += 1
+                    continue
+
+                move_s, move_e, move_b = rows[move_idx]
+                anchor_s, anchor_e, anchor_b = rows[anchor_idx]
+                dur = max(1, int(move_e) - int(move_s))
+                desired_start = max(int(move_s), int(anchor_e))
+                occupied = [row for idx, row in enumerate(rows) if idx != move_idx]
+                new_start = self._find_non_overlapping_start(
+                    desired_start,
+                    dur,
+                    occupied,
+                    day_floor=day_floor,
+                    day_ceiling=day_ceiling,
+                )
+                if new_start is None:
+                    if not enable_trim:
+                        if enable_cut:
+                            candidate_score = float((move_b or {}).get("kairos_score") or 0.0)
+                            allowed_by_threshold = (
+                                True if cut_score_threshold is None else candidate_score <= float(cut_score_threshold)
+                            )
+                            if allowed_by_threshold:
+                                cut += 1
+                                changed = True
+                                removed = rows.pop(move_idx)
+                                events.append(
+                                    {
+                                        "action": "cut",
+                                        "item": (removed[2] or {}).get("name"),
+                                        "at": self._to_hhmm(int(removed[0])),
+                                        "score": candidate_score,
+                                        "reason": f"overlap_with:{(anchor_b or {}).get('name')}",
+                                    }
+                                )
+                                break
+                        unresolved.append(
+                            {
+                                "reason": "no_space",
+                                "moving": {"name": (move_b or {}).get("name"), "duration": dur},
+                                "blocked_by": {"name": (anchor_b or {}).get("name"), "end": self._to_hhmm(int(anchor_e))},
+                            }
+                        )
+                        i += 1
+                        continue
+                    occupied = [row for idx, row in enumerate(rows) if idx != move_idx]
+                    trim_start = max(day_floor, int(move_s))
+                    avail = self._available_span_from(
+                        trim_start,
+                        occupied,
+                        day_floor=day_floor,
+                        day_ceiling=day_ceiling,
+                    )
+                    if avail < min_dur:
+                        probe_start = self._find_non_overlapping_start(
+                            max(day_floor, int(anchor_e)),
+                            min_dur,
+                            occupied,
+                            day_floor=day_floor,
+                            day_ceiling=day_ceiling,
+                        )
+                        if probe_start is None:
+                            unresolved.append(
+                                {
+                                    "reason": "no_space_for_trim",
+                                    "moving": {"name": (move_b or {}).get("name"), "duration": dur},
+                                    "blocked_by": {"name": (anchor_b or {}).get("name"), "end": self._to_hhmm(int(anchor_e))},
+                                }
+                            )
+                            i += 1
+                            continue
+                        trim_start = int(probe_start)
+                        avail = self._available_span_from(
+                            trim_start,
+                            occupied,
+                            day_floor=day_floor,
+                            day_ceiling=day_ceiling,
+                        )
+                    new_dur = min(int(dur), int(avail))
+                    if new_dur < min_dur:
+                        if enable_cut:
+                            candidate_score = float((move_b or {}).get("kairos_score") or 0.0)
+                            allowed_by_threshold = (
+                                True if cut_score_threshold is None else candidate_score <= float(cut_score_threshold)
+                            )
+                            if allowed_by_threshold:
+                                cut += 1
+                                changed = True
+                                removed = rows.pop(move_idx)
+                                events.append(
+                                    {
+                                        "action": "cut",
+                                        "item": (removed[2] or {}).get("name"),
+                                        "at": self._to_hhmm(int(removed[0])),
+                                        "score": candidate_score,
+                                        "reason": f"trim_below_min_duration overlap_with:{(anchor_b or {}).get('name')}",
+                                    }
+                                )
+                                break
+                        unresolved.append(
+                            {
+                                "reason": "trim_below_min_duration",
+                                "moving": {"name": (move_b or {}).get("name"), "duration": dur},
+                                "available": int(avail),
+                                "min_duration": min_dur,
+                            }
+                        )
+                        i += 1
+                        continue
+                    trim_block = dict(move_b or {})
+                    trim_end = int(trim_start) + int(new_dur)
+                    trim_block["start_time"] = self._to_hhmm(int(trim_start))
+                    trim_block["end_time"] = self._to_hhmm(int(trim_end))
+                    trim_block["duration_minutes"] = int(new_dur)
+                    trim_block["repair_trimmed"] = True
+                    if int(trim_start) != int(move_s):
+                        trim_block["repair_shifted"] = True
+                    rows[move_idx] = (int(trim_start), int(trim_end), trim_block)
+                    trimmed += 1
+                    changed = True
+                    events.append(
+                        {
+                            "action": "trim",
+                            "item": trim_block.get("name"),
+                            "from": self._to_hhmm(int(move_s)),
+                            "to": self._to_hhmm(int(trim_start)),
+                            "duration_from": int(dur),
+                            "duration_to": int(new_dur),
+                            "reason": f"overlap_with:{(anchor_b or {}).get('name')}",
+                        }
+                    )
+                    break
+
+                new_end = new_start + dur
+                moved += 1
+                changed = True
+                move_block = dict(move_b or {})
+                move_block["start_time"] = self._to_hhmm(new_start)
+                move_block["end_time"] = self._to_hhmm(new_end)
+                move_block["repair_shifted"] = True
+                rows[move_idx] = (new_start, new_end, move_block)
+                events.append(
+                    {
+                        "action": "shift",
+                        "item": move_block.get("name"),
+                        "from": self._to_hhmm(int(move_s)),
+                        "to": self._to_hhmm(int(new_start)),
+                        "reason": f"overlap_with:{(anchor_b or {}).get('name')}",
+                    }
+                )
+                break
+            if not changed:
+                if not local_overlap_found:
+                    break
+                # Overlaps remain but no further shifts possible.
+                break
+
+        rows.sort(key=lambda x: (x[0], str((x[2] or {}).get("name") or "").lower()))
+        remaining_overlaps = 0
+        for i in range(len(rows) - 1):
+            if int(rows[i + 1][0]) < int(rows[i][1]):
+                remaining_overlaps += 1
+        return rows, {
+            "enabled": True,
+            "strategy": (
+                "shift_trim_cut"
+                if enable_cut and enable_trim
+                else "shift_cut"
+                if enable_cut
+                else "shift_then_trim"
+                if enable_trim
+                else "shift_only"
+            ),
+            "max_iterations": max(1, int(max_iterations or 1)),
+            "trim_enabled": bool(enable_trim),
+            "min_duration_minutes": min_dur,
+            "cut_enabled": bool(enable_cut),
+            "cut_score_threshold": cut_score_threshold,
+            "moved": moved,
+            "trimmed": trimmed,
+            "cut": cut,
+            "events": events,
+            "remaining_overlaps": remaining_overlaps,
+            "unresolved": unresolved[:30],
+        }
+
     def construct_schedule(self, ranked_items: List[Dict[str, Any]], target_date: date) -> Dict[str, Any]:
         """
         Build final day plan from ranked candidates.
@@ -1353,6 +2086,11 @@ class KairosScheduler:
         win_events = []
         anchor_events = {"placed": [], "conflicts": [], "skipped_no_time": []}
         injection_events = {"candidates": 0, "placed": []}
+        manual_injection_events = {
+            "requested": 0,
+            "hard": {"placed": [], "conflicts": [], "displaced": []},
+            "soft": {"boosted": [], "created": [], "queued": 0},
+        }
         gap_events = {"strategy": "quick_wins", "max_minutes": 15, "placed": []}
         timeblock_events = {"placed": [], "template": []}
         windows = self.windows or [{"name": "Deep Work", "start": "09:00", "end": "11:00", "filter": {"category": "work"}}]
@@ -1484,6 +2222,7 @@ class KairosScheduler:
                 "ranked_input": len(ranked_items),
                 "deduped_input": len(deduped),
                 "dedupe_dropped": dropped,
+                "manual_injections": manual_injection_events,
                 "windows": [],
                 "scheduled": len(timeline),
                 "unscheduled_top": [],
@@ -1493,6 +2232,169 @@ class KairosScheduler:
             timeline.sort(key=lambda x: (x[0], str(x[2].get("name") or "").lower()))
             schedule["blocks"] = [x[2] for x in timeline]
             return schedule
+
+        # 1.5) Apply manual injections recorded via `today inject`.
+        manual_injections_raw = self.user_context.get("manual_injections")
+        if isinstance(manual_injections_raw, list):
+            manual_injection_events["requested"] = len(manual_injections_raw)
+        else:
+            manual_injections_raw = []
+
+        # Fast lookup maps for matching injections to ranked candidates.
+        by_type_name: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        by_name: Dict[str, Dict[str, Any]] = {}
+        for item in deduped:
+            tkey = str(item.get("type") or "").strip().lower()
+            nkey = str(item.get("name") or "").strip().lower()
+            if not nkey:
+                continue
+            by_name.setdefault(nkey, item)
+            if tkey:
+                by_type_name.setdefault((tkey, nkey), item)
+
+        soft_created: List[Dict[str, Any]] = []
+        soft_manual_ids: set[str] = set()
+        for req in manual_injections_raw:
+            if not isinstance(req, dict):
+                continue
+            req_name = str(req.get("name") or "").strip()
+            if not req_name:
+                continue
+            req_type = str(req.get("type") or "task").strip().lower() or "task"
+            req_mode = str(req.get("mode") or ("hard" if req.get("start_time") else "soft")).strip().lower()
+            if req_mode not in ("hard", "soft"):
+                req_mode = "hard" if req.get("start_time") else "soft"
+            force = self._as_bool(req.get("force"), False)
+            override_anchor = self._as_bool(req.get("override_anchor"), False)
+            source = str(req.get("source") or "manual_cli").strip() or "manual_cli"
+            nkey = req_name.lower()
+            target = by_type_name.get((req_type, nkey)) or by_name.get(nkey)
+
+            if req_mode == "soft":
+                if target is None:
+                    target = self._build_manual_injection_stub(req_name, req_type)
+                    deduped.append(target)
+                    soft_created.append(target)
+                    by_name.setdefault(nkey, target)
+                    by_type_name.setdefault((req_type, nkey), target)
+                    manual_injection_events["soft"]["created"].append(
+                        {"name": req_name, "type": req_type, "source": source}
+                    )
+                target["kairos_score"] = max(float(target.get("kairos_score") or 0.0), 1000.0)
+                iid = self._item_id(target)
+                soft_manual_ids.add(iid)
+                manual_injection_events["soft"]["boosted"].append(
+                    {
+                        "name": target.get("name"),
+                        "type": target.get("type"),
+                        "id": iid,
+                        "source": source,
+                    }
+                )
+                continue
+
+            # Hard injections pin a block at requested time.
+            start_raw = req.get("start_time")
+            start_min = self._parse_hhmm(start_raw)
+            if start_min is None:
+                manual_injection_events["hard"]["conflicts"].append(
+                    {
+                        "name": req_name,
+                        "type": req_type,
+                        "requested_start": start_raw,
+                        "reason": "invalid_time",
+                        "source": source,
+                    }
+                )
+                continue
+            base_item = target if isinstance(target, dict) else self._build_manual_injection_stub(req_name, req_type)
+            dur = self._duration_minutes(base_item)
+            end_min = start_min + max(1, dur)
+
+            overlaps = [(s, e, b) for (s, e, b) in timeline if start_min < e and s < end_min]
+            if overlaps:
+                has_anchor_overlap = any(str((b or {}).get("window_name") or "").strip().upper() == "ANCHOR" for _, _, b in overlaps)
+                can_displace = bool(force)
+                if has_anchor_overlap and override_anchor:
+                    can_displace = True
+                elif has_anchor_overlap and not override_anchor:
+                    can_displace = False
+                if not can_displace:
+                    manual_injection_events["hard"]["conflicts"].append(
+                        {
+                            "name": req_name,
+                            "type": req_type,
+                            "requested_start": self._to_hhmm(start_min),
+                            "requested_end": self._to_hhmm(end_min),
+                            "reason": "anchor_overlap" if has_anchor_overlap else "occupied",
+                            "source": source,
+                            "overlaps": [
+                                {
+                                    "name": (b or {}).get("name"),
+                                    "type": (b or {}).get("type"),
+                                    "start": (b or {}).get("start_time"),
+                                    "end": (b or {}).get("end_time"),
+                                }
+                                for _, _, b in overlaps
+                            ][:10],
+                        }
+                    )
+                    continue
+
+                keep_timeline = []
+                removed = []
+                for s, e, b in timeline:
+                    if start_min < e and s < end_min:
+                        removed.append((s, e, b))
+                    else:
+                        keep_timeline.append((s, e, b))
+                timeline = keep_timeline
+                if removed:
+                    schedule["stats"]["scheduled_items"] = max(
+                        0,
+                        int(schedule["stats"].get("scheduled_items", 0)) - len(removed),
+                    )
+                    for _, _, b in removed:
+                        rid = self._item_id(b)
+                        used.discard(rid)
+                        manual_injection_events["hard"]["displaced"].append(
+                            {
+                                "name": b.get("name"),
+                                "type": b.get("type"),
+                                "start": b.get("start_time"),
+                                "end": b.get("end_time"),
+                                "window_name": b.get("window_name"),
+                            }
+                        )
+
+            hard_iid = self._item_id(base_item)
+            hard_block = dict(base_item)
+            hard_block["duration_minutes"] = max(1, dur)
+            hard_block["start_time"] = self._to_hhmm(start_min)
+            hard_block["end_time"] = self._to_hhmm(end_min)
+            hard_block["window_name"] = "INJECTION"
+            hard_block["kairos_element"] = "manual_injection_hard"
+            hard_block["injected"] = True
+            hard_block["injection_mode"] = "hard"
+            hard_block["injection_source"] = source
+            hard_block["force"] = bool(force)
+            hard_block["override_anchor"] = bool(override_anchor)
+            hard_block["block_id"] = f"manualinject::{hard_iid}@{hard_block['start_time']}"
+            timeline.append((start_min, end_min, hard_block))
+            used.add(hard_iid)
+            schedule["stats"]["scheduled_items"] += 1
+            manual_injection_events["hard"]["placed"].append(
+                {
+                    "id": hard_block["block_id"],
+                    "name": hard_block.get("name"),
+                    "type": hard_block.get("type"),
+                    "start": hard_block.get("start_time"),
+                    "end": hard_block.get("end_time"),
+                    "source": source,
+                }
+            )
+        if soft_created:
+            flex.extend(soft_created)
 
         # 2) Place injections in earliest free gaps (status-triggered / tagged).
         remaining: Dict[str, int] = {}
@@ -1504,6 +2406,9 @@ class KairosScheduler:
             if iid in remaining:
                 remaining[iid] = 0
         injections = [it for it in flex if self._is_injection_item(it)]
+        if soft_manual_ids:
+            injections.extend([it for it in flex if self._item_id(it) in soft_manual_ids])
+            manual_injection_events["soft"]["queued"] = int(len(soft_manual_ids))
         window_pool = [it for it in flex if not self._is_injection_item(it)]
         injection_events["candidates"] = len(injections)
         injections_sorted = sorted(
@@ -1792,8 +2697,54 @@ class KairosScheduler:
             schedule["stats"]["scheduled_items"] += len(inserted_timeblocks)
             timeblock_events["placed"] = inserted_timeblocks
 
+        # 6) Repair pass (shift-only): resolve residual overlaps without trim/cut.
+        repair_max_iter = 3
+        repair_trim = False
+        repair_min_duration = 5
+        repair_cut = False
+        repair_cut_threshold = None
+        try:
+            repair_max_iter = max(1, int((self.user_context or {}).get("repair_max_iterations", 3) or 3))
+        except Exception:
+            repair_max_iter = 3
+        try:
+            repair_trim = self._as_bool((self.user_context or {}).get("repair_trim"), False)
+        except Exception:
+            repair_trim = False
+        try:
+            repair_min_duration = max(1, int((self.user_context or {}).get("repair_min_duration", 5) or 5))
+        except Exception:
+            repair_min_duration = 5
+        try:
+            repair_cut = self._as_bool((self.user_context or {}).get("repair_cut"), False)
+        except Exception:
+            repair_cut = False
+        raw_cut_threshold = (self.user_context or {}).get("repair_cut_threshold")
+        if raw_cut_threshold is not None and str(raw_cut_threshold).strip() != "":
+            try:
+                repair_cut_threshold = float(raw_cut_threshold)
+            except Exception:
+                repair_cut_threshold = None
+        timeline, repair_events = self._repair_timeline_shift(
+            timeline,
+            max_iterations=repair_max_iter,
+            enable_trim=repair_trim,
+            min_duration_minutes=repair_min_duration,
+            enable_cut=repair_cut,
+            cut_score_threshold=repair_cut_threshold,
+            day_floor=day_floor,
+            day_ceiling=24 * 60,
+        )
+        timeline, dependency_events = self._propagate_dependency_shifts(
+            timeline,
+            day_floor=day_floor,
+            day_ceiling=24 * 60,
+            max_iterations=max(20, len(timeline) * 3),
+        )
+
         timeline.sort(key=lambda x: (x[0], str(x[2].get("name") or "").lower()))
         schedule["blocks"] = [x[2] for x in timeline]
+        schedule["stats"]["scheduled_items"] = len(schedule["blocks"])
         uns = []
         for item in deduped:
             iid = self._item_id(item)
@@ -1812,10 +2763,13 @@ class KairosScheduler:
             "ranked_input": len(ranked_items),
             "deduped_input": len(deduped),
             "dedupe_dropped": dropped,
+            "manual_injections": manual_injection_events,
             "injections": injection_events,
             "windows": win_events,
             "gaps": gap_events,
             "timeblocks": timeblock_events,
+            "repair": repair_events,
+            "dependencies": dependency_events,
             "scheduled": len(schedule["blocks"]),
             "unscheduled_top": uns[:30],
             "options": options,
@@ -1841,12 +2795,15 @@ class KairosScheduler:
         run_date = self.last_target_date.isoformat() if self.last_target_date else "unknown"
         out = os.path.join(logs_dir, f"kairos_decision_log_{stamp}.md")
         latest = os.path.join(logs_dir, "kairos_decision_log_latest.md")
+        out_yaml = os.path.join(logs_dir, f"kairos_decision_log_{stamp}.yml")
+        latest_yaml = os.path.join(logs_dir, "kairos_decision_log_latest.yml")
         tmpl = self.phase_notes.get("template", {})
         gather = self.phase_notes.get("gather", {})
         anchors = self.phase_notes.get("anchors", {})
         filt = self.phase_notes.get("filter", {})
         score = self.phase_notes.get("score", {})
         trends = self.phase_notes.get("trends", {})
+        hooks = self.phase_notes.get("pre_schedule_hooks", {})
         construct = self.phase_notes.get("construct", {})
         blocks = (self.last_schedule or {}).get("blocks", []) if isinstance(self.last_schedule, dict) else []
         lines: List[str] = []
@@ -1856,6 +2813,16 @@ class KairosScheduler:
         lines.append(f"- Candidates Gathered: {gather.get('total', 0)}")
         lines.append(f"- Candidates Kept After Filter: {filt.get('kept', 0)}")
         lines.append(f"- Blocks Scheduled: {len(blocks) if isinstance(blocks, list) else 0}")
+        lines.append("")
+        lines.append("## Pre-Schedule Hooks")
+        lines.append(f"- enabled: {hooks.get('enabled')}")
+        if hooks.get("reason"):
+            lines.append(f"- reason: {hooks.get('reason')}")
+        for h in (hooks.get("results") or [])[:10]:
+            if h.get("ok"):
+                lines.append(f"  - {h.get('hook')}: ok")
+            else:
+                lines.append(f"  - {h.get('hook')}: error={h.get('error')}")
         lines.append("")
         lines.append("## Template and Windows")
         lines.append(f"- day: {tmpl.get('day')}")
@@ -1885,6 +2852,16 @@ class KairosScheduler:
         lines.append(f"- trends_entries: {trends.get('entries', 0)}")
         if trends.get("reason"):
             lines.append(f"- trends_reason: {trends.get('reason')}")
+        missed = self.phase_notes.get("missed_promotion", {}) or {}
+        lines.append(f"- missed_promotion_enabled: {missed.get('enabled')}")
+        lines.append(f"- missed_promotion_items: {missed.get('items', 0)}")
+        if missed.get("reason"):
+            lines.append(f"- missed_promotion_reason: {missed.get('reason')}")
+        for m in (missed.get("sample") or [])[:10]:
+            lines.append(
+                f"  - missed_item {m.get('name')} net={m.get('net_missed')} "
+                f"missed={m.get('missed')} done={m.get('done')} src={','.join(m.get('sources') or [])}"
+            )
         for t in (trends.get("sample") or [])[:10]:
             lines.append(f"  - trend {t.get('key')} score={t.get('score')} total={t.get('total')} completion_rate={t.get('completion_rate')}")
         for row in (score.get("top_scored") or [])[:20]:
@@ -1914,6 +2891,21 @@ class KairosScheduler:
         lines.append(f"- timer_profile: {construct.get('timer_profile', {}).get('type', 'n/a')} focus={construct.get('timer_profile', {}).get('focus_minutes')} short_break={construct.get('timer_profile', {}).get('short_break_minutes')}")
         lines.append(f"- sprint_cap_minutes: {construct.get('sprint_cap_minutes', 0)}")
         injections = construct.get("injections") or {}
+        manual_injections = construct.get("manual_injections") or {}
+        hard_manual = manual_injections.get("hard") if isinstance(manual_injections, dict) else {}
+        soft_manual = manual_injections.get("soft") if isinstance(manual_injections, dict) else {}
+        lines.append(f"- manual injections requested: {manual_injections.get('requested', 0) if isinstance(manual_injections, dict) else 0}")
+        lines.append(f"- manual hard placed: {len((hard_manual or {}).get('placed') or [])}")
+        lines.append(f"- manual hard conflicts: {len((hard_manual or {}).get('conflicts') or [])}")
+        lines.append(f"- manual hard displaced: {len((hard_manual or {}).get('displaced') or [])}")
+        lines.append(f"- manual soft queued: {(soft_manual or {}).get('queued', 0) if isinstance(soft_manual, dict) else 0}")
+        for p in ((hard_manual or {}).get("placed") or [])[:10]:
+            lines.append(f"  - manual_hard {p.get('id')} {p.get('type')}:{p.get('name')} {p.get('start')}-{p.get('end')}")
+        for c in ((hard_manual or {}).get("conflicts") or [])[:10]:
+            lines.append(
+                f"  - manual_hard_conflict {c.get('type')}:{c.get('name')} "
+                f"{c.get('requested_start')}-{c.get('requested_end')} reason={c.get('reason')}"
+            )
         lines.append(f"- injections candidates: {injections.get('candidates', 0)}")
         lines.append(f"- injections placed: {len(injections.get('placed') or [])}")
         for p in (injections.get("placed") or [])[:10]:
@@ -1933,6 +2925,44 @@ class KairosScheduler:
         lines.append(f"- timeblocks placed: {len(timeblocks.get('placed') or [])}")
         for tb in (timeblocks.get("placed") or [])[:10]:
             lines.append(f"  - timeblock {tb.get('id')} {tb.get('subtype')} {tb.get('start')}-{tb.get('end')} from={tb.get('from_item')}")
+        repair = construct.get("repair") or {}
+        lines.append(f"- repair strategy: {repair.get('strategy')}")
+        lines.append(f"- repair max_iterations: {repair.get('max_iterations')}")
+        lines.append(f"- repair trim_enabled: {repair.get('trim_enabled')}")
+        lines.append(f"- repair min_duration_minutes: {repair.get('min_duration_minutes')}")
+        lines.append(f"- repair cut_enabled: {repair.get('cut_enabled')}")
+        lines.append(f"- repair cut_score_threshold: {repair.get('cut_score_threshold')}")
+        lines.append(f"- repair moved: {repair.get('moved', 0)}")
+        lines.append(f"- repair trimmed: {repair.get('trimmed', 0)}")
+        lines.append(f"- repair cut: {repair.get('cut', 0)}")
+        lines.append(f"- repair remaining_overlaps: {repair.get('remaining_overlaps', 0)}")
+        for ev in (repair.get("events") or [])[:20]:
+            if str(ev.get("action") or "") == "trim":
+                lines.append(
+                    f"  - repair_trim {ev.get('item')} {ev.get('from')} -> {ev.get('to')} "
+                    f"dur {ev.get('duration_from')}->{ev.get('duration_to')} reason={ev.get('reason')}"
+                )
+            elif str(ev.get("action") or "") == "cut":
+                lines.append(
+                    f"  - repair_cut {ev.get('item')} at {ev.get('at')} "
+                    f"score={ev.get('score')} reason={ev.get('reason')}"
+                )
+            else:
+                lines.append(f"  - repair_shift {ev.get('item')} {ev.get('from')} -> {ev.get('to')} reason={ev.get('reason')}")
+        for ur in (repair.get("unresolved") or [])[:10]:
+            lines.append(f"  - repair_unresolved {ur}")
+        deps = construct.get("dependencies") or {}
+        lines.append(f"- dependency_shift enabled: {deps.get('enabled')}")
+        lines.append(f"- dependency_shift max_iterations: {deps.get('max_iterations')}")
+        lines.append(f"- dependency_shift shifted: {deps.get('shifted', 0)}")
+        lines.append(f"- dependency_shift remaining_violations: {deps.get('remaining_violations', 0)}")
+        for ev in (deps.get("events") or [])[:20]:
+            lines.append(
+                f"  - dependency_shift {ev.get('item')} {ev.get('from')} -> {ev.get('to')} "
+                f"depends_on={','.join(ev.get('depends_on') or [])}"
+            )
+        for ur in (deps.get("unresolved") or [])[:10]:
+            lines.append(f"  - dependency_unresolved {ur}")
         lines.append("- unscheduled top:")
         for row in (construct.get("unscheduled_top") or [])[:15]:
             lines.append(f"  - {row.get('type')}:{row.get('name')} score={row.get('score')}")
@@ -1945,8 +2975,24 @@ class KairosScheduler:
             f.write(body)
         with open(latest, "w", encoding="utf-8") as f:
             f.write(body)
+        yaml_payload = {
+            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "run_date": run_date,
+            "stats": {
+                "candidates_gathered": gather.get("total", 0),
+                "candidates_kept": filt.get("kept", 0),
+                "blocks_scheduled": len(blocks) if isinstance(blocks, list) else 0,
+            },
+            "phase_notes": self.phase_notes,
+            "schedule": self.last_schedule if isinstance(self.last_schedule, dict) else {"blocks": blocks},
+        }
+        with open(out_yaml, "w", encoding="utf-8") as f:
+            yaml.safe_dump(yaml_payload, f, sort_keys=False, allow_unicode=True)
+        with open(latest_yaml, "w", encoding="utf-8") as f:
+            yaml.safe_dump(yaml_payload, f, sort_keys=False, allow_unicode=True)
         self.decision_log = lines
         print(f"[Kairos] Decision log written: {out}")
+        print(f"[Kairos] Decision YAML written: {out_yaml}")
 
 
 if __name__ == "__main__":

@@ -37,6 +37,11 @@ export function mount(el, context) {
             <button class="btn nia-settings-btn" id="niaEditPrefSettings" type="button">Edit Preference Settings</button>
             <button class="btn nia-settings-btn" id="niaEditPilotBrief" type="button">Edit Pilot Brief</button>
             <button class="btn nia-settings-btn" id="niaManageMemories" type="button">Manage Memories</button>
+            <label class="nia-settings-label" for="niaAgentCli">AI Agent CLI</label>
+            <select class="nia-settings-select" id="niaAgentCli">
+              <option value="codex">Codex</option>
+              <option value="gemini">Gemini</option>
+            </select>
             <label class="nia-settings-toggle">
               <input type="checkbox" id="niaUseMemories" />
               <span>Use memories</span>
@@ -82,6 +87,7 @@ export function mount(el, context) {
   const btnEditPrefSettings = el.querySelector('#niaEditPrefSettings');
   const btnEditPilotBrief = el.querySelector('#niaEditPilotBrief');
   const btnManageMemories = el.querySelector('#niaManageMemories');
+  const selAgentCli = el.querySelector('#niaAgentCli');
   const chkUseMemories = el.querySelector('#niaUseMemories');
   const btnDeleteMemories = el.querySelector('#niaDeleteMemories');
   const send = el.querySelector('#niaSend');
@@ -226,6 +232,11 @@ export function mount(el, context) {
   }
 
   const STATE_KEY = 'chronos_nia_widget_open_v1';
+
+  function normalizeAgentCli(value) {
+    const next = String(value || '').trim().toLowerCase();
+    return next === 'gemini' ? 'gemini' : 'codex';
+  }
 
   function escapeHtml(text) {
     return String(text || '').replace(/[&<>"']/g, (ch) => (
@@ -460,12 +471,26 @@ export function mount(el, context) {
     if (!ready) throw new Error('ADUC is not ready.');
     const data = await apiGet('/api/aduc/settings');
     if (chkUseMemories) chkUseMemories.checked = !!data?.include_memory;
+    if (selAgentCli) {
+      const cli = normalizeAgentCli(data?.cli_backend);
+      selAgentCli.value = cli;
+      selAgentCli.dataset.lastValue = cli;
+    }
   }
 
   async function setUseMemories(enabled) {
     const ready = await ensureAducReady();
     if (!ready) throw new Error('ADUC is not ready.');
     await apiPost('/api/aduc/settings', { include_memory: !!enabled });
+  }
+
+  async function setAgentCli(value) {
+    const ready = await ensureAducReady();
+    if (!ready) throw new Error('ADUC is not ready.');
+    const cli = normalizeAgentCli(value);
+    await apiPost('/api/aduc/settings', { cli_backend: cli });
+    try { context?.bus?.emit('nia:agent-cli-changed', { cli }); } catch { }
+    return cli;
   }
 
   async function deleteNiaMemories() {
@@ -519,6 +544,7 @@ export function mount(el, context) {
   let isOpen = false;
   try { isOpen = localStorage.getItem(STATE_KEY) === '1'; } catch { }
   setOpen(isOpen);
+  if (selAgentCli) selAgentCli.value = 'codex';
   niaAvatarUrl = `${apiBase()}/api/nia/profile/avatar`;
   loadUserIdentity().catch(() => { });
   initialGreetingBubble = appendMsg(`Hello ${userName}, I'm Nia. How can I help you today?`, 'assistant');
@@ -538,6 +564,20 @@ export function mount(el, context) {
   btnEditPrefSettings?.addEventListener('click', () => openFileInNotes(PREF_SETTINGS_PATH, 'preferences settings', 'yaml'));
   btnEditPilotBrief?.addEventListener('click', () => openFileInNotes(PILOT_BRIEF_PATH, 'pilot brief'));
   btnManageMemories?.addEventListener('click', () => openFileInNotes(NIA_MEM_PATH, 'nia memories'));
+  selAgentCli?.addEventListener('change', () => {
+    const previous = normalizeAgentCli(selAgentCli.dataset.lastValue || selAgentCli.value || 'codex');
+    const selected = normalizeAgentCli(selAgentCli.value);
+    setAgentCli(selected)
+      .then((saved) => {
+        selAgentCli.dataset.lastValue = saved;
+        selAgentCli.value = saved;
+        appendMsg(`AI agent CLI set to ${saved}.`, 'assistant');
+      })
+      .catch(() => {
+        selAgentCli.value = previous;
+        appendMsg('Failed to update AI agent CLI.', 'assistant');
+      });
+  });
   chkUseMemories?.addEventListener('change', () => {
     setUseMemories(!!chkUseMemories.checked)
       .then(() => appendMsg(`Use memories ${chkUseMemories.checked ? 'enabled' : 'disabled'}.`, 'assistant'))
@@ -625,6 +665,14 @@ export function mount(el, context) {
       onSend();
     }
   });
+
+  try {
+    context?.bus?.on('nia:open-settings', () => {
+      setOpen(true);
+      void openSettings();
+      try { input?.focus(); } catch { }
+    });
+  } catch { }
 
   // Optional light drag by panel header.
   header?.addEventListener('pointerdown', (ev) => {

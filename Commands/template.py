@@ -116,6 +116,16 @@ def run(args, properties):
     with open(path, 'w') as f:
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
+    try:
+        from Modules.Achievement import evaluator as AchievementEvaluator  # type: ignore
+        AchievementEvaluator.emit_event("template_saved", {
+            "template_type": "day",
+            "name": name,
+            "source": "command:template",
+        })
+    except Exception:
+        pass
+
     print(f"✅ Saved day template: {path}")
 
 

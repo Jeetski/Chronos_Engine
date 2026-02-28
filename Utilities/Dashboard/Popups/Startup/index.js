@@ -264,6 +264,27 @@ function buildPopup(done) {
       closePopup(overlay, done, cleanup);
       return;
     }
+    const setupChronosBtn = ev.target?.closest?.('[data-action="setup-chronos"]');
+    if (setupChronosBtn) {
+      try {
+        if (typeof window.ChronosLaunchWizard === 'function') {
+          void window.ChronosLaunchWizard('Onboarding');
+        }
+      } catch { }
+      closePopup(overlay, done, cleanup);
+      return;
+    }
+    const setupNiaBtn = ev.target?.closest?.('[data-action="setup-nia"]');
+    if (setupNiaBtn) {
+      try {
+        window.ChronosBus?.emit?.('widget:show', 'NiaAssistant');
+        window.setTimeout(() => {
+          try { window.ChronosBus?.emit?.('nia:open-settings'); } catch { }
+        }, 60);
+      } catch { }
+      closePopup(overlay, done, cleanup);
+      return;
+    }
     const btn = ev.target?.closest?.('[data-action="continue"]');
     if (btn) closePopup(overlay, done, cleanup);
   });

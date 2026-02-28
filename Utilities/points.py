@@ -64,6 +64,15 @@ def add_points(delta: int, *, reason: str = '', source_item: str | None = None, 
     return int(st['balance'])
 
 
+def reset_points(*, keep_ledger: bool = False):
+    st = _load_state()
+    st['balance'] = 0
+    if not keep_ledger:
+        st['ledger'] = []
+    _save_state(st)
+    return int(st.get('balance') or 0)
+
+
 def ensure_balance(required: int) -> bool:
     return get_balance() >= int(required)
 

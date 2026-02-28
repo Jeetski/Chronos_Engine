@@ -11,6 +11,7 @@ const URGENT_WIDGETS = new Set([
   'HabitTracker',
   'ItemManager',
   'Milestones',
+  'NiaAssistant',
   'Settings',
   'SleepSettings',
   'Status',
@@ -1640,7 +1641,10 @@ ready(async () => {
       mkAction('Rebuild Registry: Properties', () => { void runDevCommandAction('Rebuild Registry: Properties', 'register properties'); }),
       mkAction('Sequence Status', () => { void runDevCommandAction('Sequence Status', 'sequence status'); }),
       mkAction('Sequence Sync (All)', () => { void runDevCommandAction('Sequence Sync (All)', 'sequence sync'); }),
-      mkAction('Sequence Trends', () => { void runDevCommandAction('Sequence Trends', 'sequence trends'); })
+      mkAction('Sequence Trends', () => { void runDevCommandAction('Sequence Trends', 'sequence trends'); }),
+      mkAction('Reset Achievements', () => { void runDevCommandAction('Reset Achievements', 'achievements reset'); }),
+      mkAction('Reset XP/Level', () => { void runDevCommandAction('Reset XP/Level', 'achievements reset-progress'); }),
+      mkAction('Reset Points', () => { void runDevCommandAction('Reset Points', 'points reset'); })
     );
 
     const showPostRelease = arePostReleaseItemsVisible();
@@ -1808,6 +1812,7 @@ ready(async () => {
       if (!raw) return 'Unknown';
       return raw.replace(/([a-z])([A-Z])/g, '$1 $2');
     };
+    const normalize = (value) => String(value || '').trim().toLowerCase();
 
     const items = [...popupCatalog]
       .sort((a, b) => String(a?.module || a?.id || '').localeCompare(String(b?.module || b?.id || ''), undefined, { sensitivity: 'base' }));
@@ -1825,6 +1830,23 @@ ready(async () => {
         label.textContent = formatLabel(popup);
         item.setAttribute('data-search', `${label.textContent} ${popup?.module || popup?.id || ''}`);
         item.append(label);
+        if (areBadgesVisible()) {
+          const popupKey = normalize(popup?.module || popup?.id || '');
+          const popupLabel = normalize(popup?.label || '');
+          if (popupKey === 'startup' || popupLabel === 'startup') {
+            const badge = document.createElement('span');
+            badge.className = 'urgent-badge';
+            badge.textContent = 'urgent';
+            badge.title = 'Urgent popup';
+            item.appendChild(badge);
+          } else {
+            const badge = document.createElement('span');
+            badge.className = 'good-enough-badge';
+            badge.textContent = 'good enough';
+            badge.title = 'Stable enough for now';
+            item.appendChild(badge);
+          }
+        }
         item.addEventListener('click', () => {
           void launchPopupFromMenu(popup);
         });

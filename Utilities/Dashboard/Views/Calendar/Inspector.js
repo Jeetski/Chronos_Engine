@@ -1264,6 +1264,18 @@ export function Inspector() {
           <input type="checkbox" id="autoRescheduleToggle" ${autoReschedule ? 'checked' : ''} />
           Auto-apply changes
         </label>
+        <div class="inspector-section-title" style="margin-top:10px;">Injection Policy</div>
+        <div class="inspector-grid">
+          <label class="inspector-toggle">
+            <input type="checkbox" id="injectForceToggle" />
+            Force inject (replace overlaps)
+          </label>
+          <label class="inspector-toggle">
+            <input type="checkbox" id="injectOverrideAnchorToggle" />
+            Allow anchor override
+          </label>
+        </div>
+        <div class="inspector-muted">Used by Insert and Quick Wins inject actions.</div>
       `)}
 
       ${renderCollapsibleSection('Quick Wins', `
@@ -1452,6 +1464,8 @@ export function Inspector() {
       }
     };
     const autoRescheduleToggle = el.querySelector('#autoRescheduleToggle');
+    const injectForceToggle = el.querySelector('#injectForceToggle');
+    const injectOverrideAnchorToggle = el.querySelector('#injectOverrideAnchorToggle');
 
     if (autoRescheduleToggle) {
       autoRescheduleToggle.addEventListener('change', () => {
@@ -1468,6 +1482,13 @@ export function Inspector() {
         try { window.__calendarRefreshDayList?.(); } catch { }
       }
       return res;
+    }
+
+    function readInjectProperties(type) {
+      const props = { type };
+      if (injectForceToggle?.checked) props.force = true;
+      if (injectOverrideAnchorToggle?.checked) props.override_anchor = true;
+      return props;
     }
 
     function toTimeString(dateObj) {
@@ -1594,7 +1615,7 @@ export function Inspector() {
       if (!name) return;
       const now = new Date();
       const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const res = await runCli('today', ['inject', name, 'at', time], { type });
+      const res = await runCli('today', ['inject', name, 'at', time], readInjectProperties(type));
       if (res.ok) {
         emitToast('success', `Inserted ${name} at ${time}`);
         try { window.__calendarRefreshDayList?.(); } catch { }
@@ -1673,7 +1694,7 @@ export function Inspector() {
         if (!name) return;
         const now = new Date();
         const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const res = await runCli('today', ['inject', name, 'at', time], { type });
+        const res = await runCli('today', ['inject', name, 'at', time], readInjectProperties(type));
         if (res.ok) {
           emitToast('success', `Injected ${name} at ${time}.`);
           try { window.__calendarRefreshDayList?.(); } catch { }

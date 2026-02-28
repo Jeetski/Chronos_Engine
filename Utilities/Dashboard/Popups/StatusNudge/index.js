@@ -123,9 +123,9 @@ function buildPopup(actions, done) {
       </div>
       <p class="status-nudge-text">It’s been a while since your last status update. Refresh now?</p>
       <div class="status-nudge-actions">
-        <button data-action="preset" data-value="energy:high focus:good">High / Focus</button>
-        <button data-action="preset" data-value="energy:medium focus:steady">Medium / Steady</button>
-        <button data-action="preset" data-value="energy:low focus:calm">Low / Recovery</button>
+        <button data-action="preset" data-value="energy:high mind_state:clear focus:laser emotion:positive vibe:great health:good">High / Focus</button>
+        <button data-action="preset" data-value="energy:medium mind_state:neutral focus:good emotion:neutral vibe:okay health:good">Medium / Steady</button>
+        <button data-action="preset" data-value="energy:low mind_state:overwhelmed focus:scattered emotion:neutral vibe:okay health:fair">Low / Recovery</button>
         <button data-action="reschedule" class="primary">Reschedule</button>
         <button data-action="snooze" data-value="7200000">Snooze 2h</button>
       </div>

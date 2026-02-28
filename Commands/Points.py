@@ -8,6 +8,7 @@ def run(args, properties):
     points add <n> [reason:...]
     points subtract <n> [reason:...]
     points history [last:N]
+    points reset [keep_ledger:true|false]
     """
     if not args:
         print(get_help_message())
@@ -51,6 +52,12 @@ def run(args, properties):
             print(f"{t.get('date')}  {t.get('delta'):>5}  {t.get('reason','')}")
         return
 
+    if sub == 'reset':
+        keep = str(properties.get('keep_ledger') or '').strip().lower() in ('1', 'true', 'yes', 'y', 'on')
+        bal = Points.reset_points(keep_ledger=keep)
+        print(f"Points reset complete. Balance: {bal}.")
+        return
+
     print(get_help_message())
 
 
@@ -61,5 +68,6 @@ Usage:
   points add <n> [reason:<text>]
   points subtract <n> [reason:<text>]
   points history [<last_N>]
+  points reset [keep_ledger:true|false]
 """
 

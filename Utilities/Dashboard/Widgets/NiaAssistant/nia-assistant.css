@@ -161,6 +161,15 @@
   color: var(--text-dim);
 }
 
+.nia-settings-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(14, 19, 30, 0.86);
+  color: var(--text);
+  padding: 6px 8px;
+}
+
 .nia-settings-btn {
   width: 100%;
   justify-content: flex-start;

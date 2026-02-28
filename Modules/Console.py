@@ -927,6 +927,15 @@ def run_command(command_name, args, properties):
             except Exception:
                 pass
         run_command_core(command_name, args, properties)
+        try:
+            from Modules.Achievement import evaluator as AchievementEvaluator  # type: ignore
+            AchievementEvaluator.emit_event("command_executed", {
+                "command": str(command_name or "").lower(),
+                "args": list(args or []),
+                "properties": dict(properties or {}),
+            })
+        except Exception:
+            pass
     finally:
         try:
             if not suppress:
@@ -1323,6 +1332,14 @@ if __name__ == "__main__":
     # Seed variables (e.g., @nickname from profile)
     try:
         _load_profile_and_seed_vars()
+    except Exception:
+        pass
+
+    try:
+        from Modules.Achievement import evaluator as AchievementEvaluator  # type: ignore
+        AchievementEvaluator.emit_event("chronos_started", {
+            "mode": "cli_args" if has_cli_input else "interactive",
+        })
     except Exception:
         pass
 

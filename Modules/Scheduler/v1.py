@@ -310,20 +310,39 @@ def change_item_time_in_file(file_path, item_name, new_start_time_str):
     print(f"✅ Recorded start time change for '{item_name}' to {new_start_time_str}. Run 'today reschedule' to apply changes.")
     return True
 
-def inject_item_in_file(file_path, item_name, start_time_str, item_type="task"):
+def inject_item_in_file(
+    file_path,
+    item_name,
+    start_time_str=None,
+    item_type="task",
+    mode=None,
+    force=False,
+    override_anchor=False,
+    source="manual_cli",
+):
     """
     Records an injection modification for the specified item.
     """
     manual_path = manual_modifications_path_for_schedule(file_path)
     modifications = load_manual_modifications(manual_path)
+    effective_mode = str(mode or ("hard" if start_time_str else "soft")).strip().lower()
+    if effective_mode not in ("hard", "soft"):
+        effective_mode = "hard" if start_time_str else "soft"
     modifications.append({
         "action": "inject", 
         "item_name": item_name, 
         "start_time": start_time_str,
-        "item_type": item_type
+        "item_type": item_type,
+        "mode": effective_mode,
+        "force": bool(force),
+        "override_anchor": bool(override_anchor),
+        "source": str(source or "manual_cli"),
     })
     save_manual_modifications(modifications, manual_path)
-    print(f"✅ Recorded injection for '{item_name}' at {start_time_str}. Run 'today reschedule' to apply.")
+    if start_time_str:
+        print(f"✅ Recorded {effective_mode} injection for '{item_name}' at {start_time_str}. Run 'today reschedule' to apply.")
+    else:
+        print(f"✅ Recorded {effective_mode} injection for '{item_name}'. Run 'today reschedule' to apply.")
     return True
 
 def stretch_item_in_file(file_path, item_name, amount_minutes):

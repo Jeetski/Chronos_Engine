@@ -117,6 +117,11 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - Startup popup is loaded first in popup queue.
 - Yesterday Check-in popup is hard-ordered second in popup queue.
 - Sleep Check-In popup is loaded after Yesterday Check-in (priority-driven).
+- Achievement Unlocked popup listens for new profile award-feed events and shows:
+  - achievement unlocked details (+points, +XP)
+  - current level ring progress
+  - Level Up state when a level boundary is crossed
+  - confetti burst and quick-open action for Achievements widget
 - Topbar `Popups` menu:
   - includes `Disable popups` toggle
   - lists discovered popup modules
@@ -149,6 +154,12 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - `GET /api/settings`
 - `GET /api/settings?file=Name.yml`
 - `POST /api/settings?file=Name.yml` - raw YAML body or `{ file, raw/data }`; validates before writing to preserve formatting.
+
+### Dev Menu - Data Ops
+- Added developer reset actions:
+  - `Reset Achievements` (all achievements to pending/unawarded; resets achievement progression feed)
+  - `Reset XP/Level` (profile achievement progression only)
+  - `Reset Points` (points balance reset; ledger reset by default)
 
 ---
 

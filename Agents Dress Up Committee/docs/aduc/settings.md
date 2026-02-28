@@ -6,6 +6,7 @@ Settings file
 Common keys
 - `include_memory`: include recent `memory.json` entries in merged prompts.
 - `immersive`: include `docs/lore.md` in merged prompts.
+- `cli_backend`: selects CLI bridge backend (`codex` or `gemini`).
 - `nsfw_enabled`, `quiet_hours`, `daily_nsfw_cap`: safety controls.
 
 Env vars

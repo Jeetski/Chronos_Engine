@@ -216,6 +216,58 @@ function injectStyles(){
       color: var(--chronos-text);
       line-height: 1.6;
     }
+    .onboarding-body input:not([type="checkbox"]):not([type="radio"]),
+    .onboarding-body textarea,
+    .onboarding-body select {
+      border-radius: 10px;
+      border: 1px solid var(--chronos-border-strong);
+      padding: 8px 10px;
+      background: rgba(9,14,22,0.82);
+      color: var(--chronos-text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .onboarding-body input::placeholder,
+    .onboarding-body textarea::placeholder {
+      color: var(--chronos-text-muted);
+      opacity: 0.85;
+    }
+    .onboarding-body input:focus,
+    .onboarding-body textarea:focus,
+    .onboarding-body select:focus {
+      outline: none;
+      border-color: var(--chronos-accent);
+      box-shadow: 0 0 0 2px rgba(122,162,247,0.22);
+    }
+    .onboarding-body input[type="checkbox"],
+    .onboarding-body input[type="radio"] {
+      accent-color: var(--chronos-accent);
+    }
+    .onboarding-body button {
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 7px 11px;
+      background: rgba(12,16,28,0.9);
+      color: var(--chronos-text);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+    .onboarding-body button:hover:not(:disabled) {
+      border-color: rgba(122,162,247,0.65);
+      background: rgba(22,30,48,0.95);
+      transform: translateY(-1px);
+    }
+    .onboarding-body button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .onboarding-body pre {
+      border-radius: 10px;
+      border: 1px solid var(--chronos-border-strong);
+      background: rgba(8,12,20,0.82);
+      color: var(--chronos-text-soft);
+      padding: 10px;
+    }
     .onboarding-footer {
       display: flex;
       flex-direction: column;
@@ -241,7 +293,7 @@ function injectStyles(){
     .onboarding-actions {
       display: flex;
       width: 100%;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 12px;
       flex-wrap: wrap;
     }
@@ -1045,10 +1097,8 @@ export async function launch(context, options = {}){
   statusLine.className = 'wizard-status-line chronos-wizard-status';
   const actions = document.createElement('div');
   actions.className = 'onboarding-actions chronos-wizard-actions';
-  const actionsLeft = document.createElement('div');
-  actionsLeft.className = 'action-group';
-  const actionsRight = document.createElement('div');
-  actionsRight.className = 'action-group';
+  const actionsGroup = document.createElement('div');
+  actionsGroup.className = 'action-group';
   const backBtn = document.createElement('button');
   backBtn.className = 'ghost';
   backBtn.textContent = 'Back';
@@ -1058,9 +1108,8 @@ export async function launch(context, options = {}){
   const nextBtn = document.createElement('button');
   nextBtn.className = 'primary';
   nextBtn.textContent = 'Next';
-  actionsLeft.append(backBtn, skipBtn);
-  actionsRight.append(nextBtn);
-  actions.append(actionsLeft, actionsRight);
+  actionsGroup.append(backBtn, skipBtn, nextBtn);
+  actions.append(actionsGroup);
 
   const footer = document.createElement('div');
   footer.className = 'onboarding-footer chronos-wizard-footer';
@@ -1120,6 +1169,9 @@ export async function launch(context, options = {}){
       stepIndex += 1;
       await loadStep();
     } else {
+      try {
+        await runCli('achievements', ['event', 'onboarding_completed'], { source: 'wizard:onboarding' });
+      } catch {}
       overlay.remove();
     }
   }

@@ -470,6 +470,16 @@ Manages the points ledger.
 - `points add <n> [reason:<text>]`
 - `points subtract <n> [reason:<text>]`
 - `points history [<last_N>]`
+- `points reset [keep_ledger:true|false]`
+
+### `achievements`
+Manages achievement awards and progression evaluation.
+**Usage:**
+- `achievements sync`
+- `achievements award <achievement_id_or_name>`
+- `achievements event <event_name> [key:value ...]`
+- `achievements reset`
+- `achievements reset-progress`
 
 ### `redeem`
 Redeems a reward and applies its target.

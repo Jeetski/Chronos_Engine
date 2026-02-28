@@ -675,6 +675,17 @@ async function finishWizard() {
       }
     }
 
+    try {
+      await apiRequest('/api/cli', {
+        method: 'POST',
+        body: {
+          command: 'achievements',
+          args: ['event', 'resolutions_set'],
+          properties: { source: 'wizard:newyear_resolutions' },
+        },
+      });
+    } catch {}
+
     setStatus(`Created ${wizardState.items.length} resolution(s) for ${wizardState.year}!`, 'success');
     await new Promise(resolve => setTimeout(resolve, 1500));
     closeWizard();

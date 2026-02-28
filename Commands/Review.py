@@ -24,6 +24,7 @@ def run(args, properties):
         data, path = _generate_review('daily', start, end)
         _save_review('daily', start, data)
         _print_summary('daily', data, path)
+        _emit_review_achievement_events('daily')
         return
     if sub == 'weekly':
         target = args[1] if len(args) > 1 else _current_year_week()
@@ -31,6 +32,7 @@ def run(args, properties):
         data, path = _generate_review('weekly', start, end)
         _save_review('weekly', start, data)
         _print_summary('weekly', data, path)
+        _emit_review_achievement_events('weekly')
         return
     if sub == 'monthly':
         target = args[1] if len(args) > 1 else datetime.now().strftime('%Y-%m')
@@ -38,6 +40,7 @@ def run(args, properties):
         data, path = _generate_review('monthly', start, end)
         _save_review('monthly', start, data)
         _print_summary('monthly', data, path)
+        _emit_review_achievement_events('monthly')
         return
     if sub == 'export' and len(args) >= 3:
         period_type = args[1].lower()
@@ -49,6 +52,7 @@ def run(args, properties):
             data, _ = _generate_review(period_type, start, end)
             _save_review(period_type, start, data)
         _export_markdown(period_type, start)
+        _emit_review_achievement_events('export')
         return
     if sub == 'open' and len(args) >= 3:
         period_type = args[1].lower()
@@ -58,6 +62,15 @@ def run(args, properties):
         return
 
     print(get_help_message())
+
+
+def _emit_review_achievement_events(mode: str):
+    try:
+        from Modules.Achievement import evaluator as AchievementEvaluator  # type: ignore
+        AchievementEvaluator.emit_event('review_created', {"mode": mode})
+        AchievementEvaluator.evaluate_sync()
+    except Exception:
+        pass
 
 
 def get_help_message():

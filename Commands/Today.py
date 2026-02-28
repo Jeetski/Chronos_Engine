@@ -1324,6 +1324,39 @@ def run(args, properties):
                         ctx["quickwins_max_minutes"] = int(val)
                     except Exception:
                         warnings.append(f"Invalid quickwins value: {val}")
+                elif low.startswith("repair-trim:") or low.startswith("repair_trim:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid repair-trim value: {val}")
+                    else:
+                        ctx["repair_trim"] = bool(bv)
+                elif low.startswith("repair-min-duration:") or low.startswith("repair_min_duration:"):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["repair_min_duration"] = max(1, int(val))
+                    except Exception:
+                        warnings.append(f"Invalid repair-min-duration value: {val}")
+                elif low.startswith("repair-cut:") or low.startswith("repair_cut:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid repair-cut value: {val}")
+                    else:
+                        ctx["repair_cut"] = bool(bv)
+                elif low.startswith("repair-cut-threshold:") or low.startswith("repair_cut_threshold:"):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["repair_cut_threshold"] = float(val)
+                    except Exception:
+                        warnings.append(f"Invalid repair-cut-threshold value: {val}")
+                elif low.startswith("evaluate-hooks:") or low.startswith("evaluate_hooks:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid evaluate-hooks value: {val}")
+                    else:
+                        ctx["evaluate_hooks"] = bool(bv)
                 else:
                     warnings.append(f"Unrecognized kairos arg: {token}")
             return ctx, warnings
@@ -1477,16 +1510,40 @@ def run(args, properties):
         completion_entries = normalize_completion_entries(today_completion_data)
         reschedule_requested = "reschedule" in args_lower
 
-        # Keep old manual inject flow compatible.
+        # Keep old manual inject flow compatible, with Kairos-native hard/soft
+        # behavior:
+        # - `today inject <name>` => soft inject (no pinned time)
+        # - `today inject <name> at HH:MM` => hard inject (pinned)
         if args and str(args[0]).lower() == "inject":
-            if len(args) < 4 or str(args[2]).lower() != "at":
-                print("Usage: today inject <name> at <HH:MM> [type:<type>]")
+            if len(args) < 2:
+                print("Usage: today inject <name> [at <HH:MM>] [type:<type>] [force:true|false] [override_anchor:true|false]")
                 return
-            item_name = args[1]
-            time_str = args[3]
+            item_name = str(args[1]).strip()
+            if not item_name:
+                print("Usage: today inject <name> [at <HH:MM>] [type:<type>] [force:true|false] [override_anchor:true|false]")
+                return
+            time_str = None
+            mode = "soft"
+            if len(args) >= 4:
+                if str(args[2]).lower() != "at":
+                    print("Usage: today inject <name> [at <HH:MM>] [type:<type>] [force:true|false] [override_anchor:true|false]")
+                    return
+                time_str = str(args[3]).strip()
+                mode = "hard"
             item_type = properties.get("type", "task")
+            force = bool(_to_bool(properties.get("force"), False))
+            override_anchor = bool(_to_bool(properties.get("override_anchor"), False))
             from Modules.Scheduler import inject_item_in_file
-            inject_item_in_file(schedule_path, item_name, time_str, item_type)
+            inject_item_in_file(
+                schedule_path,
+                item_name,
+                time_str,
+                item_type,
+                mode=mode,
+                force=force,
+                override_anchor=override_anchor,
+                source="manual_cli",
+            )
             reschedule_requested = True
 
         def _parse_kv_csv(raw):
@@ -1584,7 +1641,180 @@ def run(args, properties):
                 elif low.startswith("ignore-trends:"):
                     bv = _to_bool(token.split(":", 1)[1].strip(), None)
                     ctx["ignore_trends"] = True if bv is None else bool(bv)
+                elif low.startswith("repair-trim:") or low.startswith("repair_trim:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid repair-trim value: {token}")
+                    else:
+                        ctx["repair_trim"] = bool(bv)
+                elif low.startswith("repair-min-duration:") or low.startswith("repair_min_duration:"):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["repair_min_duration"] = max(1, int(val))
+                    except Exception:
+                        warnings.append(f"Invalid repair-min-duration value: {token}")
+                elif low.startswith("repair-cut:") or low.startswith("repair_cut:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid repair-cut value: {token}")
+                    else:
+                        ctx["repair_cut"] = bool(bv)
+                elif low.startswith("repair-cut-threshold:") or low.startswith("repair_cut_threshold:"):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["repair_cut_threshold"] = float(val)
+                    except Exception:
+                        warnings.append(f"Invalid repair-cut-threshold value: {token}")
+                elif low.startswith("evaluate-hooks:") or low.startswith("evaluate_hooks:"):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid evaluate-hooks value: {token}")
+                    else:
+                        ctx["evaluate_hooks"] = bool(bv)
             return ctx, warnings
+
+        def _coerce_filter_value(raw):
+            if isinstance(raw, bool):
+                return raw
+            if isinstance(raw, (int, float)):
+                return raw
+            text = str(raw or "").strip()
+            if not text:
+                return ""
+            low = text.lower()
+            if low in ("true", "yes", "on", "y", "1"):
+                return True
+            if low in ("false", "no", "off", "n", "0"):
+                return False
+            # CSV value => list (legacy-compatible list filter semantics)
+            if "," in text:
+                parts = [p.strip() for p in text.split(",") if p.strip()]
+                if len(parts) > 1:
+                    return [p for p in parts]
+            try:
+                if "." in text:
+                    return float(text)
+                return int(text)
+            except Exception:
+                return text
+
+        def _apply_kairos_property_overrides(ctx, props, warnings):
+            if not isinstance(props, dict) or not props:
+                return
+            p = dict(props)
+            # Normalize key aliases.
+            norm = {str(k).strip().lower().replace("_", "-"): v for k, v in p.items()}
+
+            def _read(*keys):
+                for key in keys:
+                    k = str(key).strip().lower().replace("_", "-")
+                    if k in norm:
+                        return norm.get(k)
+                return None
+
+            t = _read("template", "force-template", "force_template")
+            if t is not None and str(t).strip():
+                ctx["force_template"] = str(t).strip()
+            status = _read("status", "status-overrides", "status_overrides")
+            if isinstance(status, str):
+                kv = _parse_kv_csv(status)
+                if kv:
+                    ctx["status_overrides"] = kv
+            elif isinstance(status, dict) and status:
+                ctx["status_overrides"] = status
+            prioritize = _read("prioritize")
+            if isinstance(prioritize, str):
+                kv = _parse_kv_csv(prioritize)
+                if kv:
+                    ctx["prioritize"] = kv
+            elif isinstance(prioritize, dict) and prioritize:
+                ctx["prioritize"] = prioritize
+            custom_prop = _read("custom-property", "custom_property")
+            if custom_prop is not None and str(custom_prop).strip():
+                ctx["custom_property"] = str(custom_prop).strip()
+            timer_profile = _read("timer-profile", "timer_profile")
+            if timer_profile is not None and str(timer_profile).strip():
+                ctx["timer_profile"] = str(timer_profile).strip()
+
+            def _set_bool(ctx_key, *prop_keys):
+                raw = _read(*prop_keys)
+                if raw is None:
+                    return
+                bv = _to_bool(raw, None)
+                if bv is None:
+                    warnings.append(f"Invalid {prop_keys[0]} value: {raw}")
+                else:
+                    ctx[ctx_key] = bool(bv)
+
+            _set_bool("use_buffers", "buffers")
+            _set_bool("use_timer_sprints", "sprints")
+            _set_bool("ignore_trends", "ignore-trends", "ignore_trends")
+            _set_bool("repair_trim", "repair-trim", "repair_trim")
+            _set_bool("repair_cut", "repair-cut", "repair_cut")
+            _set_bool("evaluate_hooks", "evaluate-hooks", "evaluate_hooks")
+
+            breaks_val = _read("breaks")
+            if breaks_val is not None:
+                sval = str(breaks_val).strip().lower()
+                if sval in ("timer", "profile", "true", "on", "yes"):
+                    ctx["use_timer_breaks"] = True
+                elif sval in ("none", "off", "false", "no"):
+                    ctx["use_timer_breaks"] = False
+                else:
+                    warnings.append(f"Invalid breaks value: {breaks_val}")
+
+            quickwins = _read("quickwins", "quickwins-max-minutes", "quickwins_max_minutes")
+            if quickwins is not None and str(quickwins).strip() != "":
+                try:
+                    ctx["quickwins_max_minutes"] = int(quickwins)
+                except Exception:
+                    warnings.append(f"Invalid quickwins value: {quickwins}")
+            rmd = _read("repair-min-duration", "repair_min_duration")
+            if rmd is not None and str(rmd).strip() != "":
+                try:
+                    ctx["repair_min_duration"] = max(1, int(rmd))
+                except Exception:
+                    warnings.append(f"Invalid repair-min-duration value: {rmd}")
+            rct = _read("repair-cut-threshold", "repair_cut_threshold")
+            if rct is not None and str(rct).strip() != "":
+                try:
+                    ctx["repair_cut_threshold"] = float(rct)
+                except Exception:
+                    warnings.append(f"Invalid repair-cut-threshold value: {rct}")
+
+            # Generic window filter override from dashboard/widget properties.
+            wf_overrides = _read("window-filter-overrides", "window_filter_overrides")
+            if isinstance(wf_overrides, list):
+                for row in wf_overrides:
+                    if not isinstance(row, dict):
+                        continue
+                    rk = str(row.get("key") or "").strip()
+                    rv = row.get("value")
+                    if not rk or rv is None or str(rv).strip() == "":
+                        continue
+                    ctx.setdefault("window_filter_overrides", [])
+                    ctx["window_filter_overrides"].append(
+                        {
+                            "window": str(row.get("window") or "").strip() or None,
+                            "key": rk,
+                            "value": _coerce_filter_value(rv),
+                        }
+                    )
+            wf_key = _read("window-filter-key", "window_filter_key")
+            wf_value = _read("window-filter-value", "window_filter_value")
+            wf_name = _read("window-filter-name", "window_filter_name")
+            if wf_key is not None and str(wf_key).strip() and wf_value is not None and str(wf_value).strip() != "":
+                ctx.setdefault("window_filter_overrides", [])
+                ctx["window_filter_overrides"].append(
+                    {
+                        "window": str(wf_name or "").strip() or None,
+                        "key": str(wf_key).strip(),
+                        "value": _coerce_filter_value(wf_value),
+                    }
+                )
 
         def _to_dt(day_date, hhmm, fallback_dt=None):
             # Convert HH:MM-like values from Kairos blocks into concrete datetime
@@ -2193,6 +2423,38 @@ def run(args, properties):
             try:
                 from Modules.Scheduler import KairosScheduler
                 kairos_context, parse_warnings = _parse_active_kairos_context(args)
+                _apply_kairos_property_overrides(kairos_context, properties, parse_warnings)
+                manual_modifications = load_manual_modifications(manual_mod_path)
+
+                def _collect_kairos_manual_injections(mods):
+                    out = []
+                    for mod in (mods or []):
+                        if not isinstance(mod, dict):
+                            continue
+                        if str(mod.get("action") or "").strip().lower() != "inject":
+                            continue
+                        name = str(mod.get("item_name") or "").strip()
+                        if not name:
+                            continue
+                        mode = str(mod.get("mode") or ("hard" if mod.get("start_time") else "soft")).strip().lower()
+                        if mode not in ("hard", "soft"):
+                            mode = "hard" if mod.get("start_time") else "soft"
+                        out.append(
+                            {
+                                "name": name,
+                                "type": str(mod.get("item_type") or "task").strip().lower() or "task",
+                                "start_time": str(mod.get("start_time") or "").strip() or None,
+                                "mode": mode,
+                                "force": bool(_to_bool(mod.get("force"), False)),
+                                "override_anchor": bool(_to_bool(mod.get("override_anchor"), False)),
+                                "source": str(mod.get("source") or "manual_cli").strip() or "manual_cli",
+                            }
+                        )
+                    return out
+
+                manual_injections = _collect_kairos_manual_injections(manual_modifications)
+                if manual_injections:
+                    kairos_context["manual_injections"] = manual_injections
                 if reschedule_requested:
                     kairos_context["start_from_now"] = True
                 scheduler = KairosScheduler(user_context=kairos_context)
@@ -2226,13 +2488,17 @@ def run(args, properties):
                     window_defs=(construct_notes.get("windows") if isinstance(construct_notes, dict) else None),
                 )
 
-                manual_modifications = load_manual_modifications(manual_mod_path)
                 if manual_modifications:
                     # Manual modifications are still applied post-Kairos so
                     # existing trim/cut/change workflows remain valid.
                     print("Applying manual modifications...")
                     try:
-                        resolved_schedule = apply_manual_modifications(resolved_schedule, manual_modifications)
+                        non_injection_mods = [
+                            m for m in (manual_modifications or [])
+                            if str((m or {}).get("action") or "").strip().lower() != "inject"
+                        ]
+                        if non_injection_mods:
+                            resolved_schedule = apply_manual_modifications(resolved_schedule, non_injection_mods)
                     except Exception as mod_err:
                         print(f"Warning: Failed applying manual modifications: {mod_err}")
 

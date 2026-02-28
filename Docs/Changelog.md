@@ -1,5 +1,130 @@
 # Changelog
 
+## 2026-02-26
+
+### Dashboard API - CLI Consolidation and Drift Reduction
+- Refactored dashboard write endpoints to route through existing CLI commands instead of direct `ItemManager`/module mutations.
+- Updated item lifecycle endpoints to use command pipeline (`new`/`set`/`copy`/`rename`/`delete`):
+  - `/api/item`
+  - `/api/item/copy`
+  - `/api/item/rename`
+  - `/api/item/delete`
+  - `/api/items/delete`
+  - `/api/items/setprop`
+  - `/api/items/copy`
+- Delete behavior now respects CLI semantics (archive-by-default unless forced), including sticky notes delete endpoint.
+- Refactored achievement update flow to command-driven behavior:
+  - `/api/achievement/update` now uses `set achievement ...` and `achievements award ...`.
+- Refactored milestone update flow to command-driven behavior:
+  - `/api/milestone/update` now uses `set milestone ...` / `remove milestone ...`.
+- Refactored yesterday check-in save flow to use `did` command writes (with date override) instead of direct completion YAML mutations:
+  - `/api/yesterday/checkin`.
+- Refactored timer action endpoints to use `timer` CLI command path:
+  - `/api/timer/start`, `/pause`, `/resume`, `/stop`, `/cancel`, `/confirm`.
+- Refactored template save endpoint to command-driven item updates and achievement event emission via command path:
+  - `/api/template` now uses `new`/`set` and `achievements event ...`.
+- Removed duplicate early `/api/item*` POST handlers in dashboard server so one canonical write path remains.
+
+### Testing - Dashboard API Smoke Coverage
+- Added one-command smoke test script:
+  - `Tests/smoke_dashboard_api.ps1`
+- Script behavior:
+  - starts dashboard server on an isolated port
+  - validates refactored write endpoints end-to-end
+  - checks item CRUD, bulk ops, achievement/milestone update endpoints, yesterday check-in, timer actions, and template save
+  - stops server and returns non-zero on failures
+- Executed smoke script in-session:
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File Tests/smoke_dashboard_api.ps1`
+  - result: all checks passed (exit code `0`)
+
+### CLI - Listener Command + Dashboard Integration
+- Added new CLI command module:
+  - `Commands/Listener.py`
+- New command capabilities:
+  - `listener start`
+  - `listener stop`
+  - `listener status`
+- Listener lifecycle now uses a PID file for tracking:
+  - `User/Temp/listener.pid`
+- Updated dashboard server listener endpoint to use CLI bridge instead of direct process spawning:
+  - `POST /api/listener/start` now calls `run_console_command("listener", ["start"])`.
+- Verified in-session:
+  - CLI `listener status` reports current state.
+  - API `POST /api/listener/start` returns successful start via command path.
+  - CLI `listener stop` successfully stops listener after test.
+
+### Achievements - Event Evaluator Foundation
+- Added evaluator module: `Modules/Achievement/evaluator.py`.
+- Added command wrapper: `Commands/achievements.py`.
+- Added settings file: `User/Settings/achievements_settings.yml`.
+- Added event-driven awarding APIs:
+  - `emit_event(event_name, payload)`
+  - `award_by_id(...)`, `award_by_name(...)`
+  - `evaluate_sync()`
+- Added sync-rule evaluation for:
+  - habit streak threshold
+  - commitment streak threshold
+  - first completed milestone
+  - due/deadline met on time
+- Added event emission hooks in key flows:
+  - console startup (`chronos_started`)
+  - command execution (`command_executed`)
+  - review creation
+  - template save/day template + habit stack creation
+  - onboarding completion
+  - resolutions creation
+
+### Achievements - Starter Catalog and Defaults
+- Replaced existing achievements with new starter set (one file per achievement under `User/Achievements/`).
+- Set title = name for starter achievements.
+- Standardized starter reward payloads to 10 points + 10 XP per achievement.
+- Updated defaults in `User/Settings/Achievement_Defaults.yml` to include awarded/status/title fields.
+
+### Profile Progression - XP/Level Wiring
+- Achievement awards now update `User/Profile/profile.yml` progression fields:
+  - `xp_total`
+  - `level`
+  - `xp_into_level`
+  - `xp_to_next_level`
+- Added award event snapshots in profile:
+  - `last_achievement_award`
+  - `achievement_award_feed` (rolling queue for reliable popup delivery)
+- Added level-up metadata in award events:
+  - `level_before`, `level_after`, `leveled_up`, `levels_gained`
+
+### Dashboard - Achievements Widget Ring
+- Added progression ring display in Achievements widget (dynamic LVL + XP progress).
+- Ring now uses profile progression values rather than static placeholder text.
+
+### Dashboard - Achievement Unlocked Popup
+- Added popup module:
+  - `Utilities/Dashboard/Popups/AchievementUnlocked/`
+  - `popup.yml` metadata included (auto-discovered registry)
+- Popup behavior:
+  - polls profile award feed
+  - shows achievement name/description
+  - shows +points and +XP earned
+  - shows current level ring progress
+  - supports opening Achievements widget directly
+  - supports manual launch from Popups menu for preview/testing
+- Added confetti burst effect on unlock.
+- Added distinct **Level Up** popup state when award crosses a level boundary.
+- Tuned confetti timing to a slower, longer fall animation.
+
+### Dashboard - Dev Menu Recovery/Reset Actions
+- Added Data Ops actions in Dev menu:
+  - `Reset Achievements` -> `achievements reset`
+  - `Reset XP/Level` -> `achievements reset-progress`
+  - `Reset Points` -> `points reset`
+
+### CLI - Reset Commands
+- Added achievement reset command:
+  - `achievements reset` (set all achievements to pending/unawarded and reset achievement progression/feed)
+- Added achievement progression-only reset command:
+  - `achievements reset-progress`
+- Added points reset command:
+  - `points reset [keep_ledger:true|false]`
+
 ## 2026-02-25
 
 ### Dashboard - Nia Assistant Widget (ADUC-Backed)

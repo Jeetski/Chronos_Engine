@@ -111,6 +111,8 @@ def settings_load() -> dict:
         # Prompt composition toggles
         "include_memory": False,
         "immersive": False,
+        # CLI backend selection for watcher
+        "cli_backend": "codex",
     }
     try:
         return read_json(settings_path(), default)
@@ -1674,7 +1676,10 @@ def post_settings():
         # New toggles for prompt behavior
         "include_memory": bool(data.get("include_memory", cur.get("include_memory", False))),
         "immersive": bool(data.get("immersive", cur.get("immersive", False))),
+        "cli_backend": str(data.get("cli_backend", cur.get("cli_backend", "codex"))).strip().lower(),
     }
+    if out["cli_backend"] not in ("codex", "gemini"):
+        out["cli_backend"] = "codex"
     try:
         settings_save(out)
     except Exception:

@@ -113,6 +113,21 @@ function injectStyles() {
       font-size: 12px;
       box-sizing: border-box;
     }
+    .ycheck-select {
+      color-scheme: dark;
+      background-color: rgba(18, 24, 40, 0.96);
+    }
+    .ycheck-select option,
+    .ycheck-select optgroup {
+      background: #121828;
+      color: var(--chronos-text, #d9e4ff);
+    }
+    .ycheck-select:focus,
+    .ycheck-input:focus {
+      outline: none;
+      border-color: rgba(122, 162, 247, 0.6);
+      box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.18);
+    }
     .ycheck-section-title { margin: 2px 0 0; font-size: 13px; color: var(--chronos-text-muted, #9db0cf); }
     .ycheck-additional {
       border: 1px solid rgba(255,255,255,0.08);

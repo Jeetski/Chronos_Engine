@@ -118,6 +118,16 @@ function injectStyles(){
     .schedule-tree-row:nth-child(even) {
       background: rgba(255,255,255,0.02);
     }
+    .schedule-tree-row.is-completed .schedule-node-name {
+      text-decoration: line-through;
+      opacity: 0.72;
+    }
+    .schedule-tree-row.is-completed .schedule-node-type {
+      opacity: 0.66;
+    }
+    .schedule-tree-row.is-completed .schedule-time {
+      opacity: 0.72;
+    }
     .schedule-time {
       font-family: "IBM Plex Mono", "Cascadia Code", monospace;
       color: var(--schedule-time-color, #a5b1d5);
@@ -148,6 +158,42 @@ function injectStyles(){
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+    .schedule-quick-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: 2px;
+    }
+    .schedule-quick-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      color: var(--chronos-text, #e6e8ef);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .schedule-quick-btn:hover {
+      background: rgba(255,255,255,0.12);
+    }
+    .schedule-quick-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .schedule-quick-btn[data-action="complete"] {
+      border-color: rgba(91,220,130,0.45);
+      color: #6bff95;
+    }
+    .schedule-quick-btn[data-action="skip"] {
+      border-color: rgba(255,176,92,0.45);
+      color: #ffb05c;
     }
     .schedule-node-label {
       display: flex;
@@ -202,6 +248,32 @@ function apiBase(){
   const origin = window.location?.origin;
   if (!origin || origin === 'null' || origin.startsWith('file:')) return 'http://127.0.0.1:7357';
   return origin;
+}
+function buildCliBody(command, args = [], properties = {}){
+  const propLines = Object.entries(properties || {})
+    .map(([k, v]) => `  ${k}: ${String(v)}`).join('\n');
+  return `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n${propLines ? 'properties:\n' + propLines + '\n' : ''}`;
+}
+async function runCli(command, args = [], properties = {}){
+  try {
+    const resp = await fetch(apiBase() + '/api/cli', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/yaml' },
+      body: buildCliBody(command, args, properties),
+    });
+    const text = await resp.text();
+    let payload = null;
+    try { payload = JSON.parse(text); } catch {}
+    return {
+      ok: resp.ok && (payload?.ok !== false),
+      text,
+      stdout: String(payload?.stdout || ''),
+      stderr: String(payload?.stderr || ''),
+      error: payload?.error ? String(payload.error) : '',
+    };
+  } catch (error) {
+    return { ok: false, text: String(error || 'Request failed'), stdout: '', stderr: '', error: String(error || '') };
+  }
 }
 
 function todayKey(){
@@ -297,6 +369,41 @@ function normalizeBlocks(raw){
       key: `block-${idx}`,
     };
   });
+}
+function normalizeCompletionName(name){
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+function completionSetForNames(names){
+  const out = new Set();
+  if (!names) return out;
+  for (const name of names){
+    const normalized = normalizeCompletionName(name);
+    if (normalized) out.add(normalized);
+  }
+  return out;
+}
+async function loadCompletions(dayKeyValue){
+  try {
+    const day = String(dayKeyValue || todayKey());
+    const resp = await fetch(apiBase() + `/api/completions?date=${encodeURIComponent(day)}`);
+    const text = await resp.text();
+    const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    let inList = false;
+    const names = [];
+    for (const raw of lines){
+      const line = raw.replace(/#.*$/, '');
+      if (!line.trim()) continue;
+      if (!inList){
+        if (/^\s*completed\s*:/i.test(line)) inList = true;
+        continue;
+      }
+      const m = line.match(/^\s*-\s*(.+)$/);
+      if (m) names.push(m[1].trim());
+    }
+    return names;
+  } catch {
+    return [];
+  }
 }
 
 function extractTimeParts(value){
@@ -428,6 +535,7 @@ function mountSchedulePanel(root){
         row.className = 'schedule-tree-row';
         row.setAttribute('role', 'treeitem');
         row.setAttribute('aria-level', String(depth + 1));
+        if (node.completed) row.classList.add('is-completed');
 
         const time = document.createElement('div');
         time.className = 'schedule-time';
@@ -464,6 +572,27 @@ function mountSchedulePanel(root){
           spacer.className = 'schedule-toggle-spacer';
           nodeCell.appendChild(spacer);
         }
+        const quickActions = document.createElement('div');
+        quickActions.className = 'schedule-quick-actions';
+        const completeBtn = document.createElement('button');
+        completeBtn.type = 'button';
+        completeBtn.className = 'schedule-quick-btn';
+        completeBtn.dataset.action = 'complete';
+        completeBtn.dataset.nodeName = String(node.text || '');
+        completeBtn.title = node.completed ? 'Already completed' : 'Mark completed';
+        completeBtn.setAttribute('aria-label', 'Mark completed');
+        completeBtn.textContent = '✓';
+        completeBtn.disabled = !!node.completed;
+        const skipBtn = document.createElement('button');
+        skipBtn.type = 'button';
+        skipBtn.className = 'schedule-quick-btn';
+        skipBtn.dataset.action = 'skip';
+        skipBtn.dataset.nodeName = String(node.text || '');
+        skipBtn.title = 'Mark skipped';
+        skipBtn.setAttribute('aria-label', 'Mark skipped');
+        skipBtn.textContent = '⏭';
+        quickActions.append(completeBtn, skipBtn);
+        nodeCell.appendChild(quickActions);
         const label = document.createElement('div');
         label.className = 'schedule-node-label';
         const name = document.createElement('span');
@@ -524,6 +653,11 @@ function mountSchedulePanel(root){
         throw new Error(parsed?.error || `Schedule unavailable (HTTP ${resp.status})`);
       }
       const blocks = normalizeBlocks(parsed.blocks);
+      const completedRaw = await loadCompletions(requestedDay);
+      const completedNames = completionSetForNames(completedRaw);
+      blocks.forEach((block) => {
+        block.completed = completedNames.has(normalizeCompletionName(block.text));
+      });
       treeData = buildTree(blocks);
       expanded = new Set();
       treeData.forEach((_, idx)=> expanded.add(`root.${idx}`));
@@ -542,8 +676,39 @@ function mountSchedulePanel(root){
       renderTree();
     }
   };
+  const markNodeStatus = async (name, status)=>{
+    const normalizedName = String(name || '').trim();
+    if (!normalizedName || !status) return;
+    const label = status === 'completed' ? 'done' : status;
+    setStatus(`Marking ${label}...`);
+    setMessage('');
+    const result = await runCli('mark', [`${normalizedName}:${status}`], {});
+    if (!result?.ok) {
+      const msg = String(result?.error || result?.stderr || result?.text || 'Action failed');
+      setMessage(`Failed to mark "${normalizedName}" as ${label}: ${msg}`, true);
+      setStatus('Action failed');
+      return;
+    }
+    setStatus(`Marked ${label}`);
+    await loadSchedule();
+  };
 
-  const handleToggle = (ev)=>{
+  const handleToggle = async (ev)=>{
+    const actionBtn = ev.target?.closest?.('[data-action]');
+    if (actionBtn) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (actionBtn.disabled) return;
+      const action = actionBtn.getAttribute('data-action');
+      const nodeName = actionBtn.getAttribute('data-node-name');
+      if (!nodeName) return;
+      if (action === 'complete') {
+        await markNodeStatus(nodeName, 'completed');
+      } else if (action === 'skip') {
+        await markNodeStatus(nodeName, 'skipped');
+      }
+      return;
+    }
     const btn = ev.target?.closest?.('[data-toggle]');
     if (!btn) return;
     const key = btn.getAttribute('data-toggle');
