@@ -3529,6 +3529,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                             except Exception:
                                 sched_data = []
                         blocks = flatten(sched_data)
+                        # Keep today's column populated even when today's schedule file
+                        # has not been generated yet (or is temporarily empty).
+                        if not blocks:
+                            preview, _conflicts = build_preview_for_date(date_obj, show_warnings=False)
+                            blocks = flatten(preview or [])
                     else:
                         preview, _conflicts = build_preview_for_date(date_obj, show_warnings=False)
                         blocks = flatten(preview or [])

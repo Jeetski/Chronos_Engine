@@ -10,6 +10,8 @@ This index points to the main documentation entry points in this repo and what e
 
 ## Guides
 - Dashboard: `Docs/Guides/Dashboard.md` - UI tour, widgets, wizards, and API endpoints.
+- Day Builder: `Docs/Guides/DayBuilder.md` - scheduling-first day composition, template lifecycle, validation, and apply-to-today flow.
+- Routine Builder: `Docs/Guides/RoutineBuilder.md` - routine/subroutine/microroutine template composition with drag/drop schedulables, hierarchy editing, and validation.
 - Canvas: `Docs/Guides/Canvas.md` - Canvas board data model and collaboration flow.
 - Cockpit: `Docs/Guides/Cockpit.md` - panel behaviors, data sources, and troubleshooting.
 - Settings: `Docs/Guides/Settings.md` - config file layout, naming, and key settings.

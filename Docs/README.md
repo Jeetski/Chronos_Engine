@@ -10,6 +10,8 @@ Links
 - Agent Guide: Agents/agents.md
 - Agent Dev Guide: Agents/agents.dev.md
 - Common Workflows: Guides/common_workflows.md
+- Day Builder: Guides/DayBuilder.md
+- Routine Builder: Guides/RoutineBuilder.md
 - Cockpit Panels: Guides/Cockpit.md
 - Canvas: Guides/Canvas.md
 - Sequence Mirrors: Dev/Sequence.md

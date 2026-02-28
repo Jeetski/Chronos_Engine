@@ -1,5 +1,69 @@
 # Changelog
 
+## 2026-02-28
+
+### Dashboard - Day Builder View (Scheduling-Focused) Implemented
+- Replaced the Day Builder placeholder with an interactive scheduling editor:
+  - drag-and-drop schedulables palette
+  - editable day timeline
+  - inspector panel for selected block + template metadata
+- Supported schedulable families in this view:
+  - `task`, `habit` (with `chore` alias), `routine`, `subroutine`, `microroutine` (with `habit_stack` alias), `window`, `timeblock`, `buffer`, `break`
+- `buffer`/`break` are treated as scheduler blocks (built-in palette entries), not item ingestion from `/api/items`.
+
+### Day Template Lifecycle Controls
+- Added explicit template actions:
+  - `New Template`
+  - `Load Template`
+  - `Save Template`
+  - `Save As`
+  - `Rename`
+  - `Delete`
+- Wired to existing template/item endpoints (`/api/template`, `/api/item`, `/api/item/rename`, `/api/item/delete`).
+
+### Schedule Loading + Apply Flow
+- Added generated schedule loading:
+  - `Load Today`
+  - `Load Date Schedule` (from `User/Schedules/schedule_YYYY-MM-DD.yml` via `/api/file/read`)
+  - fallback to `/api/today` for current-day load
+- Added `Apply Draft To Today`:
+  - validates draft
+  - saves template
+  - runs scheduler via CLI bridge (`today reschedule template:<name>`)
+
+### Scheduling Tooling (Builder UX)
+- Added validation/conflict checks:
+  - invalid time format
+  - end-before-start
+  - non-positive duration
+  - anchor without fixed time
+  - overlap detection for fixed-time blocks
+- Added placement helpers:
+  - auto-end from start + duration (inspector)
+  - `Snap 5m`
+  - `Auto Pack` from configurable start time
+- Added auto insertion from settings:
+  - `Auto Buffers/Breaks` with toggles for buffers and breaks
+  - uses `Buffer_Settings.yml`, `Timer_Settings.yml`, `Timer_Profiles.yml`
+
+### Inspector + Data Model Enhancements
+- Added `Pinned Anchor` behavior in block inspector.
+- Added hierarchy editing:
+  - `Hierarchy Level` plus `Indent`/`Outdent`
+  - saves nested `children` tree and flattens on load for editing
+- Added window-specific inspector fields:
+  - `window_name`
+  - window filters (YAML map)
+- Added timeblock subtype selector:
+  - generic/free/category/buffer/break
+- Added day template properties panel:
+  - category, tags, notes, status requirements, extra props
+
+### Editing Safety + QA Helpers
+- Added local `undo` / `redo` history stack.
+- Added in-view `QA` status check and clipboard draft export.
+- Fixed missing duration inference utility used by palette ingestion.
+
 ## 2026-02-26
 
 ### Dashboard API - CLI Consolidation and Drift Reduction
