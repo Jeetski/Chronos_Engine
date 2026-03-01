@@ -22,6 +22,9 @@ export function mount(el) {
       .ms-status.error { color:#ef6a6a; }
       .ms-status.success { color:#5bdc82; }
       .ms-list { display:flex; flex-direction:column; gap:10px; max-height:420px; overflow:auto; }
+      .ms-list-toggle { align-self:flex-start; }
+      .ms-list-section[hidden] { display:none !important; }
+      .ms-list-section { display:flex; flex-direction:column; gap:10px; }
       .ms-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
       .ms-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .ms-name { font-size:15px; font-weight:700; }
@@ -64,19 +67,22 @@ export function mount(el) {
           <div class="ms-card-meta">Milestones currently active.</div>
         </div>
       </div>
-      <div class="row" style="gap:8px; flex-wrap:wrap;">
-        <input id="msSearch" class="input" placeholder="Search milestones..." style="flex:1 1 220px; min-width:160px;" />
-        <select id="msStatusFilter" class="input" style="flex:0 0 180px;">
-          <option value="all">All states</option>
-          <option value="pending">Pending</option>
-          <option value="in-progress">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
-        <div class="spacer"></div>
-        <button class="btn" id="msRefresh">Refresh</button>
+      <button class="btn ms-list-toggle" id="msListToggle" aria-expanded="false">Show List Section ▾</button>
+      <div id="msListSection" class="ms-list-section" hidden>
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <input id="msSearch" class="input" placeholder="Search milestones..." style="flex:1 1 220px; min-width:160px;" />
+          <select id="msStatusFilter" class="input" style="flex:0 0 180px;">
+            <option value="all">All states</option>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+          <div class="spacer"></div>
+          <button class="btn" id="msRefresh">Refresh</button>
+        </div>
+        <div id="msStatus" class="ms-status"></div>
+        <div id="msList" class="ms-list"></div>
       </div>
-      <div id="msStatus" class="ms-status"></div>
-      <div id="msList" class="ms-list"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -87,6 +93,8 @@ export function mount(el) {
   const btnMin = el.querySelector('#msMin');
   const btnClose = el.querySelector('#msClose');
   const refreshBtn = el.querySelector('#msRefresh');
+  const listToggleBtn = el.querySelector('#msListToggle');
+  const listSectionEl = el.querySelector('#msListSection');
   const searchEl = el.querySelector('#msSearch');
   const statusSel = el.querySelector('#msStatusFilter');
   const statusLine = el.querySelector('#msStatus');
@@ -104,6 +112,14 @@ export function mount(el) {
   let counts = { total: 0, completed: 0, in_progress: 0, pending: 0 };
   let loading = false;
   const expanded = new Set();
+
+  function setListOpen(isOpen) {
+    if (!listToggleBtn || !listSectionEl) return;
+    const open = !!isOpen;
+    listSectionEl.hidden = !open;
+    listToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    listToggleBtn.textContent = open ? 'Hide List Section ▴' : 'Show List Section ▾';
+  }
 
   function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
@@ -293,6 +309,8 @@ export function mount(el) {
   statusSel.addEventListener('change', () => renderList());
   refreshBtn.addEventListener('click', () => refresh());
 
+  listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
+  setListOpen(false);
   refresh();
 
   return { refresh: () => refresh() };

@@ -48,7 +48,7 @@ export function mount(el, context) {
       border-color: var(--term-focus, rgba(78, 201, 176, 0.4));
       background: var(--term-input-focus-bg, linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%));
     }
-    .ghost {
+    .term-ghost {
       position:absolute;
       left: 8px;
       right: 8px;
@@ -80,7 +80,7 @@ export function mount(el, context) {
           <span class="who" id="tWho">chronos@you</span>
           <div class="input-wrap">
             <input id="tInput" class="in" placeholder="Type a command (e.g., help) and press Enter" />
-            <div class="ghost" id="tGhost"></div>
+            <div class="term-ghost" id="tGhost"></div>
           </div>
           <label class="hint" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="tExpand" checked />Expand args</label>
         </div>

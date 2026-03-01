@@ -315,6 +315,7 @@ function createInitialState(){
       target_date: '',
       celebrate: '',
       tags: '',
+      customProperties: '',
     },
     metrics: [createMetric()],
     supports: {
@@ -362,6 +363,7 @@ function createMilestone(){
     celebrate: '',
     owner: '',
     weight: 1,
+    customProperties: '',
   };
 }
 
@@ -488,6 +490,103 @@ function formatPrimitive(value){
   return JSON.stringify(str);
 }
 
+const RESERVED_GOAL_KEYS = new Set([
+  'type', 'name', 'status',
+  'description', 'category', 'priority', 'why',
+  'duration', 'start_date', 'due_date', 'target_date',
+  'celebration', 'celebrate', 'tags',
+  'success_metrics',
+  'supporting_habits', 'hindering_habits',
+  'first_action', 'review_cadence', 'risks', 'accountability',
+  'milestones', 'linked_milestones',
+]);
+
+const RESERVED_MILESTONE_KEYS = new Set([
+  'id', 'name', 'description', 'weight',
+  'due_date', 'criteria', 'plan', 'owner', 'celebration',
+]);
+
+function parseCustomPropertyValue(raw){
+  const text = String(raw ?? '').trim();
+  if (!text.length) return '';
+  const lower = text.toLowerCase();
+  if (lower === 'true') return true;
+  if (lower === 'false') return false;
+  if (lower === 'null') return null;
+  if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text);
+  if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
+    try { return JSON.parse(text); } catch { return text; }
+  }
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    const quoted = text.startsWith('"') ? text : `"${text.slice(1, -1).replace(/"/g, '\\"')}"`;
+    try { return JSON.parse(quoted); } catch { return text.slice(1, -1); }
+  }
+  return text;
+}
+
+function parseCustomPropertiesBlock(block, reservedKeys = RESERVED_GOAL_KEYS){
+  const props = {};
+  const errors = [];
+  const lines = String(block || '').split(/\r?\n/);
+  lines.forEach((line, idx) => {
+    const raw = String(line || '');
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const colon = raw.indexOf(':');
+    if (colon <= 0) {
+      errors.push(`Line ${idx + 1}: use "key: value" format.`);
+      return;
+    }
+    const key = raw.slice(0, colon).trim();
+    const valRaw = raw.slice(colon + 1);
+    if (!key) {
+      errors.push(`Line ${idx + 1}: property key is empty.`);
+      return;
+    }
+    if (reservedKeys.has(key)) {
+      errors.push(`Line ${idx + 1}: "${key}" is managed by the wizard.`);
+      return;
+    }
+    props[key] = parseCustomPropertyValue(valRaw);
+  });
+  return { props, errors };
+}
+
+function serializeCustomPropertyValue(value){
+  if (value === null) return 'null';
+  if (typeof value === 'boolean' || typeof value === 'number') return String(value);
+  if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+    try { return JSON.stringify(value); } catch { return String(value); }
+  }
+  const s = String(value ?? '');
+  if (!s.length) return '""';
+  if (/^(true|false|null|-?\d+(\.\d+)?)$/i.test(s)) return JSON.stringify(s);
+  if (/^[A-Za-z0-9 _./-]+$/.test(s)) return s;
+  return JSON.stringify(s);
+}
+
+function customPropertiesFromGoal(goal){
+  if (!goal || typeof goal !== 'object') return '';
+  const lines = [];
+  Object.entries(goal).forEach(([key, value]) => {
+    if (!key || RESERVED_GOAL_KEYS.has(key)) return;
+    if (shouldSkip(value)) return;
+    lines.push(`${key}: ${serializeCustomPropertyValue(value)}`);
+  });
+  return lines.join('\n');
+}
+
+function customPropertiesFromMilestone(milestone){
+  if (!milestone || typeof milestone !== 'object') return '';
+  const lines = [];
+  Object.entries(milestone).forEach(([key, value]) => {
+    if (!key || RESERVED_MILESTONE_KEYS.has(key)) return;
+    if (shouldSkip(value)) return;
+    lines.push(`${key}: ${serializeCustomPropertyValue(value)}`);
+  });
+  return lines.join('\n');
+}
+
 function toYaml(value, indent = 0){
   const pad = '  '.repeat(indent);
   if (Array.isArray(value)){
@@ -572,6 +671,11 @@ function buildGoalPayload(state){
       if (steps.length) entry.plan = steps;
       if (m.owner?.trim()) entry.owner = m.owner.trim();
       if (m.celebrate?.trim()) entry.celebration = m.celebrate.trim();
+      const custom = parseCustomPropertiesBlock(m.customProperties || '', RESERVED_MILESTONE_KEYS);
+      if (custom.errors.length) throw new Error(`Milestone "${entry.name}" custom properties invalid: ${custom.errors[0]}`);
+      Object.entries(custom.props).forEach(([key, value]) => {
+        entry[key] = value;
+      });
       return entry;
     })
     .filter(Boolean);
@@ -579,6 +683,11 @@ function buildGoalPayload(state){
   base.milestones = milestones;
   const linkedMilestones = collectMilestoneLinks(state);
   if (linkedMilestones.length) base.linked_milestones = linkedMilestones;
+  const custom = parseCustomPropertiesBlock(state.goal.customProperties || '');
+  if (custom.errors.length) throw new Error(`Custom properties invalid: ${custom.errors[0]}`);
+  Object.entries(custom.props).forEach(([key, value]) => {
+    base[key] = value;
+  });
   return base;
 }
 
@@ -673,6 +782,10 @@ function renderVisionStep(container, state){
     <div class="form-grid">
       <label>Description<textarea data-field="goal.description">${escapeHtml(state.goal.description)}</textarea></label>
       <label>Why it matters<textarea data-field="goal.why" placeholder="What improves if you hit this goal?">${escapeHtml(state.goal.why)}</textarea></label>
+      <label>Custom properties
+        <span class="hint">Optional. One per line using <code>key: value</code> (example: <code>whatever: stuff</code>).</span>
+        <textarea data-field="goal.customProperties" placeholder="whatever: stuff&#10;effort_score: 8&#10;meta: {&quot;owner&quot;:&quot;you&quot;}">${escapeHtml(state.goal.customProperties)}</textarea>
+      </label>
     </div>
   `;
   container.querySelectorAll('[data-field]').forEach(el => {
@@ -932,6 +1045,10 @@ function renderMilestonesStep(container, state){
         <label>Success signal / metric<input type="text" data-milestone-field="metric" value="${escapeAttr(mile.metric)}" placeholder="e.g., 25 engaged testers" /></label>
         <label>Key steps (one per line)<textarea data-milestone-field="steps">${escapeHtml(mile.steps)}</textarea></label>
         <label>Celebration note<input type="text" data-milestone-field="celebrate" value="${escapeAttr(mile.celebrate)}" placeholder="Team lunch" /></label>
+        <label>Custom properties
+          <span class="hint">Optional. One per line using <code>key: value</code>.</span>
+          <textarea data-milestone-field="customProperties" placeholder="owner_notes: keep momentum&#10;risk_level: medium">${escapeHtml(mile.customProperties || '')}</textarea>
+        </label>
       </div>
     `;
     listEl.appendChild(card);
@@ -1258,6 +1375,10 @@ async function syncMilestoneGoalLinks(goalPayload, previousMilestoneLinks = [], 
       const steps = listFromMultiline(authored.steps || '');
       if (steps.length) payload.plan = steps;
       if (String(authored.celebrate || '').trim()) payload.celebration = String(authored.celebrate).trim();
+      const custom = parseCustomPropertiesBlock(authored.customProperties || '', RESERVED_MILESTONE_KEYS);
+      Object.entries(custom.props).forEach(([key, value]) => {
+        payload[key] = value;
+      });
     }
     await apiRequest('/api/item', { method: 'POST', body: payload });
   }
@@ -1395,6 +1516,7 @@ function resetToCreateMode(){
     target_date: '',
     celebrate: '',
     tags: '',
+    customProperties: '',
   };
   wizardState.metrics = [createMetric()];
   wizardState.supports = {
@@ -1440,6 +1562,7 @@ async function loadGoalForEdit(goalName){
   wizardState.goal.target_date = String(goal.due_date || goal.target_date || '');
   wizardState.goal.celebrate = String(goal.celebration || goal.celebrate || '');
   wizardState.goal.tags = Array.isArray(goal.tags) ? goal.tags.join(', ') : String(goal.tags || '');
+  wizardState.goal.customProperties = customPropertiesFromGoal(goal);
   const duration = String(goal.duration || '90d').trim();
   const knownHorizons = new Set(HORIZON_PRESETS.map(x => x.value));
   if (knownHorizons.has(duration)) {
@@ -1480,6 +1603,7 @@ async function loadGoalForEdit(goalName){
       celebrate: String(m?.celebration || ''),
       owner: String(m?.owner || ''),
       weight: Number(m?.weight) || 1,
+      customProperties: customPropertiesFromMilestone(m),
     })).filter(m => m.name || m.summary);
   }
   if (!wizardState.milestones.length) wizardState.milestones = [createMilestone()];

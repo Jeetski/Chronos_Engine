@@ -368,7 +368,7 @@ function renderIntroStep(container) {
       </ol>
       <p class="moh-help">Tip: After saving, tag items with <code>happiness: [&lt;key&gt;]</code> so the cockpit panel can show coverage.</p>
       <div style="margin-top: 12px;">
-        <button class="moh-btn primary" data-start>Begin capture</button>
+        <button class="moh-btn" data-start>Begin capture</button>
       </div>
     </div>
   `;

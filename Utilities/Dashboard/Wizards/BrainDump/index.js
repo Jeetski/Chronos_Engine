@@ -126,6 +126,18 @@ function injectStyles(){
       font-weight: 600;
       box-shadow: var(--chronos-accent-glow);
     }
+    .wizard-actions button.danger,
+    .task-actions button.danger,
+    .refine-card button.danger {
+      background: linear-gradient(180deg, rgba(247, 118, 142, 0.2), rgba(247, 118, 142, 0.08));
+      border-color: rgba(247, 118, 142, 0.45);
+      color: #ffd7e0;
+    }
+    .wizard-actions button.danger:hover,
+    .task-actions button.danger:hover,
+    .refine-card button.danger:hover {
+      filter: brightness(1.08);
+    }
     .wizard-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
     .wizard-status { flex: 1; display: flex; flex-direction: column; gap: 6px; }
     .wizard-status [data-status][data-tone="success"] { color: var(--chronos-success); }
@@ -198,7 +210,6 @@ function injectStyles(){
       color: inherit;
       cursor: pointer;
     }
-    .task-actions button.danger { color: var(--chronos-danger); }
     .refine-list { display: flex; flex-direction: column; gap: 12px; }
     .refine-card {
       border: 1px solid rgba(255,255,255,0.08);

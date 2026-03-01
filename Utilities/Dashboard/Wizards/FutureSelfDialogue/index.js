@@ -195,7 +195,7 @@ function renderIntro(container) {
         <div><strong>Steps</strong><br/>Future → Past dialogue · Letter to Future · Reactions (past/present/future) · Save as journal</div>
         <div><strong>Output</strong><br/>Journal entry under <code>User/Journal/</code> with prompts, reactions, tags.</div>
       </div>
-      <button class="fsd-btn primary" data-start>Begin</button>
+      <button class="fsd-btn" data-start>Begin</button>
     </div>
   `;
   container.querySelector('[data-start]')?.addEventListener('click', () => {

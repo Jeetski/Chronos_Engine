@@ -41,13 +41,14 @@ function injectStyles(){
     }
     .onboarding-shell {
       width: min(960px, 96vw);
+      height: min(94vh, 860px);
       max-height: 94vh;
       background: linear-gradient(140deg, var(--chronos-surface-strong), rgba(3,5,12,0.98));
       border: 1px solid rgba(122,162,247,0.25);
       border-radius: 24px;
       box-shadow: 0 30px 90px rgba(0,0,0,0.65);
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto auto;
       color: var(--chronos-text);
       padding: clamp(20px, 3vw, 32px);
       gap: 18px;
@@ -270,15 +271,11 @@ function injectStyles(){
     }
     .onboarding-footer {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
-    }
-    @media (min-width: 680px){
-      .onboarding-footer {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-      }
+      margin-top: auto;
     }
     .wizard-status-line {
       font-size: 13px;
@@ -290,19 +287,14 @@ function injectStyles(){
       border: 1px solid rgba(41,55,92,0.8);
       flex: 1;
     }
-    .onboarding-actions {
-      display: flex;
-      width: 100%;
-      justify-content: flex-end;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .onboarding-actions .action-group {
+    .onboarding-bottom-nav {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-top: -4px;
     }
-    .onboarding-actions button {
+    .onboarding-bottom-nav button {
       border: 1px solid rgba(255,255,255,0.18);
       border-radius: 12px;
       padding: 10px 18px;
@@ -312,25 +304,25 @@ function injectStyles(){
       font-size: 15px;
       transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
     }
-    .onboarding-actions button:disabled {
+    .onboarding-bottom-nav button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
       transform: none;
     }
-    .onboarding-actions button:hover:not(:disabled) {
+    .onboarding-bottom-nav button:hover:not(:disabled) {
       border-color: rgba(255,255,255,0.35);
       transform: translateY(-1px);
     }
-    .onboarding-actions button.primary {
+    .onboarding-bottom-nav button.primary {
       background: var(--chronos-accent-gradient);
       border-color: rgba(143,168,255,0.45);
       color: #fff;
       box-shadow: var(--chronos-accent-glow);
     }
-    .onboarding-actions button.ghost {
+    .onboarding-bottom-nav button.back-btn {
       background: rgba(12,16,28,0.6);
     }
-    .onboarding-actions button.subtle {
+    .onboarding-bottom-nav button.skip-btn {
       border-color: transparent;
       color: var(--chronos-text-soft);
       background: transparent;
@@ -1095,27 +1087,24 @@ export async function launch(context, options = {}){
 
   const statusLine = document.createElement('div');
   statusLine.className = 'wizard-status-line chronos-wizard-status';
-  const actions = document.createElement('div');
-  actions.className = 'onboarding-actions chronos-wizard-actions';
-  const actionsGroup = document.createElement('div');
-  actionsGroup.className = 'action-group';
-  const backBtn = document.createElement('button');
-  backBtn.className = 'ghost';
-  backBtn.textContent = 'Back';
-  const skipBtn = document.createElement('button');
-  skipBtn.className = 'ghost subtle';
-  skipBtn.textContent = 'Skip Step';
-  const nextBtn = document.createElement('button');
-  nextBtn.className = 'primary';
-  nextBtn.textContent = 'Next';
-  actionsGroup.append(backBtn, skipBtn, nextBtn);
-  actions.append(actionsGroup);
-
   const footer = document.createElement('div');
   footer.className = 'onboarding-footer chronos-wizard-footer';
-  footer.append(statusLine, actions);
+  footer.append(statusLine);
 
-  shell.append(headerWrap, content, footer);
+  const bottomNav = document.createElement('div');
+  bottomNav.className = 'onboarding-bottom-nav';
+  const bottomBackBtn = document.createElement('button');
+  bottomBackBtn.className = 'back-btn';
+  bottomBackBtn.textContent = 'Back';
+  const bottomSkipBtn = document.createElement('button');
+  bottomSkipBtn.className = 'skip-btn';
+  bottomSkipBtn.textContent = 'Skip Step';
+  const bottomNextBtn = document.createElement('button');
+  bottomNextBtn.className = 'primary';
+  bottomNextBtn.textContent = 'Next';
+  bottomNav.append(bottomBackBtn, bottomSkipBtn, bottomNextBtn);
+
+  shell.append(headerWrap, content, footer, bottomNav);
   overlay.appendChild(shell);
   document.body.appendChild(overlay);
   const helpBtn = context?.createHelpButton?.('Onboarding', {
@@ -1154,9 +1143,11 @@ export async function launch(context, options = {}){
     }
     syncStepper();
     const step = steps[stepIndex];
-    nextBtn.textContent = stepIndex === steps.length - 1 ? 'Finish' : 'Next';
-    skipBtn.style.display = stepIndex === steps.length - 1 ? 'none' : '';
-    backBtn.disabled = stepIndex === 0;
+    bottomNextBtn.textContent = stepIndex === 0
+      ? 'Begin'
+      : (stepIndex === steps.length - 1 ? 'Finish' : 'Next');
+    bottomSkipBtn.style.display = stepIndex === steps.length - 1 ? 'none' : '';
+    bottomBackBtn.disabled = stepIndex === 0;
     currentHooks = await step.render(ctx);
   }
 
@@ -1181,9 +1172,9 @@ export async function launch(context, options = {}){
     await loadStep();
   }
 
-  backBtn.addEventListener('click', ()=> goBack());
-  skipBtn.addEventListener('click', ()=> goNext(true));
-  nextBtn.addEventListener('click', ()=> goNext(false));
+  bottomBackBtn.addEventListener('click', ()=> goBack());
+  bottomSkipBtn.addEventListener('click', ()=> goNext(true));
+  bottomNextBtn.addEventListener('click', ()=> goNext(false));
   overlay.addEventListener('click', (ev)=> { if (ev.target === overlay) overlay.remove(); });
 
   await loadStep();

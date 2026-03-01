@@ -5,67 +5,155 @@ function injectStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const css = `
   .mp3-player {
-    background: linear-gradient(180deg, #0f141d 0%, #121926 100%);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px;
-    padding: 14px;
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.45);
+    --mp3-accent: var(--chronos-accent, var(--accent, #7aa2f7));
+    --mp3-accent-soft: var(--chronos-accent-soft, rgba(122, 162, 247, 0.28));
+    --mp3-accent-strong: var(--chronos-accent-strong, #4f6fa8);
+    position: relative;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.03) 38%, rgba(0,0,0,0.3)),
+      linear-gradient(180deg, rgba(86, 97, 114, 0.36) 0%, rgba(52, 59, 72, 0.32) 44%, rgba(36, 42, 52, 0.3) 100%);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,0.42),
+      inset -2px -2px 8px rgba(0,0,0,0.35),
+      0 14px 24px rgba(0,0,0,0.45);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
+    overflow: hidden;
+    backdrop-filter: saturate(125%) blur(8px);
+    -webkit-backdrop-filter: saturate(125%) blur(8px);
+  }
+  .mp3-player::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,0.02) 0px,
+        rgba(255,255,255,0.02) 2px,
+        rgba(0,0,0,0.02) 2px,
+        rgba(0,0,0,0.02) 4px
+      );
+    mix-blend-mode: soft-light;
+    opacity: 0.55;
   }
   .mp3-screen {
-    background: radial-gradient(circle at top, #1f2736, #0f141d);
-    border: 1px solid rgba(255,255,255,0.08);
+    position: relative;
+    background:
+      radial-gradient(circle at 22% 18%, rgba(188, 241, 255, 0.18), rgba(188, 241, 255, 0) 44%),
+      linear-gradient(180deg, #a9bd9f 0%, #6f8868 55%, #4f644c 100%);
+    border: 1px solid rgba(31, 48, 25, 0.55);
     border-radius: 12px;
     padding: 14px;
-    color: #9ab4ff;
+    color: #1f3020;
     display: flex;
     flex-direction: column;
     gap: 6px;
     min-height: 120px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.45),
+      inset 0 -1px 0 rgba(0,0,0,0.24),
+      inset 0 0 28px rgba(28, 63, 26, 0.28);
+  }
+  .mp3-screen::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: 10px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 30%);
   }
   .mp3-track-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.25);
   }
   .mp3-track-artist {
-    font-size: 14px;
-    opacity: 0.8;
+    font-size: 13px;
+    opacity: 0.84;
   }
   .mp3-progress {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 700;
+    color: #2a3f2b;
   }
   .mp3-progress input[type="range"] {
     flex: 1;
+    accent-color: var(--mp3-accent);
+    filter: saturate(0.85);
   }
   .mp3-controls {
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
+    padding: 4px 0 0;
+  }
+  .mp3-collapse-toggle {
+    align-self: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.24);
+    background: linear-gradient(180deg, rgba(255,255,255,0.2), rgba(0,0,0,0.08));
+    color: rgba(235, 242, 255, 0.94);
+    padding: 6px 12px;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .mp3-collapse-toggle:hover {
+    filter: brightness(1.06);
+  }
+  .mp3-collapsible[hidden] {
+    display: none !important;
+  }
+  .mp3-collapsible {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
   .mp3-controls button {
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: #101726;
-    color: #f6f7fb;
+    border: 1px solid rgba(255,255,255,0.34);
+    background:
+      radial-gradient(circle at 30% 28%, rgba(255,255,255,0.45), rgba(255,255,255,0) 44%),
+      linear-gradient(180deg, #fafbfd 0%, #c8cfda 54%, #9fa8b8 100%);
+    color: #1e2733;
     font-size: 18px;
     cursor: pointer;
-    transition: transform 0.1s ease, border-color 0.2s ease;
+    transition: transform 0.08s ease, box-shadow 0.14s ease, filter 0.14s ease;
+    box-shadow:
+      inset 0 1px 1px rgba(255,255,255,0.75),
+      inset 0 -2px 3px rgba(0,0,0,0.22),
+      0 2px 4px rgba(0,0,0,0.38);
   }
   .mp3-controls button:hover {
-    transform: translateY(-1px);
-    border-color: var(--chronos-accent, var(--accent));
+    filter: brightness(1.04);
   }
   .mp3-controls button.active {
-    border-color: var(--chronos-accent, var(--accent));
-    color: var(--chronos-accent, var(--accent));
+    color: var(--mp3-accent-strong);
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.35),
+      inset 0 -4px 8px rgba(0,0,0,0.28),
+      0 0 0 2px var(--mp3-accent-soft);
+  }
+  .mp3-controls button:active {
+    transform: translateY(1px);
+    box-shadow:
+      inset 0 3px 5px rgba(0,0,0,0.3),
+      inset 0 -1px 2px rgba(255,255,255,0.24),
+      0 1px 2px rgba(0,0,0,0.35);
   }
   .mp3-toolbar,
   .mp3-upload-row {
@@ -73,20 +161,40 @@ function injectStyles() {
     gap: 8px;
     flex-wrap: wrap;
     align-items: center;
+    padding: 10px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(238,243,252,0.1), rgba(22,26,34,0.05));
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
   }
   .mp3-toolbar select,
   .mp3-toolbar input {
     flex: 1;
     min-width: 140px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: linear-gradient(180deg, #e1e7f1, #c5cfde);
+    color: #1f2732;
+    padding: 6px 8px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
   }
   .mp3-toolbar button,
   .mp3-upload-row button {
     border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: #141b29;
-    color: #f6f7fb;
+    border: 1px solid rgba(255,255,255,0.28);
+    background: linear-gradient(180deg, #f9fbfe, #bcc7d8);
+    color: #1f2732;
     padding: 6px 10px;
     cursor: pointer;
+    font-weight: 600;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.75),
+      0 1px 2px rgba(0,0,0,0.2);
+  }
+  .mp3-toolbar button:active,
+  .mp3-upload-row button:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 3px rgba(0,0,0,0.24);
   }
   .mp3-lists {
     display: grid;
@@ -94,21 +202,27 @@ function injectStyles() {
     gap: 12px;
   }
   .mp3-list {
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.22);
     border-radius: 12px;
     padding: 10px;
-    background: #0d131f;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.015)),
+      linear-gradient(180deg, rgba(60, 68, 84, 0.4), rgba(44, 51, 65, 0.34));
     display: flex;
     flex-direction: column;
     gap: 8px;
     min-height: 180px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.22),
+      inset 0 -1px 0 rgba(0,0,0,0.24);
   }
   .mp3-list-title {
     font-weight: 600;
     font-size: 14px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--chronos-accent, var(--accent));
+    letter-spacing: 0.8px;
+    color: var(--mp3-accent);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   }
   .mp3-tracklist {
     flex: 1;
@@ -122,40 +236,52 @@ function injectStyles() {
     align-items: center;
     gap: 6px;
     padding: 6px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.03);
+    border-radius: 9px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: linear-gradient(180deg, rgba(250,252,255,0.11), rgba(101,112,131,0.08));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
     font-size: 13px;
+    color: #f2f6ff;
   }
   .mp3-track-row.playing {
-    border: 1px solid var(--chronos-accent, var(--accent));
+    border-color: var(--mp3-accent);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      0 0 0 1px var(--mp3-accent-soft);
   }
   .mp3-link,
   .mp3-link-inline {
-    color: #f7d794;
+    color: var(--mp3-accent);
     text-decoration: underline;
     font-weight: 500;
   }
   .mp3-link:hover,
   .mp3-link-inline:hover {
-    color: #ffe7b3;
+    color: var(--mp3-accent-strong);
   }
   .mp3-track-row button {
-    border: none;
-    background: none;
-    color: var(--chronos-text-soft, var(--text-dim));
+    border: 1px solid rgba(255,255,255,0.26);
+    background: linear-gradient(180deg, #f7f9ff, #c1cbdb);
+    color: #1c2a3a;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
   }
   .mp3-track-label {
     flex: 1;
   }
   .mp3-hint {
     font-size: 12px;
-    color: var(--chronos-text-muted, var(--text-dim));
+    color: rgba(236, 244, 255, 0.8);
   }
   .mp3-status {
     font-size: 12px;
-    color: var(--chronos-text-soft, var(--text-dim));
+    color: rgba(232, 241, 255, 0.78);
+    padding: 2px 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
   }
   `;
   const style = document.createElement('style');
@@ -203,30 +329,33 @@ export function mount(el, context) {
         <button id="mp3Shuffle" title="Shuffle">🔀</button>
         <button id="mp3Repeat" title="Repeat">🔁</button>
       </div>
-      <div class="mp3-toolbar">
-        <select id="mp3PlaylistSelect"></select>
-        <input id="mp3PlaylistName" class="input" placeholder="Playlist name" />
-        <button id="mp3NewPlaylist">New</button>
-        <button id="mp3SavePlaylist">Save</button>
-        <button id="mp3DeletePlaylist">Delete</button>
-        <button id="mp3Refresh">Refresh</button>
-      </div>
-      <div class="mp3-upload-row">
-        <button id="mp3UploadBtn">Upload MP3s</button>
-        <input type="file" id="mp3FileInput" accept=".mp3,audio/mpeg" multiple style="display:none;" />
-        <span class="mp3-hint">Files saved to User/Media/MP3</span>
-      </div>
-      <div class="mp3-lists">
-        <div class="mp3-list">
-          <div class="mp3-list-title">Library</div>
-          <div class="mp3-tracklist" id="mp3LibraryList"></div>
+      <button id="mp3CollapseToggle" class="mp3-collapse-toggle" aria-expanded="false">Show Library & Playlist Tools ▾</button>
+      <div id="mp3Collapsible" class="mp3-collapsible" hidden>
+        <div class="mp3-toolbar">
+          <select id="mp3PlaylistSelect"></select>
+          <input id="mp3PlaylistName" class="input" placeholder="Playlist name" />
+          <button id="mp3NewPlaylist">New</button>
+          <button id="mp3SavePlaylist">Save</button>
+          <button id="mp3DeletePlaylist">Delete</button>
+          <button id="mp3Refresh">Refresh</button>
         </div>
-        <div class="mp3-list">
-          <div class="mp3-list-title">Playlist Tracks</div>
-          <div class="mp3-tracklist" id="mp3PlaylistList"></div>
+        <div class="mp3-upload-row">
+          <button id="mp3UploadBtn">Upload MP3s</button>
+          <input type="file" id="mp3FileInput" accept=".mp3,audio/mpeg" multiple style="display:none;" />
+          <span class="mp3-hint">Files saved to User/Media/MP3</span>
         </div>
+        <div class="mp3-lists">
+          <div class="mp3-list">
+            <div class="mp3-list-title">Library</div>
+            <div class="mp3-tracklist" id="mp3LibraryList"></div>
+          </div>
+          <div class="mp3-list">
+            <div class="mp3-list-title">Playlist Tracks</div>
+            <div class="mp3-tracklist" id="mp3PlaylistList"></div>
+          </div>
+        </div>
+        <div class="mp3-status" id="mp3Status"></div>
       </div>
-      <div class="mp3-status" id="mp3Status"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -247,6 +376,8 @@ export function mount(el, context) {
   const nextBtn = el.querySelector('#mp3Next');
   const shuffleBtn = el.querySelector('#mp3Shuffle');
   const repeatBtn = el.querySelector('#mp3Repeat');
+  const collapseToggleBtn = el.querySelector('#mp3CollapseToggle');
+  const collapsibleEl = el.querySelector('#mp3Collapsible');
   const playlistSelect = el.querySelector('#mp3PlaylistSelect');
   const playlistNameInput = el.querySelector('#mp3PlaylistName');
   const newPlaylistBtn = el.querySelector('#mp3NewPlaylist');
@@ -774,6 +905,16 @@ export function mount(el, context) {
     }
   }
 
+  function setCollapsibleOpen(isOpen) {
+    if (!collapseToggleBtn || !collapsibleEl) return;
+    const open = !!isOpen;
+    collapsibleEl.hidden = !open;
+    collapseToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    collapseToggleBtn.textContent = open
+      ? 'Hide Library & Playlist Tools ▴'
+      : 'Show Library & Playlist Tools ▾';
+  }
+
   audio.addEventListener('timeupdate', updateProgressUI);
   audio.addEventListener('play', updateButtons);
   audio.addEventListener('pause', updateButtons);
@@ -787,6 +928,9 @@ export function mount(el, context) {
   nextBtn?.addEventListener('click', () => nextTrack());
   shuffleBtn?.addEventListener('click', toggleShuffle);
   repeatBtn?.addEventListener('click', cycleRepeat);
+  collapseToggleBtn?.addEventListener('click', () => {
+    setCollapsibleOpen(collapsibleEl?.hidden);
+  });
   seekEl?.addEventListener('change', handleSeekInput);
   playlistSelect?.addEventListener('change', e => selectPlaylist(e.target.value, true));
   newPlaylistBtn?.addEventListener('click', createPlaylist);
@@ -842,6 +986,7 @@ export function mount(el, context) {
   });
 
   loadLibrary().then(loadPlaylists).then(() => updateButtons());
+  setCollapsibleOpen(false);
   updateButtons();
 
   return {

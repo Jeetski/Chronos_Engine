@@ -443,7 +443,7 @@ export async function mountView(el, name) {
 export async function launchWizard(name, options = {}) {
   console.log(`[Chronos][runtime] Launching wizard '${name}'`);
   try {
-    const modUrl = new URL(`../Wizards/${name}/index.js`, import.meta.url);
+    const modUrl = new URL(`../Wizards/${name}/index.js?v=${Date.now()}`, import.meta.url);
     const mod = await import(modUrl);
     if (mod && typeof mod.launch === 'function') {
       return await mod.launch({ ...context }, options);

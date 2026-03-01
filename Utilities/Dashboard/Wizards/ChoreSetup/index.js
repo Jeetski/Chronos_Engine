@@ -99,6 +99,55 @@ function injectStyles() {
       display: block;
       color: var(--chronos-text-muted);
     }
+    .chore-custom-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      background: rgba(10, 16, 28, 0.6);
+      border: 1px solid rgba(122, 162, 247, 0.18);
+      border-radius: 12px;
+      padding: 8px;
+    }
+    .chore-custom-meta {
+      display: grid;
+      grid-template-columns: 1fr 120px 120px;
+      gap: 6px;
+    }
+    .chore-custom-input,
+    .chore-custom-select {
+      width: 100%;
+      background: rgba(12, 18, 30, 0.9);
+      border: 1px solid var(--chronos-border-strong);
+      border-radius: 10px;
+      color: var(--chronos-text);
+      padding: 8px 10px;
+      outline: none;
+      font-size: 13px;
+    }
+    .chore-custom-input:focus,
+    .chore-custom-select:focus {
+      border-color: rgba(122, 162, 247, 0.75);
+      box-shadow: 0 0 0 2px rgba(122, 162, 247, 0.2);
+    }
+    .chore-custom-remove-btn,
+    .chore-custom-add-btn {
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 8px 12px;
+      background: rgba(12,14,24,0.9);
+      color: var(--chronos-text);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .chore-custom-add-btn {
+      align-self: flex-start;
+      background: linear-gradient(140deg, rgba(122,162,247,0.25), rgba(12,14,24,0.95));
+      border-color: rgba(122,162,247,0.45);
+    }
+    .chore-custom-remove-btn:hover,
+    .chore-custom-add-btn:hover {
+      filter: brightness(1.08);
+    }
     .chore-setup-footer {
       display: flex;
       align-items: center;
@@ -247,25 +296,23 @@ export async function launch(context, options = {}) {
 
   function buildCustomRow(data = {}) {
     const row = document.createElement('div');
-    row.className = 'chore-item';
-    row.style.flexDirection = 'column';
-    row.style.alignItems = 'stretch';
-    row.style.gap = '6px';
+    row.className = 'chore-item chore-custom-row';
 
     const name = document.createElement('input');
+    name.className = 'chore-custom-input';
     name.placeholder = 'Chore name (e.g., "Wipe Fridge Handles")';
     name.value = data.name || '';
 
     const desc = document.createElement('input');
+    desc.className = 'chore-custom-input';
     desc.placeholder = 'Description (optional)';
     desc.value = data.description || '';
 
     const meta = document.createElement('div');
-    meta.style.display = 'grid';
-    meta.style.gridTemplateColumns = '1fr 120px 120px';
-    meta.style.gap = '6px';
+    meta.className = 'chore-custom-meta';
 
     const freq = document.createElement('select');
+    freq.className = 'chore-custom-select';
     ['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].forEach(val => {
       const opt = document.createElement('option');
       opt.value = val;
@@ -275,12 +322,14 @@ export async function launch(context, options = {}) {
     });
 
     const duration = document.createElement('input');
+    duration.className = 'chore-custom-input';
     duration.type = 'number';
     duration.min = '0';
     duration.placeholder = 'Minutes';
     duration.value = data.duration || '';
 
     const remove = document.createElement('button');
+    remove.className = 'chore-custom-remove-btn';
     remove.textContent = 'Remove';
     remove.addEventListener('click', () => {
       const idx = customRows.indexOf(payload);
@@ -302,6 +351,7 @@ export async function launch(context, options = {}) {
   }
 
   const addCustomBtn = document.createElement('button');
+  addCustomBtn.className = 'chore-custom-add-btn';
   addCustomBtn.textContent = 'Add Custom Chore';
   addCustomBtn.addEventListener('click', () => buildCustomRow());
   customCard.appendChild(addCustomBtn);

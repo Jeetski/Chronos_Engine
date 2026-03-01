@@ -1,8 +1,20 @@
-/* MP3Player Widget Glass Styling */
+/* MP3Player widget shell should match global dashboard glass cards. */
 .mp3player-widget {
-    background: transparent !important;
+    background: rgba(14, 18, 26, 0.22) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: var(--shadow, 0 12px 32px rgba(0, 0, 0, 0.45));
+    backdrop-filter: saturate(130%) blur(12px);
+    -webkit-backdrop-filter: saturate(130%) blur(12px);
+}
+
+.mp3player-widget .header {
+    background: linear-gradient(180deg, rgba(28, 34, 48, 0.2), rgba(18, 22, 32, 0.12)) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: saturate(130%) blur(8px);
+    -webkit-backdrop-filter: saturate(130%) blur(8px);
 }
 
 .mp3player-widget .content {
     padding: 12px;
+    background: transparent !important;
 }

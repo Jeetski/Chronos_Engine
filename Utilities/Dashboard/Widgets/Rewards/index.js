@@ -35,6 +35,9 @@ export function mount(el, context) {
       .rw-status.error { color:#ef6a6a; }
       .rw-status.success { color:#5bdc82; }
       .rw-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
+      .rw-list-toggle { align-self:flex-start; }
+      .rw-list-section[hidden] { display:none !important; }
+      .rw-list-section { display:flex; flex-direction:column; gap:10px; }
       .rw-empty { border:1px dashed var(--border); border-radius:10px; padding:20px; text-align:center; color:var(--text-dim); }
       .rw-head-left { display:flex; align-items:center; gap:8px; min-width:0; }
       .rw-expander { font-size:12px; color:var(--text-dim); width:14px; text-align:center; user-select:none; }
@@ -64,16 +67,19 @@ export function mount(el, context) {
           <div id="rwLedger" class="rw-ledger"></div>
         </div>
       </div>
-      <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-        <input id="rwSearch" class="input" placeholder="Search rewards..." style="flex:1 1 240px; min-width:160px;" />
-        <label class="hint" style="display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" id="rwReadyOnly" /> Ready only
-        </label>
-        <div class="spacer"></div>
-        <button class="btn" id="rwRefresh">Refresh</button>
+      <button class="btn rw-list-toggle" id="rwListToggle" aria-expanded="false">Show List Section ▾</button>
+      <div id="rwListSection" class="rw-list-section" hidden>
+        <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
+          <input id="rwSearch" class="input" placeholder="Search rewards..." style="flex:1 1 240px; min-width:160px;" />
+          <label class="hint" style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="rwReadyOnly" /> Ready only
+          </label>
+          <div class="spacer"></div>
+          <button class="btn" id="rwRefresh">Refresh</button>
+        </div>
+        <div id="rwStatus" class="rw-status"></div>
+        <div id="rwList" class="rw-list"></div>
       </div>
-      <div id="rwStatus" class="rw-status"></div>
-      <div id="rwList" class="rw-list"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -84,6 +90,8 @@ export function mount(el, context) {
   const btnMin = el.querySelector('#rwMin');
   const btnClose = el.querySelector('#rwClose');
   const fxToggle = el.querySelector('#rwFxToggle');
+  const listToggleBtn = el.querySelector('#rwListToggle');
+  const listSectionEl = el.querySelector('#rwListSection');
   const searchEl = el.querySelector('#rwSearch');
   const readyChk = el.querySelector('#rwReadyOnly');
   const refreshBtn = el.querySelector('#rwRefresh');
@@ -112,6 +120,14 @@ export function mount(el, context) {
   let history = [];
   let loading = false;
   const expanded = new Set();
+
+  function setListOpen(isOpen) {
+    if (!listToggleBtn || !listSectionEl) return;
+    const open = !!isOpen;
+    listSectionEl.hidden = !open;
+    listToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    listToggleBtn.textContent = open ? 'Hide List Section ▴' : 'Show List Section ▾';
+  }
 
   function setStatus(msg, tone) {
     statusEl.textContent = msg || '';
@@ -324,6 +340,8 @@ export function mount(el, context) {
   readyChk?.addEventListener('change', () => renderRewards());
   refreshBtn.addEventListener('click', () => refreshAll());
 
+  listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
+  setListOpen(false);
   refreshAll();
 
   return {

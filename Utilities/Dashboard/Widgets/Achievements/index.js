@@ -48,6 +48,9 @@ export function mount(el) {
       .ac-status.error { color:#ef6a6a; }
       .ac-status.success { color:#5bdc82; }
       .ac-list { display:flex; flex-direction:column; gap:10px; max-height:360px; overflow:auto; }
+      .ac-list-toggle { align-self:flex-start; }
+      .ac-list-section[hidden] { display:none !important; }
+      .ac-list-section { display:flex; flex-direction:column; gap:10px; }
       .ac-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
       .ac-item.archived { opacity:0.6; }
       .ac-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
@@ -102,23 +105,26 @@ export function mount(el) {
           </div>
         </div>
       </div>
-      <div class="row" style="gap:8px; flex-wrap:wrap; align-items:center;">
-        <input id="acSearch" class="input" placeholder="Search achievements..." style="flex:1 1 220px; min-width:160px;" />
-        <select id="acStatusFilter" class="input" style="flex:0 0 180px;">
-          <option value="all">All states</option>
-          <option value="pending">Pending</option>
-          <option value="awarded">Awarded</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select id="acTitleSelect" class="input" style="flex:0 0 200px;">
-          <option value="">Select title...</option>
-        </select>
-        <button class="btn" id="acSetTitle">Set Title</button>
-        <div class="spacer"></div>
-        <button class="btn" id="acRefresh">Refresh</button>
+      <button class="btn ac-list-toggle" id="acListToggle" aria-expanded="false">Show List Section ▾</button>
+      <div id="acListSection" class="ac-list-section" hidden>
+        <div class="row" style="gap:8px; flex-wrap:wrap; align-items:center;">
+          <input id="acSearch" class="input" placeholder="Search achievements..." style="flex:1 1 220px; min-width:160px;" />
+          <select id="acStatusFilter" class="input" style="flex:0 0 180px;">
+            <option value="all">All states</option>
+            <option value="pending">Pending</option>
+            <option value="awarded">Awarded</option>
+            <option value="archived">Archived</option>
+          </select>
+          <select id="acTitleSelect" class="input" style="flex:0 0 200px;">
+            <option value="">Select title...</option>
+          </select>
+          <button class="btn" id="acSetTitle">Set Title</button>
+          <div class="spacer"></div>
+          <button class="btn" id="acRefresh">Refresh</button>
+        </div>
+        <div id="acStatusLine" class="ac-status"></div>
+        <div id="acList" class="ac-list"></div>
       </div>
-      <div id="acStatusLine" class="ac-status"></div>
-      <div id="acList" class="ac-list"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -130,6 +136,8 @@ export function mount(el) {
   const btnMin = el.querySelector('#acMin');
   const btnClose = el.querySelector('#acClose');
   const fxToggle = el.querySelector('#acFxToggle');
+  const listToggleBtn = el.querySelector('#acListToggle');
+  const listSectionEl = el.querySelector('#acListSection');
   const searchEl = el.querySelector('#acSearch');
   const statusSel = el.querySelector('#acStatusFilter');
   const refreshBtn = el.querySelector('#acRefresh');
@@ -166,6 +174,14 @@ export function mount(el) {
   let counts = { total: 0, awarded: 0, pending: 0 };
   let loading = false;
   const expanded = new Set();
+
+  function setListOpen(isOpen) {
+    if (!listToggleBtn || !listSectionEl) return;
+    const open = !!isOpen;
+    listSectionEl.hidden = !open;
+    listToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    listToggleBtn.textContent = open ? 'Hide List Section ▴' : 'Show List Section ▾';
+  }
 
   function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
@@ -406,6 +422,7 @@ export function mount(el) {
   searchEl.addEventListener('input', () => renderList());
   statusSel.addEventListener('change', () => renderList());
   refreshBtn.addEventListener('click', () => refresh());
+  listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
   setTitleBtn?.addEventListener('click', async () => {
     const selected = titleSelect?.value || '';
     if (!selected) return;
@@ -425,6 +442,7 @@ export function mount(el) {
     }
   });
 
+  setListOpen(false);
   refresh();
 
   return {

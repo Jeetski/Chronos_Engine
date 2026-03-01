@@ -22,6 +22,9 @@ export function mount(el) {
       .cm-status.error { color:#ef6a6a; }
       .cm-status.success { color:#5bdc82; }
       .cm-list { display:flex; flex-direction:column; gap:10px; flex:1 1 auto; min-height:0; overflow:auto; }
+      .cm-list-toggle { align-self:flex-start; }
+      .cm-list-section[hidden] { display:none !important; }
+      .cm-list-section { display:flex; flex-direction:column; gap:10px; }
       .cm-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
       .cm-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .cm-name { font-size:15px; font-weight:700; }
@@ -67,19 +70,22 @@ export function mount(el) {
           <div class="cm-card-meta">Forbidden rules triggered today.</div>
         </div>
       </div>
-      <div class="row" style="gap:8px; flex-wrap:wrap;">
-        <input id="cmSearch" class="input" placeholder="Search commitments..." style="flex:1 1 220px; min-width:160px;" />
-        <select id="cmStatusFilter" class="input" style="flex:0 0 180px;">
-          <option value="all">All states</option>
-          <option value="pending">Pending</option>
-          <option value="met">Met</option>
-          <option value="violation">Violations</option>
-        </select>
-        <div class="spacer"></div>
-        <button class="btn" id="cmRefresh">Refresh</button>
+      <button class="btn cm-list-toggle" id="cmListToggle" aria-expanded="false">Show List Section ▾</button>
+      <div id="cmListSection" class="cm-list-section" hidden>
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <input id="cmSearch" class="input" placeholder="Search commitments..." style="flex:1 1 220px; min-width:160px;" />
+          <select id="cmStatusFilter" class="input" style="flex:0 0 180px;">
+            <option value="all">All states</option>
+            <option value="pending">Pending</option>
+            <option value="met">Met</option>
+            <option value="violation">Violations</option>
+          </select>
+          <div class="spacer"></div>
+          <button class="btn" id="cmRefresh">Refresh</button>
+        </div>
+        <div id="cmStatus" class="cm-status"></div>
+        <div id="cmList" class="cm-list"></div>
       </div>
-      <div id="cmStatus" class="cm-status"></div>
-      <div id="cmList" class="cm-list"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -90,6 +96,8 @@ export function mount(el) {
   const btnMin = el.querySelector('#cmMin');
   const btnClose = el.querySelector('#cmClose');
   const refreshBtn = el.querySelector('#cmRefresh');
+  const listToggleBtn = el.querySelector('#cmListToggle');
+  const listSectionEl = el.querySelector('#cmListSection');
   const evaluateBtn = el.querySelector('#cmEvaluate');
   const searchEl = el.querySelector('#cmSearch');
   const statusSel = el.querySelector('#cmStatusFilter');
@@ -108,6 +116,14 @@ export function mount(el) {
   let counts = { total: 0, met: 0, violations: 0, pending: 0 };
   let loading = false;
   const expanded = new Set();
+
+  function setListOpen(isOpen) {
+    if (!listToggleBtn || !listSectionEl) return;
+    const open = !!isOpen;
+    listSectionEl.hidden = !open;
+    listToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    listToggleBtn.textContent = open ? 'Hide List Section ▴' : 'Show List Section ▾';
+  }
 
   function setStatus(msg, tone) {
     statusLine.textContent = msg || '';
@@ -357,8 +373,10 @@ export function mount(el) {
   searchEl.addEventListener('input', () => renderList());
   statusSel.addEventListener('change', () => renderList());
   refreshBtn.addEventListener('click', () => refresh());
+  listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
   evaluateBtn.addEventListener('click', () => runEvaluation());
 
+  setListOpen(false);
   refresh();
 
   return { refresh: () => refresh() };

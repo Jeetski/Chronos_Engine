@@ -150,6 +150,56 @@ function injectStyles() {
     .life-row .input, .life-row select {
       width: 100%;
     }
+    .life-card input[type="text"],
+    .life-card input[type="number"],
+    .life-card input[type="time"],
+    .life-card input[type="date"],
+    .life-card select,
+    .life-card textarea,
+    .life-inline input[type="text"],
+    .life-inline input[type="number"],
+    .life-inline input[type="time"],
+    .life-inline input[type="date"],
+    .life-inline select,
+    .life-inline textarea {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(12,14,24,0.9);
+      color: var(--chronos-text);
+      font-size: 13px;
+      outline: none;
+    }
+    .life-card input[type="text"]:focus,
+    .life-card input[type="number"]:focus,
+    .life-card input[type="time"]:focus,
+    .life-card input[type="date"]:focus,
+    .life-card select:focus,
+    .life-card textarea:focus,
+    .life-inline input[type="text"]:focus,
+    .life-inline input[type="number"]:focus,
+    .life-inline input[type="time"]:focus,
+    .life-inline input[type="date"]:focus,
+    .life-inline select:focus,
+    .life-inline textarea:focus {
+      border-color: rgba(143,168,255,0.65);
+      box-shadow: 0 0 0 2px rgba(143,168,255,0.18);
+    }
+    .life-card button,
+    .life-inline button {
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 8px 12px;
+      background: rgba(12,14,24,0.9);
+      color: var(--chronos-text);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .life-card button:hover,
+    .life-inline button:hover {
+      filter: brightness(1.08);
+    }
     .life-days {
       display: flex;
       flex-wrap: wrap;
@@ -184,6 +234,8 @@ function injectStyles() {
       cursor: pointer;
       font-size: 14px;
     }
+    .life-card button.primary,
+    .life-inline button.primary,
     .life-actions button.primary {
       background: var(--chronos-accent-gradient);
       border-color: rgba(143,168,255,0.45);

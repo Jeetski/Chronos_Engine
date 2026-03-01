@@ -388,7 +388,72 @@ export function mount(el, context) {
     out = out.replace(/^\s*<?\s*hearts\s*:\s*[^>\r\n]+>?\s*$/gim, '');
     // Remove inline hearts tags if present.
     out = out.replace(/<\s*hearts\s*:\s*[^>]+>/gi, '');
+    // Remove ADUC control markers like <<<ADUC REPLY>>> and similar.
+    out = out.replace(/<<<[\s\S]*?>>>/g, '');
+    out = out.replace(/^\s*ADUC\s+REPLY\s*:?\s*$/gim, '');
+    out = out.replace(/^\s*ADUC\s+THOUGHT(?:S)?\s*:?\s*$/gim, '');
+    // Collapse excessive empty lines created by removals.
+    out = out.replace(/\n{3,}/g, '\n\n');
     return out.trim();
+  }
+
+  function ensureCopyButton(bubble, copyText) {
+    if (!bubble) return;
+    bubble.dataset.copyText = String(copyText || '');
+    let btn = bubble.querySelector('.nia-msg-copy');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'nia-msg-copy';
+      btn.title = 'Copy message';
+      btn.setAttribute('aria-label', 'Copy message');
+      btn.textContent = '⧉';
+      btn.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const textToCopy = bubble.dataset.copyText || '';
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          btn.classList.add('copied');
+          btn.textContent = '✓';
+          window.setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '⧉';
+          }, 900);
+        } catch { }
+      });
+      bubble.appendChild(btn);
+    }
+  }
+
+  function ensureCodeCopyButtons(container) {
+    if (!container) return;
+    const blocks = container.querySelectorAll('pre');
+    blocks.forEach((pre) => {
+      if (pre.querySelector('.nia-code-copy')) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'nia-code-copy';
+      btn.title = 'Copy code';
+      btn.setAttribute('aria-label', 'Copy code');
+      btn.textContent = '⧉';
+      btn.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const codeEl = pre.querySelector('code');
+        const textToCopy = (codeEl ? codeEl.textContent : pre.textContent || '').trim();
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          btn.classList.add('copied');
+          btn.textContent = '✓';
+          window.setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.textContent = '⧉';
+          }, 900);
+        } catch { }
+      });
+      pre.appendChild(btn);
+    });
   }
 
   const appendMsg = (text, role, opts = {}) => {
@@ -415,8 +480,15 @@ export function mount(el, context) {
 
     const bubble = document.createElement('div');
     bubble.className = `nia-msg ${role === 'user' ? 'nia-msg-user' : 'nia-msg-assistant'}`;
-    if (opts.markdown) bubble.innerHTML = markdownToHtml(String(text || ''));
-    else bubble.textContent = String(text || '');
+    if (opts.markdown) {
+      bubble.innerHTML = markdownToHtml(String(text || ''));
+      ensureCodeCopyButtons(bubble);
+    } else {
+      bubble.textContent = String(text || '');
+    }
+    if (role === 'assistant' && opts.copyable !== false) {
+      ensureCopyButton(bubble, opts.copyText ?? String(text || ''));
+    }
     if (role === 'user') {
       rowEl.appendChild(bubble);
       rowEl.appendChild(person);
@@ -619,6 +691,8 @@ export function mount(el, context) {
       if (thinking.bubble) {
         const cleanedReply = stripHiddenControlLines(String(reply?.reply || '...'));
         thinking.bubble.innerHTML = markdownToHtml(cleanedReply || '...');
+        ensureCodeCopyButtons(thinking.bubble);
+        ensureCopyButton(thinking.bubble, cleanedReply || '...');
       }
     })().catch((err) => {
       thinking.stop();
