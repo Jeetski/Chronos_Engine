@@ -3,10 +3,11 @@
 This index points to the main documentation entry points in this repo and what each file covers.
 
 ## Core
-- README: `README.md` - product overview, quickstart, and top-level feature map.
-- Docs Overview: `Docs/README.md` - doc set map with runtime, data model, and CLI entry points.
+- Documentation Home: `Docs/README.md` - product overview, quickstart, and top-level feature map.
+- Documentation Overview: `Docs/Documentation_Overview.md` - consolidated summary of architecture, features, workflows, and command surface.
 - Philosophy: `Docs/Philosophy.md` - core principles and the weekly-cycle worldview.
-- Release Notes: `Docs/release_notes.md` - version history and highlights.
+- Changelog: `Docs/Changelog.md` - chronological feature changes and implementation updates.
+- Release Notes: `Docs/Release_Notes.md` - milestone release highlights.
 
 ## Guides
 - Dashboard: `Docs/Guides/Dashboard.md` - UI tour, widgets, wizards (including Status Mapping), and API endpoints.
@@ -45,9 +46,13 @@ This index points to the main documentation entry points in this repo and what e
 - Item Properties: `Docs/Reference/Item_Properties.md` - standard item fields used by Chronos.
 - Admin Tools: `Docs/Features/Admin_Tools.md` - system cleanup and cache management.
 - Achievements Progression: `Docs/Features/Achievements_Progression_System.md` - evaluator flow, XP/level fields, popup delivery, and reset commands.
+
 ## Legal
 - License (AGPL): `Docs/Legal/LICENSE.md`
 - Commercial License: `Docs/Legal/COMMERCIAL_LICENSE.md`
 - Marketplace Terms: `Docs/Legal/MARKETPLACE_TERMS.md`
 - Trademark: `Docs/Legal/TRADEMARK.md`
 - Trademark Policy: `Docs/Legal/TRADEMARK_POLICY.md`
+
+## This Index
+- Current file: `Docs/INDEX.md` - map of the documentation set.

@@ -2,7 +2,22 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from Modules.Console import log, error, Color
+
+try:
+    from Modules.Console import log, error, Color
+except Exception:
+    # Keep this command import-safe so `help aduc` works even if Console symbols move.
+    class _FallbackColor:
+        CYAN = None
+        GREEN = None
+
+    def log(message, _color=None):
+        print(message)
+
+    def error(message):
+        print(f"Error: {message}")
+
+    Color = _FallbackColor()
 
 def run(args, properties):
     """
