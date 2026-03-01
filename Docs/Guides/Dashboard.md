@@ -95,6 +95,12 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - **Coaching**: Review step summarizes sleep and exercise totals with gentle, informational nudges when totals are low.
 - **Completion**: “Your life skeleton is set. You can now plan freely inside it.”
 - **Chore Setup Wizard** (`Utilities/Dashboard/Wizards/ChoreSetup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
+- **Status Mapping Wizard** (`Utilities/Dashboard/Wizards/StatusMapping/index.js`) - Bulk status-tagging workflow for items/templates.
+- **Flow**: Status Map -> Scope -> Preview.
+- **Status Map**: Loads dimensions/values from `User/Settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
+- **Scope**: Filter by type/name/category/tag, limit to items missing status tags, and choose merge vs replace behavior.
+- **Preview**: Shows coverage stats plus before/after `status_requirements` samples before writing.
+- **Apply/Undo**: Writes via dashboard item APIs, optionally mirrors values to legacy top-level status keys, and supports one-session undo of the last batch.
 
 
 ### Rewards, Achievements, Points

@@ -12,6 +12,7 @@ Links
 - Common Workflows: Guides/common_workflows.md
 - Day Builder: Guides/DayBuilder.md
 - Routine Builder: Guides/RoutineBuilder.md
+- Status Mapping Wizard: Guides/Dashboard.md
 - Cockpit Panels: Guides/Cockpit.md
 - Canvas: Guides/Canvas.md
 - Sequence Mirrors: Dev/Sequence.md
