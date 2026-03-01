@@ -1,0 +1,12 @@
+name: Creator Landing Routine (Example)
+type: routine
+category: Personal Development
+frequency: daily
+duration: 45
+children:
+  - type: subroutine
+    name: Set Tomorrow Intention (Example)
+  - type: task
+    name: Daily Reflection Anchor (Example)
+notes: >
+  End-of-day landing sequence for closure and next-day readiness.

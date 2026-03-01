@@ -1,0 +1,30 @@
+enable_macros: true
+
+default_timeout_ms: 20000
+
+after_command:
+  new:
+    - cli: register settings items
+  create:
+    - cli: register settings items
+  set:
+    - cli: register settings items
+  delete:
+    - cli: register settings items
+  register: 
+     # Prevent loop if register calls itself, but register is safe
+     - noop: true
+
+# Startup macros (optional)
+# Uncomment the lines below to run these once per console startup.
+# Startup hook key is `__startup__` (fired during console boot before first command).
+# Keep startup hooks fast to avoid slowing launch.
+#
+# before_command:
+#   "__startup__":
+#     - cli: echo Startup hook: before core sync
+#     - chs: User/Scripts/Macros/startup_register.chs
+#     - chs: User/Scripts/Macros/startup_sequence.chs
+# after_command:
+#   "__startup__":
+#     - cli: echo Startup hook: after core sync (ok=@result_ok)

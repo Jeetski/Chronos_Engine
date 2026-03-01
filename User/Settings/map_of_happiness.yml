@@ -1,0 +1,42 @@
+map:
+  - key: meaning
+    label: Meaning
+    priority: 1
+    essentials: []
+    notes: Purpose and contribution to something greater
+  - key: freedom
+    label: Freedom
+    priority: 2
+    essentials: []
+    notes: Autonomy and self-direction
+  - key: adventure
+    label: Adventure
+    priority: 3
+    essentials: []
+    notes: Novelty, exploration, new experiences
+  - key: creativity
+    label: Creativity
+    priority: 4
+    essentials: []
+    notes: Creative expression and output
+  - key: security
+    label: Security
+    priority: 5
+    essentials: []
+    notes: Safety, stability, financial security
+  - key: education
+    label: Education
+    priority: 6
+    essentials: []
+    notes: Learning, growth, mastery
+  - key: connection
+    label: Connection
+    priority: 7
+    essentials: []
+    notes: Relationships, belonging, community
+
+metadata:
+  source: Map of Happiness (Sam Vaknin)
+  captured_at: 2025-12-28T09:05:00Z
+  wizard: map_of_happiness
+  version: 1

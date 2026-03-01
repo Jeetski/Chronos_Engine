@@ -1,0 +1,8 @@
+type: canvas_board
+viewport:
+  panX: 0
+  panY: 0
+  zoom: 1
+nodes: []
+connections: []
+ink: []

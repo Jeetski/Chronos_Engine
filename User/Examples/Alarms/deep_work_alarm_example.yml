@@ -1,0 +1,11 @@
+name: Deep Work Alarm
+type: alarm
+time: "09:00"
+enabled: true
+target:
+  type: task
+  name: Deep Work Foundation
+  action: open
+notes: >
+  Starts the first deep work block; pairs with focus timer profile.
+

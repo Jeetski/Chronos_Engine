@@ -1,0 +1,10 @@
+Default_Name: "New Achievement"
+Default_Title: "New Achievement"
+Default_Description: "Achievement unlocked."
+Default_Category: "Milestone"
+Default_Type: "achievement"
+Default_Status: "pending"
+Default_Awarded: false
+Default_Points: 10
+Default_XP: 10
+

@@ -1,0 +1,18 @@
+name: First Song Draft (Example)
+type: milestone
+goal: Learn Guitar Example
+description: Checklist of the creative practice docs required for your first demo.
+weight: 1
+criteria:
+  checklist:
+    require: all
+    items:
+      - name: Creative Practice Session Notes (Example)
+        type: task
+      - name: Creative Practice (Example)
+        type: habit
+progress:
+  percent: 0
+on_complete:
+  - type: achievement
+    name: Practice Streak Achievement (Example)

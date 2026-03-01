@@ -1,0 +1,13 @@
+name: Luggage Tracker
+type: inventory_item
+category: travel
+quantity: 1
+status: ready
+places:
+  - Traveling
+tags:
+  - travel
+  - luggage
+  - tracker
+description: Tracker attached to checked bag for location visibility.
+

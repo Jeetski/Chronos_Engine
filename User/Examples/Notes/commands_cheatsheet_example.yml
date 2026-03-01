@@ -1,0 +1,13 @@
+name: commands_cheatsheet
+type: note
+tags: [reference]
+content: |
+  today / today reschedule
+  new|create <type> <name> k:v...
+  list <type> [filters] then <command>
+  status energy:high focus:good
+  timer start classic_pomodoro bind_type:task bind_name:"Deep Work"
+  sequence sync memory trends
+notes: >
+  Quick reference for common console commands.
+

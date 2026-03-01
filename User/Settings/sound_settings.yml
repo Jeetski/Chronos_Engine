@@ -1,0 +1,11 @@
+enabled: true
+sounds:
+  startup: true
+  done: true
+  error: true
+  exit: true
+files:
+  startup: Startup.mp3
+  done: Done.mp3
+  error: Error.mp3
+  exit: Exit.mp3

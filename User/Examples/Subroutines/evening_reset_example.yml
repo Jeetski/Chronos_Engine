@@ -1,0 +1,11 @@
+name: Evening Reset (Example)
+type: subroutine
+description: Review what mattered and capture a gratitude note.
+duration: 00:35
+tags:
+  - example
+children:
+  - name: Evening Review (Example)
+    type: task
+  - name: Gratitude Note (Example)
+    type: task

@@ -1,0 +1,17 @@
+name: Deep Clean Fridge _example
+type: habit
+status: active
+polarity: good
+chore: true
+frequency: monthly
+duration: 30
+description: Toss expired items and wipe shelves.
+tags:
+  - chore
+  - monthly
+completion_dates: []
+incident_dates: []
+current_streak: 0
+longest_streak: 0
+clean_current_streak: 0
+clean_longest_streak: 0

@@ -1,0 +1,13 @@
+name: Health Reboot Quarter
+type: goal
+priority: high
+status: active
+category: personal
+due_date: 2026-03-31
+milestones:
+  - Sleep Score 80+
+  - Run 5K
+  - Sugar Reset
+notes: >
+  Quarter-long focus on sleep, movement, and nutrition to raise baseline energy.
+

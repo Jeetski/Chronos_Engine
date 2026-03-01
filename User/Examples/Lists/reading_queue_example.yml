@@ -1,0 +1,9 @@
+name: Reading Queue
+type: list
+items:
+  - "Atomic Habits recap"
+  - "Chronos dashboard guide"
+  - "Designing data mirrors"
+notes: >
+  Sample list to show lightweight checklist style.
+

@@ -1,0 +1,15 @@
+name: TSA Toiletry Kit
+type: inventory_item
+category: hygiene
+quantity: 1
+status: ready
+places:
+  - At Home
+  - On The Go
+  - Traveling
+tags:
+  - travel
+  - hygiene
+  - tsa
+description: Quart bag of <=100ml liquids and non-liquid essentials.
+

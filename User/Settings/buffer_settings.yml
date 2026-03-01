@@ -1,0 +1,8 @@
+global_dynamic_buffer:
+  buffer_duration_minutes: 0
+  buffer_interval_minutes: 0
+template_buffers:
+  day_template_default_buffer_minutes: 0
+  microroutine_buffer_minutes: 0
+  routine_buffer_minutes: 0
+  subroutine_buffer_minutes: 0

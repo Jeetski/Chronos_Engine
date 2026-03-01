@@ -1,0 +1,11 @@
+name: Light Stretch (Example)
+type: task
+category: Health
+description: A 5-minute mobility sequence to wake up joints.
+duration: 00:05
+tags:
+  - mobility
+  - example
+status_requirements:
+  energy: low
+  health: good

@@ -1,0 +1,15 @@
+name: Bedtime Routine (Example)
+type: routine
+description: >
+  Disconnect from devices, set tomorrow’s intention, and fall asleep with a
+  clear mind.
+category: Health
+tags:
+  - example
+  - bedtime
+duration: 00:45
+children:
+  - name: Digital Sunset (Example)
+    type: subroutine
+  - name: Set Tomorrow Intention (Example)
+    type: subroutine

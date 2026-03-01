@@ -1,0 +1,45 @@
+name: Travel Reset Day (Example)
+type: day
+description: Post-travel reset template to recover quickly and restore baseline.
+category: Personal Development
+duration: 24h
+place: travel
+status_requirements:
+  place:
+    - travel
+children:
+  - type: task
+    name: Unpack and Reset After Trip
+  - type: habit
+    name: Laundry _example
+  - type: task
+    name: Travel Expense Capture
+  - type: task
+    name: Home Shutdown Before Departure
+  - type: habit
+    name: Sunlight Walk 10 (Example)
+  - type: routine
+    name: Pilot Landing Routine (Example)
+sequence:
+  - name: Reset Window Morning (Example)
+    type: microroutine
+    window: true
+    start: "09:00"
+    end: "12:00"
+    filters:
+      tags:
+        - travel
+        - reset
+        - admin
+  - name: Recovery Window Afternoon (Example)
+    type: microroutine
+    window: true
+    start: "14:00"
+    end: "17:00"
+    filters:
+      tags:
+        - recovery
+        - health
+notes: >
+  Use this on the first day back. It clears logistics debt while preserving
+  enough buffer for physical recovery.

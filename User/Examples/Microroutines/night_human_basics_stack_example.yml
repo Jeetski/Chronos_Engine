@@ -1,0 +1,21 @@
+name: Night Human Basics Stack (Example)
+type: microroutine
+frequency: daily
+habit_stack: true
+cue: after final work block
+followed_by: Sleep 7h Plus (Example)
+duration: 45
+tags:
+  - example
+  - habit_stack
+  - basics
+  - night
+children:
+  - type: habit
+    name: Eat Dinner (Example)
+  - type: habit
+    name: Brush Teeth Night (Example)
+  - type: habit
+    name: Evening Shutdown Checklist (Example)
+notes: Evening physiological and planning closure sequence.
+

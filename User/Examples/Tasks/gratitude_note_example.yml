@@ -1,0 +1,8 @@
+name: Gratitude Note (Example)
+type: task
+category: Reflection
+description: Write one short gratitude entry in your note vault.
+duration: 00:05
+tags:
+  - gratitude
+  - example

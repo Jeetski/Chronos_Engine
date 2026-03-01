@@ -1,0 +1,11 @@
+name: Adventure Break Reward (Example)
+type: reward
+cost: 25
+cooldown: P2D
+category: Hobbies
+target:
+  type: habit
+  name: Sunlight Walk 10 (Example)
+  action: open
+notes: Redeem after consistent focus streaks for a guilt-free recharge block.
+

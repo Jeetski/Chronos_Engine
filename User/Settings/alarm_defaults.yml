@@ -1,0 +1,6 @@
+default_snooze_duration: 10
+default_enabled: true
+default_recurrence: ["daily"]
+default_message: "Time to attend to this alarm, Pilot!"
+default_sound: "Alarm.mp3"
+Type: alarm

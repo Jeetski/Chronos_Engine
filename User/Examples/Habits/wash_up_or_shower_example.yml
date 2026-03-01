@@ -1,0 +1,15 @@
+name: Wash Up or Shower (Example)
+type: habit
+category: Health
+priority: medium
+status: active
+frequency: daily
+duration: 10
+tags:
+  - example
+  - basics
+  - hygiene
+description: Quick wash-up or full shower depending on the day.
+completion_dates: []
+incident_dates: []
+

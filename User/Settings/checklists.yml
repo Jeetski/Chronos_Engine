@@ -1,0 +1,7 @@
+lists:
+  -
+    id: checklist
+    label: Checklist
+  -
+    id: checklist_3a282f
+    label: "New Checklist"

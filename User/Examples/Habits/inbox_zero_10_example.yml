@@ -1,0 +1,15 @@
+name: Inbox Zero 10 (Example)
+type: habit
+category: Work
+priority: medium
+status: active
+frequency: weekdays
+duration: 10
+tags:
+  - example
+  - pilot_admin
+  - cleanup
+description: Ten-minute inbox and notifications sweep to reduce cognitive load.
+completion_dates: []
+incident_dates: []
+

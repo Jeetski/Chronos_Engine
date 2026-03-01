@@ -1,0 +1,8 @@
+default_profile: classic_pomodoro
+auto_advance: true
+bind_default_type: task
+poll_interval_ms: 1000
+sounds:
+  focus_end: Alarm.mp3
+  break_end: Alarm.mp3
+

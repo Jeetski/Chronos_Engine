@@ -1,0 +1,19 @@
+criteria:
+  count:
+    of:
+      name: Focus Sprint 90 (Example)
+      type: task
+    period: month
+    times: 12
+description: Complete 12 focus sprint sessions.
+goal: Steady Focus System (Example)
+name: Focus Foundation Online (Example)
+on_complete:
+- name: Deep Work Week Achievement (Example)
+  type: achievement
+progress:
+  current: 0
+  percent: 0.0
+  target: 12
+type: milestone
+weight: 2

@@ -1,0 +1,14 @@
+name: Morning Walk
+type: habit
+polarity: good
+category: health
+priority: high
+cue: after coffee
+reward: sunlight + playlist
+frequency:
+  times: 5
+  period: week
+completion_dates: []
+notes: >
+  20-minute outdoor walk to anchor circadian rhythm and kickstart focus.
+

@@ -1,0 +1,15 @@
+name: Passport and ID Pouch
+type: inventory_item
+category: documents
+quantity: 1
+status: ready
+places:
+  - At Home
+  - On The Go
+  - Traveling
+tags:
+  - travel
+  - documents
+  - essentials
+description: Passport, primary ID, and backup photo ID copy.
+

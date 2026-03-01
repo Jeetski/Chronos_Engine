@@ -1,0 +1,12 @@
+name: Weekly Review
+type: ritual
+day: sunday
+duration: 45
+steps:
+  - Gather highlights and lowlights
+  - Review goals and milestones
+  - Plan next week's big rocks
+  - Sequence sync memory trends
+notes: >
+  A simple weekly review scaffold; pairs with Retrospective Prep task.
+

@@ -1,0 +1,15 @@
+name: Async Comms Triage (Example)
+type: subroutine
+category: Work
+duration: 45
+tags:
+  - example
+  - collaboration
+  - admin
+children:
+  - type: task
+    name: Inbox Triage 30 (Example)
+  - type: task
+    name: Creative Practice Session Notes (Example)
+notes: >
+  Batches messages and outbound updates into one bounded block.

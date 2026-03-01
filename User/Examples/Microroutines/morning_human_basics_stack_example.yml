@@ -1,0 +1,23 @@
+name: Morning Human Basics Stack (Example)
+type: microroutine
+frequency: daily
+habit_stack: true
+cue: wake up
+followed_by: Cockpit Boot Stack (Example)
+duration: 35
+tags:
+  - example
+  - habit_stack
+  - basics
+  - morning
+children:
+  - type: habit
+    name: Drink Water After Waking (Example)
+  - type: habit
+    name: Brush Teeth Morning (Example)
+  - type: habit
+    name: Wash Up or Shower (Example)
+  - type: habit
+    name: Eat Breakfast (Example)
+notes: Universal morning fundamentals before focus work.
+

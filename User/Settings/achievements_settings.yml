@@ -1,0 +1,14 @@
+enabled: true
+
+awards:
+  default_points: 10
+  default_xp: 10
+
+leveling:
+  max_level: 100
+  base_xp_to_level_2: 1000
+  growth: 1.06
+
+sync:
+  run_on_review: true
+

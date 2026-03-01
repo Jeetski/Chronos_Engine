@@ -1,0 +1,15 @@
+name: Eat Breakfast (Example)
+type: habit
+category: Health
+priority: medium
+status: active
+frequency: daily
+duration: 20
+tags:
+  - example
+  - basics
+  - nutrition
+description: First meal to stabilize energy for the day.
+completion_dates: []
+incident_dates: []
+

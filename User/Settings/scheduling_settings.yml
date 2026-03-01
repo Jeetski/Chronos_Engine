@@ -1,0 +1,11 @@
+# Scheduling Settings - User overrides
+# =====================================
+# Only include settings you want to change from defaults.
+# See scheduling_defaults.yml for available options.
+
+# Example overrides:
+# importance:
+#   base_score: 100
+# 
+# conflict_resolution:
+#   allow_cutting: true

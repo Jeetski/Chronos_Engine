@@ -1,0 +1,19 @@
+# Scheduling Defaults - Do not edit, use Scheduling_Settings.yml for overrides
+# ============================================================================
+
+importance:
+  base_score: 100  # Start at 100, subtract penalties
+
+trimming:
+  max_trim_percentage: 50  # Cannot trim more than 50% of original duration
+
+conflict_resolution:
+  max_iterations: adaptive  # Options: number, "adaptive" (5+sqrt(n)), "generous" (n/2)
+  allow_cutting: false  # Enable Phase 3e item removal
+
+rescheduling:
+  importance_threshold: 30  # Reschedule items with importance >= 30 (higher = more important)
+
+template_selection:
+  mode: auto  # auto = all templates compete, explicit = use forced_template
+  forced_template: null  # Set to filename like "Sick_Day.yml" to force

@@ -1,0 +1,10 @@
+name: Refresh Space (Example)
+type: task
+category: Environment
+description: Make the bed, crack a window, and reset the room.
+duration: 00:10
+tags:
+  - environment
+  - example
+status_requirements:
+  place: home

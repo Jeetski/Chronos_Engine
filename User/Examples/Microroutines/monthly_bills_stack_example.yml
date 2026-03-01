@@ -1,0 +1,24 @@
+name: Monthly Bills Stack (Example)
+type: microroutine
+frequency: monthly
+habit_stack: true
+cue: first weekend of month
+followed_by: Adventure Break Reward (Example)
+duration: 70
+tags:
+  - example
+  - habit_stack
+  - chore
+  - admin
+  - monthly
+children:
+  - type: habit
+    name: Pay Rent or Mortgage _example
+  - type: habit
+    name: Pay Credit Card Bill _example
+  - type: habit
+    name: Check Subscriptions _example
+  - type: habit
+    name: Review Insurance and Utilities _example
+notes: Monthly household finance stack for predictable bill management.
+

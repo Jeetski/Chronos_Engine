@@ -1,0 +1,16 @@
+name: Team Sync Anchor (Example)
+type: task
+category: Work
+priority: high
+status: pending
+duration: 30
+start_time: "14:15"
+end_time: "14:45"
+reschedule: never
+essential: true
+tags:
+  - example
+  - collaboration
+  - meeting
+  - anchor
+notes: Fixed collaboration checkpoint; keep this block anchored.

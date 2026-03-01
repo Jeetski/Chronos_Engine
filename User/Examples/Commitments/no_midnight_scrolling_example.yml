@@ -1,0 +1,18 @@
+category: health
+last_met: '2026-02-15'
+name: No Midnight Scrolling
+notes: 'Guardrails for late-night phone use; track incidents and nudge better sleep.
+
+  '
+rule:
+  kind: never
+  period: day
+status: active
+targets:
+- name: No Sugar After 8pm
+  type: habit
+triggers:
+  on_violation:
+  - name: Night Owl Recovery
+    type: achievement
+type: commitment

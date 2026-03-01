@@ -1,0 +1,5 @@
+Name: New Milestone
+Description: A new project milestone.
+Status: pending
+Target_Date: "{{end_of_year}}"
+Type: milestone

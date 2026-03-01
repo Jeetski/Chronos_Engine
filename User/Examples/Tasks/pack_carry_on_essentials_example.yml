@@ -1,0 +1,15 @@
+name: Pack Carry-On Essentials
+type: task
+category: Personal Development
+priority: high
+status: pending
+duration: 30
+tags:
+  - example
+  - travel
+  - packing
+status_requirements:
+  place:
+    - at home
+notes: Stage the carry-on kit and ensure medicine/chargers stay accessible.
+

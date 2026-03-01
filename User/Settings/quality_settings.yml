@@ -1,0 +1,13 @@
+Quality_Settings:
+  Excellent:
+    value: 4
+    description: Top-tier execution.
+  Good:
+    value: 3
+    description: Solid quality.
+  Okay:
+    value: 2
+    description: Acceptable but room to improve.
+  Poor:
+    value: 1
+    description: Bare minimum quality.

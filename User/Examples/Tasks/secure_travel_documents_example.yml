@@ -1,0 +1,16 @@
+name: Secure Travel Documents
+type: task
+category: Personal Development
+priority: high
+status: pending
+duration: 20
+tags:
+  - example
+  - travel
+  - docs
+status_requirements:
+  place:
+    - at home
+    - on the go
+notes: Verify passport/ID validity and place documents in your travel pouch.
+

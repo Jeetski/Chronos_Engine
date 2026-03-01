@@ -1,0 +1,20 @@
+name: Morning Routine (Example)
+type: routine
+description: |
+  A calm, status-aware start with wake-up habits, mindful prep, and a quick
+  review of today’s template.
+category: Health
+tags:
+  - example
+  - morning
+status_requirements:
+  energy: medium
+  mind_state: clear
+duration: 02:00
+children:
+  - name: Wake & Refresh (Example)
+    type: subroutine
+  - name: Mindful Start (Example)
+    type: subroutine
+  - name: Plan & Prep (Example)
+    type: subroutine

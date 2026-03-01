@@ -1,0 +1,26 @@
+name: blue_skies
+
+bg: "1"
+fg: "F"
+
+header_text: "F"
+header_bg: "1"
+subheader_text: "B"
+
+status_completed: "A"
+status_skipped: "E"
+status_partial: "B"
+status_missed: "C"
+status_in_progress: "9"
+status_upcoming: "F"
+status_buffer: "7"
+
+info: "B"
+success: "A"
+warning: "E"
+error: "C"
+
+dim: "7"
+accent: "D"
+prompt: "F"
+prompt_hint: "7"

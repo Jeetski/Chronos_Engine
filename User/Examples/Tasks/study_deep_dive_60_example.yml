@@ -1,0 +1,24 @@
+name: Study Deep Dive 60 (Example)
+type: task
+category: Personal Development
+priority: high
+status: pending
+duration: 60
+tags:
+  - example
+  - learning
+  - deep_work
+happiness:
+  - growth
+status_requirements:
+  focus:
+    - good
+    - laser
+variants:
+  - name: Study Deep Dive 30 (Recovery Variant)
+    status_requirements:
+      focus:
+        - scattered
+    duration: 30
+notes: >
+  Active recall or problem-solving study block with one concrete output.

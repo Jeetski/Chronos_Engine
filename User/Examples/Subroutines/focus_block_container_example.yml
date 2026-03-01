@@ -1,0 +1,14 @@
+name: Focus Block Container (Example)
+type: subroutine
+category: Work
+frequency: weekdays
+duration: 120
+tags:
+  - example
+  - pilot_focus
+children:
+  - type: task
+    name: Focus Sprint 90 (Example)
+  - type: task
+    name: Movement Break
+notes: Deep work + decompression pairing for sustainable output.

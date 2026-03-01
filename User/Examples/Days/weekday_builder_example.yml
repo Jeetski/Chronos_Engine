@@ -1,0 +1,18 @@
+name: Weekday Builder
+type: day
+place: at_school
+status_requirements:
+  place: at_school
+  energy: medium
+  focus: medium
+children:
+  - type: routine
+    name: Morning Launch
+  - type: task
+    name: Inbox Zero Sweep
+  - type: task
+    name: Creative Draft Session
+  - type: task
+    name: Weekly Admin Batch
+notes: >
+  Balanced weekday layout: launch, admin, create, and wrap.

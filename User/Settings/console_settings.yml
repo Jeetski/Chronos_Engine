@@ -1,0 +1,5 @@
+prompt_toolkit_default: false
+autocomplete_enabled: true
+show_startup_banner: false
+run_startup_sync: false
+play_startup_sound: false

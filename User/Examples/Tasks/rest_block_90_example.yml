@@ -1,0 +1,19 @@
+name: Rest Block 90 (Example)
+type: task
+category: Health
+priority: high
+status: pending
+duration: 90
+tags:
+  - example
+  - sick_day
+  - recovery
+status_requirements:
+  health:
+    - poor
+    - critical
+  energy:
+    - low
+    - exhausted
+notes: Protected rest block. No non-essential work during this window.
+

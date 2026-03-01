@@ -1,0 +1,17 @@
+name: Travel Expense Capture
+type: task
+category: Personal Development
+priority: medium
+status: pending
+duration: 10
+tags:
+  - example
+  - travel
+  - admin
+  - finance
+status_requirements:
+  place:
+    - on the go
+    - traveling
+notes: Log major travel expenses daily to avoid end-of-trip cleanup.
+

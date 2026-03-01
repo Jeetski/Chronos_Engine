@@ -1,0 +1,17 @@
+name: Landing Shutdown Stack (Example)
+type: microroutine
+frequency: daily
+habit_stack: true
+cue: final work block complete
+followed_by: Wind Down Reminder (Example)
+duration: 20
+tags:
+  - example
+  - pilot_shutdown
+children:
+  - type: habit
+    name: Evening Shutdown Checklist (Example)
+  - type: task
+    name: Prep Tomorrow (Example)
+notes: End-of-day sequence that closes loops and protects tomorrow's momentum.
+

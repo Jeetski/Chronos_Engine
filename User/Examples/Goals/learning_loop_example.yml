@@ -1,0 +1,12 @@
+name: Learning Loop
+type: goal
+priority: medium
+status: active
+category: growth
+due_date: 2026-06-01
+milestones:
+  - Ship 3 Tutorials
+  - Weekly Study Rhythm
+notes: >
+  Build a cadence of learning and teaching by shipping small tutorials weekly.
+

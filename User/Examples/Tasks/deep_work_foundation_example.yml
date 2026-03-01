@@ -1,0 +1,13 @@
+name: Deep Work Foundation
+type: task
+priority: high
+status: pending
+duration: 120
+due_date: 2026-01-10
+tags: [focus, maker_time, coding]
+project: Chronos 2 Launch
+notes: >
+  Two-hour block for the most important build task. Protect it with a timer profile.
+depends_on:
+  - Review Launch Brief
+

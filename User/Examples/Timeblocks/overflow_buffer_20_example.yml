@@ -1,0 +1,10 @@
+name: Overflow Buffer 20 (Example)
+type: timeblock
+subtype: buffer
+duration: 20
+category: Work
+priority: low
+status: pending
+absorbable: true
+fillable: false
+description: Spillover buffer that absorbs overruns without breaking anchors.

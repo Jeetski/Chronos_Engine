@@ -1,0 +1,19 @@
+name: Exam Focus Week (Example)
+type: week
+children:
+  - type: day
+    name: Exam Prep Day (Example)
+  - type: day
+    name: Exam Prep Day (Example)
+  - type: day
+    name: Collaboration and Admin Day (Example)
+  - type: day
+    name: Exam Prep Day (Example)
+  - type: day
+    name: Exam Prep Day (Example)
+  - type: day
+    name: Recovery and Reset Day (Example)
+  - type: day
+    name: Recovery and Reset Day (Example)
+notes: >
+  Study-forward week with one lighter admin day and weekend decompression.

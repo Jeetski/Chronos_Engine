@@ -1,0 +1,16 @@
+name: Publish Docs
+type: milestone
+goal: Launch Chronos v1 Refresh
+status: pending
+weight: 1
+due_date: 2026-02-05
+criteria:
+  count:
+    of:
+      type: note
+      name: doc_outlines
+    times: 3
+    period: all
+notes: >
+  Publish refreshed README, Dashboard guide, and scripting quickstart.
+

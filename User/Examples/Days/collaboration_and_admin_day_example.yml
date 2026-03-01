@@ -1,0 +1,50 @@
+name: Collaboration and Admin Day (Example)
+type: day
+description: Communication-heavy day that batches admin and protects one study block.
+category: Work
+duration: 24h
+days:
+  - monday
+  - tuesday
+  - wednesday
+  - thursday
+  - friday
+status_requirements:
+  focus:
+    - okay
+    - scattered
+children:
+  - type: routine
+    name: Creator Takeoff Routine (Example)
+  - type: task
+    name: Team Sync Anchor (Example)
+  - type: subroutine
+    name: Async Comms Triage (Example)
+  - type: task
+    name: Inbox Triage 30 (Example)
+  - type: subroutine
+    name: Learning Sprint Container (Example)
+  - type: routine
+    name: Creator Landing Routine (Example)
+sequence:
+  - name: Collaboration Window PM (Example)
+    type: microroutine
+    window: true
+    start: "09:00"
+    end: "12:00"
+    filters:
+      tags:
+        - collaboration
+        - admin
+  - name: Study Window PM (Example)
+    type: microroutine
+    window: true
+    start: "14:00"
+    end: "16:30"
+    filters:
+      tags:
+        - learning
+        - deep_work
+notes: >
+  Useful when focus is not peak but communication and maintenance still need
+  reliable execution.

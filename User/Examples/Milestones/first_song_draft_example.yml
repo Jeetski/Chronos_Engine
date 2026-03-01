@@ -1,0 +1,20 @@
+criteria:
+  checklist:
+    items:
+    - name: Creative Practice Session Notes (Example)
+      type: task
+    - name: Creative Practice (Example)
+      type: habit
+    require: all
+description: Checklist of the creative practice docs required for your first demo.
+goal: Learn Guitar Example
+name: First Song Draft (Example)
+on_complete:
+- name: Practice Streak Achievement (Example)
+  type: achievement
+progress:
+  current: 0
+  percent: 0.0
+  target: 2
+type: milestone
+weight: 1

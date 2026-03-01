@@ -1,0 +1,37 @@
+name: Focus Sprint 90 (Example)
+type: task
+category: Work
+priority: high
+status: pending
+duration: 90
+tags:
+  - example
+  - pilot_focus
+  - deep_work
+project: Steady Focus System (Example)
+happiness:
+  - meaning
+  - creativity
+status_requirements:
+  energy:
+    - medium
+    - high
+  focus:
+    - good
+    - laser
+variants:
+  - name: Focus Sprint 45 (Recovery Variant)
+    status_requirements:
+      energy:
+        - low
+        - exhausted
+      focus:
+        - scattered
+    duration: 45
+    priority: medium
+    tags:
+      - example
+      - pilot_focus
+      - recovery_variant
+notes: Primary maker block. Use timer profile and protect with buffers.
+

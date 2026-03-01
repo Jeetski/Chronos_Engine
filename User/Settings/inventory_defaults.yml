@@ -1,0 +1,14 @@
+﻿Name: New Inventory
+Type: inventory
+is_template: true
+Description: Collection of tools and items staged for a context (place, project, or mission).
+Tags: [inventory]
+Places:
+  - At Home
+Inventory_Items:
+  - type: inventory_item
+    name: Example Item
+    quantity: 1
+Tools:
+  - type: tool
+    name: Example Tool

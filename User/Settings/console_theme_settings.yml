@@ -1,0 +1,43 @@
+# Console Theme Settings (16-Color Standard)
+# These themes use standard Windows Console color codes:
+# 0 = Black       8 = Gray
+# 1 = Blue        9 = Light Blue
+# 2 = Green       A = Light Green
+# 3 = Aqua        B = Light Aqua
+# 4 = Red         C = Light Red
+# 5 = Purple      D = Light Purple
+# 6 = Yellow      E = Light Yellow
+# 7 = White       F = Bright White
+
+themes:
+  default:
+    background: "1"  # Blue
+    text: "F"        # Bright White
+  
+  hacker:
+    background: "0"  # Black
+    text: "A"        # Light Green
+    
+  ocean:
+    background: "3"  # Aqua
+    text: "F"        # Bright White
+    
+  retro:
+    background: "0"  # Black
+    text: "6"        # Yellow
+    
+  powershell:
+    background: "1"  # Blue
+    text: "E"        # Light Yellow 
+    
+  cmd:
+    background: "0"  # Black
+    text: "7"        # White
+    
+  cherry:
+    background: "4"  # Red
+    text: "F"        # Bright White
+
+  midnight:
+    background: "0"  # Black
+    text: "9"        # Light Blue

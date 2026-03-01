@@ -1,0 +1,15 @@
+name: Sleep 7h Plus (Example)
+type: habit
+category: Health
+priority: high
+status: active
+frequency: daily
+duration: 420
+tags:
+  - example
+  - basics
+  - sleep
+description: Protect at least seven hours of sleep opportunity.
+completion_dates: []
+incident_dates: []
+

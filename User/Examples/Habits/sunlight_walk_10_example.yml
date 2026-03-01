@@ -1,0 +1,22 @@
+name: Sunlight Walk 10 (Example)
+type: habit
+category: Health
+priority: medium
+status: active
+frequency: daily
+duration: 10
+tags:
+  - example
+  - pilot_recovery
+  - movement
+description: Quick 10-minute outdoor walk to reset mood and energy.
+status_requirements:
+  energy:
+    - low
+    - medium
+  emotion:
+    - neutral
+    - negative
+completion_dates: []
+incident_dates: []
+

@@ -1,0 +1,8 @@
+# Default settings for Inventory Item status
+Inventory_item:
+  - Name: Coffee Beans
+    Description: For brewing coffee.
+  - Name: Notebook
+    Description: For writing notes.
+  - Name: Water Bottle
+    Description: For hydration.

@@ -1,0 +1,36 @@
+name: Recovery and Reset Day (Example)
+type: day
+description: Lower-intensity day template for energy dips and sustainable pacing.
+category: Health
+duration: 24h
+place: at_home
+days:
+  - saturday
+  - sunday
+status_requirements:
+  place:
+    - at_home
+  energy:
+    - low
+    - exhausted
+children:
+  - type: task
+    name: Power Nap Reset (Example)
+  - type: habit
+    name: Sunlight Walk 10 (Example)
+  - type: task
+    name: Light Stretch (Example)
+  - type: routine
+    name: Pilot Landing Routine (Example)
+sequence:
+  - name: Recovery Window (Example)
+    type: microroutine
+    window: true
+    start: "10:00"
+    end: "12:00"
+    filters:
+      tags:
+        - pilot_recovery
+notes: >
+  Intentional low-energy template that keeps momentum without forcing heavy
+  cognitive work.

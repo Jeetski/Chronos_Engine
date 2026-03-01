@@ -1,0 +1,22 @@
+name: Power Nap Reset (Example)
+type: task
+category: Health
+priority: high
+status: pending
+duration: 20
+tags:
+  - example
+  - pilot_recovery
+  - reset
+auto_inject: true
+status_requirements:
+  energy:
+    - exhausted
+    - low
+  focus:
+    - absent
+    - scattered
+happiness:
+  - security
+notes: Auto-injected rescue block for low-energy days.
+

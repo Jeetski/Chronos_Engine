@@ -1,0 +1,10 @@
+name: Focus Window Start Alarm (Example)
+type: alarm
+time: "09:00"
+enabled: true
+target:
+  type: task
+  name: Focus Sprint 90 (Example)
+  action: open
+notes: Rings at focus-window start to kick off the first sprint.
+

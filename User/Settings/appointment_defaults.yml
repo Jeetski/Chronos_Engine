@@ -1,0 +1,6 @@
+Name: New Appointment
+Description: A new appointment.
+Date: "{{tomorrow}}"
+Time: "09:00"
+Location: ""
+Type: appointment

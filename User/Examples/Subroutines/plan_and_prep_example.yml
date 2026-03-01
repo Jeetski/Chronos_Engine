@@ -1,0 +1,13 @@
+name: Plan & Prep (Example)
+type: subroutine
+description: Review the day template and highlight your creative practice block.
+duration: 00:30
+tags:
+  - example
+children:
+  - name: Plan Today (Example)
+    type: task
+  - name: Creative Practice (Example)
+    type: habit
+  - name: Prep Workspace (Example)
+    type: task

@@ -1,0 +1,15 @@
+name: Brush Teeth Morning (Example)
+type: habit
+category: Health
+priority: high
+status: active
+frequency: daily
+duration: 3
+tags:
+  - example
+  - basics
+  - hygiene
+description: Morning oral hygiene anchor.
+completion_dates: []
+incident_dates: []
+

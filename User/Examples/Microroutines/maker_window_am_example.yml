@@ -1,0 +1,10 @@
+name: Maker Window AM (Example)
+type: microroutine
+window: true
+start: "08:30"
+end: "11:30"
+filters:
+  tags:
+    - maker
+    - deep_work
+description: Morning protected window for cognitively demanding creation work.

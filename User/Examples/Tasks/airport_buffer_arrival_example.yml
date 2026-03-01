@@ -1,0 +1,16 @@
+name: Airport Buffer Arrival
+type: task
+category: Personal Development
+priority: high
+status: pending
+duration: 60
+tags:
+  - example
+  - travel
+  - buffer
+status_requirements:
+  place:
+    - on the go
+    - traveling
+notes: Protected transit/security buffer so delays do not cascade.
+

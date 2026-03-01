@@ -1,0 +1,16 @@
+name: Sick Day Essentials Check (Example)
+type: task
+category: Health
+priority: medium
+status: pending
+duration: 20
+tags:
+  - example
+  - sick_day
+  - recovery
+status_requirements:
+  health:
+    - poor
+    - critical
+notes: Check food, meds, thermometer, tissues, and comfort setup so recovery is frictionless.
+

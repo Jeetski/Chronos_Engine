@@ -1,0 +1,14 @@
+name: Wind Down Reminder (Example)
+type: reminder
+description: Prompt the evening shutdown sequence before sleep procrastination starts.
+time: "21:30"
+enabled: true
+recurrence:
+  - daily
+target:
+  type: routine
+  name: Pilot Landing Routine (Example)
+  action: open
+  properties:
+    note: Start landing sequence now.
+

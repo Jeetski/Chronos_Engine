@@ -1,0 +1,13 @@
+﻿name: Keys Bundle
+type: inventory_item
+description: House, office, and mailbox keys on a quick-release ring.
+category: access
+quantity: 1
+status: ready
+places:
+  - On The Go
+  - At Home
+  - At Work
+tags:
+  - access
+  - security

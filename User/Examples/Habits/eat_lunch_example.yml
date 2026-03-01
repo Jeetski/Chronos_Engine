@@ -1,0 +1,15 @@
+name: Eat Lunch (Example)
+type: habit
+category: Health
+priority: medium
+status: active
+frequency: daily
+duration: 30
+tags:
+  - example
+  - basics
+  - nutrition
+description: Midday meal and reset.
+completion_dates: []
+incident_dates: []
+

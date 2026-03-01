@@ -1,0 +1,28 @@
+name: Creator Takeoff Routine (Example)
+type: routine
+category: Work
+frequency: weekdays
+duration: 90
+status_requirements:
+  energy:
+    - medium
+    - high
+children:
+  - type: microroutine
+    name: Cockpit Boot Stack (Example)
+  - type: subroutine
+    name: Learning Sprint Container (Example)
+variants:
+  - name: Creator Takeoff Low-Energy Variant
+    status_requirements:
+      energy:
+        - low
+        - exhausted
+    duration: 60
+    children:
+      - type: microroutine
+        name: Cockpit Boot Stack (Example)
+      - type: task
+        name: Light Stretch (Example)
+notes: >
+  Startup sequence with a low-energy branch that preserves momentum.

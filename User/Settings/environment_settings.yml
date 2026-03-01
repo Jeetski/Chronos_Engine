@@ -1,0 +1,10 @@
+# Default settings for Environment status
+Environment:
+  - Name: Home
+    Description: Currently at home.
+  - Name: Work
+    Description: Currently at work.
+  - Name: Travel
+    Description: Currently traveling.
+  - Name: Outdoor
+    Description: Currently outdoors.

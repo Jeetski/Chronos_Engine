@@ -1,0 +1,13 @@
+Energy_Settings:
+  Exhausted:
+    description: Severely drained, needs rest.
+    value: 4
+  High:
+    description: Energetic and ready for demanding tasks.
+    value: 1
+  Low:
+    description: Fatigued, suitable for light tasks only.
+    value: 3
+  Medium:
+    description: Sufficient energy for most tasks.
+    value: 2

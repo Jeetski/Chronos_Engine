@@ -1,0 +1,14 @@
+name: Power Bank and Cables
+type: inventory_item
+category: power
+quantity: 1
+status: ready
+places:
+  - At Home
+  - On The Go
+  - Traveling
+tags:
+  - travel
+  - power
+description: Carry-on-safe spare battery and charging cables.
+

@@ -1,0 +1,12 @@
+Name: New Commitment
+Description: A new commitment.
+Status: active
+Type: commitment
+Rule:
+  Kind:
+  Times:
+  Period:
+Targets: []
+Triggers:
+  On_Met: []
+  On_Violation: []

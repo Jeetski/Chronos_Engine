@@ -1,0 +1,11 @@
+name: Drink Water (Example)
+type: task
+category: Health
+description: First glass of water to kickstart the day.
+duration: 00:05
+tags:
+  - hydration
+  - example
+status_requirements:
+  health: okay
+  energy: low

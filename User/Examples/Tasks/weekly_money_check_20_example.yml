@@ -1,0 +1,16 @@
+name: Weekly Money Check 20 (Example)
+type: task
+category: Personal Development
+priority: medium
+status: pending
+duration: 20
+tags:
+  - example
+  - pilot_admin
+  - finance
+frequency: weekly
+happiness:
+  - security
+due_date: 2026-12-31
+notes: Review balances, pending bills, and next-week spending guardrails.
+

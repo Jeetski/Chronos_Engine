@@ -1,0 +1,11 @@
+name: No Sugar After 8pm
+type: habit
+polarity: bad
+category: health
+priority: medium
+cue: dinner complete
+reward: better sleep score
+incident_dates: []
+notes: >
+  Avoid sweets after dinner; replace with tea. Track incidents, not completions.
+

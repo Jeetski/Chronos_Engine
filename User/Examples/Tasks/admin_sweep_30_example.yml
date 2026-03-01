@@ -1,0 +1,19 @@
+name: Admin Sweep 30 (Example)
+type: task
+category: Work
+priority: medium
+status: pending
+duration: 30
+tags:
+  - example
+  - pilot_admin
+  - cleanup
+project: Steady Focus System (Example)
+happiness:
+  - security
+status_requirements:
+  focus:
+    - scattered
+    - good
+notes: Batch small admin and communication tasks to keep your core blocks clear.
+

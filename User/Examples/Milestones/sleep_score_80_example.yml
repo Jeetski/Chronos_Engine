@@ -1,0 +1,16 @@
+name: Sleep Score 80+
+type: milestone
+goal: Health Reboot Quarter
+status: pending
+weight: 2
+due_date: 2026-02-28
+criteria:
+  count:
+    of:
+      type: habit
+      name: Morning Walk
+    times: 20
+    period: month
+notes: >
+  Track consistent sleep hygiene and morning light for better scores.
+

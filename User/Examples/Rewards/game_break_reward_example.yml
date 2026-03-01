@@ -1,0 +1,13 @@
+name: Game Break Reward (Example)
+type: reward
+category: Fun
+cost: 25
+cooldown: 1d
+description: Take a 30-minute guilt-free break to play or watch something cozy.
+target:
+  type: script
+  name: Scripts/rewards/game_break_example.chs
+requirements:
+  - name: Creative Practice (Example)
+    type: habit
+status: active

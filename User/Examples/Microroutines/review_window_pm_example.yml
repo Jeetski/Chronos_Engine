@@ -1,0 +1,10 @@
+name: Review Window PM (Example)
+type: microroutine
+window: true
+start: "15:00"
+end: "17:00"
+filters:
+  tags:
+    - review
+    - learning
+description: Afternoon review window for consolidation and spaced repetition.

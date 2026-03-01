@@ -1,0 +1,11 @@
+name: Steady Focus System (Example)
+type: goal
+priority: high
+status: active
+category: Personal Development
+due_date: 2026-12-31
+milestones:
+  - Focus Foundation Online (Example)
+  - Recovery Protocol Stable (Example)
+notes: Build a repeatable work + recovery rhythm that survives high-stress weeks.
+

@@ -1,0 +1,11 @@
+name: Practice Streak Achievement (Example)
+type: achievement
+category: Personal Development
+description: Awarded when the Creative Practice habit hits a 5-day streak.
+points: 50
+status: locked
+criteria:
+  streak:
+    type: habit
+    name: Creative Practice (Example)
+    days: 5

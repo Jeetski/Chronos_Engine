@@ -1,0 +1,7 @@
+max_minutes: 15
+days_window: 3
+limit: 20
+include_missed: true
+include_overdue: true
+include_due: true
+quick_label: quick

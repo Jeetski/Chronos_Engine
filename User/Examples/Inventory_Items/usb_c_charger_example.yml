@@ -1,0 +1,13 @@
+﻿name: USB-C Charger
+type: inventory_item
+description: Compact 30W charger + cable for phone/tablet.
+category: power
+quantity: 1
+status: ready
+places:
+  - On The Go
+  - Traveling
+  - At Work
+tags:
+  - power
+  - usb-c

@@ -1,0 +1,23 @@
+name: Inbox Triage 30 (Example)
+type: task
+category: Work
+priority: medium
+status: pending
+duration: 30
+tags:
+  - example
+  - admin
+  - collaboration
+status_requirements:
+  focus:
+    - okay
+    - scattered
+variants:
+  - name: Inbox Triage 20 (Low Energy Variant)
+    status_requirements:
+      energy:
+        - low
+        - exhausted
+    duration: 20
+notes: >
+  Batch clear async messages to zero or defer with explicit next actions.

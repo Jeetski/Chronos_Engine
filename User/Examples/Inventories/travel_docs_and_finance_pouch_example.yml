@@ -1,0 +1,22 @@
+name: Travel Docs and Finance Pouch
+type: inventory
+description: Document and payment core for domestic/international trips.
+tags:
+  - inventory
+  - travel
+  - documents
+places:
+  - On The Go
+  - Traveling
+inventory_items:
+  - type: inventory_item
+    name: Passport and ID Pouch
+    quantity: 1
+  - type: inventory_item
+    name: Boarding Docs Bundle
+    quantity: 1
+  - type: inventory_item
+    name: Wallet
+    quantity: 1
+notes: Centralized pouch reduces check-in friction and loss risk.
+

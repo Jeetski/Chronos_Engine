@@ -1,0 +1,13 @@
+name: Deep Work Start Ritual
+type: habit
+polarity: good
+category: work
+priority: high
+cue: start of first focus block
+reward: small espresso
+frequency:
+  times: 4
+  period: week
+notes: >
+  Two-minute pre-flight ritual: set timer, close distractions, open plan, start music.
+

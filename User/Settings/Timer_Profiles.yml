@@ -1,0 +1,21 @@
+classic_pomodoro:
+  focus_minutes: 25
+  long_break_every: 4
+  long_break_minutes: 15
+  points_per_focus: 0
+  short_break_minutes: 5
+  type: pomodoro
+deep_work_50_10:
+  focus_minutes: 50
+  long_break_every: 4
+  long_break_minutes: 20
+  points_per_focus: 10
+  short_break_minutes: 10
+  type: pomodoro
+sprint_90_30:
+  focus_minutes: 90
+  long_break_every: 3
+  long_break_minutes: 30
+  points_per_focus: 0
+  short_break_minutes: 10
+  type: pomodoro

@@ -1,0 +1,12 @@
+name: Focus Playlist Unlock
+type: reward
+cost: 5
+cooldown: PT4H
+category: focus
+target:
+  type: task
+  name: Deep Work Foundation
+  action: open
+notes: >
+  Unlock a favorite playlist as a motivator for a deep work block.
+

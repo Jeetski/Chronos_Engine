@@ -1,0 +1,17 @@
+name: Clean Dryer Vent _example
+type: habit
+status: active
+polarity: good
+chore: true
+frequency: yearly
+duration: 30
+description: Clear lint buildup for safety.
+tags:
+  - chore
+  - yearly
+completion_dates: []
+incident_dates: []
+current_streak: 0
+longest_streak: 0
+clean_current_streak: 0
+clean_longest_streak: 0

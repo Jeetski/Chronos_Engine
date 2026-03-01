@@ -1,0 +1,13 @@
+name: Practice Reminder (Example)
+type: reminder
+description: Ping yourself if the creative practice block hasn’t started by 18:00.
+time: '18:00'
+enabled: true
+recurrence:
+  - weekdays
+target:
+  type: habit
+  name: Creative Practice (Example)
+  action: open
+  properties:
+    note: Launch the timer and play along.

@@ -1,0 +1,15 @@
+name: Charge Devices Before Departure
+type: task
+category: Personal Development
+priority: medium
+status: pending
+duration: 20
+tags:
+  - example
+  - travel
+  - power
+status_requirements:
+  place:
+    - at home
+notes: Fully charge phone, power bank, earbuds, and any travel tech.
+

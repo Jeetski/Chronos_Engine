@@ -1,0 +1,9 @@
+name: Digital Sunset (Example)
+type: subroutine
+description: Disconnect from screens and set devices to do-not-disturb.
+duration: 00:20
+tags:
+  - example
+children:
+  - name: Digital Sunset (Example)
+    type: task

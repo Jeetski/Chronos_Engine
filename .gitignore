@@ -67,6 +67,8 @@ User/**
 !User/Scripts/**
 !User/Examples/**
 !User/**/*_example.yml
+# Local credential-bearing settings
+User/Settings/link_settings.yml
 
 # Generated registries/logs
 Registry/*.json

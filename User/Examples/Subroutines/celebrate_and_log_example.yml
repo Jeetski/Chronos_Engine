@@ -1,0 +1,13 @@
+name: Celebrate & Log (Example)
+type: subroutine
+description: Redeem a reward when the commitment is met and update achievements.
+duration: 00:20
+tags:
+  - example
+children:
+  - name: Practice Streak Commitment (Example)
+    type: commitment
+  - name: Game Break Reward (Example)
+    type: reward
+  - name: Practice Streak Achievement (Example)
+    type: achievement

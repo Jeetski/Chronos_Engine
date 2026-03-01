@@ -1,0 +1,17 @@
+name: Clean Bathroom _example
+type: habit
+status: active
+polarity: good
+chore: true
+frequency: weekly
+duration: 30
+description: Clean sink, toilet, and shower.
+tags:
+  - chore
+  - weekly
+completion_dates: []
+incident_dates: []
+current_streak: 0
+longest_streak: 0
+clean_current_streak: 0
+clean_longest_streak: 0

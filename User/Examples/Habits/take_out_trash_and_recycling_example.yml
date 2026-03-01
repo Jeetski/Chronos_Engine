@@ -1,0 +1,17 @@
+name: Take Out Trash and Recycling _example
+type: habit
+status: active
+polarity: good
+chore: true
+frequency: weekly
+duration: 10
+description: Empty household trash and recycling.
+tags:
+  - chore
+  - weekly
+completion_dates: []
+incident_dates: []
+current_streak: 0
+longest_streak: 0
+clean_current_streak: 0
+clean_longest_streak: 0

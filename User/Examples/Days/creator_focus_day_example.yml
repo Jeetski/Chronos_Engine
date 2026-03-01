@@ -1,0 +1,60 @@
+name: Creator Focus Day (Example)
+type: day
+description: High-output day with protected maker windows and fixed anchor blocks.
+category: Work
+duration: 24h
+days:
+  - monday
+  - tuesday
+  - wednesday
+  - thursday
+  - friday
+status_requirements:
+  focus:
+    - good
+    - laser
+children:
+  - type: routine
+    name: Creator Takeoff Routine (Example)
+  - type: task
+    name: Team Sync Anchor (Example)
+  - type: task
+    name: Ship One Meaningful Chunk (Example)
+  - type: subroutine
+    name: Async Comms Triage (Example)
+  - type: routine
+    name: Creator Landing Routine (Example)
+  - type: timeblock
+    name: Overflow Buffer 20 (Example)
+sequence:
+  - name: Maker Window AM (Example)
+    type: microroutine
+    window: true
+    start: "08:30"
+    end: "11:30"
+    filters:
+      tags:
+        - maker
+        - deep_work
+  - name: Collaboration Window PM (Example)
+    type: microroutine
+    window: true
+    start: "13:30"
+    end: "16:00"
+    filters:
+      tags:
+        - collaboration
+        - admin
+  - name: Recovery Window Evening (Example)
+    type: microroutine
+    window: true
+    start: "19:00"
+    end: "21:00"
+    filters:
+      tags:
+        - recovery
+        - reflection
+notes: >
+  Demonstrates window-based placement, anchored commitments, and an overflow
+  buffer for schedule shock.
+

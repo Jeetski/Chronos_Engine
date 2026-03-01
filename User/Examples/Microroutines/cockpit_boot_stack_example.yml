@@ -1,0 +1,18 @@
+name: Cockpit Boot Stack (Example)
+type: microroutine
+frequency: weekdays
+habit_stack: true
+cue: first coffee
+followed_by: Focus Sprint 90 (Example)
+duration: 20
+tags:
+  - example
+  - pilot_focus
+children:
+  - type: habit
+    name: Morning Check-In (Example)
+  - type: habit
+    name: Inbox Zero 10 (Example)
+  - type: task
+    name: Plan Today (Example)
+notes: Fast startup sequence before deep work.

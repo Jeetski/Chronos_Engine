@@ -1,0 +1,21 @@
+name: Checked Luggage Kit
+type: inventory
+description: Bulk/comfort items for longer travel.
+tags:
+  - inventory
+  - travel
+  - checked
+places:
+  - Traveling
+inventory_items:
+  - type: inventory_item
+    name: Compression Cube Set
+    quantity: 1
+  - type: inventory_item
+    name: Travel Laundry Kit
+    quantity: 1
+  - type: inventory_item
+    name: Luggage Tracker
+    quantity: 1
+notes: Use this for non-critical items; keep meds/docs in carry-on.
+

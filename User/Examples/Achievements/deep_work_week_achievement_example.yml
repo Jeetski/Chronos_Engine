@@ -1,0 +1,13 @@
+name: Deep Work Week Achievement (Example)
+type: achievement
+category: Work
+description: Awarded when you land twelve focus sprints in a month.
+points: 120
+status: locked
+criteria:
+  count:
+    type: task
+    name: Focus Sprint 90 (Example)
+    times: 12
+    period: month
+

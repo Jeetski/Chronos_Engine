@@ -1,0 +1,23 @@
+name: Sunday Food and Sanitation Stack (Example)
+type: microroutine
+frequency: weekly
+habit_stack: true
+cue: sunday afternoon
+followed_by: Pilot Landing Routine (Example)
+duration: 130
+tags:
+  - example
+  - habit_stack
+  - chore
+  - kitchen
+children:
+  - type: habit
+    name: Meal Prep Basics _example
+  - type: habit
+    name: Wash Dishes _example
+  - type: habit
+    name: Take Out Trash and Recycling _example
+  - type: habit
+    name: Wipe Door Handles and Switches _example
+notes: End-of-week prep stack that supports clean starts on Monday.
+

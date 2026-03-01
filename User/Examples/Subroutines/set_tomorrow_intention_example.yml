@@ -1,0 +1,11 @@
+name: Set Tomorrow Intention (Example)
+type: subroutine
+description: Choose a focus for tomorrow and prepare key items.
+duration: 00:25
+tags:
+  - example
+children:
+  - name: Prep Tomorrow (Example)
+    type: task
+  - name: Practice Reminder (Example)
+    type: reminder

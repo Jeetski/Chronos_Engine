@@ -1,0 +1,13 @@
+name: Morning Launch
+type: routine
+duration: 75
+children:
+  - type: subroutine
+    name: Morning Warmup
+  - type: microroutine
+    name: Focus Prep Stack
+  - type: task
+    name: Deep Work Foundation
+notes: >
+  Default morning stack combining warmup, quick prep, and a deep work block.
+

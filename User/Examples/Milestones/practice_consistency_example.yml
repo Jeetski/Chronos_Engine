@@ -1,0 +1,17 @@
+name: Practice Consistency (Example)
+type: milestone
+goal: Learn Guitar Example
+description: Sample milestone file that mirrors the embedded goal criteria.
+weight: 1
+criteria:
+  count:
+    of:
+      type: habit
+      name: Creative Practice (Example)
+    times: 15
+    period: month
+progress:
+  percent: 0
+on_complete:
+  - type: reward
+    name: Game Break Reward (Example)

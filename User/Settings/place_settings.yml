@@ -1,0 +1,19 @@
+Place_Settings:
+  At Home:
+    description: Working or relaxing at home base with full access to personal gear.
+    value: 1
+  At School:
+    description: In classes or campus study spaces with student-focused priorities.
+    value: 2
+  At Work:
+    description: On-site at the office or client space with professional equipment.
+    value: 3
+  On Holiday:
+    description: Intentionally off-duty or vacationing, minimal commitments.
+    value: 6
+  On The Go:
+    description: Moving between locations (errands/commute) with a light kit.
+    value: 5
+  Travel:
+    description: In travel mode with mobility constraints and transit logistics.
+    value: 4

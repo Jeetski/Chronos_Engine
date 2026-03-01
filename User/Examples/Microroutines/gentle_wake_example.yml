@@ -1,0 +1,10 @@
+name: Gentle Wake (Example)
+type: microroutine
+duration: 00:10
+tags:
+  - example
+children:
+  - name: Light Stretch (Example)
+    type: task
+  - name: Morning Check-In (Example)
+    type: habit
