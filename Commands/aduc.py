@@ -38,3 +38,10 @@ def run(args, properties):
         
     except Exception as e:
         error(f"Failed to launch ADUC: {e}")
+
+
+def get_help_message():
+    return """
+Usage: aduc
+Description: Launch ADUC in Chronos Pilot Mode using CHRONOS_ADUC_LAUNCHER.bat.
+"""

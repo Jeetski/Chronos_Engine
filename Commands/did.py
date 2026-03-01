@@ -174,3 +174,14 @@ def run(args, properties):
             pass
 
     print(f"Logged {status} for '{block_name}' ({scheduled_start}-{scheduled_end}).")
+
+
+def get_help_message():
+    return """
+Usage: did "Block Name" [start_time:HH:MM] [end_time:HH:MM] [status:completed|skipped|partial] [quality:<value>] [note:"..."] [date:YYYY-MM-DD]
+Description: Log what actually happened for a scheduled block and persist completion data.
+Examples:
+  did "Deep Work"
+  did "Workout" status:partial note:"Stopped early"
+  did "Planning" start_time:09:00 end_time:09:45 date:2026-03-01
+"""

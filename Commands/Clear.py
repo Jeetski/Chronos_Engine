@@ -278,3 +278,15 @@ def clear_archives(user_dir):
         print("  No Archive directory found.")
     
     return count
+
+
+def get_help_message():
+    return """
+Usage: clear [logs|schedules|cache|db:<name>|registry:<name>|temp|archives|all] [force:true]
+Description: Delete logs, generated schedules, cache databases, temp files, or archives.
+Examples:
+  clear logs
+  clear db:chronos_core
+  clear registry:wizards
+  clear all force:true
+"""

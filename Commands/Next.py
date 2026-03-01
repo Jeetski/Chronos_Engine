@@ -143,3 +143,14 @@ def run(args, properties):
         color_override="future",
         title=f"--- {label} ---",
     )
+
+
+def get_help_message():
+    return """
+Usage: next day|<weekday>|<ordinal> [of] <month>
+Description: Preview a future schedule (day after tomorrow, next weekday, or next ordinal date).
+Examples:
+  next day
+  next tuesday
+  next 12th of march
+"""

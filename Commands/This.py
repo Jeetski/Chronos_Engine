@@ -44,3 +44,13 @@ def run(args, properties):
         color_override="future",
         title=f"--- {label} ---",
     )
+
+
+def get_help_message():
+    return """
+Usage: this <weekday>
+Description: Preview the nearest occurrence of a weekday in the current week.
+Examples:
+  this monday
+  this friday
+"""

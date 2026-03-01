@@ -29,3 +29,13 @@ def run(args, properties):
         color_override="future",
         title="--- Tomorrow's Schedule ---",
     )
+
+
+def get_help_message():
+    return """
+Usage: tomorrow [days:<n>]
+Description: Preview a future daily schedule using the planner pipeline.
+Examples:
+  tomorrow
+  tomorrow days:3
+"""

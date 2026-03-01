@@ -2929,3 +2929,15 @@ def phase4_final_buffer_insertion(schedule, buffer_settings):
     final_schedule, _, _ = insert_buffers_recursive(schedule, None, timedelta(minutes=0))
 
     return final_schedule
+
+
+def get_help_message():
+    return """
+Usage: today [reschedule|routines|subroutines|microroutines|legacy]
+Description: Build or view today's schedule. Use 'reschedule' to rebuild with current status/signals.
+Examples:
+  today
+  today reschedule
+  today routines
+  today legacy reschedule
+"""
