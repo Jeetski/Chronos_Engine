@@ -55,13 +55,17 @@ META/
 META.md
 backup/
 
-# User data: ignore everything under User, but allow empty directory placeholders, Settings, Profile, and example payloads
+# User data policy:
+# - Keep directory structure visible via .gitkeep placeholders.
+# - Track shared config/code/examples.
+# - Ignore personal runtime/content files by default.
 User/**
+!User/
+!User/**/
 !User/**/.gitkeep
 !User/Settings/**
-!User/Profile/**
 !User/Scripts/**
-!User/Scripts/Macros/**
+!User/Examples/**
 !User/**/*_example.yml
 
 # Generated registries/logs
