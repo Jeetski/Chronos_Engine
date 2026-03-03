@@ -1,4 +1,5 @@
 import os
+import json
 import yaml
 import subprocess
 from datetime import datetime, timedelta
@@ -148,6 +149,11 @@ def write_item_data(item_type, name, data):
     """
     path = get_item_path(item_type, name)
     ensure_dir(os.path.dirname(path))
+    try:
+        from Utilities.resolution_assoc import apply_resolution_associations
+        data = apply_resolution_associations(item_type, data)
+    except Exception:
+        pass
     try:
         from Utilities.happiness_assoc import apply_happiness_associations
         data = apply_happiness_associations(item_type, data)
@@ -407,8 +413,26 @@ def open_item_in_editor(item_type, name, editor_command):
         return
 
     if not editor_command:
+        editor_command = get_editor_command({})
+    if not editor_command:
         print("❌ No editor found. Please specify an editor using 'editor:<editor_name>' property...")
         return
+
+    # Special case: route to Chronos dashboard Editor view instead of launching an external process.
+    if str(editor_command).strip().lower() == "chronos_editor":
+        try:
+            rel_path = os.path.relpath(path, ROOT_DIR).replace("\\", "/")
+            temp_dir = os.path.join(ROOT_DIR, "Temp")
+            ensure_dir(temp_dir)
+            req_path = os.path.join(temp_dir, "editor_open_request.json")
+            with open(req_path, "w", encoding="utf-8") as fh:
+                json.dump({"path": rel_path}, fh, ensure_ascii=False)
+            print(f"🧭 Queued for Chronos Editor: {rel_path}")
+            return
+        except Exception as e:
+            Logger.error(f"Failed to queue Chronos Editor request: {e}")
+            print("❌ Failed to queue file for Chronos Editor.")
+            return
 
     try:
         print(f"Attempting to open '{name}.yml' with '{editor_command}'...")

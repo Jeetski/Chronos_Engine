@@ -18,7 +18,15 @@ export async function mount(el, context) {
       .pm-summary-card { border:1px solid rgba(43,51,67,0.8); border-radius:10px; padding:10px; background:#0f141d; min-height:90px; }
       .pm-summary-card h5 { margin:0; text-transform:uppercase; font-size:11px; letter-spacing:0.08em; color:#a6adbb; }
       .pm-summary-value { font-size:22px; font-weight:700; margin-top:4px; }
-      .pm-description { border:1px solid rgba(43,51,67,0.8); border-radius:10px; padding:10px; background:#0f141d; }
+      .pm-description { border:1px solid rgba(43,51,67,0.8); border-radius:10px; padding:10px; background:#0f141d; display:flex; flex-direction:column; gap:8px; }
+      .pm-description textarea { width:100%; min-height:96px; resize:vertical; }
+      .pm-edit-grid { display:grid; grid-template-columns:repeat(2, minmax(180px,1fr)); gap:8px; }
+      .pm-edit-grid label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:#a6adbb; }
+      .pm-edit-grid input[type="date"] { color-scheme: dark; }
+      .pm-desc-actions { display:flex; gap:8px; align-items:center; }
+      .pm-desc-status { font-size:12px; color:#a6adbb; }
+      .pm-desc-status.error { color:#ef6a6a; }
+      .pm-desc-status.success { color:#5bdc82; }
       .pm-roadmap { border:1px solid rgba(43,51,67,0.8); border-radius:10px; padding:10px; background:#0f141d; display:flex; flex-direction:column; gap:10px; }
       .pm-roadmap-title { display:flex; align-items:center; justify-content:space-between; }
       .pm-roadmap-list { display:flex; gap:10px; overflow:auto; }
@@ -50,7 +58,37 @@ export async function mount(el, context) {
       </aside>
       <section class="pm-detail">
         <div class="pm-summary" id="pmSummary"></div>
-        <div class="pm-description" id="pmDescription"></div>
+        <div class="pm-description" id="pmDescription">
+          <div class="pm-edit-grid">
+            <label>State
+              <select id="pmEditState" class="input">
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
+              </select>
+            </label>
+            <label>Name
+              <input id="pmEditName" class="input" placeholder="Project name" />
+            </label>
+            <label>Stage
+              <input id="pmEditStage" class="input" placeholder="e.g. Alpha v0.2" />
+            </label>
+            <label>Priority
+              <input id="pmEditPriority" class="input" placeholder="e.g. high" />
+            </label>
+            <label>Target Date
+              <input id="pmEditTargetDate" class="input" type="date" />
+            </label>
+          </div>
+          <label class="hint" for="pmDescriptionInput">Description</label>
+          <textarea id="pmDescriptionInput" class="input" placeholder="No description provided."></textarea>
+          <div class="pm-desc-actions">
+            <button class="btn" id="pmSaveDescription">Save Changes</button>
+            <button class="btn" id="pmRenameProject" disabled>Rename Project</button>
+            <span id="pmDescStatus" class="pm-desc-status"></span>
+          </div>
+        </div>
         <div class="pm-roadmap">
           <div class="pm-roadmap-title">
             <strong>Roadmap</strong>
@@ -69,6 +107,15 @@ export async function mount(el, context) {
   const listEl = el.querySelector('#pmList');
   const summaryEl = el.querySelector('#pmSummary');
   const descEl = el.querySelector('#pmDescription');
+  const editStateEl = el.querySelector('#pmEditState');
+  const editNameEl = el.querySelector('#pmEditName');
+  const editStageEl = el.querySelector('#pmEditStage');
+  const editPriorityEl = el.querySelector('#pmEditPriority');
+  const editTargetDateEl = el.querySelector('#pmEditTargetDate');
+  const descInputEl = el.querySelector('#pmDescriptionInput');
+  const saveDescBtn = el.querySelector('#pmSaveDescription');
+  const renameProjectBtn = el.querySelector('#pmRenameProject');
+  const descStatusEl = el.querySelector('#pmDescStatus');
   const roadmapEl = el.querySelector('#pmRoadmap');
   const linksEl = el.querySelector('#pmLinks');
   const openMilestonesBtn = el.querySelector('#pmOpenMilestones');
@@ -76,8 +123,49 @@ export async function mount(el, context) {
   let projects = [];
   let selected = null;
   let detail = null;
+  let descDirty = false;
 
   function apiBase(){ const o = window.location.origin; if (!o || o==='null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+  function setDescStatus(msg, tone){
+    if (!descStatusEl) return;
+    descStatusEl.textContent = msg || '';
+    descStatusEl.className = `pm-desc-status${tone ? ' ' + tone : ''}`;
+  }
+  function currentFormModel(){
+    const p = detail?.project || {};
+    return {
+      state: String(p.state || p.status || 'planning'),
+      stage: String(p.stage || ''),
+      priority: String(p.priority || ''),
+      target_date: String(p.target_date || p.due_date || ''),
+      description: String(p.description || ''),
+    };
+  }
+  function formModelFromInputs(){
+    return {
+      state: String(editStateEl?.value || 'planning'),
+      stage: String(editStageEl?.value || ''),
+      priority: String(editPriorityEl?.value || ''),
+      target_date: String(editTargetDateEl?.value || ''),
+      description: String(descInputEl?.value || ''),
+    };
+  }
+  function syncDirtyState(){
+    const current = currentFormModel();
+    const next = formModelFromInputs();
+    descDirty = JSON.stringify(current) !== JSON.stringify(next);
+    saveDescBtn.disabled = !descDirty || !selected;
+    if (descDirty) setDescStatus('Unsaved changes.');
+    else setDescStatus('');
+    syncRenameState();
+  }
+
+  function syncRenameState() {
+    if (!renameProjectBtn || !editNameEl) return;
+    const oldName = String(selected || detail?.project?.name || '').trim();
+    const newName = String(editNameEl.value || '').trim();
+    renameProjectBtn.disabled = !(oldName && newName && oldName !== newName);
+  }
 
   async function loadProjects(){
     try{
@@ -142,7 +230,8 @@ export async function mount(el, context) {
 
   async function loadProjectDetail(name){
     summaryEl.innerHTML = '';
-    descEl.textContent = 'Loading project...';
+    if (descInputEl) descInputEl.value = 'Loading project...';
+    setDescStatus('');
     roadmapEl.innerHTML = '';
     linksEl.innerHTML = '';
     detail = null;
@@ -155,19 +244,37 @@ export async function mount(el, context) {
       renderLinks();
     }catch(err){
       console.error('[ProjectManager] loadProjectDetail failed', err);
-      descEl.innerHTML = `<div class="pm-empty">Unable to load project details.</div>`;
+      if (descInputEl) descInputEl.value = '';
+      setDescStatus('Unable to load project details.', 'error');
     }
   }
 
   function renderSummary(){
     if (!detail?.project){
       summaryEl.innerHTML = '';
-      descEl.innerHTML = '<div class="pm-empty">Select a project to see details.</div>';
+      if (editStateEl) editStateEl.value = 'planning';
+      if (editNameEl) editNameEl.value = '';
+      if (editStageEl) editStageEl.value = '';
+      if (editPriorityEl) editPriorityEl.value = '';
+      if (editTargetDateEl) editTargetDateEl.value = '';
+      if (descInputEl) descInputEl.value = '';
+      syncRenameState();
       return;
     }
     const proj = detail.project;
     summaryEl.innerHTML = '';
-    descEl.textContent = proj.description || 'No description provided.';
+    if (editStateEl) editStateEl.value = String(proj.state || proj.status || 'planning');
+    if (editNameEl) editNameEl.value = String(proj.name || selected || '');
+    if (editStageEl) editStageEl.value = String(proj.stage || '');
+    if (editPriorityEl) editPriorityEl.value = String(proj.priority || '');
+    if (editTargetDateEl) editTargetDateEl.value = String(proj.target_date || proj.due_date || '');
+    if (descInputEl) {
+      descInputEl.value = proj.description || '';
+      descDirty = false;
+      saveDescBtn.disabled = true;
+    }
+    setDescStatus('');
+    syncRenameState();
     const cards = [
       { label: 'State', value: proj.state || proj.status || 'planning' },
       { label: 'Stage', value: proj.stage || 'n/a' },
@@ -246,9 +353,95 @@ export async function mount(el, context) {
   searchEl.addEventListener('input', renderProjectList);
   stateEl.addEventListener('change', renderProjectList);
   openMilestonesBtn.addEventListener('click', ()=>{
+    const projectName = selected || detail?.project?.name || '';
+    const payload = { project: projectName || '' };
+    try { window.__chronosMilestonesFilter = payload; } catch {}
+    try {
+      const msEl = document.querySelector('[data-widget="Milestones"]');
+      if (msEl) {
+        msEl.style.display = '';
+        msEl.classList.remove('minimized');
+        try { window?.ChronosFocusWidget?.(msEl); } catch {}
+      }
+    } catch {}
     try {
       window?.ChronosBus?.emit?.('widget:show','Milestones');
+      window?.ChronosBus?.emit?.('milestones:filter', payload);
     } catch {}
+    try {
+      context?.bus?.emit?.('widget:show','Milestones');
+      context?.bus?.emit?.('milestones:filter', payload);
+    } catch {}
+    setTimeout(() => {
+      try { window?.ChronosBus?.emit?.('milestones:filter', payload); } catch {}
+      try { context?.bus?.emit?.('milestones:filter', payload); } catch {}
+    }, 40);
+  });
+
+  descInputEl?.addEventListener('input', syncDirtyState);
+  editStateEl?.addEventListener('change', syncDirtyState);
+  editNameEl?.addEventListener('input', syncRenameState);
+  editStageEl?.addEventListener('input', syncDirtyState);
+  editPriorityEl?.addEventListener('input', syncDirtyState);
+  editTargetDateEl?.addEventListener('input', syncDirtyState);
+  saveDescBtn?.addEventListener('click', async () => {
+    const projectName = selected || detail?.project?.name || '';
+    if (!projectName) return;
+    const next = formModelFromInputs();
+    saveDescBtn.disabled = true;
+    setDescStatus('Saving...');
+    try {
+      const resp = await fetch(apiBase() + '/api/item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'project',
+          name: projectName,
+          properties: {
+            state: next.state,
+            status: next.state,
+            stage: next.stage,
+            priority: next.priority,
+            target_date: next.target_date,
+            due_date: next.target_date,
+            description: next.description,
+          },
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      setDescStatus('Saved.', 'success');
+      await loadProjects();
+      await selectProject(projectName);
+    } catch (err) {
+      console.error('[ProjectManager] save description failed', err);
+      setDescStatus('Save failed.', 'error');
+      saveDescBtn.disabled = false;
+    }
+  });
+
+  renameProjectBtn?.addEventListener('click', async () => {
+    const oldName = String(selected || detail?.project?.name || '').trim();
+    const newName = String(editNameEl?.value || '').trim();
+    if (!oldName || !newName || oldName === newName) return;
+    renameProjectBtn.disabled = true;
+    setDescStatus('Renaming project and updating references...');
+    try {
+      const resp = await fetch(apiBase() + '/api/project/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ old_name: oldName, new_name: newName }),
+      });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok || json?.ok === false) throw new Error(json?.error || `HTTP ${resp.status}`);
+      selected = newName;
+      setDescStatus(`Renamed. Updated ${Number(json?.updated_refs || 0)} linked item references.`, 'success');
+      await loadProjects();
+      await selectProject(newName);
+    } catch (err) {
+      console.error('[ProjectManager] rename project failed', err);
+      setDescStatus(`Rename failed: ${String(err?.message || err)}`, 'error');
+      syncRenameState();
+    }
   });
 
   await loadProjects();

@@ -48,6 +48,7 @@ _ADUC_LOG_PATH = os.path.join(tempfile.gettempdir(), "aduc_launch.log")
 _ADUC_NO_BROWSER_FLAG = os.path.join(tempfile.gettempdir(), "ADUC", "no_browser.flag")
 _ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "temp", "no_browser.flag")
 _LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "link_settings.yml")
+_EDITOR_OPEN_REQUEST_PATH = os.path.join(ROOT_DIR, "Temp", "editor_open_request.json")
 
 
 def _aduc_proxy_request(path: str, method: str = "GET", payload: dict | None = None, timeout: float = 8.0):
@@ -114,6 +115,55 @@ def _link_auth_ok(headers) -> bool:
         return False
     auth = (headers.get("Authorization") or "").strip()
     return auth == f"Bearer {token}"
+
+def _editor_open_request_write(path_value: str, line_value=None) -> bool:
+    try:
+        rel = str(path_value or "").strip().replace("\\", "/")
+        if not rel:
+            return False
+        abs_target = os.path.abspath(os.path.join(ROOT_DIR, rel))
+        if not abs_target.startswith(ROOT_DIR):
+            return False
+        payload = {"path": os.path.relpath(abs_target, ROOT_DIR).replace("\\", "/")}
+        if line_value is not None:
+            try:
+                payload["line"] = int(line_value)
+            except Exception:
+                pass
+        os.makedirs(os.path.dirname(_EDITOR_OPEN_REQUEST_PATH), exist_ok=True)
+        with open(_EDITOR_OPEN_REQUEST_PATH, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
+
+def _editor_open_request_pop():
+    try:
+        if not os.path.exists(_EDITOR_OPEN_REQUEST_PATH):
+            return None
+        with open(_EDITOR_OPEN_REQUEST_PATH, "r", encoding="utf-8") as fh:
+            payload = json.load(fh) or {}
+        try:
+            os.remove(_EDITOR_OPEN_REQUEST_PATH)
+        except Exception:
+            pass
+        if not isinstance(payload, dict):
+            return None
+        path_value = str(payload.get("path") or "").strip().replace("\\", "/")
+        if not path_value:
+            return None
+        abs_target = os.path.abspath(os.path.join(ROOT_DIR, path_value))
+        if not abs_target.startswith(ROOT_DIR):
+            return None
+        out = {"path": os.path.relpath(abs_target, ROOT_DIR).replace("\\", "/")}
+        if payload.get("line") is not None:
+            try:
+                out["line"] = int(payload.get("line"))
+            except Exception:
+                pass
+        return out
+    except Exception:
+        return None
 
 def _vars_all():
     try:
@@ -905,7 +955,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing name"}); return
                 
-                if name in ("wizards", "themes", "widgets", "views", "panels", "popups"):
+                if name in ("wizards", "themes", "widgets", "views", "panels", "popups", "gadgets"):
                     # Dynamic build
                     from Utilities import registry_builder
                     data = {}
@@ -921,6 +971,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         data = registry_builder.build_panels_registry()
                     elif name == "popups":
                         data = registry_builder.build_popups_registry()
+                    elif name == "gadgets":
+                        data = registry_builder.build_gadgets_registry()
                     self._write_json(200, {"ok": True, "registry": data})
                     return
 
@@ -2245,6 +2297,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     items.append({
                         "name": name,
                         "goal": raw.get('goal'),
+                        "project": raw.get('project'),
                         "status": status,
                         "priority": raw.get('priority'),
                         "category": raw.get('category'),
@@ -2604,6 +2657,20 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         'category': dn.get('category'),
                         'priority': dn.get('priority'),
                         'status': dn.get('status'),
+                        'description': dn.get('description'),
+                        'summary': dn.get('summary'),
+                        'notes': dn.get('notes'),
+                        'tags': dn.get('tags'),
+                        'due_date': dn.get('due_date') or dn.get('due') or dn.get('deadline'),
+                        'deadline': dn.get('deadline'),
+                        'due': dn.get('due'),
+                        'date': dn.get('date'),
+                        'template': dn.get('template'),
+                        'template_name': dn.get('template_name'),
+                        'template_type': dn.get('template_type'),
+                        'template_id': dn.get('template_id'),
+                        'template_membership': dn.get('template_membership'),
+                        'is_template': bool(dn.get('is_template')),
                         'updated': upd,
                     }
                     if item_type == 'project':
@@ -3731,6 +3798,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Editor error: {e}"})
             return
+        if parsed.path == "/api/editor/open-request":
+            try:
+                req = _editor_open_request_pop()
+                self._write_json(200, {"ok": True, "request": req})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Editor open request error: {e}"})
+            return
 
         return super().do_GET()
 
@@ -4247,6 +4321,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Save failed: {e}"})
+            return
+        if parsed.path == "/api/editor/open-request":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                path_value = str(payload.get("path") or "").strip()
+                if not path_value:
+                    self._write_json(400, {"ok": False, "error": "Missing path"}); return
+                line_value = payload.get("line")
+                ok = _editor_open_request_write(path_value, line_value)
+                self._write_json(200 if ok else 400, {"ok": bool(ok)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Editor open request write failed: {e}"})
             return
 
         if parsed.path == "/api/media/playlists/save":
@@ -4982,9 +5069,161 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not item_type or not old_name or not new_name:
                     self._write_yaml(400, {"ok": False, "error": "Missing type, old_name, or new_name"}); return
                 ok, out, err = run_console_command("rename", [item_type, old_name, new_name])
+                try:
+                    from Modules.ItemManager import read_item_data
+                    old_exists = bool(read_item_data(item_type, old_name))
+                    new_exists = bool(read_item_data(item_type, new_name))
+                    if old_exists or not new_exists:
+                        ok = False
+                        if not (err or "").strip():
+                            err = "Rename validation failed: old item still exists or new item missing."
+                except Exception:
+                    pass
                 self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             except Exception as e:
                 self._write_yaml(500, {"ok": False, "error": f"Rename failed: {e}"})
+            return
+
+        if parsed.path == "/api/project/rename":
+            # Payload: { old_name, new_name }
+            try:
+                old_name = (payload.get('old_name') or '').strip()
+                new_name = (payload.get('new_name') or '').strip()
+                if not old_name or not new_name:
+                    self._write_json(400, {"ok": False, "error": "Missing old_name or new_name"}); return
+                if old_name.lower() == new_name.lower():
+                    self._write_json(200, {"ok": True, "renamed": False, "updated_refs": 0, "updated_by_type": {}}); return
+
+                ok, out, err = run_console_command("rename", ["project", old_name, new_name])
+                from Modules.ItemManager import read_item_data
+                old_exists = bool(read_item_data("project", old_name))
+                new_exists = bool(read_item_data("project", new_name))
+                if (not ok) or old_exists or (not new_exists):
+                    self._write_json(500, {"ok": False, "error": err or out or "Project rename failed"}); return
+
+                from Modules.ItemManager import list_all_items_any, read_item_data, write_item_data
+                old_key = old_name.strip().lower()
+                updated_refs = 0
+                updated_by_type = {}
+
+                for item in (list_all_items_any() or []):
+                    if not isinstance(item, dict):
+                        continue
+                    item_type = str(item.get("type") or "").strip().lower()
+                    item_name = str(item.get("name") or "").strip()
+                    if not item_type or not item_name:
+                        continue
+                    if item_type == "project" and item_name.strip().lower() == new_name.strip().lower():
+                        continue
+
+                    data = read_item_data(item_type, item_name) or {}
+                    if not isinstance(data, dict):
+                        continue
+                    changed = False
+                    if str(data.get("project") or "").strip().lower() == old_key:
+                        data["project"] = new_name
+                        changed = True
+                    if str(data.get("resolution_ref") or "").strip().lower() == old_key:
+                        data["resolution_ref"] = new_name
+                        changed = True
+                    if changed:
+                        write_item_data(item_type, item_name, data)
+                        updated_refs += 1
+                        updated_by_type[item_type] = int(updated_by_type.get(item_type, 0)) + 1
+
+                self._write_json(200, {
+                    "ok": True,
+                    "renamed": True,
+                    "stdout": out,
+                    "updated_refs": updated_refs,
+                    "updated_by_type": updated_by_type,
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Project rename failed: {e}"})
+            return
+
+        if parsed.path == "/api/goal/rename":
+            # Payload: { old_name, new_name }
+            try:
+                old_name = (payload.get('old_name') or '').strip()
+                new_name = (payload.get('new_name') or '').strip()
+                if not old_name or not new_name:
+                    self._write_json(400, {"ok": False, "error": "Missing old_name or new_name"}); return
+                if old_name.lower() == new_name.lower():
+                    self._write_json(200, {"ok": True, "renamed": False, "updated_refs": 0, "updated_by_type": {}}); return
+
+                ok, out, err = run_console_command("rename", ["goal", old_name, new_name])
+                from Modules.ItemManager import read_item_data
+                old_exists = bool(read_item_data("goal", old_name))
+                new_exists = bool(read_item_data("goal", new_name))
+                if (not ok) or old_exists or (not new_exists):
+                    self._write_json(500, {"ok": False, "error": err or out or "Goal rename failed"}); return
+
+                from Modules.ItemManager import list_all_items_any, read_item_data, write_item_data
+                old_key = old_name.strip().lower()
+                updated_refs = 0
+                updated_by_type = {}
+
+                def _replace_goal_refs(data):
+                    changed_local = False
+                    if str(data.get("goal") or "").strip().lower() == old_key:
+                        data["goal"] = new_name
+                        changed_local = True
+                    if str(data.get("goal_name") or "").strip().lower() == old_key:
+                        data["goal_name"] = new_name
+                        changed_local = True
+                    for key in ("goals", "linked_goals", "goal_links"):
+                        raw = data.get(key)
+                        if isinstance(raw, list):
+                            nxt = []
+                            replaced = False
+                            for v in raw:
+                                if str(v or "").strip().lower() == old_key:
+                                    nxt.append(new_name)
+                                    replaced = True
+                                else:
+                                    nxt.append(v)
+                            if replaced:
+                                data[key] = nxt
+                                changed_local = True
+                        elif isinstance(raw, str):
+                            parts = [p.strip() for p in raw.split(",")]
+                            repl = False
+                            for i, p in enumerate(parts):
+                                if p.lower() == old_key:
+                                    parts[i] = new_name
+                                    repl = True
+                            if repl:
+                                data[key] = ", ".join(parts)
+                                changed_local = True
+                    return changed_local
+
+                for item in (list_all_items_any() or []):
+                    if not isinstance(item, dict):
+                        continue
+                    item_type = str(item.get("type") or "").strip().lower()
+                    item_name = str(item.get("name") or "").strip()
+                    if not item_type or not item_name:
+                        continue
+                    if item_type == "goal" and item_name.strip().lower() == new_name.strip().lower():
+                        continue
+                    data = read_item_data(item_type, item_name) or {}
+                    if not isinstance(data, dict):
+                        continue
+                    if _replace_goal_refs(data):
+                        write_item_data(item_type, item_name, data)
+                        updated_refs += 1
+                        updated_by_type[item_type] = int(updated_by_type.get(item_type, 0)) + 1
+
+                self._write_json(200, {
+                    "ok": True,
+                    "renamed": True,
+                    "stdout": out,
+                    "updated_refs": updated_refs,
+                    "updated_by_type": updated_by_type,
+                })
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Goal rename failed: {e}"})
             return
 
         if parsed.path.startswith("/api/profile"):
@@ -5009,6 +5248,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 from Modules.ItemManager import get_editor_command
                 
                 editor_command = get_editor_command({}) # empty properties
+                if str(editor_command).strip().lower() == 'chronos_editor':
+                    rel = os.path.relpath(full_path, ROOT_DIR).replace("\\", "/")
+                    ok = _editor_open_request_write(rel, payload.get("line"))
+                    if not ok:
+                        self._write_json(500, {"ok": False, "error": "Failed to queue file for Chronos Editor"}); return
+                    self._write_json(200, {"ok": True, "mode": "chronos_editor", "path": rel})
+                    return
                 
                 import subprocess
                 subprocess.run([editor_command, full_path], check=True)

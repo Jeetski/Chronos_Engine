@@ -5,10 +5,18 @@ export function mount(el, context) {
     link.id = 'timer-css';
     link.rel = 'stylesheet';
     link.href = './Widgets/Timer/timer.css';
+    link.addEventListener('load', () => {
+      try { window.requestAnimationFrame(() => window.requestAnimationFrame(() => ensureTimerFitsContent())); } catch { }
+    });
     document.head.appendChild(link);
   }
 
   el.className = 'widget timer-widget';
+  try {
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = '420';
+    el.dataset.minHeight = '380';
+  } catch { }
 
   const tpl = `
   <div class="header" id="twHeader">
@@ -18,12 +26,31 @@ export function mount(el, context) {
         <button class="icon-btn" id="twClose" title="Close">x</button>
       </div>
     </div>
-    <div class="content" style="gap:10px;">
-      <div id="twBanner" style="display:none; border:1px solid rgba(122,162,247,0.4); background:linear-gradient(135deg, rgba(42,92,255,0.15) 0%, rgba(42,92,255,0.08) 100%); border-radius:12px; padding:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);">
+    <div class="content timer-content">
+      <div id="twPanel" class="timer-panel">
+        <div class="row timer-meta-row">
+          <div id="twPhase" class="hint timer-phase">Phase: -</div>
+          <div id="twCycle" class="hint">Cycle: 0</div>
+          <div id="twStatus" class="hint">Status: idle</div>
+        </div>
+        <div class="timer-ring-wrap" aria-hidden="true">
+          <svg class="timer-ring" viewBox="0 0 120 120" role="presentation">
+            <circle class="timer-ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="timer-ring-progress" id="twRingProgress" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="timer-ring-center">
+            <div class="timer-clock" id="twClock">00:00</div>
+            <div class="timer-progress-label" id="twProgressLabel">0% elapsed</div>
+          </div>
+        </div>
+        <div id="twBlockMeta" class="hint"></div>
+        <div id="twQueueMeta" class="hint"></div>
+      </div>
+      <div id="twBanner" style="display:block; border:1px solid rgba(122,162,247,0.4); background:linear-gradient(135deg, rgba(42,92,255,0.15) 0%, rgba(42,92,255,0.08) 100%); border-radius:12px; padding:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);">
         <div id="twBannerText" style="font-weight:600; margin-bottom:8px;">Completed the current block?</div>
         <div class="row" style="gap:8px; flex-wrap:wrap;">
           <button class="btn btn-primary" id="twBannerYes">Yes</button>
-          <button class="btn" id="twBannerSkip">Skip</button>
+          <button class="btn" id="twBannerSkip">Skip Today</button>
           <button class="btn btn-secondary" id="twBannerRestart">Start Over</button>
           <button class="btn" id="twBannerStretch">Stretch</button>
         </div>
@@ -43,24 +70,9 @@ export function mount(el, context) {
         <button class="btn btn-primary" id="twStart">Start</button>
         <button class="btn" id="twStartDay">Start Day</button>
         <button class="btn" id="twPause">Pause</button>
-        <button class="btn" id="twResume">Resume</button>
-        <button class="btn btn-secondary" id="twStop">Stop</button>
         <button class="btn btn-secondary" id="twCancel">Cancel</button>
         <div class="spacer"></div>
         <button class="btn" id="twRefresh">Refresh</button>
-      </div>
-      <div id="twPanel" style="padding:16px; border:1px solid rgba(255, 255, 255, 0.08); border-radius:12px; background:linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); display:flex; flex-direction:column; gap:10px;">
-        <div class="row" style="gap:10px; align-items:center;">
-          <div id="twPhase" class="hint" style="font-weight:700; color:#a6adbb;">Phase: -</div>
-          <div id="twCycle" class="hint">Cycle: 0</div>
-          <div id="twStatus" class="hint">Status: idle</div>
-        </div>
-        <div style="font-size:32px; font-weight:800; letter-spacing:1px; text-shadow:0 2px 8px rgba(0,0,0,0.3);" id="twClock">00:00</div>
-        <div style="height:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255, 255, 255, 0.06); border-radius:8px; overflow:hidden;">
-          <div id="twBar" style="height:100%; width:0%; background:linear-gradient(90deg,#2a5cff,#7aa2f7); box-shadow:0 0 10px rgba(122,162,247,0.4);"></div>
-        </div>
-        <div id="twBlockMeta" class="hint"></div>
-        <div id="twQueueMeta" class="hint"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -68,6 +80,9 @@ export function mount(el, context) {
     <div class="resizer se"></div>
   `;
   el.innerHTML = tpl;
+
+  const MIN_TIMER_WIDTH = 420;
+  const MIN_TIMER_HEIGHT = 380;
 
   const btnMin = el.querySelector('#twMin');
   const btnClose = el.querySelector('#twClose');
@@ -79,15 +94,14 @@ export function mount(el, context) {
   const startBtn = el.querySelector('#twStart');
   const startDayBtn = el.querySelector('#twStartDay');
   const pauseBtn = el.querySelector('#twPause');
-  const resumeBtn = el.querySelector('#twResume');
-  const stopBtn = el.querySelector('#twStop');
   const cancelBtn = el.querySelector('#twCancel');
   const refreshBtn = el.querySelector('#twRefresh');
   const phaseEl = el.querySelector('#twPhase');
   const cycleEl = el.querySelector('#twCycle');
   const statusEl = el.querySelector('#twStatus');
   const clockEl = el.querySelector('#twClock');
-  const barEl = el.querySelector('#twBar');
+  const ringEl = el.querySelector('#twRingProgress');
+  const progressLabelEl = el.querySelector('#twProgressLabel');
   const banner = el.querySelector('#twBanner');
   const bannerText = el.querySelector('#twBannerText');
   const bannerYes = el.querySelector('#twBannerYes');
@@ -99,8 +113,32 @@ export function mount(el, context) {
 
   let profiles = {};
   let pendingConfirmation = null;
+  let lastTimerStatus = 'idle';
+  let lastPendingConfirmVisible = null;
+  let lastBlockSeconds = 0;
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+  function ensureTimerFitsContent() {
+    try {
+      if (!el || el.style.display === 'none' || el.classList.contains('minimized')) return;
+      const headerEl = el.querySelector('#twHeader');
+      const contentEl = el.querySelector('.content');
+      const headerH = Math.ceil(headerEl?.offsetHeight || 40);
+      const contentH = Math.ceil(contentEl?.scrollHeight || 0);
+      const currentH = Math.ceil(el.offsetHeight || 0);
+      const neededH = Math.max(MIN_TIMER_HEIGHT, headerH + contentH + 2);
+      if (Math.abs(neededH - currentH) > 1) el.style.height = `${neededH}px`;
+      const currentW = Math.ceil(el.offsetWidth || 0);
+      if (currentW < MIN_TIMER_WIDTH) el.style.width = `${MIN_TIMER_WIDTH}px`;
+    } catch { }
+  }
+  function queueEnsureTimerFits() {
+    try {
+      requestAnimationFrame(() => requestAnimationFrame(() => ensureTimerFitsContent()));
+    } catch {
+      ensureTimerFitsContent();
+    }
+  }
 
   function two(n) { return String(n).padStart(2, '0'); }
   function fmt(sec) {
@@ -109,15 +147,50 @@ export function mount(el, context) {
     const m = Math.floor(safe / 60), s = safe % 60;
     return `${two(m)}:${two(s)}`;
   }
+  const RING_RADIUS = 52;
+  const RING_CIRC = 2 * Math.PI * RING_RADIUS;
+  if (ringEl) {
+    ringEl.style.strokeDasharray = `${RING_CIRC}`;
+    ringEl.style.strokeDashoffset = `${RING_CIRC}`;
+  }
+  function setRingProgress(pct) {
+    const clamped = Math.max(0, Math.min(100, Number(pct) || 0));
+    if (ringEl) {
+      const offset = RING_CIRC * (1 - (clamped / 100));
+      ringEl.style.strokeDashoffset = `${offset}`;
+    }
+    if (progressLabelEl) {
+      progressLabelEl.textContent = `${Math.round(clamped)}% elapsed`;
+    }
+  }
+
+  function applyProfileSelection() {
+    try {
+      const saved = (localStorage.getItem('twProfile') || '');
+      if (saved) {
+        const opt = Array.from(profSel.options).find(o => o.value === saved);
+        if (opt) {
+          profSel.value = saved;
+          return;
+        }
+      }
+    } catch { }
+    if (profSel.options.length) profSel.value = profSel.options[0].value;
+  }
 
   async function loadProfiles() {
     try {
-      const r = await fetch(apiBase() + '/api/timer/profiles'); const d = await r.json();
+      const selectedBefore = profSel.value || '';
+      const r = await fetch(apiBase() + '/api/timer/profiles?_=' + Date.now(), { cache: 'no-store' }); const d = await r.json();
       profiles = d.profiles || {};
       profSel.innerHTML = '';
       const names = Object.keys(profiles);
       names.forEach(n => { const opt = document.createElement('option'); opt.value = n; opt.textContent = n; profSel.appendChild(opt); });
-      // Defer default selection to settings loader
+      if (selectedBefore) {
+        const opt = Array.from(profSel.options).find(o => o.value === selectedBefore);
+        if (opt) profSel.value = selectedBefore;
+      }
+      if (!profSel.value) applyProfileSelection();
     } catch { }
   }
 
@@ -141,6 +214,17 @@ export function mount(el, context) {
     } catch { }
   }
 
+  async function reloadProfilesAndRefresh() {
+    const current = profSel.value || '';
+    await loadProfiles();
+    if (current && !profSel.value) {
+      const opt = Array.from(profSel.options).find(o => o.value === current);
+      if (opt) profSel.value = current;
+    }
+    if (!profSel.value) await loadSettings();
+    if (String(lastTimerStatus || 'idle').toLowerCase() === 'idle') resetDisplayForSelected();
+  }
+
   async function status() {
     try {
       const r = await fetch(apiBase() + '/api/timer/status'); const d = await r.json();
@@ -153,8 +237,13 @@ export function mount(el, context) {
       const block = st.current_block;
       if (block && blockMetaEl) {
         blockMetaEl.textContent = `Block: ${block.name || 'Block'} (${block.minutes || '?'}m)`;
+        blockMetaEl.style.display = '';
+        const minutes = Number(block.minutes || 0);
+        lastBlockSeconds = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes * 60) : 0;
       } else if (blockMetaEl) {
         blockMetaEl.textContent = '';
+        blockMetaEl.style.display = 'none';
+        lastBlockSeconds = 0;
       }
       if (queueMetaEl) {
         const sched = st.schedule_state || {};
@@ -163,31 +252,60 @@ export function mount(el, context) {
         const idx = Number(sched.current_index ?? 0);
         if (total > 0) {
           queueMetaEl.textContent = `Schedule: block ${Math.min(total, idx + 1)} of ${total}`;
+          queueMetaEl.style.display = '';
         } else {
           queueMetaEl.textContent = '';
+          queueMetaEl.style.display = 'none';
         }
       }
-      // Progress within current phase based on profile
+      // Progress basis: schedule mode must use current block duration.
       const prof = st.profile || {};
+      const mode = String(st.mode || '').toLowerCase();
       let total = 1;
-      if (st.current_phase === 'focus') total = (prof.focus_minutes || 25) * 60;
-      else if (st.current_phase === 'short_break') total = (prof.short_break_minutes || 5) * 60;
-      else if (st.current_phase === 'long_break') total = (prof.long_break_minutes || 15) * 60;
+      if (mode === 'schedule' && block && Number(block.minutes) > 0) {
+        total = Math.max(1, Math.floor(Number(block.minutes) * 60));
+      } else if (st.current_phase === 'focus') {
+        total = (prof.focus_minutes || 25) * 60;
+      } else if (st.current_phase === 'short_break') {
+        total = (prof.short_break_minutes || 5) * 60;
+      } else if (st.current_phase === 'long_break') {
+        total = (prof.long_break_minutes || 15) * 60;
+      }
       const rem = parseInt(st.remaining_seconds || 0, 10); const pct = Math.max(0, Math.min(100, ((total - rem) / total) * 100));
-      barEl.style.width = `${Number.isFinite(pct) ? pct : 0}%`;
+      setRingProgress(Number.isFinite(pct) ? pct : 0);
       if (String(st.status || '').toLowerCase() === 'idle') {
         // show default focus length for current profile
         resetDisplayForSelected();
       }
       updateButtons(st.status);
       pendingConfirmation = st.pending_confirmation || null;
-      if (pendingConfirmation && pendingConfirmation.block && banner && bannerText) {
-        const blk = pendingConfirmation.block;
-        bannerText.textContent = `Finished "${blk.name || 'this block'}"?`;
-        banner.style.display = '';
-      } else if (banner) {
-        banner.style.display = 'none';
+      if (banner && bannerText) {
+        const currentBlock = st.current_block || null;
+        const hasPending = !!(pendingConfirmation && pendingConfirmation.block);
+        const waitingForAnchor = !!st.waiting_for_anchor_start;
+        const hasActionTarget = !!currentBlock && !waitingForAnchor;
+        if (hasPending) {
+          const blk = pendingConfirmation.block;
+          bannerText.textContent = `Finished "${blk.name || 'this block'}"?`;
+        } else if (waitingForAnchor && currentBlock) {
+          const startAt = currentBlock.start ? ` at ${currentBlock.start}` : '';
+          bannerText.textContent = `Waiting for anchor "${currentBlock.name || 'block'}"${startAt}`;
+        } else if (hasActionTarget) {
+          bannerText.textContent = `Block "${currentBlock.name || 'current block'}" actions`;
+        } else {
+          bannerText.textContent = 'No active schedule block right now.';
+        }
+        banner.style.display = (hasPending || hasActionTarget || (waitingForAnchor && currentBlock)) ? '' : 'none';
+        if (bannerYes) bannerYes.disabled = !hasActionTarget;
+        if (bannerSkip) bannerSkip.disabled = !hasActionTarget;
+        if (bannerRestart) bannerRestart.disabled = !hasActionTarget;
+        if (bannerStretch) bannerStretch.disabled = !hasActionTarget;
+        if (lastPendingConfirmVisible === null || lastPendingConfirmVisible !== hasPending) {
+          queueEnsureTimerFits();
+          lastPendingConfirmVisible = hasPending;
+        }
       }
+      lastTimerStatus = String(st.status || 'idle').toLowerCase();
     } catch { }
   }
 
@@ -206,15 +324,35 @@ export function mount(el, context) {
     } catch (e) { alert('Timer start failed'); }
   }
 
+  async function stop() {
+    try {
+      const r = await fetch(apiBase() + '/api/timer/stop', { method: 'POST' });
+      if (!r.ok) { alert('Stop failed'); }
+      await status();
+    } catch (e) { alert('Stop failed'); }
+  }
+
   btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
   btnClose.addEventListener('click', () => { el.style.display = 'none'; });
-  startBtn.addEventListener('click', start);
+  startBtn.addEventListener('click', async () => {
+    const s = String(lastTimerStatus || 'idle').toLowerCase();
+    if (s === 'running' || s === 'paused') await stop();
+    else await start();
+  });
   startDayBtn?.addEventListener('click', () => startDayRun());
-  pauseBtn.addEventListener('click', async () => { const r = await fetch(apiBase() + '/api/timer/pause', { method: 'POST' }); if (!r.ok) alert('Pause failed'); await status(); });
-  resumeBtn.addEventListener('click', async () => { const r = await fetch(apiBase() + '/api/timer/resume', { method: 'POST' }); if (!r.ok) alert('Resume failed'); await status(); });
-  stopBtn.addEventListener('click', async () => { const r = await fetch(apiBase() + '/api/timer/stop', { method: 'POST' }); if (!r.ok) alert('Stop failed'); await status(); });
+  pauseBtn.addEventListener('click', async () => {
+    const s = String(lastTimerStatus || 'idle').toLowerCase();
+    if (s === 'paused') {
+      const r = await fetch(apiBase() + '/api/timer/resume', { method: 'POST' });
+      if (!r.ok) alert('Resume failed');
+    } else {
+      const r = await fetch(apiBase() + '/api/timer/pause', { method: 'POST' });
+      if (!r.ok) alert('Pause failed');
+    }
+    await status();
+  });
   cancelBtn.addEventListener('click', async () => { const r = await fetch(apiBase() + '/api/timer/cancel', { method: 'POST' }); if (!r.ok) alert('Cancel failed'); await status(); resetDisplayForSelected(); });
-  refreshBtn.addEventListener('click', status);
+  refreshBtn.addEventListener('click', async () => { await reloadProfilesAndRefresh(); await status(); });
   profSel.addEventListener('change', () => { try { localStorage.setItem('twProfile', profSel.value); } catch { } });
   bannerYes?.addEventListener('click', () => confirmBlock('yes'));
   bannerSkip?.addEventListener('click', () => confirmBlock('skip'));
@@ -225,9 +363,10 @@ export function mount(el, context) {
     const s = String(stStatus || 'idle').toLowerCase();
     const running = s === 'running';
     const paused = s === 'paused';
-    pauseBtn.disabled = !running;
-    resumeBtn.disabled = !paused;
-    stopBtn.disabled = !(running || paused);
+    lastTimerStatus = s;
+    startBtn.textContent = (running || paused) ? 'Stop' : 'Start';
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    pauseBtn.disabled = !(running || paused);
     cancelBtn.disabled = !(running || paused);
   }
 
@@ -263,11 +402,14 @@ export function mount(el, context) {
     phaseEl.textContent = 'Phase: -';
     statusEl.textContent = 'Status: idle';
     cycleEl.textContent = 'Cycle: 0';
-    barEl.style.width = '0%';
+    setRingProgress(0);
   }
 
   async function confirmBlock(action) {
-    if (!pendingConfirmation) return;
+    if (action === 'start_over') {
+      setRingProgress(0);
+      if (lastBlockSeconds > 0) clockEl.textContent = fmt(lastBlockSeconds);
+    }
     try {
       await fetch(apiBase() + '/api/timer/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
       pendingConfirmation = null;
@@ -280,15 +422,25 @@ export function mount(el, context) {
 
   function showWidget() {
     el.style.display = '';
+    queueEnsureTimerFits();
     try { window.ChronosFocusWidget?.(el); } catch { }
   }
 
-  context?.bus?.on?.('timer:show', () => { showWidget(); status(); });
+  context?.bus?.on?.('timer:show', async () => { showWidget(); await reloadProfilesAndRefresh(); await status(); });
   context?.bus?.on?.('timer:refresh', () => status());
 
+  try { window.addEventListener('resize', queueEnsureTimerFits); } catch { }
+
   // Bootstrap
-  loadProfiles().then(loadSettings).then(() => status());
+  loadProfiles().then(loadSettings).then(() => { status(); queueEnsureTimerFits(); });
   // Poll
   try { clearInterval(window.__twPoll); } catch { }
   window.__twPoll = setInterval(status, 1000);
+
+  // Resizers
+  function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
+  const re = el.querySelector('.resizer.e'); const rs = el.querySelector('.resizer.s'); const rse = el.querySelector('.resizer.se');
+  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(MIN_TIMER_WIDTH, e.clientX - sr.left) + 'px'; })(ev); });
+  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(MIN_TIMER_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
+  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(MIN_TIMER_WIDTH, e.clientX - sr.left) + 'px'; el.style.height = Math.max(MIN_TIMER_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
 }

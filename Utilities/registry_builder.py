@@ -956,3 +956,50 @@ def build_popups_registry():
         "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "popups": popups
     }
+
+
+def build_gadgets_registry():
+    """Auto-discover gadgets by scanning Dashboard/Gadgets directory."""
+    gadgets = []
+    dashboard_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard")
+    gadgets_dir = os.path.join(dashboard_dir, "Gadgets")
+
+    if not os.path.exists(gadgets_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "gadgets": []
+        }
+
+    for entry in os.scandir(gadgets_dir):
+        if not entry.is_dir():
+            continue
+        if entry.name.startswith(('.', '_')):
+            continue
+
+        gadget_name = entry.name
+        label = re.sub(r'(?<!^)(?=[A-Z])', ' ', gadget_name)
+        gadget_def = {
+            "id": gadget_name.lower(),
+            "label": label,
+            "module": gadget_name,
+            "enabled": True,
+            "order": 100,
+        }
+
+        meta_path = os.path.join(entry.path, "gadget.yml")
+        if os.path.exists(meta_path):
+            try:
+                meta = _read_yaml(meta_path)
+                if isinstance(meta, dict):
+                    gadget_def.update(meta)
+            except Exception:
+                pass
+
+        gadgets.append(gadget_def)
+
+    gadgets.sort(key=lambda g: (int(g.get("order", 100)), str(g.get("label", g.get("id", ""))).lower()))
+
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "gadgets": gadgets,
+    }

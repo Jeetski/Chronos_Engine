@@ -1,4 +1,5 @@
 export function mount(el, context) {
+  try { el.dataset.autoheight = 'off'; } catch { }
   if (!document.getElementById('nia-assistant-css')) {
     const link = document.createElement('link');
     link.id = 'nia-assistant-css';
@@ -12,7 +13,9 @@ export function mount(el, context) {
   el.innerHTML = `
     <div class="nia-shell" id="niaShell">
       <button type="button" class="nia-orb" id="niaOrb" aria-expanded="false" title="Open Nia AI Assistant">
-        <span class="nia-orb-letter">Nia</span>
+        <span class="nia-orb-letter" aria-label="Nia">
+          <span class="nia-orb-char">N</span><span class="nia-orb-char">i</span><span class="nia-orb-char">a</span>
+        </span>
       </button>
 
       <section class="nia-panel" id="niaPanel" aria-label="Nia AI Assistant">
@@ -665,7 +668,11 @@ export function mount(el, context) {
       .then(() => appendMsg('Nia memories deleted.', 'assistant'))
       .catch(() => appendMsg('Failed to delete Nia memories.', 'assistant'));
   });
-  btnClose?.addEventListener('click', () => { el.style.display = 'none'; });
+  btnClose?.addEventListener('click', () => {
+    // Keep widget shell visible so the bottom-right orb remains clickable.
+    setOpen(false);
+    closeSettings();
+  });
 
   const onSend = () => {
     if (isSending) return;

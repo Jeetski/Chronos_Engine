@@ -97,6 +97,15 @@ function injectDayListStyles() {
     .calendar-daylist-row.is-completed .calendar-daylist-time {
       opacity: 0.72;
     }
+    .calendar-daylist-row.is-skipped .calendar-daylist-node-name {
+      opacity: 0.72;
+    }
+    .calendar-daylist-row.is-delayed .calendar-daylist-node-name {
+      font-style: italic;
+    }
+    .calendar-daylist-row.is-partial .calendar-daylist-node-name {
+      text-decoration: underline dotted;
+    }
     .calendar-daylist-time {
       font-family: "IBM Plex Mono", "Cascadia Code", monospace;
       color: var(--calendar-time-color, #a5b1d5);
@@ -149,6 +158,46 @@ function injectDayListStyles() {
       justify-content: center;
       font-size: 12px;
       font-weight: 700;
+    }
+    .calendar-daylist-badge--status {
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #e6e8ef;
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+    }
+    .calendar-daylist-badge--completed {
+      border-color: rgba(91,220,130,0.55);
+      color: #6bff95;
+      background: rgba(91,220,130,0.14);
+    }
+    .calendar-daylist-badge--skipped {
+      border-color: rgba(255,176,92,0.55);
+      color: #ffb05c;
+      background: rgba(255,176,92,0.14);
+    }
+    .calendar-daylist-badge--delayed {
+      border-color: rgba(107,183,255,0.55);
+      color: #6bb7ff;
+      background: rgba(107,183,255,0.14);
+    }
+    .calendar-daylist-badge--partial {
+      border-color: rgba(214,187,251,0.55);
+      color: #d6bbfb;
+      background: rgba(214,187,251,0.16);
+    }
+    .calendar-daylist-badge--missed,
+    .calendar-daylist-badge--cancelled {
+      border-color: rgba(239,106,106,0.55);
+      color: #ef6a6a;
+      background: rgba(239,106,106,0.14);
     }
     .calendar-daylist-time--past { --calendar-time-color: #ff6b6b; }
     .calendar-daylist-time--present { --calendar-time-color: #6bb7ff; }
@@ -575,6 +624,7 @@ export function mount(el, context) {
   }
   let todayBlocks = null; let todayLoadedAt = 0;
   const completionsCache = new Map(); // key: 'YYYY-MM-DD' -> Set(names)
+  const dayListStatusOverrides = new Map(); // key: '<date>::<name>::<start>::<end>' -> status
   async function loadTodayBlocks(force = false) {
     if (!force && todayBlocks && (Date.now() - todayLoadedAt) < 3000) return todayBlocks;
     try {
@@ -616,13 +666,101 @@ export function mount(el, context) {
     }
     return out;
   }
+  function normalizeCompletionStatus(value) {
+    const status = String(value || '').trim().toLowerCase();
+    if (!status) return '';
+    if (status === 'done') return 'completed';
+    return status;
+  }
+  function completionStatusToClass(status) {
+    return normalizeCompletionStatus(status).replace(/[^a-z0-9_-]+/g, '-');
+  }
+  function completionStatusLabel(status) {
+    const normalized = normalizeCompletionStatus(status);
+    if (!normalized) return '';
+    if (normalized === 'completed') return 'Done';
+    if (normalized === 'skipped') return 'Skipped';
+    if (normalized === 'delayed') return 'Delayed';
+    if (normalized === 'partial') return 'Partial';
+    if (normalized === 'missed') return 'Missed';
+    if (normalized === 'cancelled') return 'Cancelled';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+  function dayListActiveDateKey() {
+    return selectedDayDate ? dayKey(selectedDayDate) : dayKey(new Date());
+  }
+  function buildDayListStatusKey(entry, explicitDateKey = '') {
+    if (!entry || typeof entry !== 'object') return '';
+    const name = normalizeCompletionName(entry.text || entry.name || '');
+    if (!name) return '';
+    const dateKeyValue = String(explicitDateKey || dayListActiveDateKey()).trim();
+    if (!dateKeyValue) return '';
+    const start = String(entry.start || '').trim();
+    const end = String(entry.end || '').trim();
+    return `${dateKeyValue}::${name}::${start}::${end}`;
+  }
+  function captureLocalDayListMark(entry, explicitDateKey = '') {
+    const dateKeyValue = String(explicitDateKey || dayListActiveDateKey()).trim();
+    const statusKey = buildDayListStatusKey(entry, dateKeyValue);
+    const normalizedName = normalizeCompletionName(entry?.text || entry?.name || '');
+    const completedSet = completionsCache.get(dateKeyValue);
+    return {
+      dateKeyValue,
+      statusKey,
+      normalizedName,
+      hadOverride: statusKey ? dayListStatusOverrides.has(statusKey) : false,
+      previousOverride: statusKey ? dayListStatusOverrides.get(statusKey) : '',
+      hadCompletedName: !!(normalizedName && completedSet instanceof Set && completedSet.has(normalizedName)),
+    };
+  }
+  function restoreLocalDayListMark(snapshot) {
+    if (!snapshot || !snapshot.statusKey) return;
+    if (snapshot.hadOverride) dayListStatusOverrides.set(snapshot.statusKey, snapshot.previousOverride || '');
+    else dayListStatusOverrides.delete(snapshot.statusKey);
+    if (!snapshot.normalizedName || !snapshot.dateKeyValue) return;
+    let completedSet = completionsCache.get(snapshot.dateKeyValue);
+    if (!(completedSet instanceof Set)) {
+      completedSet = new Set();
+      completionsCache.set(snapshot.dateKeyValue, completedSet);
+    }
+    if (snapshot.hadCompletedName) completedSet.add(snapshot.normalizedName);
+    else completedSet.delete(snapshot.normalizedName);
+  }
+  function applyLocalDayListMark(entry, status, explicitDateKey = '') {
+    const dateKeyValue = String(explicitDateKey || dayListActiveDateKey()).trim();
+    const statusKey = buildDayListStatusKey(entry, dateKeyValue);
+    if (!statusKey) return;
+    const normalizedStatus = normalizeCompletionStatus(status);
+    if (normalizedStatus) dayListStatusOverrides.set(statusKey, normalizedStatus);
+    else dayListStatusOverrides.delete(statusKey);
+    const normalizedName = normalizeCompletionName(entry?.text || entry?.name || '');
+    if (!normalizedName || !dateKeyValue) return;
+    let completedSet = completionsCache.get(dateKeyValue);
+    if (!(completedSet instanceof Set)) {
+      completedSet = new Set();
+      completionsCache.set(dateKeyValue, completedSet);
+    }
+    if (normalizedStatus === 'completed') completedSet.add(normalizedName);
+    else completedSet.delete(normalizedName);
+  }
+  function applyExternalCompletionFeedback(detail) {
+    const marks = Array.isArray(detail?.marks) ? detail.marks : [];
+    const status = normalizeCompletionStatus(detail?.status);
+    if (!marks.length || !status) return;
+    const activeDateKey = dayListActiveDateKey();
+    const payloadDate = String(detail?.date || '').trim();
+    const targetDateKey = payloadDate || activeDateKey;
+    if (targetDateKey !== activeDateKey) return;
+    for (const mark of marks) applyLocalDayListMark(mark, status, targetDateKey);
+    renderDayListTree();
+  }
   // (removed duplicate helpers)
 
   function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch { } }
   function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
 
   function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
-  function expandText(s) { try { if (window.__calendarFxExpand === false) return String(s || ''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
+  function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
   function dateAtMidnight(d) { const n = new Date(d); n.setHours(0, 0, 0, 0); return n; }
   function weekMonday(d) { const n = dateAtMidnight(d); const off = (n.getDay() + 6) % 7; n.setDate(n.getDate() - off); return n; }
   function sameDay(a, b) { return dateAtMidnight(a).getTime() === dateAtMidnight(b).getTime(); }
@@ -733,11 +871,18 @@ export function mount(el, context) {
     return '';
   }
   function normalizeDayListBlocks(blocks, completedNames = new Set()) {
+    const dateKeyValue = dayListActiveDateKey();
     return (blocks || []).map((block, idx) => {
       const startMinutes = typeof block.start === 'number' ? block.start : null;
       const endMinutes = typeof block.end === 'number' ? block.end : null;
       const text = String(block.text || 'Untitled block');
-      const completed = completedNames.has(normalizeCompletionName(text));
+      const start = startMinutes != null ? minToHM(startMinutes) : '';
+      const end = endMinutes != null ? minToHM(endMinutes) : '';
+      const normalizedName = normalizeCompletionName(text);
+      const completed = completedNames.has(normalizedName);
+      const statusKey = buildDayListStatusKey({ text, start, end }, dateKeyValue);
+      const overrideStatus = normalizeCompletionStatus(dayListStatusOverrides.get(statusKey));
+      const completionStatus = overrideStatus || (completed ? 'completed' : '');
       return {
         key: `block-${idx}`,
         text,
@@ -745,13 +890,14 @@ export function mount(el, context) {
         depth: Number(block.depth || 0),
         startMinutes,
         endMinutes,
-        start: startMinutes != null ? minToHM(startMinutes) : '',
-        end: endMinutes != null ? minToHM(endMinutes) : '',
+        start,
+        end,
         is_parallel: !!block.is_parallel,
         anchored: !!block.anchored,
         reschedule: String(block.reschedule || ''),
         isWindow: !!block.isWindow,
-        completed,
+        completionStatus,
+        completed: completionStatus === 'completed',
       };
     });
   }
@@ -821,8 +967,12 @@ export function mount(el, context) {
         if (lastSelectedKey === key) {
           row.classList.add('is-primary');
         }
-        if (node.completed) {
-          row.classList.add('is-completed');
+        const nodeStatus = normalizeCompletionStatus(node.completionStatus || (node.completed ? 'completed' : ''));
+        const nodeStatusClass = completionStatusToClass(nodeStatus);
+        row.classList.remove('is-marked', 'is-completed', 'is-skipped', 'is-delayed', 'is-partial', 'is-missed', 'is-cancelled');
+        if (nodeStatusClass) {
+          row.classList.add('is-marked');
+          row.classList.add(`is-${nodeStatusClass}`);
         }
         row.classList.toggle('is-anchored', !!node.anchored);
 
@@ -848,6 +998,15 @@ export function mount(el, context) {
           windowBadge.title = 'Window';
           windowBadge.setAttribute('aria-label', 'Window');
           time.appendChild(windowBadge);
+        }
+        if (nodeStatusClass) {
+          const statusBadge = document.createElement('span');
+          statusBadge.className = `calendar-daylist-badge calendar-daylist-badge--status calendar-daylist-badge--${nodeStatusClass}`;
+          const statusLabel = completionStatusLabel(nodeStatus);
+          statusBadge.textContent = statusLabel || 'Marked';
+          statusBadge.title = statusLabel ? `Marked ${statusLabel.toLowerCase()}` : 'Marked';
+          statusBadge.setAttribute('aria-label', statusLabel || 'Marked');
+          time.appendChild(statusBadge);
         }
         if (selectedKeys.has(key)) {
           const badge = document.createElement('span');
@@ -880,16 +1039,17 @@ export function mount(el, context) {
         completeBtn.type = 'button';
         completeBtn.className = 'calendar-daylist-quick-btn';
         completeBtn.dataset.daylistAction = 'complete';
-        completeBtn.title = node.completed ? 'Already completed' : 'Mark completed';
+        const isCompleted = nodeStatus === 'completed';
+        completeBtn.title = isCompleted ? 'Already completed' : 'Mark completed';
         completeBtn.setAttribute('aria-label', 'Mark completed');
         completeBtn.textContent = '✓';
-        completeBtn.disabled = !!node.completed;
+        completeBtn.disabled = isCompleted;
         const skipBtn = document.createElement('button');
         skipBtn.type = 'button';
         skipBtn.className = 'calendar-daylist-quick-btn';
         skipBtn.dataset.daylistAction = 'skip';
-        skipBtn.title = 'Mark skipped';
-        skipBtn.setAttribute('aria-label', 'Mark skipped');
+        skipBtn.title = 'Mark as skipped for today';
+        skipBtn.setAttribute('aria-label', 'Mark as skipped for today');
         skipBtn.textContent = '⏭';
         quickActions.append(completeBtn, skipBtn);
         nodeCell.appendChild(quickActions);
@@ -978,19 +1138,34 @@ export function mount(el, context) {
   async function markDayListNodeStatus(node, status) {
     const name = String(node?.text || '').trim();
     if (!name || !status) return;
-    const actionLabel = status === 'completed' ? 'done' : status;
+    const actionLabel = status === 'completed' ? 'done' : (status === 'skipped' ? 'skipped for today' : status);
+    const selectedKey = selectedDayDate ? dayKey(selectedDayDate) : dayKey(new Date());
+    const snapshot = captureLocalDayListMark(node, selectedKey);
+    applyLocalDayListMark(node, status, selectedKey);
+    renderDayListTree();
     try {
-      const result = await runCli('mark', [`${name}:${status}`], {});
+      const props = {};
+      if (selectedKey) props.date = selectedKey;
+      const start = String(node?.start || '').trim();
+      const end = String(node?.end || '').trim();
+      if (start) props.start_time = start;
+      if (end) props.end_time = end;
+      const result = await runCli('mark', [`${name}:${status}`], props);
       if (!result?.ok) {
         throw new Error(String(result?.error || 'Action failed'));
       }
       try { context?.bus?.emit('toast:success', `Marked "${name}" as ${actionLabel}.`); } catch { }
-      await refreshDayList(true);
+      void refreshDayList(true);
     } catch (error) {
+      restoreLocalDayListMark(snapshot);
+      renderDayListTree();
       console.error('[Chronos][Calendar] Day-list mark failed', error);
       try { context?.bus?.emit('toast:error', `Failed to mark "${name}" as ${actionLabel}.`); } catch { }
     }
   }
+  const onExternalCompletionMarked = (event) => {
+    try { applyExternalCompletionFeedback(event?.detail || {}); } catch { }
+  };
   function expandAllDayList() {
     dayListExpanded = new Set(collectExpandableKeys(dayListTreeData, 'root'));
     renderDayListTree();
@@ -1480,35 +1655,22 @@ export function mount(el, context) {
   try {
     window.__calendarGoBack = goBack;
     window.__calendarCanGoBack = () => navStack.length > 0;
+    window.__calendarGoToDay = (day, opts = {}) => {
+      const pushHistory = opts?.pushHistory !== false;
+      const nextDay = day ? new Date(day) : new Date();
+      if (pushHistory) {
+        goToDay(nextDay);
+      } else {
+        selectedDayDate = dateAtMidnight(nextDay);
+        drawDayGrid(selectedDayDate);
+        updateBackBtn();
+      }
+    };
+    window.__calendarGoToToday = (opts = {}) => {
+      window.__calendarGoToDay?.(new Date(), opts);
+    };
   } catch { }
 
-  const viewControls = document.createElement('div');
-  viewControls.style.position = 'absolute';
-  viewControls.style.top = '10px';
-  viewControls.style.right = '10px';
-  viewControls.style.display = 'flex';
-  viewControls.style.gap = '8px';
-  viewControls.style.alignItems = 'center';
-  viewControls.style.zIndex = '13';
-
-  const fxWrap = document.createElement('label');
-  fxWrap.className = 'hint';
-  fxWrap.style.display = 'flex';
-  fxWrap.style.alignItems = 'center';
-  fxWrap.style.gap = '6px';
-  fxWrap.title = 'Expand variables in calendar labels';
-  const fx = document.createElement('input');
-  fx.type = 'checkbox';
-  fx.id = 'calendarFxToggle';
-  fx.checked = (window.__calendarFxExpand !== false);
-  fxWrap.append(fx, document.createTextNode('fx'));
-  fx.addEventListener('change', () => {
-    window.__calendarFxExpand = fx.checked;
-    renderDayListTree();
-  });
-
-  viewControls.append(fxWrap);
-  el.appendChild(viewControls);
   dayListRefreshBtn = null;
   function updateBackBtn() {
     const hasHistory = navStack.length > 0;
@@ -1737,8 +1899,10 @@ export function mount(el, context) {
   canvas.addEventListener('pointerup', onPointerUp);
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('resize', debouncedResize);
+  window.addEventListener('chronos:calendar:completion-marked', onExternalCompletionMarked);
   try { new ResizeObserver(() => debouncedResize()).observe(document.getElementById('center')); } catch { }
   try { window.__calendarClearSelection = clearDayListSelection; } catch { }
+  try { window.__calendarApplyCompletionFeedback = applyExternalCompletionFeedback; } catch { }
 
   return {
     unmount() {
@@ -1752,11 +1916,18 @@ export function mount(el, context) {
       canvas.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', debouncedResize);
+      window.removeEventListener('chronos:calendar:completion-marked', onExternalCompletionMarked);
       splitter.removeEventListener('pointerdown', onSplitterPointerDown);
       window.removeEventListener('pointermove', onSplitterPointerMove);
       window.removeEventListener('pointerup', onSplitterPointerUp);
       try { document.body.style.cursor = ''; } catch { }
-      try { delete window.__calendarGoBack; delete window.__calendarCanGoBack; } catch { }
+      try {
+        delete window.__calendarGoBack;
+        delete window.__calendarCanGoBack;
+        delete window.__calendarGoToDay;
+        delete window.__calendarGoToToday;
+        delete window.__calendarApplyCompletionFeedback;
+      } catch { }
     }
   };
 }

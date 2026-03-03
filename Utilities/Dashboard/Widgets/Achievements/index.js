@@ -72,9 +72,6 @@ export function mount(el) {
     <div class="header">
       <div class="title">Achievements</div>
       <div class="controls" style="align-items:center; gap:6px;">
-        <label class="hint" style="display:flex; align-items:center; gap:4px;">
-          <input type="checkbox" id="acFxToggle" checked /> fx
-        </label>
         <button class="icon-btn" id="acMin">_</button>
         <button class="icon-btn" id="acClose">x</button>
       </div>
@@ -135,7 +132,6 @@ export function mount(el) {
 
   const btnMin = el.querySelector('#acMin');
   const btnClose = el.querySelector('#acClose');
-  const fxToggle = el.querySelector('#acFxToggle');
   const listToggleBtn = el.querySelector('#acListToggle');
   const listSectionEl = el.querySelector('#acListSection');
   const searchEl = el.querySelector('#acSearch');
@@ -157,16 +153,13 @@ export function mount(el) {
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
-  let fxEnabled = fxToggle ? fxToggle.checked : true;
   function expandText(s) {
     try {
-      if (!fxEnabled) return String(s || '');
       return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || '');
     } catch {
       return String(s || '');
     }
   }
-  fxToggle?.addEventListener('change', () => { fxEnabled = !!fxToggle.checked; renderList(); });
 
   let achievements = [];
   let currentTitle = '';

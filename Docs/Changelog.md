@@ -1,5 +1,60 @@
 # Changelog
 
+## 2026-03-02
+
+### Dashboard - Milestones Filtering and Deep-Linking
+- Extended milestone payloads to include linked `project` metadata for filtering.
+- Milestones widget now supports combined filtering by:
+  - project
+  - goal
+  - state
+- Added filter dropdowns in Milestones widget for project + goal selection.
+- Project Manager and Goal Planner `Open Milestones` actions now:
+  - open/focus Milestones widget
+  - apply the current project/goal filter automatically.
+
+### Dashboard - Goal Planner View
+- Replaced placeholder Goal Planner with a manager-style goal workspace aligned with Project Manager patterns.
+- Goal Planner list now shows goals only (milestones are no longer embedded in the goals list).
+- Selecting a goal opens Goal Planner with that goal targeted.
+
+### Dashboard - Project/Goal Editing Improvements
+- Project Manager and Goal Planner now support inline editing/saving for:
+  - description
+  - state
+  - stage
+  - priority
+  - target date
+- Project stage/state are currently free-text-compatible in storage (no strict global enum enforcement).
+
+### Dashboard - Widget Sizing Behavior
+- Added/standardized smart vertical autoheight behavior for widgets so panels resize to fit visible content.
+- Applied guardrails to prevent shrink loops and avoid clipping currently visible elements.
+- Today widget retains scheduler-specific sizing behavior while preserving visibility of expanded sections.
+- Nia orb/widget was explicitly excluded from global autoheight behavior.
+
+### Dashboard - Nia Widget Reliability and Styling
+- Fixed Nia close/reopen flow so closing from `X` does not block reopening from the bottom-right trigger.
+- Updated Nia launcher visual to ring-only style (removed extra filled rounded rectangle background).
+
+### Dashboard - Popup Open Actions
+- Fixed Welcome popup `Open Profile` action so it reliably opens/focuses the Profile widget.
+- Fixed Achievement popup `Open Achievements` action so it reliably opens/focuses the Achievements widget.
+
+### Dashboard + CLI - Editor Routing (`chronos_editor`)
+- Added `chronos_editor` special handling in editor-open flows:
+  - CLI/dashboard open-in-editor requests can target the in-dashboard Editor view instead of external apps.
+  - Server now queues editor-open requests and dashboard app consumes them to open Editor with file context.
+- Updated default editor setting to:
+  - `User/Settings/config.yml` -> `default_editor: chronos_editor`
+
+### CLI - Dashboard Browser Override
+- `dashboard` command now supports optional browser overrides from:
+  - `browser:<cmd>` command property
+  - `dashboard_browser` in `User/Settings/config.yml`
+  - `browser` in `User/Settings/config.yml`
+- When unset, dashboard continues opening in the system default browser.
+
 ## 2026-02-28
 
 ### Dashboard - Day Builder View (Scheduling-Focused) Implemented

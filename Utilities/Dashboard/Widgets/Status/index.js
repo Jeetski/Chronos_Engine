@@ -33,12 +33,10 @@ export function mount(el) {
   const header = el.querySelector('#statusHeader');
   const btnMin = el.querySelector('#statusMin');
   const btnClose = el.querySelector('#statusClose');
+  const contentRoot = el.querySelector('.content');
   const fieldsRoot = el.querySelector('#statusFields');
   const btnUpdate = el.querySelector('#statusUpdate');
-  // fx toggle for expanded display of labels (does not affect saves)
-  const fxWrap = document.createElement('label'); fxWrap.className = 'hint'; fxWrap.style.display = 'flex'; fxWrap.style.alignItems = 'center'; fxWrap.style.gap = '6px'; fxWrap.style.margin = '6px 0';
-  const fx = document.createElement('input'); fx.type = 'checkbox'; fx.id = 'statusFxToggle'; fx.checked = true; fxWrap.append(fx, document.createTextNode('fx'));
-  try { fieldsRoot.parentElement.insertBefore(fxWrap, fieldsRoot); } catch { }
+  fieldsRoot.classList.add('status-knob-polygon');
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -47,6 +45,7 @@ export function mount(el) {
   const optionsMap = settings.options || {};
   let currentStatus = normalizeStatusMap(settings.current || {});
   const optionRankMap = {};
+  let radarState = null;
 
   // Render fields
   const fieldRefs = {};
@@ -77,27 +76,28 @@ export function mount(el) {
     });
   }
   function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
-  let fxEnabled = true;
-  fx?.addEventListener('change', () => {
-    fxEnabled = !!fx.checked;
-    try {
-      fieldsRoot.querySelectorAll('.knob-label').forEach(l => {
-        const raw = l.getAttribute('data-raw') || l.textContent || '';
-        l.textContent = fxEnabled ? expandText(raw) : raw;
-      });
-      fieldsRoot.querySelectorAll('.knob-value-display').forEach(d => {
-        const raw = d.getAttribute('data-raw') || d.textContent || '';
-        d.textContent = fxEnabled ? expandText(raw) : raw;
-      });
-      fieldsRoot.querySelectorAll('label.hint').forEach(l => {
-        const raw = l.getAttribute('data-raw') || l.textContent || '';
-        l.textContent = fxEnabled ? expandText(raw) : raw;
-      });
-    } catch { }
-  });
-
+  function isWidgetVisible() {
+    return !!(el && el.style.display !== 'none' && el.offsetWidth > 0);
+  }
+  function autoExpandToFit(opts = {}) {
+    const allowShrink = !!opts.allowShrink;
+    if (!isWidgetVisible() || el.classList.contains('minimized')) return;
+    const minWidgetHeight = 380;
+    const maxAutoHeight = Math.min(Math.max(minWidgetHeight, (window.innerHeight || 900) - 110), 560);
+    const headerH = header?.offsetHeight || 44;
+    const contentH = contentRoot?.scrollHeight || 0;
+    const targetRaw = Math.ceil(headerH + contentH + 12);
+    const target = Math.max(minWidgetHeight, Math.min(maxAutoHeight, targetRaw));
+    const current = Math.ceil(el.offsetHeight || 0);
+    if ((allowShrink && target !== current) || (!allowShrink && target > current)) {
+      el.style.height = `${target}px`;
+    }
+  }
+  function queueAutoExpandToFit(opts = {}) {
+    requestAnimationFrame(() => requestAnimationFrame(() => autoExpandToFit(opts)));
+  }
   // Helper to render a knob
-  function renderKnob(typeSlug, labelText, options) {
+  function renderKnob(typeSlug, labelText, options, onChange) {
     const wrap = document.createElement('div');
     wrap.className = 'status-knob-row';
 
@@ -131,6 +131,7 @@ export function mount(el) {
     // API object to get/set value
     const api = {
       get value() { return validOptions[currentIndex]; },
+      get normalized() { return (validOptions.length - 1) <= 0 ? 1 : (currentIndex / (validOptions.length - 1)); },
       set value(val) {
         // try exact then case-insensitive
         let idx = validOptions.indexOf(val);
@@ -151,8 +152,9 @@ export function mount(el) {
       dial.style.transform = `rotate(${angle}deg)`;
 
       const rawText = String(validOptions[currentIndex]);
-      valDisplay.textContent = fxEnabled ? expandText(rawText) : rawText;
+      valDisplay.textContent = expandText(rawText);
       valDisplay.setAttribute('data-raw', rawText);
+      try { onChange && onChange(); } catch { }
     }
     updateVisuals(); // Init
 
@@ -204,6 +206,95 @@ export function mount(el) {
     return api;
   }
 
+  function toPolarPoint(cx, cy, radius, angle) {
+    return { x: cx + (radius * Math.cos(angle)), y: cy + (radius * Math.sin(angle)) };
+  }
+
+  function ensureRadarLayer(nodes) {
+    const wrap = document.createElement('div');
+    wrap.className = 'status-radar-wrap';
+    wrap.innerHTML = `
+      <svg class="status-radar" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <g class="status-radar-grid"></g>
+        <polygon class="status-radar-area"></polygon>
+        <polygon class="status-radar-outline"></polygon>
+        <g class="status-radar-points"></g>
+      </svg>
+    `;
+    fieldsRoot.appendChild(wrap);
+
+    const svg = wrap.querySelector('.status-radar');
+    const gridEl = wrap.querySelector('.status-radar-grid');
+    const pointsEl = wrap.querySelector('.status-radar-points');
+    const areaEl = wrap.querySelector('.status-radar-area');
+    const outlineEl = wrap.querySelector('.status-radar-outline');
+    const center = { x: 50, y: 50 };
+    const maxRadius = 34;
+    const ringLevels = 4;
+
+    // Rings
+    for (let level = 1; level <= ringLevels; level += 1) {
+      const r = (maxRadius * level) / ringLevels;
+      const pts = nodes.map((n) => {
+        const p = toPolarPoint(center.x, center.y, r, n.angle);
+        return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+      }).join(' ');
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      ring.setAttribute('class', 'status-radar-ring');
+      ring.setAttribute('points', pts);
+      gridEl.appendChild(ring);
+    }
+
+    // Spokes
+    nodes.forEach((n) => {
+      const p = toPolarPoint(center.x, center.y, maxRadius, n.angle);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('class', 'status-radar-spoke');
+      line.setAttribute('x1', String(center.x));
+      line.setAttribute('y1', String(center.y));
+      line.setAttribute('x2', p.x.toFixed(2));
+      line.setAttribute('y2', p.y.toFixed(2));
+      gridEl.appendChild(line);
+    });
+
+    return { svg, pointsEl, areaEl, outlineEl, center, maxRadius, nodes };
+  }
+
+  function updateRadarChart() {
+    if (!radarState || !radarState.nodes?.length) return;
+    const pts = radarState.nodes.map((n) => {
+      const knob = fieldRefs[n.typeSlug];
+      const value = knob ? knob.normalized : 0;
+      const radius = radarState.maxRadius * Math.max(0, Math.min(1, value));
+      const p = toPolarPoint(radarState.center.x, radarState.center.y, radius, n.angle);
+      return `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
+    });
+    const poly = pts.join(' ');
+    radarState.areaEl.setAttribute('points', poly);
+    radarState.outlineEl.setAttribute('points', poly);
+    radarState.pointsEl.innerHTML = '';
+    pts.forEach((pt) => {
+      const [x, y] = pt.split(',');
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('class', 'status-radar-dot');
+      dot.setAttribute('cx', x);
+      dot.setAttribute('cy', y);
+      dot.setAttribute('r', '1.3');
+      radarState.pointsEl.appendChild(dot);
+    });
+  }
+
+  function triggerRadarUpdateFx() {
+    if (!radarState?.svg) return;
+    const svg = radarState.svg;
+    svg.classList.remove('status-radar-update-fx');
+    void svg.getBoundingClientRect();
+    svg.classList.add('status-radar-update-fx');
+    setTimeout(() => {
+      try { svg.classList.remove('status-radar-update-fx'); } catch { }
+    }, 760);
+  }
+
   async function loadValueRanks(typeSlug) {
     try {
       const resp = await fetch(apiBase() + `/api/settings?file=${encodeURIComponent(typeSlug + '_settings.yml')}`);
@@ -244,18 +335,30 @@ export function mount(el) {
     fieldsRoot.innerHTML = '';
     Object.keys(fieldRefs).forEach(k => delete fieldRefs[k]);
 
-    types.forEach(type => {
+    const count = Math.max(1, types.length);
+    const step = (Math.PI * 2) / count;
+    const startAngle = -Math.PI / 2;
+    const radarNodes = types.map((type, idx) => ({ typeSlug: slugify(type), angle: startAngle + (idx * step) }));
+    radarState = ensureRadarLayer(radarNodes);
+    types.forEach((type, idx) => {
       const typeSlug = slugify(type);
       const labelText = expandText(type);
       const rawOpts = Array.isArray(optionsMap[type]) ? optionsMap[type] : ['Poor', 'Fair', 'Good', 'Excellent'];
       const opts = sortOptionsLowToHigh(typeSlug, rawOpts);
 
-      const knob = renderKnob(typeSlug, labelText, opts);
+      const knob = renderKnob(typeSlug, labelText, opts, updateRadarChart);
+      const angle = startAngle + (idx * step);
+      const x = 50 + (39 * Math.cos(angle));
+      const y = 50 + (39 * Math.sin(angle));
+      knob.el.style.left = `${x}%`;
+      knob.el.style.top = `${y}%`;
       fieldRefs[typeSlug] = knob;
 
       const curVal = currentStatus[typeSlug];
       if (curVal) knob.value = curVal;
     });
+    updateRadarChart();
+    queueAutoExpandToFit();
   }
 
   async function initFields() {
@@ -272,18 +375,19 @@ export function mount(el) {
       try {
         fieldsRoot.querySelectorAll('.knob-label').forEach(l => {
           const raw = l.getAttribute('data-raw') || l.textContent || '';
-          l.textContent = fxEnabled ? expandText(raw) : raw;
+          l.textContent = expandText(raw);
         });
         fieldsRoot.querySelectorAll('.knob-value-display').forEach(d => {
           const raw = d.getAttribute('data-raw') || d.textContent || '';
-          d.textContent = fxEnabled ? expandText(raw) : raw;
+          d.textContent = expandText(raw);
         });
         // Also update standard hints
         fieldsRoot.querySelectorAll('label.hint').forEach(l => {
           const raw = l.getAttribute('data-raw') || l.textContent || '';
-          l.textContent = fxEnabled ? expandText(raw) : raw;
+          l.textContent = expandText(raw);
         });
       } catch { }
+      queueAutoExpandToFit();
     });
   } catch { }
 
@@ -314,7 +418,8 @@ export function mount(el) {
         } catch (e) {
           console.warn('[Chronos][Status] Refresh failed after update:', e);
         }
-        alert('Status updated.');
+        triggerRadarUpdateFx();
+        setTimeout(() => { alert('Status updated.'); }, 780);
       } else {
         alert('Failed to update status.');
       }
@@ -326,15 +431,26 @@ export function mount(el) {
 
   // Resizers
   function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
+  const minWidgetWidth = 300;
+  const minWidgetHeight = 380;
   const re = el.querySelector('.resizer.e'); const rs = el.querySelector('.resizer.s'); const rse = el.querySelector('.resizer.se');
-  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; })(ev); });
-  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
-  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
+  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(minWidgetWidth, e.clientX - sr.left) + 'px'; })(ev); });
+  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(minWidgetHeight, e.clientY - sr.top) + 'px'; })(ev); });
+  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(minWidgetWidth, e.clientX - sr.left) + 'px'; el.style.height = Math.max(minWidgetHeight, e.clientY - sr.top) + 'px'; })(ev); });
 
   initFields().then(() => fetchCurrentStatus().then(applyCurrentStatus).catch(() => { })).catch(() => {
     renderFields();
     fetchCurrentStatus().then(applyCurrentStatus).catch(() => { });
   });
+
+  try {
+    const visibilityObserver = new MutationObserver(() => {
+      if (isWidgetVisible()) queueAutoExpandToFit();
+    });
+    visibilityObserver.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+  } catch { }
+  window.addEventListener('resize', () => queueAutoExpandToFit());
+  queueAutoExpandToFit();
 
   console.log('[Chronos][Status] Widget ready');
   return {};

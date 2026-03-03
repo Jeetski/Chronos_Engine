@@ -18,7 +18,7 @@ export function mount(el) {
     </style>
     <div class="header" id="gtHeader">
       <div class="title">Goals</div>
-      <div class="controls"> <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="goalFxToggle" checked /> fx</label>
+      <div class="controls">
         <button class="icon-btn" id="gtMin" title="Minimize">_</button>
         <button class="icon-btn" id="gtClose" title="Close">x</button>
       </div>
@@ -65,11 +65,8 @@ export function mount(el) {
   const metaEl = el.querySelector('#gtMeta');
   const refreshBtn = el.querySelector('#gtRefresh');
   const msEl = el.querySelector('#gtMilestones');
-  const fxChk = el.querySelector('#goalFxToggle');
 
-  let fxEnabled = fxChk ? fxChk.checked : true;
-  function expandText(s) { try { return (fxEnabled && window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
-  fxChk?.addEventListener('change', () => { fxEnabled = !!fxChk.checked; try { loadGoals(); } catch { } });
+  function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 

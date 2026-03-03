@@ -14,7 +14,7 @@ export function mount(el, context) {
     <div class="header" id="habitHeader">
       <div class="title">Habits</div>
       <div class="controls">
-        <input id="habitSearch" class="input" placeholder="Search habits" style="width:160px;" /> <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="habitFxToggle" checked /> fx</label>
+        <input id="habitSearch" class="input" placeholder="Search habits" style="width:160px;" />
         <select id="habitPolarity" class="input" style="width:120px;">
           <option value="all">All</option>
           <option value="good">Good</option>
@@ -43,16 +43,10 @@ export function mount(el, context) {
   const listEl = el.querySelector('#habitList');
   const summaryEl = el.querySelector('#habitSummary');
 
-  const fxChk = header.querySelector('#habitFxToggle');
-  let fxEnabled = fxChk ? fxChk.checked : true;
   function expandText(s) {
-    try { return (fxEnabled && window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); }
+    try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); }
     catch { return String(s || ''); }
   }
-  fxChk?.addEventListener('change', () => {
-    fxEnabled = !!fxChk.checked;
-    try { refresh(); } catch { }
-  });
   // Refresh when variables change so expanded text stays current
   try { context?.bus?.on('vars:changed', () => refresh()); } catch { }
 

@@ -1,5 +1,6 @@
 export function mount(el, context) {
     console.log('[Chronos][Today] Mounting Today widget');
+    try { el.dataset.autoheight = 'off'; } catch { }
 
     // Load CSS
     if (!document.getElementById('scheduler-css')) {
@@ -156,6 +157,7 @@ export function mount(el, context) {
               </div>
               <div class="button-row">
                 <input class="scheduler-input" id="kairosRepairCutThreshold" type="number" min="0" max="1" step="0.05" placeholder="Repair cut threshold (0.0 - 1.0)" style="min-width:240px;" />
+                <input class="scheduler-input" id="kairosStatusThreshold" type="number" min="0" max="1" step="0.05" placeholder="Status match threshold (0.0 - 1.0)" style="min-width:240px;" />
               </div>
               <div class="button-row">
                 <span class="scheduler-hint" style="min-width:120px;">Kairos Presets</span>
@@ -189,10 +191,6 @@ export function mount(el, context) {
 
       <!-- Status Bar -->
       <div class="scheduler-status-bar">
-        <label class="scheduler-toggle" title="Enable visual effects in this widget.">
-          <input type="checkbox" id="todayFxToggle" checked title="Enable visual effects in this widget." />
-          fx
-        </label>
         <span class="scheduler-hint" id="selHint">Select a day in Calendar to preview the schedule.</span>
       </div>
     </div>
@@ -358,6 +356,7 @@ export function mount(el, context) {
   const kairosQuickWins = el.querySelector('#kairosQuickWins');
   const kairosRepairMinDuration = el.querySelector('#kairosRepairMinDuration');
   const kairosRepairCutThreshold = el.querySelector('#kairosRepairCutThreshold');
+  const kairosStatusThreshold = el.querySelector('#kairosStatusThreshold');
   const kairosPresetSafe = el.querySelector('#kairosPresetSafe');
   const kairosPresetBalanced = el.querySelector('#kairosPresetBalanced');
   const kairosPresetAggressive = el.querySelector('#kairosPresetAggressive');
@@ -487,6 +486,7 @@ export function mount(el, context) {
       kairosQuickWins: kairosQuickWins?.value,
       kairosRepairMinDuration: kairosRepairMinDuration?.value,
       kairosRepairCutThreshold: kairosRepairCutThreshold?.value,
+      kairosStatusThreshold: kairosStatusThreshold?.value,
       kairosWindowFilterOverrides: collectWindowFilterOverrides(),
     };
   }
@@ -527,6 +527,7 @@ export function mount(el, context) {
       if (saved.kairosQuickWins !== undefined && kairosQuickWins) kairosQuickWins.value = saved.kairosQuickWins;
       if (saved.kairosRepairMinDuration !== undefined && kairosRepairMinDuration) kairosRepairMinDuration.value = saved.kairosRepairMinDuration;
       if (saved.kairosRepairCutThreshold !== undefined && kairosRepairCutThreshold) kairosRepairCutThreshold.value = saved.kairosRepairCutThreshold;
+      if (saved.kairosStatusThreshold !== undefined && kairosStatusThreshold) kairosStatusThreshold.value = saved.kairosStatusThreshold;
       if (Array.isArray(saved.kairosWindowFilterOverrides)) {
         setWindowFilterOverrides(saved.kairosWindowFilterOverrides);
       } else {
@@ -712,6 +713,7 @@ export function mount(el, context) {
     saveLocalControls();
     setKairosPresetActive(detectKairosPreset());
   });
+  kairosStatusThreshold?.addEventListener('input', () => saveLocalControls());
   addKairosWindowFilterRow?.addEventListener('click', () => {
     addWindowFilterRow({});
     saveLocalControls();
@@ -734,6 +736,89 @@ export function mount(el, context) {
   const calendarContext = content.querySelector('#calendarContext');
   const calendarDayLabel = content.querySelector('#calendarDayLabel');
   const calendarDayNote = content.querySelector('#calendarDayNote');
+  const headerEl = el.querySelector('#todayHeader');
+
+  let autoFitRaf = null;
+  let lastAutoFitHeight = 0;
+  let isApplyingAutoFit = false;
+  function measureContentNaturalHeight(contentEl) {
+    try {
+      const cs = getComputedStyle(contentEl);
+      const pt = Number.parseFloat(cs.paddingTop || '0') || 0;
+      const pb = Number.parseFloat(cs.paddingBottom || '0') || 0;
+      const gap = Number.parseFloat(cs.rowGap || cs.gap || '0') || 0;
+      const children = Array.from(contentEl.children || []).filter((node) => {
+        try { return getComputedStyle(node).display !== 'none'; } catch { return true; }
+      });
+      let total = pt + pb;
+      children.forEach((node, idx) => {
+        total += Math.ceil(node.getBoundingClientRect().height || 0);
+        if (idx > 0) total += gap;
+      });
+      return Math.max(0, Math.ceil(total));
+    } catch {
+      return Math.ceil(contentEl?.scrollHeight || 0);
+    }
+  }
+  function autoFitHeight() {
+    try {
+      if (!el || el.style.display === 'none') return;
+      if (el.classList.contains('minimized')) return;
+      if (isApplyingAutoFit) return;
+      const contentEl = el.querySelector('.content');
+      if (!contentEl) return;
+      const headerH = Math.ceil(headerEl?.getBoundingClientRect?.().height || 40);
+      const contentH = measureContentNaturalHeight(contentEl);
+      const openSectionCount = contentEl.querySelectorAll('details[open]').length;
+      const minHeight = openSectionCount <= 1 ? 170 : 220;
+      const maxHeight = Math.max(minHeight, Math.floor((window.innerHeight || 900) * 0.9));
+      const desired = headerH + contentH + 8;
+      const clamped = Math.max(minHeight, Math.min(maxHeight, desired));
+      if (Math.abs(clamped - lastAutoFitHeight) < 6) return;
+      isApplyingAutoFit = true;
+      el.style.height = `${clamped}px`;
+      lastAutoFitHeight = clamped;
+      // Safety: never leave the widget smaller than its visible content.
+      const overflow = Math.ceil((contentEl.scrollHeight || 0) - (contentEl.clientHeight || 0));
+      if (overflow > 2) {
+        const currentH = Math.ceil(el.getBoundingClientRect().height || clamped);
+        const needed = currentH + overflow + 8;
+        const safeHeight = Math.max(currentH, needed, minHeight);
+        if (safeHeight > currentH + 1) {
+          el.style.height = `${safeHeight}px`;
+          lastAutoFitHeight = safeHeight;
+        }
+      }
+      isApplyingAutoFit = false;
+    } catch { }
+  }
+  function queueAutoFitHeight() {
+    try {
+      if (autoFitRaf) cancelAnimationFrame(autoFitRaf);
+      autoFitRaf = requestAnimationFrame(() => {
+        autoFitRaf = requestAnimationFrame(() => {
+          autoFitRaf = null;
+          autoFitHeight();
+        });
+      });
+    } catch {
+      autoFitHeight();
+    }
+  }
+  try {
+    content.addEventListener('toggle', () => queueAutoFitHeight(), true);
+  } catch { }
+  try {
+    content.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => queueAutoFitHeight()));
+  } catch { }
+  // Avoid ResizeObserver here: observing geometry while changing height causes oscillation loops.
+  try {
+    const mo = new MutationObserver(() => queueAutoFitHeight());
+    mo.observe(content, { subtree: true, childList: true, attributes: true, attributeFilter: ['open', 'style', 'class', 'hidden'] });
+  } catch { }
+  try {
+    window.addEventListener('resize', () => queueAutoFitHeight());
+  } catch { }
 
   let calendarOpen = false;
   let calendarDaySelected = false;
@@ -748,6 +833,7 @@ export function mount(el, context) {
   });
   if (btnResched) btnResched.addEventListener('click', async () => {
     console.log('[Chronos][Today] Reschedule clicked');
+    const targetDate = (calendarDaySelected && calendarDayDate) ? new Date(calendarDayDate) : new Date();
     const props = {};
     if (toggleKairosBuffers) props.buffers = !!toggleKairosBuffers.checked;
     if (toggleKairosTimerBreaks) props.breaks = toggleKairosTimerBreaks.checked ? 'timer' : 'none';
@@ -781,10 +867,18 @@ export function mount(el, context) {
       const cutThreshold = Number.parseFloat(String(kairosRepairCutThreshold.value).trim());
       if (!Number.isNaN(cutThreshold)) props['repair-cut-threshold'] = cutThreshold;
     }
+    if (kairosStatusThreshold && String(kairosStatusThreshold.value || '').trim()) {
+      const statusThresholdRaw = Number.parseFloat(String(kairosStatusThreshold.value).trim());
+      if (!Number.isNaN(statusThresholdRaw)) {
+        const statusThreshold = Math.max(0, Math.min(1, statusThresholdRaw));
+        props['status-threshold'] = statusThreshold;
+      }
+    }
     const windowFilterOverrides = collectWindowFilterOverrides();
     if (windowFilterOverrides.length) {
       props.window_filter_overrides = windowFilterOverrides;
     }
+    let generated = false;
     try {
       const resp = await fetch(apiBase() + '/api/cli', {
         method: 'POST',
@@ -798,12 +892,13 @@ export function mount(el, context) {
       const payload = await resp.json().catch(() => ({}));
       console.log('[Chronos][Today] Reschedule response:', payload);
       if (!resp.ok) throw new Error(payload?.stderr || payload?.error || 'Reschedule failed');
+      generated = true;
     } catch (e) { console.error('[Chronos][Today] Reschedule error:', e); }
+    if (generated) {
+      await openCalendarOnDate(targetDate);
+    }
     fetchToday({ silent: true });
   });
-
-  const fxChk = content.querySelector('#todayFxToggle');
-  fxChk?.addEventListener('change', () => { });
 
   function pulseWidget() {
     try {
@@ -858,6 +953,7 @@ export function mount(el, context) {
     }
     const allowTodayActions = calendarDaySelected ? calendarDayIsToday : true;
     if (btnResched) btnResched.disabled = !allowTodayActions;
+    queueAutoFitHeight();
   }
 
   function hm(m) {
@@ -914,6 +1010,26 @@ export function mount(el, context) {
     }
   }
 
+  async function openCalendarOnDate(date) {
+    const target = date ? new Date(date) : new Date();
+    try {
+      await window.ChronosOpenView?.('Calendar', 'Calendar');
+    } catch { }
+    try {
+      if (typeof window.__calendarGoToDay === 'function') {
+        window.__calendarGoToDay(target, { pushHistory: false });
+      } else if (typeof window.calendarLoadToday === 'function') {
+        window.calendarLoadToday(true);
+      }
+    } catch { }
+    try { window.__calendarRefreshDayList?.(); } catch { }
+    try {
+      setTimeout(() => {
+        try { window.__calendarRefreshDayList?.(); } catch { }
+      }, 120);
+    } catch { }
+  }
+
   try {
     context?.bus?.on('calendar:open', () => {
       calendarOpen = true;
@@ -949,7 +1065,7 @@ export function mount(el, context) {
   } catch { }
 
   // Dragging/min/close
-  const header = el.querySelector('#todayHeader');
+  const header = headerEl;
   const btnMin = el.querySelector('#todayMin');
   const btnClose = el.querySelector('#todayClose');
   if (header && btnMin && btnClose) {
@@ -959,7 +1075,10 @@ export function mount(el, context) {
       function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
     });
-    btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
+    btnMin.addEventListener('click', () => {
+      el.classList.toggle('minimized');
+      if (!el.classList.contains('minimized')) queueAutoFitHeight();
+    });
     btnClose.addEventListener('click', () => el.style.display = 'none');
   }
 
@@ -971,6 +1090,7 @@ export function mount(el, context) {
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
 
   refreshScheduleForTarget({ force: true });
+  queueAutoFitHeight();
   console.log('[Chronos][Today] Widget ready');
   return {};
 }

@@ -1,7 +1,23 @@
 lists:
   -
-    id: checklist
-    label: Checklist
-  -
-    id: checklist_3a282f
-    label: "New Checklist"
+    id: checklist_e3a275
+    label: "Test Checklist"
+    items:
+      -
+        id: 761bf42a-3a16-471f-b4df-c2be78ebe576
+        text: testy
+        type: habit
+        name: ''
+        daily: false
+      -
+        id: b309fe14-978a-481a-a400-bd8d90de89f7
+        text: nothing
+        type: custom
+        name: ''
+        daily: false
+      -
+        id: 1294230f-2331-4e98-9245-680ff615aa39
+        text: wtf
+        type: commitment
+        name: ''
+        daily: false

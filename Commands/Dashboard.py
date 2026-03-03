@@ -14,6 +14,61 @@ except Exception:
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
+def _read_dashboard_browser_setting():
+    """Optional browser override from User/Settings config."""
+    if yaml is None:
+        return ""
+    settings_dir = os.path.join(ROOT_DIR, "User", "Settings")
+    for fname in ("config.yml", "Config.yml"):
+        path = os.path.join(settings_dir, fname)
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+            if isinstance(cfg, dict):
+                val = cfg.get("dashboard_browser")
+                if not val:
+                    val = cfg.get("browser")
+                return str(val or "").strip()
+        except Exception:
+            continue
+    return ""
+
+def _normalize_browser_command(raw):
+    token = str(raw or "").strip()
+    if not token:
+        return ""
+    low = token.lower()
+    aliases = {
+        "edge": "msedge",
+        "msedge": "msedge",
+        "chrome": "chrome",
+        "google-chrome": "chrome",
+        "firefox": "firefox",
+        "brave": "brave",
+        "opera": "opera",
+        "default": "",
+        "system": "",
+    }
+    return aliases.get(low, token)
+
+def _open_dashboard_url(url, browser_cmd=""):
+    cmd = _normalize_browser_command(browser_cmd)
+    if not cmd:
+        webbrowser.open_new_tab(url)
+        return "default"
+    try:
+        subprocess.Popen([cmd, url], cwd=ROOT_DIR)
+        return cmd
+    except Exception:
+        try:
+            webbrowser.get(cmd).open_new_tab(url)
+            return cmd
+        except Exception:
+            webbrowser.open_new_tab(url)
+            return "default"
+
 
 def run(args, properties):
     """
@@ -64,9 +119,16 @@ def run(args, properties):
         print(f"Warning: Could not start dashboard server: {e}")
 
     url = f"http://{host}:{port}/dashboard.html"
+    browser_from_props = ""
+    if isinstance(properties, dict):
+        browser_from_props = str(properties.get("browser") or "").strip()
+    browser_setting = browser_from_props or _read_dashboard_browser_setting()
     try:
-        webbrowser.open_new_tab(url)
-        print(f"Opened dashboard: {url}")
+        opened_with = _open_dashboard_url(url, browser_setting)
+        if opened_with == "default":
+            print(f"Opened dashboard: {url}")
+        else:
+            print(f"Opened dashboard in '{opened_with}': {url}")
     except Exception as e:
         print(f"Could not open dashboard: {e}\nOpen manually: {url}")
 
@@ -75,6 +137,7 @@ def get_help_message():
     return """
 Usage: dashboard
 Description: Opens the Chronos dashboard UI in your default browser.
+Optional: set `browser` (or `dashboard_browser`) in User/Settings/config.yml, or pass `browser:<cmd>`.
 Also pre-bundles User/Settings YAML into generated/settings_bundle.js for the UI to consume.
 """
 

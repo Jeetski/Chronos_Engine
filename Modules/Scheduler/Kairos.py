@@ -19,6 +19,7 @@ High-level pipeline:
 
 import json
 import os
+import re
 import sqlite3
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
@@ -28,7 +29,8 @@ import yaml
 from Utilities.duration_parser import parse_duration_string  # type: ignore
 
 # Item types Kairos can place into a concrete daily timeline.
-EXECUTABLE_TYPES = {"week", "day", "routine", "subroutine", "microroutine", "task", "habit"}
+# Containers (`week`/`day`/`routine`) are intentionally excluded.
+EXECUTABLE_TYPES = {"subroutine", "microroutine", "task", "habit"}
 
 # Name heuristics for "likely fixed" items when explicit anchor metadata is missing.
 ANCHOR_NAME_HINTS = ("sleep", "work", "uni", "school", "commute", "transit", "bedtime")
@@ -38,6 +40,9 @@ class KairosScheduler:
     def __init__(self, user_context: Dict[str, Any] = None):
         """Initialize per-run state and optional user overrides."""
         self.user_context = user_context or {}
+        env_debug = str(os.getenv("CHRONOS_KAIROS_DEBUG", "")).strip().lower() in ("1", "true", "yes", "on")
+        self.debug = self._as_bool(self.user_context.get("debug"), False) or env_debug
+        self.verbose = self._as_bool(self.user_context.get("verbose"), False) or self.debug
         self.decision_log: List[str] = []
         self.phase_notes: Dict[str, Any] = {}
         self.last_schedule: Dict[str, Any] = {}
@@ -66,6 +71,19 @@ class KairosScheduler:
                 return False
         return default
 
+    def _log(self, message: str, *, debug: bool = False) -> None:
+        """Gated runtime logging to avoid noisy scheduler output by default."""
+        if debug:
+            if not self.debug:
+                return
+        else:
+            if not self.verbose:
+                return
+        try:
+            print(message)
+        except Exception:
+            pass
+
     def generate_schedule(self, target_date: date) -> Dict[str, Any]:
         """
         Execute one full Kairos run for a specific date.
@@ -80,11 +98,11 @@ class KairosScheduler:
         self._run_pre_schedule_hooks()
         self.runtime = self._load_runtime()
         self.windows = self._resolve_windows(target_date)
-        print(f"[Kairos] Generating schedule for {target_date}...")
+        self._log(f"[Kairos] Generating schedule for {target_date}...")
         candidates = self.gather_candidates(target_date)
-        print(f"[Kairos] Gathered {len(candidates)} candidates.")
+        self._log(f"[Kairos] Gathered {len(candidates)} candidates.")
         valid = self.filter_candidates(candidates)
-        print(f"[Kairos] Filtered down to {len(valid)} valid items.")
+        self._log(f"[Kairos] Filtered down to {len(valid)} valid items.")
         scored = self.score_candidates(valid)
         schedule = self.construct_schedule(scored, target_date)
         self.last_schedule = schedule
@@ -97,7 +115,7 @@ class KairosScheduler:
 
         Hook is non-fatal and can be disabled via user_context `evaluate_hooks:false`.
         """
-        enabled = self._as_bool((self.user_context or {}).get("evaluate_hooks"), True)
+        enabled = self._as_bool((self.user_context or {}).get("evaluate_hooks"), False)
         if not enabled:
             self.phase_notes["pre_schedule_hooks"] = {"enabled": False, "reason": "evaluate_hooks=false", "results": []}
             return
@@ -131,7 +149,7 @@ class KairosScheduler:
         """
         try:
             from Commands import Today as T
-            from Modules.Scheduler import USER_DIR, read_template, status_current_path
+            from Modules.Scheduler import USER_DIR, normalize_completion_entries, read_template, status_current_path
             status_settings = read_template(os.path.join(USER_DIR, "Settings", "Status_Settings.yml")) or {}
             current_status = read_template(status_current_path()) or read_template(os.path.join(USER_DIR, "current_status.yml")) or {}
             status_context = T.build_status_context(status_settings, current_status)
@@ -141,6 +159,7 @@ class KairosScheduler:
             quick_wins_settings = read_template(os.path.join(USER_DIR, "Settings", "quick_wins_settings.yml")) or {}
             timer_settings = read_template(os.path.join(USER_DIR, "Settings", "Timer_Settings.yml")) or {}
             timer_profiles = read_template(os.path.join(USER_DIR, "Settings", "Timer_Profiles.yml")) or {}
+            status_match_threshold = self.user_context.get("status_match_threshold")
             options = {
                 "force_template": self.user_context.get("force_template"),
                 "use_buffers": self._as_bool(self.user_context.get("use_buffers"), True),
@@ -149,6 +168,7 @@ class KairosScheduler:
                 "timer_profile": self.user_context.get("timer_profile"),
                 "ignore_trends": self._as_bool(self.user_context.get("ignore_trends"), False),
                 "custom_property": self.user_context.get("custom_property"),
+                "status_match_threshold": status_match_threshold,
             }
             status_overrides = self.user_context.get("status_overrides")
             if isinstance(status_overrides, dict):
@@ -172,6 +192,10 @@ class KairosScheduler:
                     cfg = T.load_scheduling_config() or {}
                     rescheduling_cfg = cfg.get("rescheduling", {}) if isinstance(cfg, dict) else {}
                     missed_promo_threshold = int(rescheduling_cfg.get("importance_threshold", 30) or 30)
+                    status_matching_cfg = cfg.get("status_matching", {}) if isinstance(cfg, dict) else {}
+                    if status_match_threshold is None:
+                        status_match_threshold = status_matching_cfg.get("requirement_threshold")
+                        options["status_match_threshold"] = status_match_threshold
                 except Exception:
                     missed_promo_threshold = 30
             if self.user_context.get("missed_promotion_threshold") is not None:
@@ -184,6 +208,13 @@ class KairosScheduler:
                     missed_promo_boost = float(self.user_context.get("missed_promotion_boost"))
                 except Exception:
                     pass
+            completion_path = os.path.join(USER_DIR, "Schedules", "completions", f"{target.isoformat()}.yml")
+            completion_payload = read_template(completion_path) or {}
+            completion_entries = normalize_completion_entries(completion_payload)
+            completed_names, completed_blocks, completed_specs, completion_notes = self._build_completed_markers(completion_entries)
+            completion_notes["path"] = completion_path
+            completion_notes["exists"] = os.path.exists(completion_path)
+            self.phase_notes["completed_today"] = completion_notes
             missed_by_name, missed_notes = self._load_recent_missed_entries(target, enabled=missed_promo_enabled)
             return {
                 "Today": T,
@@ -196,6 +227,10 @@ class KairosScheduler:
                 "timer_profiles": timer_profiles,
                 "options": options,
                 "trend_map": trend_map,
+                "completion_entries": completion_entries,
+                "completed_names": completed_names,
+                "completed_blocks": completed_blocks,
+                "completed_specs": completed_specs,
                 "missed_promotions": {
                     "enabled": missed_promo_enabled,
                     "threshold": missed_promo_threshold,
@@ -646,7 +681,7 @@ class KairosScheduler:
         except Exception as e:
             info = {"error": str(e)}
         if not windows:
-            windows = [{"name": "Deep Work", "start": "09:00", "end": "11:00", "filter": {"category": "work"}}]
+            windows = []
 
         window_overrides = self.user_context.get("window_filter_overrides")
         override_events: List[Dict[str, Any]] = []
@@ -822,12 +857,12 @@ class KairosScheduler:
             cur.execute(
                 """
                 SELECT * FROM items
-                WHERE type IN ('week','day','routine','subroutine','microroutine','task','habit')
+                WHERE type IN ('subroutine','microroutine','task','habit')
                 AND (status IS NULL OR lower(status) NOT IN ('completed','done','archived','cancelled','skipped'))
                 """
             )
             backlog = cur.fetchall()
-            print(f"[Kairos Debug] DB returned {len(backlog)} executable items.")
+            self._log(f"[Kairos Debug] DB returned {len(backlog)} executable items.", debug=True)
             for row in backlog:
                 item = dict(row)
                 item["_source_kind"] = "backlog"
@@ -835,7 +870,7 @@ class KairosScheduler:
                 out.append(item)
             cur.execute("SELECT * FROM items WHERE type = 'commitment'")
             commitments = cur.fetchall()
-            print(f"[Kairos Debug] DB returned {len(commitments)} commitments.")
+            self._log(f"[Kairos Debug] DB returned {len(commitments)} commitments.", debug=True)
             for row in commitments:
                 item = dict(row)
                 item["_source_kind"] = "commitment_rule"
@@ -876,10 +911,61 @@ class KairosScheduler:
         status_context = self.runtime.get("status_context", {}) or {}
         current = status_context.get("current", {}) if isinstance(status_context, dict) else {}
         place = self._normalize_key(current.get("place"))
+        raw_completed_specs = self.runtime.get("completed_specs")
+        completed_specs = raw_completed_specs if isinstance(raw_completed_specs, dict) else {}
+        candidate_nt_counts: Dict[Tuple[str, str], int] = {}
+        for item in candidates:
+            src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
+            tkey = self._normalize_key(item.get("type") or src.get("type"))
+            nkey = self._normalize_key(item.get("name") or src.get("name"))
+            if tkey and nkey:
+                key = (tkey, nkey)
+                candidate_nt_counts[key] = int(candidate_nt_counts.get(key, 0) or 0) + 1
         T = self.runtime.get("Today")
         for item in candidates:
             src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
             item_type = str(item.get("type") or "").strip().lower()
+            name_key = self._normalize_key(item.get("name") or src.get("name"))
+            type_key = self._normalize_key(item_type or src.get("type"))
+            done_specs = []
+            if name_key and type_key:
+                done_specs.extend(completed_specs.get(f"{type_key}|{name_key}") or [])
+            if name_key:
+                done_specs.extend(completed_specs.get(f"*|{name_key}") or [])
+            if done_specs:
+                same_count = int(candidate_nt_counts.get((type_key, name_key), 0) or 0)
+                candidate_time_hints = [
+                    self._parse_hhmm_flexible(src.get("start_time")),
+                    self._parse_hhmm_flexible(src.get("ideal_start_time")),
+                    self._parse_hhmm_flexible(item.get("start_time")),
+                    self._parse_hhmm_flexible(item.get("ideal_start_time")),
+                ]
+                candidate_time_hints = [int(v) for v in candidate_time_hints if v is not None]
+                matched_by_time = False
+                if candidate_time_hints:
+                    for spec in done_specs:
+                        smin = spec.get("scheduled_start_min")
+                        amin = spec.get("actual_start_min")
+                        if (smin is not None and int(smin) in candidate_time_hints) or (
+                            amin is not None and int(amin) in candidate_time_hints
+                        ):
+                            matched_by_time = True
+                            break
+                safe_to_suppress = False
+                if matched_by_time:
+                    safe_to_suppress = True
+                elif same_count <= 1:
+                    # Unambiguous candidate pair (type+name): suppress.
+                    safe_to_suppress = True
+                if safe_to_suppress:
+                    rejected.append(
+                        {
+                            "name": item.get("name"),
+                            "type": item.get("type"),
+                            "reason": "already_completed_today",
+                        }
+                    )
+                    continue
             if item.get("_source_kind") == "commitment_rule":
                 rejected.append({"name": item.get("name"), "type": item.get("type"), "reason": "observer_only_commitment"})
                 continue
@@ -888,6 +974,14 @@ class KairosScheduler:
                 continue
             if item_type not in EXECUTABLE_TYPES:
                 rejected.append({"name": item.get("name"), "type": item.get("type"), "reason": "non_executable_type"})
+                continue
+            children_payload = src.get("children")
+            if not isinstance(children_payload, list):
+                children_payload = src.get("items")
+            if not isinstance(children_payload, list):
+                children_payload = src.get("sequence")
+            if isinstance(children_payload, list) and children_payload:
+                rejected.append({"name": item.get("name"), "type": item.get("type"), "reason": "container_with_children"})
                 continue
             dur = self._duration_minutes(item)
             if dur > 960:
@@ -903,8 +997,17 @@ class KairosScheduler:
                     req = T.extract_status_requirements(src, status_context) or {}
                 except Exception:
                     req = {}
-            if req and not self._req_match(req, status_context):
-                rejected.append({"name": item.get("name"), "type": item.get("type"), "reason": "status_requirements_unmet"})
+            req_probability = self._req_probability(req, status_context)
+            item["_status_requirement_probability"] = req_probability
+            threshold = self._status_match_threshold()
+            if req and req_probability < threshold:
+                rejected.append(
+                    {
+                        "name": item.get("name"),
+                        "type": item.get("type"),
+                        "reason": f"status_requirements_unmet({req_probability:.2f}<{threshold:.2f})",
+                    }
+                )
                 continue
             item["_effective_duration"] = dur
             item["_requirements"] = req
@@ -912,15 +1015,61 @@ class KairosScheduler:
         self.phase_notes["filter"] = {"input": len(candidates), "kept": len(keep), "rejected": len(rejected), "sample_rejections": rejected[:25]}
         return keep
 
-    def _req_match(self, req: Dict[str, List[str]], status_context: Dict[str, Any]) -> bool:
-        """Return True when current status satisfies all normalized requirement lists."""
+    def _status_match_threshold(self) -> float:
+        """
+        Soft-match threshold for status requirement compatibility.
+
+        Default is intentionally permissive to avoid over-pruning:
+        - 0.35 => near matches can still pass
+        """
+        raw = None
+        try:
+            raw = ((self.runtime.get("options", {}) or {}).get("status_match_threshold"))
+        except Exception:
+            raw = None
+        if raw is None:
+            raw = (self.user_context or {}).get("status_match_threshold")
+        try:
+            return max(0.0, min(1.0, float(raw)))
+        except Exception:
+            return 0.35
+
+    def _req_probability(self, req: Dict[str, List[str]], status_context: Dict[str, Any]) -> float:
+        """
+        Return normalized compatibility probability in [0,1] for status requirements.
+        """
+        if not req:
+            return 1.0
+
+        T = self.runtime.get("Today")
+        if T and hasattr(T, "status_requirements_probability"):
+            try:
+                val = float(T.status_requirements_probability(req, status_context))
+                return max(0.0, min(1.0, val))
+            except Exception:
+                pass
+
+        # Fallback: exact-match fraction if helper is unavailable.
         curr = status_context.get("current", {}) if isinstance(status_context, dict) else {}
+        if not isinstance(curr, dict):
+            curr = {}
+        total = 0
+        matched = 0
         for k, allowed in req.items():
+            vals = [str(x).strip().lower() for x in (allowed or []) if str(x).strip()]
+            if not vals:
+                continue
+            total += 1
             v = str(curr.get(k) or "").strip().lower()
-            vals = [str(x).strip().lower() for x in (allowed or [])]
-            if vals and v not in vals:
-                return False
-        return True
+            if v in vals:
+                matched += 1
+        if total <= 0:
+            return 1.0
+        return max(0.0, min(1.0, float(matched) / float(total)))
+
+    def _req_match(self, req: Dict[str, List[str]], status_context: Dict[str, Any]) -> bool:
+        """Soft gate: requirement passes when probability is above configured threshold."""
+        return self._req_probability(req, status_context) >= self._status_match_threshold()
 
     def score_candidates(self, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -967,6 +1116,11 @@ class KairosScheduler:
                 except Exception:
                     c = 0.0
             score += c; reasons.append(f"status_alignment={c:.2f}")
+            try:
+                req_prob = float(item.get("_status_requirement_probability"))
+                reasons.append(f"status_req_prob={req_prob:.2f}")
+            except Exception:
+                pass
             c = self._trend_contribution(item, trend_map) * float(weights.get("trend_reliability", 3.0))
             score += c; reasons.append(f"trend_reliability={c:.2f}")
             if missed_enabled and isinstance(missed_by_name, dict):
@@ -1144,14 +1298,70 @@ class KairosScheduler:
 
     def _to_hhmm(self, total_minutes: int) -> str:
         """Convert absolute minutes-from-midnight into bounded HH:MM."""
-        total = int(total_minutes) % (24 * 60)
+        try:
+            total = int(total_minutes)
+        except Exception:
+            total = 0
+        total = max(0, min((24 * 60) - 1, total))
         h = int(total // 60)
         m = int(total % 60)
         return f"{h:02d}:{m:02d}"
 
+    def _canonical_item_identity(self, item: Dict[str, Any]) -> Optional[str]:
+        """
+        Return stable cross-run identity when available (id/slug), else None.
+        """
+        if not isinstance(item, dict):
+            return None
+        raw = item.get("_raw") if isinstance(item.get("_raw"), dict) else {}
+        for key in ("id", "slug"):
+            value = item.get(key)
+            if value is None and isinstance(raw, dict):
+                value = raw.get(key)
+            text = str(value or "").strip()
+            if not text:
+                continue
+            return f"{key}:{text.lower() if key == 'slug' else text}"
+        return None
+
+    def _runtime_item_uid(self, item: Dict[str, Any], ordinal: Optional[int] = None) -> str:
+        """
+        Runtime-only uid used for in-run tracking when canonical identity is missing.
+        """
+        if not isinstance(item, dict):
+            return f"anon::invalid::{ordinal if ordinal is not None else 'na'}"
+        existing = str(item.get("_kairos_uid") or "").strip()
+        if existing:
+            return existing
+
+        canonical = self._canonical_item_identity(item)
+        if canonical:
+            item["_kairos_uid"] = canonical
+            return canonical
+
+        raw = item.get("_raw") if isinstance(item.get("_raw"), dict) else {}
+        t = self._normalize_key(item.get("type") or raw.get("type") or "item") or "item"
+        n = self._normalize_key(item.get("name") or raw.get("name") or "unnamed") or "unnamed"
+        place = self._normalize_key(item.get("place") or raw.get("place") or "") or "na"
+        start_hint = self._parse_hhmm(raw.get("start_time") or raw.get("ideal_start_time") or item.get("start_time"))
+        dur_hint = self._duration_minutes(item)
+        ord_hint = f":{int(ordinal)}" if ordinal is not None else ""
+        uid = f"anon:{t}:{n}:{place}:{start_hint if start_hint is not None else 'na'}:{dur_hint}{ord_hint}"
+        item["_kairos_uid"] = uid
+        return uid
+
     def _item_id(self, item: Dict[str, Any]) -> str:
         """Stable runtime id used for dedupe and remaining-duration tracking."""
-        return str(item.get("id") or item.get("slug") or f"{item.get('type', '')}::{item.get('name', '')}")
+        if not isinstance(item, dict):
+            return "invalid::item"
+        existing = str(item.get("_kairos_uid") or "").strip()
+        if existing:
+            return existing
+        canonical = self._canonical_item_identity(item)
+        if canonical:
+            item["_kairos_uid"] = canonical
+            return canonical
+        return self._runtime_item_uid(item)
 
     def _window_filter_match(self, item: Dict[str, Any], win_filter: Dict[str, Any]) -> bool:
         """
@@ -1254,6 +1464,174 @@ class KairosScheduler:
             return hh * 60 + mm
         except Exception:
             return None
+
+    def _parse_hhmm_flexible(self, value: Any) -> Optional[int]:
+        """Parse HH:MM from plain strings or embedded timestamps (for example logged_at ISO)."""
+        parsed = self._parse_hhmm(value)
+        if parsed is not None:
+            return parsed
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text:
+            return None
+        m = re.search(r"(\d{1,2}):(\d{2})", text)
+        if not m:
+            return None
+        try:
+            hh = int(m.group(1))
+            mm = int(m.group(2))
+        except Exception:
+            return None
+        if hh < 0 or hh > 23 or mm < 0 or mm > 59:
+            return None
+        return (hh * 60) + mm
+
+    def _build_completed_markers(
+        self, completion_entries: Dict[str, Any]
+    ) -> Tuple[set[str], List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]], Dict[str, Any]]:
+        """
+        Convert done completion entries into:
+        - a normalized name set for candidate filtering
+        - fixed blocks shown at completion time in the final schedule output
+        """
+        entries = completion_entries if isinstance(completion_entries, dict) else {}
+        suppress_statuses = {"completed", "done", "skipped"}
+        marker_statuses = {"completed", "done"}
+        completed_names: set[str] = set()
+        completed_blocks: List[Dict[str, Any]] = []
+        completed_specs: Dict[str, List[Dict[str, Any]]] = {}
+        done_count = 0
+        skipped_count = 0
+        sample: List[Dict[str, Any]] = []
+
+        for key, raw in entries.items():
+            if not isinstance(raw, dict):
+                continue
+            status = str(raw.get("status") or "").strip().lower()
+            if status not in suppress_statuses:
+                continue
+            if status in marker_statuses:
+                done_count += 1
+            elif status == "skipped":
+                skipped_count += 1
+
+            name = str(raw.get("name") or "").strip()
+            if not name and isinstance(key, str):
+                name = str(key).split("@", 1)[0].strip()
+            if not name:
+                continue
+            name_norm = self._normalize_key(name)
+            if name_norm:
+                completed_names.add(name_norm)
+
+            scheduled_start = self._parse_hhmm_flexible(raw.get("scheduled_start"))
+            scheduled_end = self._parse_hhmm_flexible(raw.get("scheduled_end"))
+            actual_start = self._parse_hhmm_flexible(raw.get("actual_start"))
+            actual_end = self._parse_hhmm_flexible(raw.get("actual_end"))
+            logged_at = self._parse_hhmm_flexible(raw.get("logged_at"))
+
+            start_min = (
+                actual_start
+                if actual_start is not None
+                else actual_end
+                if actual_end is not None
+                else scheduled_start
+                if scheduled_start is not None
+                else logged_at
+            )
+            if start_min is None:
+                continue
+            start_min = max(0, min((24 * 60) - 2, int(start_min)))
+
+            duration_guess = 1
+            if actual_start is not None and actual_end is not None and actual_end > actual_start:
+                duration_guess = int(actual_end) - int(actual_start)
+            elif scheduled_start is not None and scheduled_end is not None and scheduled_end > scheduled_start:
+                duration_guess = int(scheduled_end) - int(scheduled_start)
+            duration_guess = max(1, duration_guess)
+
+            end_min = (
+                actual_end
+                if actual_end is not None
+                else scheduled_end
+                if scheduled_end is not None
+                else actual_start
+            )
+            if end_min is None or int(end_min) <= int(start_min):
+                end_min = min((24 * 60) - 1, int(start_min) + int(duration_guess))
+            end_min = int(end_min)
+            if end_min <= start_min:
+                end_min = min((24 * 60) - 1, int(start_min) + 1)
+
+            raw_type = str(raw.get("type") or "").strip().lower()
+            spec_type = raw_type or "*"
+            item_type = raw_type or "task"
+            status_norm = "completed" if status in {"completed", "done"} else status
+            spec_key = f"{spec_type}|{name_norm}"
+            completed_specs.setdefault(spec_key, []).append(
+                {
+                    "status": status_norm,
+                    "scheduled_start_min": scheduled_start,
+                    "actual_start_min": actual_start,
+                    "logged_at": raw.get("logged_at"),
+                    "completion_key": str(key),
+                }
+            )
+            if status in marker_statuses:
+                block_id = (
+                    f"completed::{name_norm or 'item'}@{self._to_hhmm(start_min)}"
+                    f"::{len(completed_blocks) + 1}"
+                )
+                completed_blocks.append(
+                    {
+                        "name": name,
+                        "type": item_type,
+                        "status": status_norm,
+                        "completion_status": status_norm,
+                        "start_time": self._to_hhmm(start_min),
+                        "end_time": self._to_hhmm(end_min),
+                        "duration_minutes": max(1, end_min - start_min),
+                        "window_name": "COMPLETED",
+                        "kairos_element": "completed_log",
+                        "reschedule": "never",
+                        "essential": True,
+                        "anchored": True,
+                        "actual_start": self._to_hhmm(actual_start) if actual_start is not None else None,
+                        "actual_end": self._to_hhmm(actual_end) if actual_end is not None else None,
+                        "scheduled_start": self._to_hhmm(scheduled_start) if scheduled_start is not None else None,
+                        "scheduled_end": self._to_hhmm(scheduled_end) if scheduled_end is not None else None,
+                        "completed_logged_at": raw.get("logged_at"),
+                        "completion_key": str(key),
+                        "block_id": block_id,
+                    }
+                )
+                if len(sample) < 12:
+                    sample.append(
+                        {
+                            "name": name,
+                            "status": status_norm,
+                            "start": self._to_hhmm(start_min),
+                            "end": self._to_hhmm(end_min),
+                        }
+                    )
+
+        completed_blocks.sort(
+            key=lambda b: (
+                self._parse_hhmm_flexible(b.get("start_time")) or 0,
+                str(b.get("name") or "").lower(),
+            )
+        )
+        notes = {
+            "entries": len(entries),
+            "done_entries": done_count,
+            "skipped_entries": skipped_count,
+            "done_names": len(completed_names),
+            "done_blocks": len(completed_blocks),
+            "done_specs": len(completed_specs),
+            "sample": sample,
+        }
+        return completed_names, completed_blocks, completed_specs, notes
 
     def _build_manual_injection_stub(self, name: str, item_type: str) -> Dict[str, Any]:
         """
@@ -1902,6 +2280,10 @@ class KairosScheduler:
                                         "action": "cut",
                                         "item": (removed[2] or {}).get("name"),
                                         "at": self._to_hhmm(int(removed[0])),
+                                        "end": self._to_hhmm(int(removed[1])),
+                                        "type": (removed[2] or {}).get("type"),
+                                        "duration_minutes": max(1, int(removed[1]) - int(removed[0])),
+                                        "block_id": (removed[2] or {}).get("block_id"),
                                         "score": candidate_score,
                                         "reason": f"overlap_with:{(anchor_b or {}).get('name')}",
                                     }
@@ -2072,14 +2454,17 @@ class KairosScheduler:
         deduped = []
         seen = set()
         dropped = 0
-        for item in ranked_items:
-            # Deduplicate by logical identity so repeated DB mirrors of the same
-            # type+name do not inflate placement opportunities.
-            key = (str(item.get("type") or "").strip().lower(), str(item.get("name") or "").strip().lower())
-            if key in seen:
+        for idx, item in enumerate(ranked_items):
+            # Assign runtime uid early so downstream `used`/`remaining` maps
+            # don't collapse distinct unnamed/duplicate-name rows.
+            self._runtime_item_uid(item, ordinal=idx)
+            # Deduplicate only when a canonical identity exists.
+            key = self._canonical_item_identity(item)
+            if key and key in seen:
                 dropped += 1
                 continue
-            seen.add(key)
+            if key:
+                seen.add(key)
             deduped.append(item)
         timeline = []
         used = set()
@@ -2093,7 +2478,14 @@ class KairosScheduler:
         }
         gap_events = {"strategy": "quick_wins", "max_minutes": 15, "placed": []}
         timeblock_events = {"placed": [], "template": []}
-        windows = self.windows or [{"name": "Deep Work", "start": "09:00", "end": "11:00", "filter": {"category": "work"}}]
+        completed_blocks_raw = self.runtime.get("completed_blocks")
+        completed_blocks = (
+            [dict(b) for b in completed_blocks_raw if isinstance(b, dict)]
+            if isinstance(completed_blocks_raw, list)
+            else []
+        )
+        completed_events = {"available": len(completed_blocks), "placed": 0, "sample": []}
+        windows = list(self.windows or [])
         options = self.runtime.get("options", {}) if isinstance(self.runtime, dict) else {}
         tprof = self._timer_profile()
         sprint_cap = 0
@@ -2741,6 +3133,37 @@ class KairosScheduler:
             day_ceiling=24 * 60,
             max_iterations=max(20, len(timeline) * 3),
         )
+        # Keep completed blocks visible at their done time in the final output.
+        # These markers are added after placement/repair so they don't distort scheduling.
+        for done_block in completed_blocks:
+            s = self._parse_hhmm_flexible(done_block.get("start_time"))
+            if s is None:
+                continue
+            e = self._parse_hhmm_flexible(done_block.get("end_time"))
+            if e is None or e <= s:
+                e = min((24 * 60) - 1, int(s) + 1)
+            block = dict(done_block)
+            block["start_time"] = self._to_hhmm(int(s))
+            block["end_time"] = self._to_hhmm(int(e))
+            block.setdefault("window_name", "COMPLETED")
+            block.setdefault("status", "completed")
+            block.setdefault("reschedule", "never")
+            block.setdefault("essential", True)
+            if not block.get("block_id"):
+                block["block_id"] = f"completed::{self._normalize_key(block.get('name') or 'item')}@{block['start_time']}"
+            timeline.append((int(s), int(e), block))
+            completed_events["placed"] += 1
+            if len(completed_events["sample"]) < 20:
+                completed_events["sample"].append(
+                    {
+                        "id": block.get("block_id"),
+                        "name": block.get("name"),
+                        "type": block.get("type"),
+                        "status": block.get("status"),
+                        "start": block.get("start_time"),
+                        "end": block.get("end_time"),
+                    }
+                )
 
         timeline.sort(key=lambda x: (x[0], str(x[2].get("name") or "").lower()))
         schedule["blocks"] = [x[2] for x in timeline]
@@ -2768,6 +3191,7 @@ class KairosScheduler:
             "windows": win_events,
             "gaps": gap_events,
             "timeblocks": timeblock_events,
+            "completed_markers": completed_events,
             "repair": repair_events,
             "dependencies": dependency_events,
             "scheduled": len(schedule["blocks"]),
@@ -2991,8 +3415,8 @@ class KairosScheduler:
         with open(latest_yaml, "w", encoding="utf-8") as f:
             yaml.safe_dump(yaml_payload, f, sort_keys=False, allow_unicode=True)
         self.decision_log = lines
-        print(f"[Kairos] Decision log written: {out}")
-        print(f"[Kairos] Decision YAML written: {out_yaml}")
+        self._log(f"[Kairos] Decision log written: {out}", debug=True)
+        self._log(f"[Kairos] Decision YAML written: {out_yaml}", debug=True)
 
 
 if __name__ == "__main__":

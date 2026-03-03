@@ -24,7 +24,30 @@ export function mount(el) {
       .im-row .name { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
       .im-row .meta { color:var(--text-dim); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
       .im-right { flex:1 1 55%; min-width:260px; min-height:0; display:flex; flex-direction:column; gap:6px; overflow:hidden; }
-      .im-yaml { flex:1 1 0; min-height:120px; resize:none; }
+      .im-yaml-editor { position:relative; flex:1 1 0; min-height:120px; border:1px solid var(--border); border-radius:10px; background:#0f141d; overflow:auto; }
+      .im-yaml-highlight, .im-yaml-input {
+        margin:0; border:0; outline:none; width:100%; min-height:100%;
+        font-family: var(--chronos-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+        font-size:13px; line-height:1.45; padding:10px 12px; white-space:pre; tab-size:2;
+      }
+      .im-yaml-highlight { position:absolute; top:0; left:0; pointer-events:none; color:#d4d4d4; z-index:1; }
+      .im-yaml-input {
+        position:absolute; top:0; left:0; resize:none; z-index:2; background:transparent;
+        color:transparent; caret-color:var(--text, #e6e8ef); overflow:hidden;
+      }
+      /* Token colors copied from Editor view for parity */
+      .tok-comment { color:#6a9955; font-style:italic; }
+      .tok-key { color:#569cd6; font-weight:bold; }
+      .tok-val { color:#ce9178; }
+      .tok-cmd { color:#c586c0; font-weight:bold; }
+      .tok-arg { color:#9cdcfe; }
+      .tok-flag { color:#d7ba7d; }
+      .tok-keyword { color:#c586c0; font-weight:bold; }
+      .tok-op { color:#d4d4d4; }
+      .tok-num { color:#b5cea8; }
+      .tok-str { color:#ce9178; }
+      .tok-var { color:#9cdcfe; }
+      .tok-prop { color:#4ec9b0; }
     </style>
     <div class="header" id="imHeader">
       <div class="title">Item Manager</div>
@@ -41,10 +64,11 @@ export function mount(el) {
         <button class="btn" id="imRefresh" style="flex:0 0 auto;">Refresh</button>
         <div class="spacer"></div>
         <button class="btn" id="imExport" style="flex:0 0 auto;">Export</button>
+        <input id="imBulkProp" class="input" list="imPropKeys" placeholder="property:value (e.g. status:pending)" style="flex:1 1 260px; min-width:220px;" />
+        <datalist id="imPropKeys"></datalist>
         <button class="btn" id="imBulkSet" style="flex:0 0 auto;">Set Property</button>
         <button class="btn btn-secondary" id="imBulkDelete" style="flex:0 0 auto;">Delete Selected</button>
         <button class="btn btn-primary" id="imNew" style="flex:0 0 auto;">New</button>
-        <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="imFxToggle" checked /> fx</label>
       </div>
       <div class="im-body" id="imSplit">
         <div id="imListPane" class="im-list-pane">
@@ -63,7 +87,10 @@ export function mount(el) {
           <div class="row" style="gap:6px;">
             <input id="imItemName" class="input" placeholder="Item name" />
           </div>
-          <textarea id="imYaml" class="textarea im-yaml" placeholder="YAML properties..."></textarea>
+          <div class="im-yaml-editor" id="imYamlEditor">
+            <pre id="imYamlHighlight" class="im-yaml-highlight" aria-hidden="true"></pre>
+            <textarea id="imYaml" class="textarea im-yaml-input" placeholder="YAML properties..." spellcheck="false"></textarea>
+          </div>
           <div class="row" style="gap:8px;">
             <button class="btn" id="imSave">Save</button>
             <button class="btn" id="imCopy">Copy</button>
@@ -86,6 +113,8 @@ export function mount(el) {
   const searchEl = el.querySelector('#imSearch');
   const refreshBtn = el.querySelector('#imRefresh');
   const searchBtn = el.querySelector('#imSearchBtn');
+  const bulkPropEl = el.querySelector('#imBulkProp');
+  const propKeysEl = el.querySelector('#imPropKeys');
   const contentEl = el.querySelector('#imContent');
   const listEl = el.querySelector('#imList');
   const countEl = el.querySelector('#imCount');
@@ -100,20 +129,63 @@ export function mount(el) {
   const copyBtn = el.querySelector('#imCopy');
   const renameBtn = el.querySelector('#imRename');
   const deleteBtn = el.querySelector('#imDelete');
-  const fxChk = el.querySelector('#imFxToggle');
+  const yamlEditorEl = el.querySelector('#imYamlEditor');
+  const yamlHighlightEl = el.querySelector('#imYamlHighlight');
 
   // Minimize/Close (match other widgets)
   btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); });
   btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'ItemManager'); } catch { } });
 
-  let fxEnabled = fxChk ? fxChk.checked : true;
-  function expandText(s) { try { return (fxEnabled && window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
-  fxChk?.addEventListener('change', () => { fxEnabled = !!fxChk.checked; try { refresh(); } catch { } });
+  function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  function escapeHighlightHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+  function highlightYamlCode(code) {
+    let html = escapeHighlightHtml(code);
+    html = html.replace(/^(\s*)(#.*)$/gm, '$1<span class="tok-comment">$2</span>');
+    html = html.replace(/^(\s*)([\w\-\d_]+)(:)/gm, '$1<span class="tok-key">$2</span>$3');
+    html = html.replace(/(:\s*)(["'].*?["'])/g, '$1<span class="tok-val">$2</span>');
+    return html;
+  }
+  function renderYamlHighlight() {
+    if (!yamlHighlightEl || !yamlEl) return;
+    yamlHighlightEl.innerHTML = highlightYamlCode(yamlEl.value || '') + '\n';
+  }
+  function syncYamlScroll() {
+    if (!yamlHighlightEl || !yamlEl) return;
+    yamlHighlightEl.style.transform = `translate(${-yamlEl.scrollLeft}px, ${-yamlEl.scrollTop}px)`;
+  }
+  async function fetchJsonChecked(url, options, fallbackError = 'Request failed') {
+    const resp = await fetch(url, options);
+    const text = await resp.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+    if (!resp.ok || data?.ok === false) {
+      const msg = data?.error || data?.message || text || `${fallbackError} (${resp.status})`;
+      throw new Error(String(msg));
+    }
+    return { resp, data, text };
+  }
+  yamlEl?.addEventListener('input', renderYamlHighlight);
+  yamlEl?.addEventListener('scroll', syncYamlScroll);
+  yamlEditorEl?.addEventListener('click', () => { try { yamlEl?.focus(); } catch { } });
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   const saveLocal = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } };
   const loadLocal = (k, f) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch { return f; } };
   const defaultsCache = {};
+  let propertyRegistry = { keys_by_type: {}, defaults_keys_by_type: {}, properties: {} };
 
   const fetchJson = async (url) => { const r = await fetch(url); return await r.json(); };
   const fetchSettingsFile = async (file) => {
@@ -250,13 +322,11 @@ export function mount(el) {
     countEl.textContent = `${items.length} items`;
     listEl.innerHTML = '';
     if (!items.length) {
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 6;
-      td.className = 'hint';
-      td.textContent = 'No items found. Try another type or search.';
-      tr.appendChild(td);
-      listEl.appendChild(tr);
+      const empty = document.createElement('div');
+      empty.className = 'hint';
+      empty.style.padding = '8px 6px';
+      empty.textContent = 'No items found. Try another type or search.';
+      listEl.appendChild(empty);
       return;
     }
     items.forEach(it => {
@@ -264,11 +334,11 @@ export function mount(el) {
       row.className = 'im-row';
       row.innerHTML = `
         <label><input type="checkbox" /></label>
-        <div class="name">${it.name}</div>
-        <div class="meta">${it.priority || ''}</div>
-        <div class="meta">${it.status || ''}</div>
-        <div class="meta">${it.category || ''}</div>
-        <div class="meta">${it.updated || ''}</div>
+        <div class="name">${escapeHtml(it.name)}</div>
+        <div class="meta">${escapeHtml(it.priority || '')}</div>
+        <div class="meta">${escapeHtml(it.status || '')}</div>
+        <div class="meta">${escapeHtml(it.category || '')}</div>
+        <div class="meta">${escapeHtml(it.updated || '')}</div>
       `;
       row.dataset.name = it.rawName;
       row.addEventListener('click', (ev) => { if (ev.target.tagName.toLowerCase() !== 'input') loadItem(it.rawName); });
@@ -330,13 +400,26 @@ export function mount(el) {
         if (json && (json.content || json.item)) {
           const raw = json.content || json.item;
           yamlEl.value = (typeof raw === 'string') ? raw : toYaml(raw);
+          renderYamlHighlight();
+          syncYamlScroll();
           return;
         }
-        if (json && json.text) { yamlEl.value = json.text; return; }
+        if (json && json.text) {
+          yamlEl.value = json.text;
+          renderYamlHighlight();
+          syncYamlScroll();
+          return;
+        }
       } catch { }
       // If server returned YAML/flat data, keep raw
       yamlEl.value = text || '';
-    } catch { yamlEl.value = ''; }
+      renderYamlHighlight();
+      syncYamlScroll();
+    } catch {
+      yamlEl.value = '';
+      renderYamlHighlight();
+      syncYamlScroll();
+    }
   }
 
   async function saveItem() {
@@ -370,9 +453,58 @@ export function mount(el) {
     const dest = prompt('Copy as:', `${src} copy`);
     if (!dest) return;
     try {
-      await fetch(apiBase() + `/api/item/copy`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', source: src, new_name: dest }) });
+      await fetchJsonChecked(
+        apiBase() + `/api/item/copy`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', source: src, new_name: dest }) },
+        'Copy failed'
+      );
       await refresh(); await loadItem(dest);
-    } catch { alert('Copy failed'); }
+    } catch (err) { alert('Copy failed: ' + (err?.message || 'Unknown error')); }
+  }
+
+  function collectPropertyKeysForType(type) {
+    const out = new Set();
+    const t = String(type || '').toLowerCase();
+    const byType = propertyRegistry?.keys_by_type || {};
+    const byDefaults = propertyRegistry?.defaults_keys_by_type || {};
+    const propsMap = propertyRegistry?.properties || {};
+
+    const addAll = (arr) => {
+      if (!Array.isArray(arr)) return;
+      arr.forEach((k) => { if (k != null && String(k).trim()) out.add(String(k).trim()); });
+    };
+
+    addAll(byType[t]);
+    addAll(byDefaults[t]);
+    Object.values(byDefaults).forEach(addAll);
+    Object.keys(propsMap || {}).forEach((k) => { if (k != null && String(k).trim()) out.add(String(k).trim()); });
+    return Array.from(out).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }
+
+  function renderPropertySuggestions() {
+    if (!propKeysEl) return;
+    const keys = collectPropertyKeysForType(typeSel?.value || 'task');
+    propKeysEl.innerHTML = '';
+    keys.forEach((k) => {
+      const opt = document.createElement('option');
+      opt.value = k;
+      propKeysEl.appendChild(opt);
+    });
+  }
+
+  async function fetchPropertyRegistry() {
+    try {
+      const resp = await fetch(apiBase() + '/api/registry?name=property');
+      if (!resp.ok) return;
+      const json = await resp.json().catch(() => ({}));
+      const reg = json?.registry || {};
+      propertyRegistry = {
+        keys_by_type: reg?.keys_by_type || {},
+        defaults_keys_by_type: reg?.defaults_keys_by_type || {},
+        properties: reg?.properties || {},
+      };
+      renderPropertySuggestions();
+    } catch { }
   }
 
   async function renameItem() {
@@ -381,14 +513,22 @@ export function mount(el) {
     const dest = prompt('Rename to:', src);
     if (!dest || dest === src) return;
     try {
-      await fetch(apiBase() + `/api/item/rename`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', old_name: src, new_name: dest }) });
+      await fetchJsonChecked(
+        apiBase() + `/api/item/rename`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', old_name: src, new_name: dest }) },
+        'Rename failed'
+      );
       nameEl.value = dest;
       await refresh(); await loadItem(dest);
-    } catch { alert('Rename failed'); }
+    } catch (err) { alert('Rename failed: ' + (err?.message || 'Unknown error')); }
   }
 
   async function deleteItem(name) {
-    try { await fetch(apiBase() + `/api/item/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', name }) }); } catch { }
+    await fetchJsonChecked(
+      apiBase() + `/api/item/delete`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', name }) },
+      'Delete failed'
+    );
   }
 
   async function deleteSelected() {
@@ -396,21 +536,30 @@ export function mount(el) {
     const selected = rows.filter(r => r.querySelector('input[type=checkbox]')?.checked).map(r => r.dataset.name).filter(Boolean);
     if (!selected.length) return;
     if (!confirm(`Delete ${selected.length} items?`)) return;
-    for (const name of selected) { await deleteItem(name); }
-    refresh();
+    try {
+      for (const name of selected) { await deleteItem(name); }
+      refresh();
+    } catch (err) {
+      alert('Delete failed: ' + (err?.message || 'Unknown error'));
+    }
   }
 
   async function bulkSetProp() {
-    const rows = Array.from(listEl.querySelectorAll('tr'));
+    const rows = Array.from(listEl.querySelectorAll('.im-row'));
     const selected = rows.filter(r => r.querySelector('input[type=checkbox]')?.checked).map(r => r.dataset.name).filter(Boolean);
     if (!selected.length) { alert('Select at least one item.'); return; }
-    const kv = prompt('Set property (key:value)', 'status:pending');
+    const kv = String(bulkPropEl?.value || '').trim() || prompt('Set property (key:value)', 'status:pending') || '';
     if (!kv || !kv.includes(':')) return;
     const [k, ...rest] = kv.split(':'); const v = rest.join(':').trim();
     try {
-      await fetch(apiBase() + `/api/items/setprop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', names: selected, property: k.trim(), value: v }) });
+      await fetchJsonChecked(
+        apiBase() + `/api/items/setprop`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', names: selected, property: k.trim(), value: v }) },
+        'Set property failed'
+      );
+      if (bulkPropEl) bulkPropEl.value = kv;
       refresh();
-    } catch { alert('Set property failed'); }
+    } catch (err) { alert('Set property failed: ' + (err?.message || 'Unknown error')); }
   }
 
   async function exportItems() {
@@ -431,6 +580,8 @@ export function mount(el) {
     yamlEl.value = toYaml(base);
     nameEl.value = '';
     nameEl.focus();
+    renderYamlHighlight();
+    syncYamlScroll();
   }
 
   // Events
@@ -444,12 +595,16 @@ export function mount(el) {
   refreshBtn.addEventListener('click', refresh);
   bulkDeleteBtn.addEventListener('click', deleteSelected);
   bulkSetBtn.addEventListener('click', bulkSetProp);
+  bulkPropEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); bulkSetProp(); } });
   exportBtn.addEventListener('click', exportItems);
   selectAll.addEventListener('change', () => { listEl.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = selectAll.checked); });
-  typeSel.addEventListener('change', refresh);
+  typeSel.addEventListener('change', () => { renderPropertySuggestions(); refresh(); });
 
   // Init
-  fetchTypes().then(() => { searchEl.value = loadLocal('im_search', ''); refresh(); });
+  fetchTypes().then(() => { searchEl.value = loadLocal('im_search', ''); refresh(); renderPropertySuggestions(); });
+  fetchPropertyRegistry();
+  renderYamlHighlight();
+  syncYamlScroll();
 
   return { refresh };
 }

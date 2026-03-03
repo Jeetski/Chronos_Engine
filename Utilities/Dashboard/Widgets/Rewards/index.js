@@ -48,9 +48,6 @@ export function mount(el, context) {
     <div class="header">
       <div class="title">Rewards</div>
       <div class="controls" style="align-items:center; gap:6px;">
-        <label class="hint" style="display:flex; align-items:center; gap:4px;">
-          <input type="checkbox" id="rwFxToggle" checked /> fx
-        </label>
         <button class="icon-btn" id="rwMin" title="Minimize">_</button>
         <button class="icon-btn" id="rwClose" title="Close">x</button>
       </div>
@@ -89,7 +86,6 @@ export function mount(el, context) {
 
   const btnMin = el.querySelector('#rwMin');
   const btnClose = el.querySelector('#rwClose');
-  const fxToggle = el.querySelector('#rwFxToggle');
   const listToggleBtn = el.querySelector('#rwListToggle');
   const listSectionEl = el.querySelector('#rwListSection');
   const searchEl = el.querySelector('#rwSearch');
@@ -104,16 +100,13 @@ export function mount(el, context) {
   btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Rewards'); } catch { } });
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
-  let fxEnabled = fxToggle ? fxToggle.checked : true;
   function expandText(s) {
     try {
-      if (!fxEnabled) return String(s || '');
       return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || '');
     } catch {
       return String(s || '');
     }
   }
-  fxToggle?.addEventListener('change', () => { fxEnabled = !!fxToggle.checked; renderRewards(); });
 
   let rewards = [];
   let balance = 0;

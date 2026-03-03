@@ -212,7 +212,7 @@ const HELP_TEXT = {
   schedule: 'Schedule Panel: Mirrors today\'s agenda, lets you refresh/reschedule, jump dates, and kick off the Chronos day timer.',
   matrix: 'Matrix Panel: Interactive pivot grid for Chronos data. Choose rows/cols/values/filters, save presets, and spawn additional panels.',
   'matrix-visuals': 'Matrix Visuals Panel: Render charts/heatmaps from Matrix presets to spot trends at a glance.',
-  status_strip: 'Status Strip Panel: Compact strip that color-codes your current status indicators for cockpit situational awareness.',
+  status_strip: 'Status Chart Panel: Read-only radar chart of your current status indicators for cockpit situational awareness.',
   checklist: 'Checklist Panel: Manage checklists with quick add/remove and detail views.',
   commitments: 'Commitments Panel: Snapshot of commitment rules, progress, and evaluation status.',
   deadlines: 'Deadlines Panel: Read-only list of upcoming deadlines and due dates with filters.',
@@ -230,7 +230,7 @@ const HELP_TEXT = {
   MatrixVisuals: 'Matrix Visuals Panel: Charts and heatmaps sourced from Matrix presets.',
   RandomPicker: 'Random Picker Panel: Pull a random item from saved pools.',
   Schedule: 'Schedule Panel: Mirrors today\'s agenda inside the cockpit.',
-  StatusStrip: 'Status Strip Panel: Live status indicators in a compact strip.',
+  StatusStrip: 'Status Chart Panel: Live read-only radar chart of current status indicators.',
   // Wizards
   Onboarding: 'Chronos Onboarding Wizard: Guided flow to set nickname, categories, statuses, templates, and starter goals/rewards.',
   GoalPlanning: 'Goal Planning Wizard: Capture intent, milestones, and supporting work to spin up a rich goal file.',
@@ -286,7 +286,12 @@ function _writeStateMap(map) {
 function widgetKey(el) {
   return (el?.id) || el?.getAttribute?.('data-widget') || null;
 }
+function isAnchoredWidget(el) {
+  const widgetName = String(el?.getAttribute?.('data-widget') || '').trim();
+  return widgetName === 'NiaAssistant';
+}
 function saveWidgetState(el) {
+  if (isAnchoredWidget(el)) return;
   const key = widgetKey(el); if (!key) return;
   const map = _readStateMap();
   map[key] = {
@@ -300,6 +305,19 @@ function saveWidgetState(el) {
   _writeStateMap(map);
 }
 function restoreWidgetState(el) {
+  if (isAnchoredWidget(el)) {
+    try {
+      el.style.left = 'auto';
+      el.style.top = 'auto';
+      el.style.right = '20px';
+      el.style.bottom = '24px';
+      if (!el.style.width) el.style.width = '72px';
+      if (!el.style.height) el.style.height = '72px';
+      if (!el.style.display) el.style.display = 'block';
+      el.classList.remove('minimized');
+      return true;
+    } catch { return false; }
+  }
   const key = widgetKey(el); if (!key) return false;
   const map = _readStateMap();
   const st = map[key];
@@ -407,6 +425,7 @@ export async function mountWidget(el, name) {
   try {
     restoreWidgetState(el) || centerWidget(el);
     installWidgetResizers(el);
+    installWidgetAutoHeight(el);
     installWidgetDrag(el);
     installWidgetFocus(el);
     persistOnChanges(el);
@@ -456,6 +475,28 @@ export async function launchWizard(name, options = {}) {
   return null;
 }
 
+export async function mountGadget(el, name, options = {}) {
+  const id = el.id || '(anon)';
+  console.log(`[Chronos][runtime] Mounting gadget '${name}' into #${id}`);
+  try {
+    const modUrl = new URL(`../Gadgets/${name}/index.js?v=${Date.now()}`, import.meta.url);
+    const mod = await import(modUrl);
+    if (mod && typeof mod.mount === 'function') {
+      const api = mod.mount(el, { ...context, ...(options || {}) }) || {};
+      el.__gadget = { name, api };
+      console.log(`[Chronos][runtime] Mounted gadget '${name}'`);
+      try { expandIn(el); } catch { }
+    } else {
+      const msg = `Gadget '${name}' has no mount()`;
+      console.warn(`[Chronos][runtime] ${msg}`);
+      el.textContent = msg;
+    }
+  } catch (e) {
+    console.error(`[Chronos][runtime] Failed to load gadget '${name}':`, e);
+    el.textContent = `Failed to load gadget '${name}': ${e}`;
+  }
+}
+
 function ready(fn) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
   else fn();
@@ -481,7 +522,7 @@ ready(() => {
   if (collapseLeftBtn) collapseLeftBtn.addEventListener('click', () => document.getElementById('left')?.classList.toggle('collapsed'));
   if (collapseRightBtn) collapseRightBtn.addEventListener('click', () => document.getElementById('right')?.classList.toggle('collapsed'));
   // Install resizers on any existing widget
-  try { document.querySelectorAll('.widget').forEach(el => { restoreWidgetState(el) || centerWidget(el); installWidgetResizers(el); installWidgetDrag(el); installWidgetFocus(el); persistOnChanges(el); saveWidgetState(el); }); } catch { }
+  try { document.querySelectorAll('.widget').forEach(el => { restoreWidgetState(el) || centerWidget(el); installWidgetResizers(el); installWidgetAutoHeight(el); installWidgetDrag(el); installWidgetFocus(el); persistOnChanges(el); saveWidgetState(el); }); } catch { }
   // Listen for vars changes to re-expand displayed text
   try { bus.on('vars:changed', () => { try { expandIn(document); } catch { } }); } catch { }
 });
@@ -612,6 +653,107 @@ function focusWidget(el) {
   } catch { }
   flashFocus(el);
   saveWidgetState(el);
+}
+
+function installWidgetAutoHeight(el) {
+  if (!el || !el.classList || !el.classList.contains('widget')) return;
+  if (el.__autoHeightWired) return;
+  if (String(el.dataset?.autoheight || '').toLowerCase() === 'off') return;
+  const contentEl = el.querySelector('.content');
+  if (!contentEl) return;
+
+  el.__autoHeightWired = true;
+  const state = {
+    raf: null,
+    last: 0,
+    applying: false,
+  };
+
+  function measureNaturalContentHeight() {
+    try {
+      const cs = getComputedStyle(contentEl);
+      const pt = Number.parseFloat(cs.paddingTop || '0') || 0;
+      const pb = Number.parseFloat(cs.paddingBottom || '0') || 0;
+      const gap = Number.parseFloat(cs.rowGap || cs.gap || '0') || 0;
+      const children = Array.from(contentEl.children || []).filter((node) => {
+        try { return getComputedStyle(node).display !== 'none'; } catch { return true; }
+      });
+      let total = pt + pb;
+      children.forEach((node, idx) => {
+        total += Math.ceil(node.getBoundingClientRect().height || 0);
+        if (idx > 0) total += gap;
+      });
+      return Math.max(0, Math.ceil(total));
+    } catch {
+      return Math.ceil(contentEl.scrollHeight || 0);
+    }
+  }
+
+  function fitNow() {
+    try {
+      if (state.applying) return;
+      if (el.style.display === 'none') return;
+      if (el.classList.contains('minimized')) return;
+
+      const header = el.querySelector('.header');
+      const headerH = Math.ceil(header?.getBoundingClientRect?.().height || 40);
+      const contentH = measureNaturalContentHeight();
+      const openDetails = contentEl.querySelectorAll('details[open]').length;
+      const baseMin = Number(el.__minH || 160);
+      const minH = Math.max(baseMin, openDetails <= 1 ? 170 : 220);
+      const target = Math.max(minH, headerH + contentH + 8);
+      if (Math.abs(target - state.last) < 6) return;
+
+      state.applying = true;
+      el.style.height = `${target}px`;
+      state.last = target;
+
+      // Safety: never leave current visible content clipped.
+      const overflow = Math.ceil((contentEl.scrollHeight || 0) - (contentEl.clientHeight || 0));
+      if (overflow > 2) {
+        const curH = Math.ceil(el.getBoundingClientRect().height || target);
+        const grown = curH + overflow + 8;
+        if (grown > curH + 1) {
+          el.style.height = `${grown}px`;
+          state.last = grown;
+        }
+      }
+      state.applying = false;
+    } catch {
+      state.applying = false;
+    }
+  }
+
+  function queueFit() {
+    try {
+      if (state.raf) cancelAnimationFrame(state.raf);
+      state.raf = requestAnimationFrame(() => {
+        state.raf = requestAnimationFrame(() => {
+          state.raf = null;
+          fitNow();
+        });
+      });
+    } catch {
+      fitNow();
+    }
+  }
+
+  try { contentEl.addEventListener('toggle', queueFit, true); } catch { }
+  try {
+    contentEl.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', queueFit));
+  } catch { }
+  try {
+    const mo = new MutationObserver(() => queueFit());
+    mo.observe(contentEl, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['open', 'hidden', 'class', 'aria-expanded'],
+    });
+  } catch { }
+  try { window.addEventListener('resize', queueFit); } catch { }
+
+  queueFit();
 }
 
 function getScaleRoot() {

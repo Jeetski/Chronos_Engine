@@ -1,5 +1,6 @@
 const STYLE_ID = 'cockpit-matrix-panel-style';
 const PANEL_BASE_ID = 'matrix';
+const TABLE_PANEL_ID = 'matrix-table';
 const PANEL_STATE_PREFIX = 'chronos_matrix_panel_state_';
 const INSTANCE_STORAGE_KEY = 'chronos_matrix_instances_v1';
 const DEFAULT_ROWS = ['item_type'];
@@ -17,6 +18,10 @@ const FILTER_PLACEHOLDER_VALUE = 'value (e.g., high)';
 
 let managerRef = null;
 let cachedInstances = null;
+let latestTableSnapshot = null;
+let tablePanelApi = null;
+const VISUAL_PANEL_ID = 'matrix-visuals';
+const VISUAL_SNAPSHOT_KEY = '__chronosMatrixVisualSnapshot';
 
 function apiBase(){
   const origin = window.location.origin;
@@ -33,22 +38,22 @@ function injectStyles(){
       display: flex;
       flex-direction: column;
       height: 100%;
-      gap: 10px;
+      gap: 8px;
       color: var(--chronos-text);
-      font-size: 14px;
+      font-size: 13px;
     }
     .matrix-panel-toolbar {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
       align-items: start;
     }
     .matrix-panel-toolbar label,
     .matrix-panel-actions {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      font-size: 12px;
+      gap: 4px;
+      font-size: 11px;
       letter-spacing: 0.4px;
       color: var(--chronos-text-muted);
       text-transform: uppercase;
@@ -58,9 +63,9 @@ function injectStyles(){
       background: var(--chronos-surface-soft);
       border: 1px solid rgba(255,255,255,0.12);
       border-radius: 8px;
-      padding: 6px 10px;
+      padding: 5px 8px;
       color: var(--chronos-text);
-      font-size: 13px;
+      font-size: 12px;
     }
     .matrix-panel-actions .title {
       font-size: 11px;
@@ -70,19 +75,19 @@ function injectStyles(){
     .matrix-panel-presets {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
     }
     .matrix-panel-toolbar button,
     .matrix-panel-actions button {
       background: var(--chronos-accent-gradient);
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       color: #fff;
-      padding: 8px 12px;
+      padding: 6px 10px;
       font-weight: 600;
       cursor: pointer;
       transition: transform 0.1s ease;
-      font-size: 13px;
+      font-size: 12px;
     }
     .matrix-panel-toolbar button:hover,
     .matrix-panel-actions button:hover {
@@ -91,25 +96,44 @@ function injectStyles(){
     .matrix-panel-mini-btn {
       align-self: flex-start;
       background: rgba(53,64,98,0.9) !important;
-      border-radius: 8px;
-      padding: 4px 10px !important;
+      border-radius: 7px;
+      padding: 3px 8px !important;
       font-size: 11px !important;
     }
     .matrix-panel-dimension-list,
     .matrix-panel-filter-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     .matrix-panel-dimension-entry,
     .matrix-panel-filter-entry {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
     .matrix-panel-dimension-entry input,
     .matrix-panel-filter-entry input {
       flex: 1;
+      background: var(--chronos-surface-soft);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 70%, transparent);
+      border-radius: 8px;
+      padding: 5px 8px;
+      color: var(--chronos-text);
+      font-size: 12px;
+      color-scheme: dark;
+      -webkit-color-scheme: dark;
+    }
+    .matrix-panel-dimension-entry input::placeholder,
+    .matrix-panel-filter-entry input::placeholder {
+      color: var(--chronos-text-muted);
+      opacity: 0.85;
+    }
+    .matrix-panel-dimension-entry input:focus,
+    .matrix-panel-filter-entry input:focus {
+      outline: none;
+      border-color: var(--chronos-accent, var(--accent, #7aa2f7));
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--chronos-accent-soft, rgba(122,162,247,0.2)) 70%, transparent);
     }
     .matrix-panel-dimension-entry button,
     .matrix-panel-filter-entry button {
@@ -118,7 +142,7 @@ function injectStyles(){
       color: var(--chronos-danger);
       border-radius: 8px;
       width: 28px;
-      height: 28px;
+      height: 24px;
       font-weight: 700;
       cursor: pointer;
       line-height: 1;
@@ -126,11 +150,11 @@ function injectStyles(){
     .matrix-panel-filters {
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       background: var(--chronos-surface-soft);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     .matrix-panel-filter-header {
       display: flex;
@@ -148,7 +172,7 @@ function injectStyles(){
     .matrix-panel-body {
       flex: 1;
       border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
+      border-radius: 12px;
       background: var(--chronos-surface);
       overflow: hidden;
       display: flex;
@@ -195,6 +219,42 @@ function injectStyles(){
     table.matrix-table td[data-empty="true"] {
       color: var(--chronos-text-muted);
     }
+    .matrix-table-panel-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 10px;
+      color: var(--chronos-text);
+      font-size: 14px;
+    }
+    .matrix-table-panel-status {
+      font-size: 12px;
+      color: var(--chronos-text-muted);
+      min-height: 16px;
+    }
+    .matrix-table-panel-body {
+      flex: 1;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      background: var(--chronos-surface);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .matrix-table-panel-message {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--chronos-text-muted);
+      padding: 16px;
+      text-align: center;
+    }
+    .matrix-table-panel-wrapper {
+      overflow: auto;
+      flex: 1;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -209,6 +269,55 @@ function formatMinutes(total){
   }
   if (hours) return `${hours}h`;
   return `${remaining}m`;
+}
+
+function formatMatrixValue(metric, cell){
+  if (!cell) return '--';
+  if (metric === 'duration') return formatMinutes(Number(cell.value) || 0);
+  if (metric === 'points'){
+    const num = Number(cell.value) || 0;
+    return `${num % 1 === 0 ? num : num.toFixed(1)} pts`;
+  }
+  if (typeof cell.value === 'number') return cell.value.toLocaleString();
+  if (typeof cell.value === 'string' && cell.value.trim()) return cell.value;
+  return '--';
+}
+
+function buildMatrixTableElement(payload, metric){
+  const rows = payload?.rows || [];
+  const cols = payload?.cols || [];
+  if (!rows.length || !cols.length) return null;
+  const table = document.createElement('table');
+  table.className = 'matrix-table';
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  headRow.appendChild(document.createElement('th'));
+  cols.forEach((col) => {
+    const th = document.createElement('th');
+    th.textContent = col.label;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  const cells = payload?.cells || {};
+  rows.forEach((row) => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = row.label;
+    tr.appendChild(th);
+    cols.forEach((col) => {
+      const td = document.createElement('td');
+      const cell = cells[`${row.id}|${col.id}`];
+      td.textContent = formatMatrixValue(metric, cell);
+      if (!cell || !cell.value) td.dataset.empty = 'true';
+      if (cell?.items?.length) td.title = cell.items.slice(0, 8).join('\n');
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  return table;
 }
 
 function readStoredJSON(key){
@@ -653,16 +762,31 @@ function mountMatrixPanel(root, panelId){
   const publishSnapshot = (intent)=> {
     const snapshot = buildSnapshot();
     if (!snapshot) return;
+    latestTableSnapshot = snapshot;
+    try { window[VISUAL_SNAPSHOT_KEY] = snapshot; } catch {}
     const service = window.MatrixVisualPanelService;
-    if (!service) return;
-    try {
-      if (intent === 'open' && typeof service.openWithPayload === 'function') {
-        service.openWithPayload(snapshot);
-      } else if (typeof service.setSnapshot === 'function') {
-        service.setSnapshot(snapshot);
+    if (service) {
+      try {
+        if (intent === 'open' && typeof service.openWithPayload === 'function') {
+          service.openWithPayload(snapshot);
+        } else if (typeof service.setSnapshot === 'function') {
+          service.setSnapshot(snapshot);
+        }
+      } catch (err) {
+        console.warn('[Chronos][Matrix] Unable to share visual snapshot', err);
       }
-    } catch (err) {
-      console.warn('[Chronos][Matrix] Unable to share snapshot', err);
+    }
+    const tableService = window.MatrixTablePanelService;
+    if (tableService) {
+      try {
+        if (intent === 'table-open' && typeof tableService.openWithPayload === 'function') {
+          tableService.openWithPayload(snapshot);
+        } else if (typeof tableService.setSnapshot === 'function') {
+          tableService.setSnapshot(snapshot);
+        }
+      } catch (err) {
+        console.warn('[Chronos][Matrix] Unable to share table snapshot', err);
+      }
     }
   };
 
@@ -721,18 +845,6 @@ function mountMatrixPanel(root, panelId){
     setTimeout(()=> setStatus(), 2500);
   };
 
-  const formatValue = (cell)=>{
-    if (!cell) return '--';
-    if (state.metric === 'duration') return formatMinutes(Number(cell.value) || 0);
-    if (state.metric === 'points'){
-      const num = Number(cell.value) || 0;
-      return `${num % 1 === 0 ? num : num.toFixed(1)} pts`;
-    }
-    if (typeof cell.value === 'number') return cell.value.toLocaleString();
-    if (typeof cell.value === 'string' && cell.value.trim()) return cell.value;
-    return '--';
-  };
-
   const renderTable = ()=>{
     tableWrapper.innerHTML = '';
     if (state.loading){
@@ -752,40 +864,8 @@ function mountMatrixPanel(root, panelId){
       messageEl.style.display = 'flex';
       return;
     }
-    messageEl.style.display = 'none';
-    const table = document.createElement('table');
-    table.className = 'matrix-table';
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    headRow.appendChild(document.createElement('th'));
-    cols.forEach(col => {
-      const th = document.createElement('th');
-      th.textContent = col.label;
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-    const tbody = document.createElement('tbody');
-    const cells = state.payload?.cells || {};
-    rows.forEach(row => {
-      const tr = document.createElement('tr');
-      const th = document.createElement('th');
-      th.textContent = row.label;
-      tr.appendChild(th);
-      cols.forEach(col => {
-        const td = document.createElement('td');
-        const cell = cells[`${row.id}|${col.id}`];
-        td.textContent = formatValue(cell);
-        if (!cell || !cell.value) td.dataset.empty = 'true';
-        if (cell?.items?.length){
-          td.title = cell.items.slice(0, 8).join('\\n');
-        }
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    tableWrapper.appendChild(table);
+    messageEl.textContent = 'Results are shown in the Matrix Table panel.';
+    messageEl.style.display = 'flex';
   };
 
   const buildParams = ()=>{
@@ -842,7 +922,7 @@ function mountMatrixPanel(root, panelId){
       renderDimensionLists();
       renderFilterList();
       persistState();
-      publishSnapshot();
+      publishSnapshot('table-open');
     } catch (error) {
       console.error('[Chronos][Cockpit] Matrix panel failed', error);
       state.error = error?.message || 'Unable to load matrix data.';
@@ -1197,6 +1277,83 @@ function renameInstanceRecord(id, label){
   return true;
 }
 
+function createTableDefinition(){
+  return {
+    id: TABLE_PANEL_ID,
+    label: 'Matrix Table',
+    defaultVisible: false,
+    defaultPosition: { x: 800, y: 80 },
+    size: { width: 760, height: 520 },
+    mount: (el)=> mountMatrixTablePanel(el),
+    menuKey: TABLE_PANEL_ID,
+    menuLabel: 'Matrix Table',
+  };
+}
+
+function mountMatrixTablePanel(root){
+  injectStyles();
+  root.classList.add('matrix-table-panel-shell');
+  root.innerHTML = `
+    <div class="matrix-table-panel-status"></div>
+    <div class="matrix-table-panel-body">
+      <div class="matrix-table-panel-wrapper"></div>
+      <div class="matrix-table-panel-message">Load or refresh a Matrix panel to view table results here.</div>
+    </div>
+  `;
+
+  const statusEl = root.querySelector('.matrix-table-panel-status');
+  const wrapperEl = root.querySelector('.matrix-table-panel-wrapper');
+  const messageEl = root.querySelector('.matrix-table-panel-message');
+
+  const renderSnapshot = (snapshot) => {
+    if (!wrapperEl || !messageEl || !statusEl) return;
+    wrapperEl.innerHTML = '';
+    if (!snapshot?.matrix) {
+      messageEl.textContent = 'Load or refresh a Matrix panel to view table results here.';
+      messageEl.style.display = 'flex';
+      statusEl.textContent = 'Waiting for data...';
+      return;
+    }
+    const metric = snapshot?.context?.metric || DEFAULT_METRIC;
+    const table = buildMatrixTableElement(snapshot.matrix, metric);
+    if (!table) {
+      messageEl.textContent = 'No data for this matrix configuration.';
+      messageEl.style.display = 'flex';
+      statusEl.textContent = `Metric: ${metric}`;
+      return;
+    }
+    wrapperEl.appendChild(table);
+    messageEl.style.display = 'none';
+    const ts = snapshot.capturedAt ? new Date(snapshot.capturedAt) : new Date();
+    const stamp = Number.isNaN(ts.getTime()) ? '' : ts.toLocaleTimeString();
+    statusEl.textContent = stamp ? `Metric: ${metric} | Updated ${stamp}` : `Metric: ${metric}`;
+  };
+
+  renderSnapshot(latestTableSnapshot);
+
+  const api = {
+    setSnapshot: (snapshot) => {
+      latestTableSnapshot = snapshot;
+      renderSnapshot(snapshot);
+    },
+    openWithPayload: (snapshot) => {
+      latestTableSnapshot = snapshot;
+      renderSnapshot(snapshot);
+      try { managerRef?.setVisible?.(TABLE_PANEL_ID, true); } catch {}
+    },
+  };
+  tablePanelApi = api;
+  window.MatrixTablePanelService = api;
+
+  return {
+    setSnapshot: api.setSnapshot,
+    dispose(){
+      if (tablePanelApi === api) tablePanelApi = null;
+      if (window.MatrixTablePanelService === api) window.MatrixTablePanelService = null;
+    }
+  };
+}
+
 function createDefinition(instance){
   const isBase = instance.id === PANEL_BASE_ID;
   return {
@@ -1204,7 +1361,7 @@ function createDefinition(instance){
     label: instance.label || 'Matrix',
     defaultVisible: false,
     defaultPosition: { x: 120, y: 80 },
-    size: { width: 640, height: 480 },
+    size: { width: 540, height: 420 },
     mount: (el)=> mountMatrixPanel(el, instance.id),
     menuKey: PANEL_BASE_ID,
     menuLabel: 'Matrix',
@@ -1236,11 +1393,32 @@ function ensureService(){
     },
     rename: (id, label)=> renameInstanceRecord(id, label),
   };
+  window.MatrixTablePanelService = window.MatrixTablePanelService || {
+    setSnapshot: (snapshot)=>{
+      latestTableSnapshot = snapshot;
+      try { tablePanelApi?.setSnapshot?.(snapshot); } catch {}
+    },
+    openWithPayload: (snapshot)=>{
+      latestTableSnapshot = snapshot;
+      try { managerRef?.setVisible?.(TABLE_PANEL_ID, true); } catch {}
+      try { tablePanelApi?.setSnapshot?.(snapshot); } catch {}
+    },
+  };
+  window.MatrixVisualPanelService = window.MatrixVisualPanelService || {
+    setSnapshot: (snapshot)=>{
+      try { window[VISUAL_SNAPSHOT_KEY] = snapshot; } catch {}
+    },
+    openWithPayload: (snapshot)=>{
+      try { window[VISUAL_SNAPSHOT_KEY] = snapshot; } catch {}
+      try { managerRef?.setVisible?.(VISUAL_PANEL_ID, true); } catch {}
+    },
+  };
 }
 
 function registerPanels(manager){
   injectStyles();
   managerRef = manager;
+  manager.registerPanel(createTableDefinition());
   const instances = loadInstanceRecords();
   instances.forEach(instance => {
     manager.registerPanel(createDefinition(instance));

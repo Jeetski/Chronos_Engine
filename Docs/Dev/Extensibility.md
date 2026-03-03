@@ -1,6 +1,6 @@
 # Extensibility Guide
 
-Chronos Dashboard is designed to be **fully extensible** through a plug-and-play architecture. All components (Wizards, Themes, Views, Widgets, Panels, and Popups) are automatically discovered by scanning the filesystem - no configuration files or code editing required.
+Chronos Dashboard is designed to be **fully extensible** through a plug-and-play architecture. All components (Wizards, Themes, Views, Widgets, Panels, Popups, and Gadgets) are automatically discovered by scanning the filesystem - no configuration files or code editing required.
 
 ## Auto-Discovery System
 
@@ -304,6 +304,66 @@ GET /api/registry?name=popups
 
 ---
 
+### 7. Gadgets
+
+Dock gadgets are compact action modules mounted into the bottom Dashboard dock.
+
+**Location:** `Utilities/Dashboard/Gadgets/<Name>/`
+
+**Required Files:**
+- `index.js` - Must export `mount(element, context)` function
+
+**Optional Files:**
+- `gadget.yml` - Metadata
+- `*.css` - Gadget styles
+
+**Example Structure:**
+```
+Gadgets/
+  └── MyGadget/
+      ├── index.js       # Required: mount() export
+      ├── gadget.yml     # Optional: Metadata
+      └── styles.css     # Optional: Styling
+```
+
+**index.js Template:**
+```javascript
+export function mount(el, context = {}) {
+  el.innerHTML = '<button class="dock-pin" type="button">Run</button>';
+  const btn = el.querySelector('button');
+  const toast = typeof context.showToast === 'function' ? context.showToast : () => {};
+  const onClick = () => toast('My gadget clicked.', 'success');
+  btn?.addEventListener('click', onClick);
+
+  return {
+    destroy() {
+      btn?.removeEventListener('click', onClick);
+    },
+  };
+}
+```
+
+**Metadata Schema (`gadget.yml`):**
+```yaml
+label: "My Gadget"      # Override folder-based label
+module: "MyGadget"      # Optional override; defaults to folder name
+enabled: true           # Enable/disable
+order: 100              # Sort order in dock/menu
+```
+
+**Runtime Context (from app/runtime):**
+- `bus` - Chronos event bus
+- `apiBase()` - dashboard API base URL helper
+- `showToast()` - dock toast helper
+- `gadget` - registry metadata for this gadget
+
+**API Access:**
+```bash
+GET /api/registry?name=gadgets
+```
+
+---
+
 ## Quick Start: Adding a Component
 
 ### Example: Adding a Simple Widget
@@ -367,6 +427,7 @@ GET /api/registry?name=views
 GET /api/registry?name=widgets
 GET /api/registry?name=panels
 GET /api/registry?name=popups
+GET /api/registry?name=gadgets
 
 # Legacy registries (also available)
 GET /api/registry?name=commands    # CLI command syntax
@@ -403,6 +464,7 @@ GET /api/registry?name=properties  # Property definitions
 - **Widgets/Views**: Use `widget-glass` class for glassmorphic styling
 - **Panels**: Register via `manager.registerPanel()`
 - **Popups**: Use `chronos-overlay` and `chronos-shell` classes
+- **Gadgets**: Reuse `dock-pin` styling for compact dock actions
 
 ### 3. Leverage Context
 ```javascript
@@ -454,6 +516,7 @@ For developers wanting to understand the system:
 - `build_views_registry()` - Scans `Dashboard/Views/`
 - `build_panels_registry()` - Scans `Dashboard/Panels/`
 - `build_popups_registry()` - Scans `Dashboard/Popups/`
+- `build_gadgets_registry()` - Scans `Dashboard/Gadgets/`
 - `build_wizards_registry()` - Scans `Dashboard/Wizards/`
 - `build_themes_registry()` - Scans `Dashboard/Themes/`
 

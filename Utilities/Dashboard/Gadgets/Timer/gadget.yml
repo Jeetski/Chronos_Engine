@@ -1,0 +1,4 @@
+label: "Timer"
+module: "Timer"
+enabled: true
+order: 10

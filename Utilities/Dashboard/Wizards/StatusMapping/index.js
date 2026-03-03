@@ -52,6 +52,48 @@ function injectStyles() {
     }
     .status-map-close:hover { filter: brightness(1.08); }
     .status-map-content { display:flex; flex-direction:column; gap:14px; }
+    .status-map-shell .wizard-progress {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+    }
+    .status-map-shell .wizard-progress .step {
+      display: flex;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--chronos-text);
+      font-size: 13px;
+    }
+    .status-map-shell .wizard-progress .step .bullet {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.2);
+      flex: 0 0 auto;
+    }
+    .status-map-shell .wizard-progress .step.active {
+      border-color: var(--chronos-accent);
+      background: var(--chronos-accent-soft);
+    }
+    .status-map-shell .wizard-progress .step.done {
+      border-color: var(--chronos-success);
+      background: var(--chronos-success-soft);
+    }
+    .status-map-shell .wizard-progress .step.active .bullet {
+      border-color: var(--chronos-accent);
+      color: var(--chronos-text);
+    }
+    .status-map-shell .wizard-progress .step.done .bullet {
+      border-color: var(--chronos-success);
+      color: var(--chronos-success);
+    }
     .status-map-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:10px; }
     .status-card, .scope-card, .preview-card {
       background: rgba(8,12,22,.68);
@@ -113,6 +155,7 @@ function injectStyles() {
       .status-map-shell { width: min(1100px, 98vw); }
       .status-map-top { flex-direction: column; }
       .status-map-close { align-self:flex-end; }
+      .status-map-shell .wizard-progress { grid-template-columns: 1fr; }
       .preview-table { font-size: 11px; }
     }
   `;
@@ -780,7 +823,7 @@ function buildUI() {
         </div>
         <button class="status-map-close" data-close type="button">Close</button>
       </div>
-      <div class="chronos-wizard-stepper" data-stepper></div>
+      <div class="wizard-progress chronos-wizard-stepper" data-stepper></div>
       <div class="chronos-wizard-body" data-body></div>
       <div class="chronos-wizard-footer">
         <div class="chronos-wizard-status">

@@ -7,17 +7,64 @@ export function mount(el) {
     link.href = './Widgets/Clock/clock.css';
     document.head.appendChild(link);
   }
+  // Load digital font for the readout so it doesn't depend on local installs.
+  if (!document.getElementById('clock-fonts')) {
+    const fontLink = document.createElement('link');
+    fontLink.id = 'clock-fonts';
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&display=swap';
+    document.head.appendChild(fontLink);
+  }
 
   el.className = 'widget clock-widget';
+  const MIN_CLOCK_WIDTH = 260;
+  const MIN_CLOCK_HEIGHT = 270;
 
   const tpl = `
     <style>
       .clock-widget { display:flex; flex-direction:column; min-height:0; }
-      .clock-widget .content { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
+      .clock-widget .header { padding: 6px 8px; min-height: 34px; }
+      .clock-widget .title { font-size: 12px; letter-spacing: 0.2px; }
+      .clock-widget .controls .icon-btn { width: 22px; height: 22px; font-size: 11px; }
+      .clock-widget .content { flex:1 1 auto; min-height:0; overflow: visible; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px; padding: 6px 8px 8px; }
+      .clock-stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 2px; }
       .clock-shell { display:flex; gap:16px; align-items:center; flex-wrap:wrap; justify-content:center; }
+      .clock-hover-menu {
+        position: absolute;
+        top: 50%;
+        left: calc(100% + 12px);
+        transform: translate(0, -50%);
+        width: min(560px, 84vw);
+        max-height: min(62vh, 460px);
+        overflow: auto;
+        border: 1px solid var(--chronos-border-strong, var(--border, #2b3343));
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--chronos-surface-strong, #0f141d) 90%, #000 10%);
+        box-shadow: var(--chronos-shadow, 0 14px 40px rgba(0, 0, 0, 0.35));
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 140ms ease, transform 140ms ease;
+        z-index: 14;
+        padding: 10px;
+      }
+      .clock-hover-menu.open {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(0, -50%);
+      }
+      @media (max-width: 920px) {
+        .clock-hover-menu {
+          top: calc(100% + 10px);
+          left: 50%;
+          transform: translate(-50%, -6px);
+        }
+        .clock-hover-menu.open {
+          transform: translate(-50%, 0);
+        }
+      }
       .clock-face {
         position: relative;
-        width: 190px;
+        width: 172px;
         aspect-ratio: 1 / 1;
         border-radius: 50%;
         background: radial-gradient(circle at 30% 30%, rgba(122,162,247,0.25), rgba(8,12,18,0.9) 55%, #070a10 100%);
@@ -30,26 +77,35 @@ export function mount(el) {
       }
       .clock-canvas { width: 100%; height: 100%; display:block; margin: 0 auto; }
       .clock-digital {
-        min-width: 180px;
-        padding: 12px 16px;
+        width: 172px;
+        min-height: 172px;
+        padding: 10px 10px;
         border-radius: 14px;
         background: linear-gradient(160deg, rgba(18,24,36,0.95), rgba(8,10,16,0.95));
         border: 1px solid rgba(50,62,90,0.7);
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
         font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
-        color: #e9eefb;
+        color: var(--chronos-text, var(--text, #e6e8ef));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
       }
       .clock-time {
-        font-size: 28px;
+        font-size: 22px;
         font-weight: 700;
-        letter-spacing: 1px;
-        font-family: "IBM Plex Mono", "JetBrains Mono", "Consolas", monospace;
+        letter-spacing: 1.6px;
+        font-family: "Orbitron", "Digital-7 Mono", "DS-Digital", "Share Tech Mono", "IBM Plex Mono", "JetBrains Mono", "Consolas", monospace;
+        font-variant-numeric: tabular-nums;
+        color: var(--chronos-accent-strong, var(--chronos-accent, var(--accent, #7aa2f7)));
+        text-shadow: 0 0 12px color-mix(in srgb, var(--chronos-accent-strong, var(--chronos-accent, var(--accent, #7aa2f7))) 45%, transparent);
       }
       .clock-date {
-        font-size: 12px;
+        font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 1.2px;
-        color: rgba(210,220,245,0.7);
+        color: var(--chronos-text-muted, var(--text-dim, #a6adbb));
         margin-top: 4px;
       }
       .clock-toggle {
@@ -63,10 +119,10 @@ export function mount(el) {
         border: none;
         background: transparent;
         color: rgba(220,230,255,0.7);
-        padding: 6px 12px;
+        padding: 3px 8px;
         cursor: pointer;
-        font-size: 12px;
-        letter-spacing: 0.4px;
+        font-size: 10px;
+        letter-spacing: 0.35px;
       }
       .clock-toggle button.active {
         background: linear-gradient(160deg, rgba(90,120,190,0.35), rgba(30,40,70,0.9));
@@ -116,72 +172,75 @@ export function mount(el) {
       </div>
     </div>
     <div class="content">
-      <div class="row" style="gap:8px; align-items:center; margin-bottom:8px;">
+      <div class="row" style="gap:4px; align-items:center; justify-content:center; margin:0;">
         <div class="clock-toggle" id="clockToggle">
           <button type="button" data-mode="analog" class="active">Analog</button>
           <button type="button" data-mode="digital">Digital</button>
         </div>
-        <span class="hint">Switch view</span>
       </div>
-      <div class="clock-shell">
-        <div class="clock-face" id="clockFace">
-          <canvas id="clockCanvas" class="clock-canvas" width="190" height="190"></canvas>
-        </div>
-        <div>
-          <div class="clock-digital" id="clockDigital" style="display:none;">
-            <div class="clock-time" id="clockTime">00:00</div>
-            <div class="clock-date" id="clockDate">---</div>
+      <div class="clock-stage" id="clockStage">
+        <div class="clock-shell" id="clockShell">
+          <div class="clock-face" id="clockFace">
+            <canvas id="clockCanvas" class="clock-canvas" width="190" height="190"></canvas>
+          </div>
+          <div>
+            <div class="clock-digital" id="clockDigital" style="display:none;">
+              <div class="clock-time" id="clockTime">00:00</div>
+              <div class="clock-date" id="clockDate">---</div>
+            </div>
           </div>
         </div>
       </div>
-      <details class="clock-section" id="clockScheduleSection">
-        <summary>Schedule Alerts</summary>
-        <div class="clock-section-content">
-          <div class="row" style="gap:8px; margin:0 0 8px; flex-wrap:wrap;">
-            <button class="btn btn-secondary" id="btnSetAppointment">Set Appointment</button>
-            <button class="btn btn-secondary" id="btnSetAlarm">Set Alarm</button>
-            <button class="btn btn-secondary" id="btnSetReminder">Set Reminder</button>
-          </div>
-          <div id="formArea"></div>
-        </div>
-      </details>
-      <details class="clock-section" id="clockManageSection">
-        <summary>Manage Alerts</summary>
-        <div class="clock-section-content">
-          <div id="managePanel" style="display:block;">
-            <div class="row" style="gap:8px; align-items:center; margin-bottom:10px;">
-              <div class="hint">Manage alerts</div>
-              <div class="spacer"></div>
-              <button class="btn btn-secondary" id="alertsRefresh">Refresh</button>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div class="hint" style="margin-bottom:6px;">Reminders</div>
-              <div id="reminderList"></div>
-            </div>
-            <div style="margin-bottom:12px;">
-              <div class="hint" style="margin-bottom:6px;">Alarms</div>
-              <div id="alarmList"></div>
-            </div>
-            <div style="margin-top:10px;">
-              <div class="hint" style="margin-bottom:8px;">Create reminder from item</div>
-              <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-                <select class="input" id="itemReminderType"></select>
-                <select class="input" id="itemReminderName" style="min-width:220px;"></select>
-                <button class="btn btn-secondary" id="itemReminderRefresh">Refresh</button>
+    </div>
+    <div class="clock-hover-menu" id="clockHoverMenu">
+          <details class="clock-section" id="clockScheduleSection">
+            <summary>Schedule Alerts</summary>
+            <div class="clock-section-content">
+              <div class="row" style="gap:8px; margin:0 0 8px; flex-wrap:wrap;">
+                <button class="btn btn-secondary" id="btnSetAppointment">Set Appointment</button>
+                <button class="btn btn-secondary" id="btnSetAlarm">Set Alarm</button>
+                <button class="btn btn-secondary" id="btnSetReminder">Set Reminder</button>
               </div>
-              <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-                <select class="input" id="itemReminderDateKind" style="min-width:140px;"></select>
-                <input class="input" id="itemReminderDate" type="date" />
-                <input class="input" id="itemReminderTime" type="time" step="60" />
-              </div>
-              <div class="row" style="gap:8px; flex-wrap:wrap;">
-                <input class="input" id="itemReminderMessage" placeholder="Message (optional)" style="min-width:240px;" />
-                <button class="btn btn-primary" id="itemReminderCreate">Create Reminder</button>
+              <div id="formArea"></div>
+            </div>
+          </details>
+          <details class="clock-section" id="clockManageSection">
+            <summary>Manage Alerts</summary>
+            <div class="clock-section-content">
+              <div id="managePanel" style="display:block;">
+                <div class="row" style="gap:8px; align-items:center; margin-bottom:10px;">
+                  <div class="hint">Manage alerts</div>
+                  <div class="spacer"></div>
+                  <button class="btn btn-secondary" id="alertsRefresh">Refresh</button>
+                </div>
+                <div style="margin-bottom:12px;">
+                  <div class="hint" style="margin-bottom:6px;">Reminders</div>
+                  <div id="reminderList"></div>
+                </div>
+                <div style="margin-bottom:12px;">
+                  <div class="hint" style="margin-bottom:6px;">Alarms</div>
+                  <div id="alarmList"></div>
+                </div>
+                <div style="margin-top:10px;">
+                  <div class="hint" style="margin-bottom:8px;">Create reminder from item</div>
+                  <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                    <select class="input" id="itemReminderType"></select>
+                    <select class="input" id="itemReminderName" style="min-width:220px;"></select>
+                    <button class="btn btn-secondary" id="itemReminderRefresh">Refresh</button>
+                  </div>
+                  <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+                    <select class="input" id="itemReminderDateKind" style="min-width:140px;"></select>
+                    <input class="input" id="itemReminderDate" type="date" />
+                    <input class="input" id="itemReminderTime" type="time" step="60" />
+                  </div>
+                  <div class="row" style="gap:8px; flex-wrap:wrap;">
+                    <input class="input" id="itemReminderMessage" placeholder="Message (optional)" style="min-width:240px;" />
+                    <button class="btn btn-primary" id="itemReminderCreate">Create Reminder</button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </details>
+          </details>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -194,6 +253,8 @@ export function mount(el) {
   const btnClose = el.querySelector('#clockClose');
   const canvas = el.querySelector('#clockCanvas');
   const clockFace = el.querySelector('#clockFace');
+  const clockShell = el.querySelector('#clockShell');
+  const clockHoverMenu = el.querySelector('#clockHoverMenu');
   const clockToggle = el.querySelector('#clockToggle');
   const digitalPanel = el.querySelector('#clockDigital');
   const clockTime = el.querySelector('#clockTime');
@@ -212,6 +273,50 @@ export function mount(el) {
   const itemMessageInput = el.querySelector('#itemReminderMessage');
   const itemRefreshBtn = el.querySelector('#itemReminderRefresh');
   const itemCreateBtn = el.querySelector('#itemReminderCreate');
+  const scheduleSection = el.querySelector('#clockScheduleSection');
+  const contentEl = el.querySelector('.content');
+  try {
+    if (contentEl) {
+      contentEl.style.overflow = 'visible';
+      contentEl.style.minHeight = '0';
+    }
+  } catch { }
+
+  function ensureClockFitsContent(force = false) {
+    try {
+      if (!el || el.style.display === 'none' || el.classList.contains('minimized')) return;
+      const headerH = Math.ceil(header?.offsetHeight || 40);
+      const cs = contentEl ? window.getComputedStyle(contentEl) : null;
+      const gap = cs ? parseFloat(cs.rowGap || cs.gap || '0') || 0 : 0;
+      const padTop = cs ? parseFloat(cs.paddingTop || '0') || 0 : 0;
+      const padBottom = cs ? parseFloat(cs.paddingBottom || '0') || 0 : 0;
+      let contentNatural = 0;
+      if (contentEl) {
+        const kids = Array.from(contentEl.children || []);
+        kids.forEach((child, idx) => {
+          contentNatural += Math.ceil(child.getBoundingClientRect().height || 0);
+          if (idx < kids.length - 1) contentNatural += gap;
+        });
+      }
+      const contentH = Math.ceil(contentNatural + padTop + padBottom);
+      const currentH = Math.ceil(el.offsetHeight || 0);
+      const neededH = Math.max(MIN_CLOCK_HEIGHT, headerH + contentH + 6);
+      if (force) {
+        el.style.height = `${neededH}px`;
+      } else if (neededH > currentH + 1) {
+        el.style.height = `${neededH}px`;
+      }
+      const currentW = Math.ceil(el.offsetWidth || 0);
+      if (currentW < MIN_CLOCK_WIDTH) el.style.width = `${MIN_CLOCK_WIDTH}px`;
+    } catch { }
+  }
+  function queueEnsureClockFits(force = false) {
+    try {
+      requestAnimationFrame(() => requestAnimationFrame(() => ensureClockFitsContent(force)));
+    } catch {
+      ensureClockFitsContent(force);
+    }
+  }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   const defaults = ((window.CHRONOS_SETTINGS || {}).defaults) || {};
@@ -300,6 +405,7 @@ export function mount(el) {
       if (clockFace) clockFace.style.display = '';
       if (digitalPanel) digitalPanel.style.display = 'none';
     }
+    queueEnsureClockFits(true);
   }
 
   clockToggle?.addEventListener('click', (ev) => {
@@ -307,6 +413,34 @@ export function mount(el) {
     const next = btn?.dataset?.mode;
     if (next) setMode(next);
   });
+
+  let hoverCloseTimer = null;
+  function showHoverMenu() {
+    try {
+      if (hoverCloseTimer) {
+        clearTimeout(hoverCloseTimer);
+        hoverCloseTimer = null;
+      }
+      clockHoverMenu?.classList.add('open');
+    } catch { }
+  }
+  function hideHoverMenuSoon() {
+    try {
+      if (hoverCloseTimer) clearTimeout(hoverCloseTimer);
+      hoverCloseTimer = setTimeout(() => {
+        clockHoverMenu?.classList.remove('open');
+      }, 120);
+    } catch { }
+  }
+  clockShell?.addEventListener('mouseenter', showHoverMenu);
+  clockShell?.addEventListener('mouseleave', hideHoverMenuSoon);
+  clockShell?.addEventListener('focusin', showHoverMenu);
+  clockShell?.addEventListener('focusout', hideHoverMenuSoon);
+  clockHoverMenu?.addEventListener('mouseenter', showHoverMenu);
+  clockHoverMenu?.addEventListener('mouseleave', hideHoverMenuSoon);
+  clockHoverMenu?.addEventListener('focusin', showHoverMenu);
+  clockHoverMenu?.addEventListener('focusout', hideHoverMenuSoon);
+  clockShell?.setAttribute('title', 'Hover for alert tools');
 
   // Analog clock drawing
   const ctx = canvas.getContext('2d');
@@ -332,6 +466,17 @@ export function mount(el) {
   } catch { }
 
   function drawClock() {
+    const rootStyles = window.getComputedStyle(document.documentElement);
+    const pick = (name, fallback) => {
+      const v = (rootStyles.getPropertyValue(name) || '').trim();
+      return v || fallback;
+    };
+    const cText = pick('--chronos-text', pick('--text', '#e6e8ef'));
+    const cBorder = pick('--chronos-border-strong', pick('--border', '#2b3343'));
+    const cAccent = pick('--chronos-accent-strong', pick('--chronos-accent', pick('--accent', '#7aa2f7')));
+    const cSurface = pick('--chronos-surface-strong', '#0f141d');
+    const cMuted = pick('--chronos-text-muted', pick('--text-dim', '#a6adbb'));
+
     const w = canvasSize || (canvas.width / canvasRatio) || canvas.clientWidth || canvas.width;
     const h = canvasSize || (canvas.height / canvasRatio) || canvas.clientHeight || canvas.height;
     const r = Math.min(w, h) / 2 - 6;
@@ -341,15 +486,21 @@ export function mount(el) {
     // face
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.fillStyle = '#0b0f16';
-    ctx.strokeStyle = '#2b3343';
+    const faceGrad = ctx.createRadialGradient(-r * 0.25, -r * 0.25, r * 0.2, 0, 0, r + 8);
+    faceGrad.addColorStop(0, cSurface);
+    faceGrad.addColorStop(0.55, cSurface);
+    faceGrad.addColorStop(1, '#070b12');
+    ctx.fillStyle = faceGrad;
+    ctx.strokeStyle = cBorder;
     ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, r + 5, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(0, 0, r + 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r + 1, 0, Math.PI * 2); ctx.fill();
     // ticks
     for (let i = 0; i < 60; i++) {
       const ang = i * Math.PI / 30;
       const len = (i % 5 === 0) ? 10 : 5;
-      ctx.strokeStyle = (i % 5 === 0) ? '#a6adbb' : '#3a4a6a';
+      ctx.strokeStyle = (i % 5 === 0) ? cMuted : cBorder;
       ctx.lineWidth = (i % 5 === 0) ? 2 : 1;
       const x1 = Math.cos(ang) * (r - len), y1 = Math.sin(ang) * (r - len);
       const x2 = Math.cos(ang) * r, y2 = Math.sin(ang) * r;
@@ -360,13 +511,13 @@ export function mount(el) {
     const min = now.getMinutes() + sec / 60;
     const hr = (now.getHours() % 12) + min / 60;
     // hour hand
-    drawHand(hr * Math.PI / 6, r * 0.5, 4, '#e6e8ef');
+    drawHand(hr * Math.PI / 6, r * 0.5, 4, cText);
     // minute hand
-    drawHand(min * Math.PI / 30, r * 0.75, 3, '#7aa2f7');
+    drawHand(min * Math.PI / 30, r * 0.75, 3, cAccent);
     // second hand
-    drawHand(sec * Math.PI / 30, r * 0.85, 1.5, '#ef6a6a');
+    drawHand(sec * Math.PI / 30, r * 0.85, 1.5, pick('--chronos-danger', '#ef6a6a'));
     // center
-    ctx.fillStyle = '#e6e8ef'; ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = cText; ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   function drawHand(angle, length, width, color) {
@@ -565,8 +716,15 @@ export function mount(el) {
     function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   });
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => el.style.display = 'none');
+  btnMin.addEventListener('click', () => {
+    el.classList.toggle('minimized');
+    if (el.classList.contains('minimized')) clockHoverMenu?.classList.remove('open');
+    queueEnsureClockFits();
+  });
+  btnClose.addEventListener('click', () => {
+    clockHoverMenu?.classList.remove('open');
+    el.style.display = 'none';
+  });
 
   // Buttons
   el.querySelector('#btnSetAppointment').addEventListener('click', showAppointmentForm);
@@ -574,6 +732,7 @@ export function mount(el) {
   el.querySelector('#btnSetReminder').addEventListener('click', showReminderForm);
   manageSection?.addEventListener('toggle', () => {
     if (manageSection.open) loadAlerts();
+    queueEnsureClockFits();
   });
 
   // Reminder-from-item flow
@@ -814,6 +973,7 @@ export function mount(el) {
       reminderList.innerHTML = '<div class="hint">Failed to load reminders.</div>';
       alarmList.innerHTML = '<div class="hint">Failed to load alarms.</div>';
     }
+    queueEnsureClockFits();
   }
 
   alertsRefreshBtn?.addEventListener('click', loadAlerts);
@@ -821,9 +981,38 @@ export function mount(el) {
   // Resizers
   function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
   const re = el.querySelector('.resizer.e'); const rs = el.querySelector('.resizer.s'); const rse = el.querySelector('.resizer.se');
-  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; })(ev); });
-  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
-  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
+  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(MIN_CLOCK_WIDTH, e.clientX - sr.left) + 'px'; })(ev); });
+  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(MIN_CLOCK_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
+  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(MIN_CLOCK_WIDTH, e.clientX - sr.left) + 'px'; el.style.height = Math.max(MIN_CLOCK_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
+
+  queueEnsureClockFits();
+
+  [scheduleSection, manageSection].forEach((section) => {
+    section?.addEventListener('toggle', () => {
+      queueEnsureClockFits();
+    });
+  });
+
+  try { window.addEventListener('resize', queueEnsureClockFits); } catch { }
+
+  try {
+    let prevDisplay = el.style.display;
+    let prevMinimized = el.classList.contains('minimized');
+    const onWidgetStateChanged = () => {
+      const nextDisplay = el.style.display;
+      const nextMinimized = el.classList.contains('minimized');
+      const becameVisible = prevDisplay === 'none' && nextDisplay !== 'none';
+      const becameExpanded = prevMinimized && !nextMinimized;
+      if (becameVisible || becameExpanded) {
+        queueEnsureClockFits(true);
+      }
+      prevDisplay = nextDisplay;
+      prevMinimized = nextMinimized;
+    };
+    const mo = new MutationObserver(onWidgetStateChanged);
+    mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    window.setTimeout(() => queueEnsureClockFits(), 0);
+  } catch { }
 
   return {};
 }

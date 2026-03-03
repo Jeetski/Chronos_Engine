@@ -70,7 +70,7 @@ export async function mount(el, context) {
 
   el.innerHTML = `
     <style>
-      .db{display:grid;grid-template-columns:310px 1fr 360px;gap:10px;height:100%;min-height:0;color:var(--chronos-text,var(--text,#e6e8ef))}
+      .db{display:grid;grid-template-columns:minmax(260px,310px) minmax(420px,1fr) minmax(280px,360px);gap:10px;height:100%;min-height:0;color:var(--chronos-text,var(--text,#e6e8ef))}
       .c{border:1px solid var(--chronos-border,var(--border,rgba(255,255,255,.12)));border-radius:12px;padding:10px;background:var(--chronos-surface,var(--panel,rgba(15,17,21,.86)));display:flex;flex-direction:column;min-height:0}
       .r{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.title{font-weight:700;font-size:14px}.sub{font-size:12px;color:var(--chronos-text-muted,var(--text-dim,#9aa4b7))}
       .in,.sel,.ta{border:1px solid var(--chronos-border,var(--border,rgba(255,255,255,.14)));border-radius:8px;background:var(--chronos-surface-soft,rgba(255,255,255,.04));color:var(--chronos-text,var(--text,#e6e8ef));-webkit-text-fill-color:var(--chronos-text,var(--text,#e6e8ef));padding:7px 8px}
@@ -104,7 +104,7 @@ export async function mount(el, context) {
       .glabel{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--chronos-text-muted,var(--text-dim,#9aa4b7));padding-right:2px}
       .cbox{display:inline-flex;gap:4px;align-items:center;color:var(--chronos-text-muted,var(--text-dim,#9aa4b7));font-size:12px}
       .cbox input{accent-color:var(--chronos-accent,var(--accent,#7aa2f7))}
-      @media (max-width:1350px){.db{grid-template-columns:1fr}}
+      @media (max-width:1120px){.db{grid-template-columns:1fr}}
     </style>
     <div class="db">
       <section class="c" id="left"></section>

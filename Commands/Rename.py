@@ -39,7 +39,11 @@ def run(args, properties):
     # Read the data from the old file
     data = read_item_data(item_type, old_name)
     if data:
-        data["Name"] = new_name # Update the 'Name' property inside the YAML content
+        # Keep canonical lowercase key used throughout the codebase.
+        data["name"] = new_name
+        # Preserve legacy key for compatibility if present.
+        if "Name" in data:
+            data["Name"] = new_name
         write_item_data(item_type, new_name, data) # Write the updated data to the new file name
         delete_item(item_type, old_name) # Delete the old file
         print(f"✅ Renamed {item_type} from '{old_name}' to '{new_name}'.")

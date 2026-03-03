@@ -966,18 +966,64 @@ export function Inspector() {
 
   function renderYearContent() {
     const year = Number(currentData?.year) || (new Date()).getFullYear();
+    const projectsByName = new Map(
+      loadedItems
+        .filter(i => String(i?.type || '').toLowerCase() === 'project' && i?.name && i?.resolution)
+        .map(i => [String(i.name), i.resolution])
+    );
+    const goalsByName = new Map(
+      loadedItems
+        .filter(i => String(i?.type || '').toLowerCase() === 'goal' && i?.name)
+        .map(i => [String(i.name), i])
+    );
+    const effectiveResolution = (item) => {
+      if (!item) return null;
+      if (item.resolution) return item.resolution;
+      if (item.resolution_ref) return projectsByName.get(String(item.resolution_ref)) || null;
+      const t = String(item.type || '').toLowerCase();
+      if ((t === 'goal' || t === 'milestone') && item.project) {
+        return projectsByName.get(String(item.project)) || null;
+      }
+      if (t === 'milestone' && item.goal) {
+        const g = goalsByName.get(String(item.goal));
+        if (g?.project) return projectsByName.get(String(g.project)) || null;
+      }
+      return null;
+    };
     const resolutionItems = loadedItems.filter(item => {
-      if (!item?.resolution) return false;
-      const resYearRaw = item?.resolution?.year;
+      const res = effectiveResolution(item);
+      if (!res) return false;
+      const resYearRaw = res?.year;
       if (resYearRaw == null || resYearRaw === '') return true;
       const resYear = Number(resYearRaw);
       return Number.isFinite(resYear) && resYear === year;
     });
-    const goalsByName = new Map(
-      loadedItems
-        .filter(i => String(i.type || '').toLowerCase() === 'goal' && i.name)
-        .map(i => [String(i.name), i])
-    );
+    const resolutionSummaries = (() => {
+      const map = new Map();
+      resolutionItems.forEach((item) => {
+        const res = effectiveResolution(item);
+        if (!res) return;
+        const key = [
+          String(res.year ?? ''),
+          String(res.affirmation || ''),
+          String(res.raw_text || ''),
+        ].join('||');
+        if (!map.has(key)) map.set(key, { resolution: res, items: [] });
+        map.get(key).items.push(item);
+      });
+      const summaries = Array.from(map.values()).map((entry) => {
+        const percent = entry.items.length
+          ? Math.round(entry.items.reduce((sum, it) => sum + Number(calculateResolutionProgress(it).percent || 0), 0) / entry.items.length)
+          : 0;
+        return {
+          resolution: entry.resolution,
+          percent,
+          label: `${entry.items.length} linked items`,
+        };
+      });
+      summaries.sort((a, b) => Number(b.percent || 0) - Number(a.percent || 0));
+      return summaries;
+    })();
     const annualGoals = loadedGoalSummaries.filter(goal => {
       const datedField = String(goal?.due_date || goal?.deadline || '').trim();
       if (datedField) {
@@ -1034,13 +1080,13 @@ export function Inspector() {
     });
 
     return `
-      ${renderCollapsibleSection('Resolutions', `${resolutionItems.length ? `
+      ${renderCollapsibleSection('Resolutions', `${resolutionSummaries.length ? `
           <div class="inspector-goal-rings">
-            ${resolutionItems.slice(0, 12).map(item => {
-      const progress = calculateResolutionProgress(item);
-      const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
-      const label = item.resolution?.affirmation || item.name || 'Untitled Resolution';
-      const meta = progress.label || '';
+            ${resolutionSummaries.slice(0, 12).map((summary) => {
+      const percent = Math.max(0, Math.min(100, Number(summary.percent || 0)));
+      const res = summary.resolution || {};
+      const label = res?.affirmation || 'Untitled Resolution';
+      const meta = summary.label || '';
       return `
                 <div class="inspector-goal-ring-card">
                   <div class="inspector-goal-ring" style="--p:${percent};">
@@ -1385,6 +1431,7 @@ export function Inspector() {
         <div class="inspector-grid">
           <button class="inspector-btn" data-action="mark-completed">✓ Done</button>
           <button class="inspector-btn" data-action="mark-skipped">⊘ Skipped</button>
+          <button class="inspector-btn" data-action="skip-today">⏭ Skip Today</button>
           <button class="inspector-btn" data-action="mark-delayed">⏰ Delayed</button>
         </div>
         <div class="inspector-field">
@@ -1873,6 +1920,26 @@ export function Inspector() {
     });
 
     // Item actions
+    function emitDayListCompletionFeedback(status, marks) {
+      const normalizedStatus = String(status || '').trim().toLowerCase();
+      const rows = (Array.isArray(marks) ? marks : [])
+        .map((it) => ({
+          text: String(it?.text || '').trim(),
+          start: String(it?.start || '').trim(),
+          end: String(it?.end || '').trim(),
+        }))
+        .filter((it) => !!it.text);
+      if (!normalizedStatus || !rows.length) return;
+      try {
+        window.dispatchEvent(new CustomEvent('chronos:calendar:completion-marked', {
+          detail: {
+            status: normalizedStatus,
+            date: completionDate || '',
+            marks: rows,
+          },
+        }));
+      } catch { }
+    }
     async function markTargets(status) {
       const targets = resolveCompletionTargets();
       if (!targets.length) return;
@@ -1888,17 +1955,21 @@ export function Inspector() {
         if (err) {
           failed += 1;
           if (!failure) failure = err;
+        } else {
+          emitDayListCompletionFeedback(status, [it]);
         }
       }
       if (failed) {
         emitToast('error', failure || `Failed to mark ${failed} block${failed > 1 ? 's' : ''}.`);
         return;
       }
-      emitToast('success', `Marked ${targets.length} block${targets.length > 1 ? 's' : ''} as ${status}.`);
+      const statusLabel = status === 'skipped' ? 'skipped for today' : status;
+      emitToast('success', `Marked ${targets.length} block${targets.length > 1 ? 's' : ''} as ${statusLabel}.`);
     }
 
     el.querySelectorAll('[data-action="mark-completed"]').forEach(b => b.onclick = async () => markTargets('completed'));
     el.querySelectorAll('[data-action="mark-skipped"]').forEach(b => b.onclick = async () => markTargets('skipped'));
+    el.querySelectorAll('[data-action="skip-today"]').forEach(b => b.onclick = async () => markTargets('skipped'));
     el.querySelectorAll('[data-action="mark-delayed"]').forEach(b => b.onclick = async () => markTargets('delayed'));
     el.querySelectorAll('[data-action="did-log"]').forEach(b => b.onclick = async () => {
       const targets = resolveCompletionTargets();
@@ -1922,6 +1993,8 @@ export function Inspector() {
         if (err) {
           failed += 1;
           if (!failure) failure = err;
+        } else {
+          emitDayListCompletionFeedback(status, [it]);
         }
       }
       if (failed) {

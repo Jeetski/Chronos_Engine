@@ -17,3 +17,6 @@ rescheduling:
 template_selection:
   mode: auto  # auto = all templates compete, explicit = use forced_template
   forced_template: null  # Set to filename like "Sick_Day.yml" to force
+
+status_matching:
+  requirement_threshold: 0.35  # 0.0-1.0: minimum probability to treat status requirements as matched

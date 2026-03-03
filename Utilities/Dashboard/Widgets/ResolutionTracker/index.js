@@ -9,6 +9,12 @@ export async function mount(el, context) {
   }
 
   el.className = 'widget resolution-tracker-widget';
+  try {
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = '520';
+    el.dataset.minHeight = '560';
+    if (!el.style.height) el.style.height = '620px';
+  } catch { }
 
   const tpl = `
     <div class="header" id="resolutionHeader">
@@ -18,7 +24,7 @@ export async function mount(el, context) {
         <button class="icon-btn" id="resolutionClose" title="Close">x</button>
       </div>
     </div>
-    <div class="content" id="resolutionContent" style="gap:12px; display:flex; flex-direction:column; max-height:400px; overflow:hidden;">
+    <div class="content" id="resolutionContent" style="gap:12px; display:flex; flex-direction:column; overflow:hidden;">
       <div class="resolution-tracker-header">
         <div class="resolution-tracker-stats" id="resolutionStats"></div>
       </div>
@@ -105,18 +111,19 @@ export async function mount(el, context) {
 
     const currentYear = new Date().getFullYear();
     const yearItems = items.filter(item => {
-      const resYear = item.resolution?.year;
+      const resYear = item.__resolution_effective?.year;
       return !resYear || resYear === currentYear || resYear === currentYear + 1;
     });
+    const resolutions = aggregateResolutions(yearItems);
 
-    const totalProgress = yearItems.length > 0
-      ? Math.round(yearItems.reduce((sum, item) => sum + calculateProgress(item).percent, 0) / yearItems.length)
+    const totalProgress = resolutions.length > 0
+      ? Math.round(resolutions.reduce((sum, r) => sum + Number(r.percent || 0), 0) / resolutions.length)
       : 0;
 
     statsEl.innerHTML = `
       <div style="display:flex; gap:16px; font-size:13px; color:var(--text-dim);">
         <div style="display:flex; align-items:center; gap:6px;">
-          <span>${yearItems.length}</span> <span>total</span>
+          <span>${resolutions.length}</span> <span>resolutions</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
           <strong style="color:var(--chronos-accent, var(--accent)); font-weight:600;">${totalProgress}%</strong> <span>overall</span>
@@ -125,7 +132,7 @@ export async function mount(el, context) {
     `;
 
     listEl.innerHTML = '';
-    const grouped = groupItems(yearItems);
+    const grouped = groupItems(resolutions);
 
     Object.entries(grouped).forEach(([category, categoryItems]) => {
       const groupEl = document.createElement('div');
@@ -142,8 +149,8 @@ export async function mount(el, context) {
       header.innerHTML = `<span style="font-size:18px;">⭐</span><span>${escapeHtml(category)} (${categoryItems.length})</span>`;
       groupEl.appendChild(header);
 
-      categoryItems.forEach(item => {
-        groupEl.appendChild(renderResolutionCard(item));
+      categoryItems.forEach(resolution => {
+        groupEl.appendChild(renderResolutionCard(resolution));
       });
 
       listEl.appendChild(groupEl);
@@ -228,11 +235,46 @@ export async function mount(el, context) {
     return item.name || item.Name || item.title || 'Unnamed Item';
   }
 
+  function aggregateResolutions(items) {
+    const map = new Map();
+    items.forEach((item) => {
+      const res = item.__resolution_effective || item.resolution || null;
+      if (!res) return;
+      const key = [
+        String(res.year ?? ''),
+        String(res.affirmation || ''),
+        String(res.raw_text || ''),
+      ].join('||');
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          resolution: res,
+          linkedItems: [],
+          percent: 0,
+          category: 'Uncategorized',
+        });
+      }
+      map.get(key).linkedItems.push(item);
+    });
+    const out = Array.from(map.values()).map((entry) => {
+      const linked = entry.linkedItems || [];
+      const avg = linked.length
+        ? Math.round(linked.reduce((sum, it) => sum + Number(calculateProgress(it).percent || 0), 0) / linked.length)
+        : 0;
+      const categories = linked.map(i => i.category || i.Category).filter(Boolean);
+      entry.category = categories[0] || 'Uncategorized';
+      entry.percent = avg;
+      return entry;
+    });
+    out.sort((a, b) => Number(b.percent || 0) - Number(a.percent || 0));
+    return out;
+  }
+
   function groupItems(items) {
     const groups = {};
 
     items.forEach(item => {
-      const category = item.category || item.Category || 'Uncategorized';
+      const category = item.category || 'Uncategorized';
       if (!groups[category]) {
         groups[category] = [];
       }
@@ -247,19 +289,17 @@ export async function mount(el, context) {
     return sorted;
   }
 
-  function renderResolutionCard(item) {
-    const resolution = item.resolution || {};
+  function renderResolutionCard(entry) {
+    const resolution = entry.resolution || {};
     const affirmation = resolution.affirmation || 'No affirmation';
     const rawText = resolution.raw_text || '';
-    const type = item.type || 'task';
-    const name = getItemName(item);
-    const icon = getTypeIcon(type);
-    const progress = calculateProgress(item);
+    const linkedItems = Array.isArray(entry.linkedItems) ? entry.linkedItems : [];
+    const progress = { percent: Number(entry.percent || 0), label: `${linkedItems.length} linked items` };
 
     const card = document.createElement('div');
     card.className = 'resolution-card';
-    card.dataset.itemType = type;
-    card.dataset.itemName = name;
+    card.dataset.itemType = 'resolution';
+    card.dataset.itemName = affirmation;
 
     let badgeHtml = '';
     if (progress.badge) {
@@ -270,8 +310,8 @@ export async function mount(el, context) {
       <div class="resolution-affirmation">${escapeHtml(affirmation)}</div>
       ${rawText ? `<div class="resolution-rawtext">"${escapeHtml(rawText)}"</div>` : ''}
       <div class="resolution-meta">
-        <span class="resolution-badge type-${type}">${icon} ${type}</span>
-        <span class="resolution-badge">${escapeHtml(name)}</span>
+        <span class="resolution-badge type-project">Resolution</span>
+        <span class="resolution-badge">${escapeHtml(progress.label)}</span>
       </div>
       <div class="resolution-progress">
         <div class="resolution-progress-bar">
@@ -291,7 +331,32 @@ export async function mount(el, context) {
     try {
       const data = await apiRequest('/api/items');
       const allItems = data.items || [];
-      const resolutionItems = allItems.filter(item => item.resolution);
+      const projectsByName = new Map(
+        allItems
+          .filter(i => String(i?.type || '').toLowerCase() === 'project' && i?.name && i?.resolution)
+          .map(i => [String(i.name), i.resolution])
+      );
+      const goalsByName = new Map(
+        allItems
+          .filter(i => String(i?.type || '').toLowerCase() === 'goal' && i?.name)
+          .map(i => [String(i.name), i])
+      );
+      const resolved = allItems.map((item) => {
+        const out = { ...item };
+        let eff = out.resolution || null;
+        if (!eff && out.resolution_ref) eff = projectsByName.get(String(out.resolution_ref)) || null;
+        if (!eff) {
+          const t = String(out.type || '').toLowerCase();
+          if ((t === 'goal' || t === 'milestone') && out.project) eff = projectsByName.get(String(out.project)) || null;
+          if (!eff && t === 'milestone' && out.goal) {
+            const g = goalsByName.get(String(out.goal));
+            if (g?.project) eff = projectsByName.get(String(g.project)) || null;
+          }
+        }
+        out.__resolution_effective = eff || null;
+        return out;
+      });
+      const resolutionItems = resolved.filter(item => item.__resolution_effective);
       return resolutionItems;
     } catch (err) {
       console.error('[ResolutionTracker] Failed to load items:', err);

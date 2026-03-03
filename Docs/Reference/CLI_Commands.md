@@ -75,8 +75,11 @@ Creates an alarm from an item's deadline or due date.
 **Alias:** `set alarm from <type> <name> ...`
 
 ### `edit`
-Opens an item in the default editor (VS Code).
+Opens an item in the configured default editor.
 **Usage:** `edit <type> <name>`
+**Notes:**
+- Reads `default_editor` from `User/Settings/config.yml` (fallback behavior applies if missing).
+- Special case: `default_editor: chronos_editor` routes the open request into the dashboard Editor view.
 
 ### `delete`
 Deletes an item permanently (use `archive` for soft delete).
@@ -257,7 +260,13 @@ Executes a command on multiple items matching a filter.
 
 ### `dashboard`
 Bundles settings and launches the Chronos Dashboard in your browser.
-**Usage:** `dashboard [host:IP] [port:N]`
+**Usage:** `dashboard [host:IP] [port:N] [browser:<cmd>]`
+**Notes:**
+- Browser resolution order:
+  - `browser:<cmd>` argument
+  - `dashboard_browser` in `User/Settings/config.yml`
+  - `browser` in `User/Settings/config.yml`
+  - system default browser (fallback)
 
 ### `macro`
 Manages automation macros.

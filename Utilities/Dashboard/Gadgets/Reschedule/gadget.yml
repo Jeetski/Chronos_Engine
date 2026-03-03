@@ -1,0 +1,4 @@
+label: "Reschedule"
+module: "Reschedule"
+enabled: true
+order: 20

@@ -609,6 +609,12 @@ def _resolve_block_status(item, completion_entries):
     if entry and entry.get("status"):
         return entry["status"].lower(), entry
 
+    item_status = str(item.get("status") or "").strip().lower()
+    if item_status == "done":
+        item_status = "completed"
+    if item_status in {"completed", "skipped", "partial", "missed", "in_progress", "upcoming"}:
+        return item_status, None
+
     now = datetime.now()
     start_time = item.get("start_time")
     end_time = item.get("end_time")
@@ -633,6 +639,18 @@ def display_schedule(schedule, conflicts, indent=0, display_level=float('inf'), 
         console_style.print_role(header, "header")
 
     completion_entries = normalize_completion_entries(today_completion_data or {})
+    
+    def _to_hm(value):
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.strftime("%H:%M")
+        m = re.search(r"(\d{1,2}):(\d{2})", str(value))
+        if not m:
+            return None
+        hh = max(0, min(23, int(m.group(1))))
+        mm = max(0, min(59, int(m.group(2))))
+        return f"{hh:02d}:{mm:02d}"
 
     for item in schedule:
         if item.get("is_buffer"):
@@ -651,11 +669,28 @@ def display_schedule(schedule, conflicts, indent=0, display_level=float('inf'), 
             else:
                 message = f'{indent_str}{format_time(item["start_time"])} - {format_time(item["end_time"])}: {item_name} ({item["duration"]} minutes){status_label}'
 
-            if completion_entry and (completion_entry.get("actual_start") or completion_entry.get("actual_end")):
+            actual_start = None
+            actual_end = None
+            if completion_entry:
                 actual_start = completion_entry.get("actual_start") or completion_entry.get("actual_end")
                 actual_end = completion_entry.get("actual_end") or completion_entry.get("actual_start")
-                if actual_start or actual_end:
-                    message += f' -> did {actual_start or "??"}-{actual_end or "??"}'
+            if not actual_start:
+                actual_start = item.get("actual_start") or item.get("scheduled_start")
+            if not actual_end:
+                actual_end = item.get("actual_end") or item.get("scheduled_end")
+
+            actual_start_hm = _to_hm(actual_start)
+            actual_end_hm = _to_hm(actual_end)
+            if actual_start_hm or actual_end_hm:
+                message += f' -> did {actual_start_hm or "??"}-{actual_end_hm or "??"}'
+            else:
+                done_at = None
+                if completion_entry:
+                    done_at = _to_hm(completion_entry.get("logged_at"))
+                if not done_at:
+                    done_at = _to_hm(item.get("completed_logged_at"))
+                if done_at:
+                    message += f" -> done at {done_at}"
 
             console_style.print_role(message, text_role)
         

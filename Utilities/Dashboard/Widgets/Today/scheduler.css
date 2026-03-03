@@ -22,29 +22,36 @@
     flex-direction: column;
 }
 
+.scheduler-widget .content {
+    padding: 8px !important;
+    gap: 8px !important;
+}
+
 /* Quick Actions Bar */
 .scheduler-actions-bar {
     display: flex;
-    gap: 10px;
-    padding: 12px;
+    gap: 6px;
+    padding: 8px;
     background: var(--chronos-accent-soft, rgba(78, 201, 176, 0.08));
     border: 1px solid var(--scheduler-border);
-    border-radius: 12px;
-    margin-bottom: 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
 }
 
 .scheduler-actions-bar .btn-large {
     flex: 1;
-    padding: 12px 16px;
-    font-size: 13px;
+    padding: 8px 10px;
+    font-size: 12px;
     font-weight: 600;
     background: transparent;
     border: 2px solid;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    white-space: normal;
+    line-height: 1.2;
 }
 
 .scheduler-actions-bar .btn-large:hover {
@@ -167,22 +174,22 @@
 
 /* Collapsible Sections */
 .scheduler-section {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .scheduler-section summary {
     cursor: pointer;
     font-weight: 700;
-    font-size: 13px;
-    padding: 10px 14px;
+    font-size: 12px;
+    padding: 8px 10px;
     background: var(--scheduler-surface);
     border: 1px solid var(--scheduler-border);
-    border-radius: 10px;
+    border-radius: 8px;
     user-select: none;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .scheduler-section summary:hover {
@@ -202,57 +209,58 @@
 }
 
 .scheduler-section-content {
-    padding: 14px 12px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     background: var(--scheduler-surface-soft);
     border: 1px solid var(--scheduler-border);
     border-top: none;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 8px 8px;
     margin-top: -8px;
 }
 
 .scheduler-subsection {
     border: 1px solid var(--scheduler-border);
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--scheduler-surface-soft);
 }
 
 .scheduler-subsection > summary {
     cursor: pointer;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--scheduler-text-dim);
-    padding: 10px 12px;
+    padding: 7px 9px;
     user-select: none;
 }
 
 .scheduler-subsection > .action-group {
-    padding: 0 12px 12px 12px;
+    padding: 0 8px 8px 8px;
 }
 
 /* Priority Sliders */
 .priority-sliders-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 8px;
 }
 
 .slider-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .slider-row label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     color: var(--scheduler-text-dim);
     flex: 1;
-    min-width: 80px;
+    min-width: 62px;
 }
 
 .slider-row input[type="range"] {
@@ -281,45 +289,45 @@
 }
 
 .slider-row .slider-value {
-    width: 28px;
+    width: 24px;
     text-align: center;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--scheduler-primary);
     background: var(--chronos-accent-soft, rgba(78, 201, 176, 0.1));
-    border-radius: 6px;
-    padding: 2px 4px;
+    border-radius: 5px;
+    padding: 1px 3px;
 }
 
 /* Action Buttons */
 .action-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 
 .action-group-title {
     font-weight: 600;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--scheduler-text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     margin-bottom: 2px;
 }
 
 .button-row {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     flex-wrap: wrap;
 }
 
 .scheduler-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 5px 8px;
+    font-size: 11px;
     font-weight: 500;
     border: 1px solid var(--scheduler-border);
-    border-radius: 8px;
+    border-radius: 7px;
     cursor: pointer;
     transition: all 0.2s ease;
     background: var(--scheduler-surface);
@@ -366,10 +374,10 @@
 .scheduler-input {
     background: var(--scheduler-surface);
     border: 1px solid var(--scheduler-border);
-    border-radius: 8px;
-    padding: 8px 10px;
+    border-radius: 7px;
+    padding: 6px 8px;
     color: var(--scheduler-text);
-    font-size: 12px;
+    font-size: 11px;
     outline: none;
     transition: all 0.2s ease;
 }
@@ -387,13 +395,13 @@
 .scheduler-check {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--scheduler-text-dim);
-    padding: 6px 8px;
+    padding: 4px 6px;
     border: 1px solid var(--scheduler-border);
-    border-radius: 8px;
+    border-radius: 7px;
     background: var(--scheduler-surface);
 }
 
@@ -405,16 +413,16 @@
 .scheduler-status-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+    gap: 8px;
+    padding: 7px 9px;
     background: var(--scheduler-surface-soft);
     border: 1px solid var(--scheduler-border);
-    border-radius: 8px;
-    margin-top: 10px;
+    border-radius: 7px;
+    margin-top: 6px;
 }
 
 .scheduler-hint {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--scheduler-text-dim);
     flex: 1;
 }
@@ -422,9 +430,26 @@
 .scheduler-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: 4px;
+    font-size: 10px;
     color: var(--scheduler-text-dim);
+}
+
+/* Compact layout safeguards: preserve all controls without horizontal clipping */
+.scheduler-widget .button-row > .scheduler-input,
+.scheduler-widget .button-row > select.scheduler-input {
+    min-width: 0 !important;
+    flex: 1 1 140px !important;
+}
+
+.scheduler-widget .slider-row .scheduler-input {
+    min-width: 0 !important;
+    flex: 1 1 100%;
+}
+
+.scheduler-widget #kairosWindowFilterRows .window-filter-row .scheduler-input {
+    min-width: 0 !important;
+    flex: 1 1 170px !important;
 }
 
 /* Responsive */
@@ -442,6 +467,17 @@
     }
 
     .scheduler-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .scheduler-widget .button-row > .scheduler-input,
+    .scheduler-widget .button-row > select.scheduler-input {
+        flex-basis: 100% !important;
+    }
+
+    .scheduler-widget #kairosWindowFilterRows .window-filter-row .scheduler-btn {
         width: 100%;
     }
 }

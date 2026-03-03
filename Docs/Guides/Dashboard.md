@@ -28,6 +28,8 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - **Template Builder** - Drag-and-drop editing for week/day/routine/subroutine/microroutine templates plus goal/project/inventory builders. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
 - **Day Builder** - Scheduling-first day composer with drag/drop schedulables, template lifecycle controls (new/load/save/save as/rename/delete), generated schedule loading (today/date), validation, undo/redo, auto buffers/breaks, and apply-to-today flow. See `Docs/Guides/DayBuilder.md`.
 - **Routine Builder** - Template-composition editor for `routine`, `subroutine`, and `microroutine` templates with drag/drop schedulables (routines, subroutines, microroutines/habit stacks, habits/chores, tasks, windows, buffers, breaks), hierarchy editing, validation, and template lifecycle controls. See `Docs/Guides/RoutineBuilder.md`.
+- **Project Manager** - Project planning view with state filtering, milestone linkage, and editable project metadata (`description`, `state`, `stage`, `priority`, `target date`). `Open Milestones` opens the Milestones widget pre-filtered to the selected project.
+- **Goal Planner** - Goal-focused planning view aligned with Project Manager behavior. Shows goals only in the goal list (not milestone rows), supports editable goal metadata (`description`, `state`, `stage`, `priority`, `target date`), and opens Milestones pre-filtered to the selected goal.
 - **Cockpit** - A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `Docs/Guides/Cockpit.md` for panel details and troubleshooting.
   - The Matrix panel loads presets from `Presets/Matrix/` (YAML). It ships with curated defaults there (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category), and you can drop new preset files into that folder.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
@@ -36,12 +38,15 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
   - **Shell Integration**: Can execute system commands (like `python`) directly from the integrated Terminal.
 
 ### Widgets (mounted via `data-widget="Name"`)
+- **Widget height behavior (global)** - Widgets auto-size vertically to current visible content. They expand as sections open and collapse when sections close, but should not shrink below the size needed to show currently rendered elements. Nia orb/widget is intentionally excluded from this global behavior.
 - **Scheduler (Today widget)** - Trim (-5/-10/custom), change start time, cut, mark complete, reschedule. Selecting a Calendar date loads a read-only preview for that day; actions remain today-only. Optional `fx` toggle expands variables in labels.
   - `Generate / Reschedule` now calls CLI bridge (`/api/cli`) and passes Kairos context properties.
   - Quick Toggles include: `buffers`, `timer breaks`, `sprints`, `ignore trends`, optional `timer_profile`, optional `template` override, optional `quickwins` max minutes.
   - Advanced Weights supports any custom property key (free text), passed as `custom_property:<name>` with slider weight via `prioritize:custom_property=<n>`.
   - Toggle state persists in localStorage (`chronos_sched_controls`).
 - **Item Manager** - Search/browse by type (defaults include every registered item type). YAML editor, copy/rename/delete, bulk delete/setprop/copy/export.
+  - Item YAML editor uses syntax highlighting for YAML.
+  - Property autosuggest is backed by the item-properties database/registry used by autosuggest systems.
 - **Variables** - Inspect/edit runtime variables shared with the CLI, including `set`/`unset` rows and text expansion.
 - **Terminal** - Runs CLI commands via `/api/cli`. Features **autosuggest** (commands/items/props) and **shell execution** (passes unknown commands like `python` or `git` to system shell).
 - **Link** - Connect to a peer and sync a shared Canvas board (polling, last-write-wins).
@@ -56,6 +61,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
   - Widget rows are collapsible (compact list then expand for full details/actions).
 - **Achievements Titles** - Awarded achievements that include a `title` field show up as selectable profile titles in the Achievements widget.
 - **Milestones** - Progress bars, filters (pending/in-progress/completed), Mark Complete / Reset buttons hitting `/api/milestone/update`.
+  - Supports dropdown filtering by linked project and linked goal (individually or combined).
   - Widget rows are collapsible (compact list then expand for full details/actions).
 - **Inventory Manager** - Browse inventories, linked inventory items, and tools; add/remove items from kits without leaving the dashboard.
 - **Notes, Journal, Profile, Review** - Quick editors/viewers for common flows. Review surfaces recent completions; Profile shows nickname/theme.
@@ -70,6 +76,8 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
     - Open `Agent Preferences`, `Preference Settings`, `Pilot Brief`, and `Manage Memories` in Notes widget.
     - `Use memories` toggle (ADUC include-memory setting).
     - `Delete memories` action (clears Nia memory + Nia conversation history in ADUC).
+  - Closing with `X` keeps launcher behavior intact; clicking the bottom-right Nia trigger reopens the widget.
+  - Launcher uses a ring-only style (no extra rounded-rectangle backing).
 - **Sticky Notes** - A colorful board backed by actual Chronos notes with `sticky:true`. Capture quick thoughts, pick a color, pin favorites, edit inline, and spawn reminders without opening the CLI.
 - **Timer** - Start/pause/resume/stop, select profiles, show bound item state.
 - **Sleep Settings** - Persistent sleep-anchor manager for day templates (mode presets, segments, day toggles, conflict checks, apply to selected/all/new templates).
@@ -81,6 +89,17 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
   - **Database Dropdown**: Lists all `.db` files with sizes for surgical deletion
   - **Registry Cache**: Clear wizards, themes, commands, or item types registries to force reload from source
   - See `clear` command in [CLI Reference](../Reference/CLI_Commands.md) for details
+
+### Dock & Gadgets
+- Chronos includes a bottom **Dock** (`#chronosDock`) populated by auto-discovered **Gadgets** from `Utilities/Dashboard/Gadgets/`.
+- Dock reveal:
+  - move cursor near the bottom edge (hotzone) to reveal;
+  - click empty dock shell space to toggle docked (pinned) mode.
+- Topbar **Gadgets** menu toggles gadgets on/off per browser profile (persisted in localStorage).
+- Current built-ins:
+  - **Timer** gadget (countdown ring + timer actions + timer confirm actions)
+  - **Reschedule** gadget (one-click `today reschedule`)
+- Full guide (usage + extension): [Gadgets & Dock](./Gadgets_and_Dock.md)
 
 ### Wizards
 - **Life Setup Wizard** (`Utilities/Dashboard/Wizards/LifeSetup/index.js`) - Guided flow to create schedule anchors and apply them to day templates.
@@ -112,7 +131,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 
 ### Timer
 - `GET /api/timer/status|profiles|settings`
-- `POST /api/timer/start|pause|resume|stop`
+- `POST /api/timer/start|pause|resume|stop|cancel|confirm`
 
 ### Commitments, Habits, and Tracker
 - `GET /api/habits`
@@ -130,6 +149,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
   - current level ring progress
   - Level Up state when a level boundary is crossed
   - confetti burst and quick-open action for Achievements widget
+- Welcome popup includes `Open Profile` action that opens/focuses the Profile widget.
 - Topbar `Popups` menu:
   - includes `Disable popups` toggle
   - lists discovered popup modules
@@ -184,7 +204,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 
 ### Auto-Discovery System
 
-Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets, Views, Panels, Popups, Wizards, Themes) are automatically discovered by scanning the filesystem - no configuration files or code editing required.
+Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets, Views, Panels, Popups, Gadgets, Wizards, Themes) are automatically discovered by scanning the filesystem - no configuration files or code editing required.
 
 **To add a new component:**
 1. Create a folder in the appropriate directory
@@ -198,6 +218,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 | View | `Utilities/Dashboard/Views/<Name>/` | `mount(container, context)` | `view.yml` |
 | Panel | `Utilities/Dashboard/Panels/<Name>/` | `register(manager)` | `panel.yml` |
 | Popup | `Utilities/Dashboard/Popups/<Name>/` | `mount(el)` | `popup.yml` |
+| Gadget | `Utilities/Dashboard/Gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
 | Wizard | `Utilities/Dashboard/Wizards/<Name>/` | (wizard-specific) | `wizard.yml` |
 | Theme | `Utilities/Dashboard/Themes/<name>.css` | N/A (CSS file) | (in CSS comments) |
 
@@ -253,6 +274,7 @@ GET /api/registry?name=widgets
 GET /api/registry?name=views
 GET /api/registry?name=panels
 GET /api/registry?name=popups
+GET /api/registry?name=gadgets
 GET /api/registry?name=wizards
 GET /api/registry?name=themes
 ```

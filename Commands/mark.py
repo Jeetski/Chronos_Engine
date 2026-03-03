@@ -115,6 +115,8 @@ def run(args, properties):
     desired_end = _normalize_time_str(properties.get("end_time") or properties.get("scheduled_end"))
     item_in_schedule = find_item_in_nested_schedule(schedule, item_name, desired_start)
 
+    has_item_file = True
+
     if not item_in_schedule:
         # If not found in schedule, it might be a non-scheduled item, try to get its type from its name
         # This is a fallback for items not in today's schedule but still markable
@@ -137,11 +139,13 @@ def run(args, properties):
         item_data = read_item_data(item_type, item_name)
 
         if not item_data:
-            print(f"❌ Could not read data for item '{item_name}' of type '{item_type}'.")
-            return
+            # Some schedule rows (e.g. anchor timeblocks) do not map to item files.
+            # Allow per-day completion logging for those schedule-only blocks.
+            has_item_file = False
+            item_data = {}
 
     # Detect repeating via 'frequency' or 'Frequency'
-    is_repeating = ('frequency' in item_data) or ('Frequency' in item_data)
+    is_repeating = has_item_file and (('frequency' in item_data) or ('Frequency' in item_data))
     quality_raw = properties.get("quality")
     quality, err = quality_utils.canonicalize_quality(quality_raw)
     if err:
@@ -215,10 +219,14 @@ def run(args, properties):
 
     else:
         # This is a non-repeating item, so update the item's own file
-        item_data['status'] = new_status
-        write_item_data(item_type, item_name, item_data)
+        if has_item_file:
+            item_data['status'] = new_status
+            write_item_data(item_type, item_name, item_data)
         _log_completion_entry()
-        print(f"✅ Marked non-repeating item '{item_name}' as '{new_status}'.")
+        if has_item_file:
+            print(f"✅ Marked non-repeating item '{item_name}' as '{new_status}'.")
+        else:
+            print(f"✅ Marked schedule block '{item_name}' as '{new_status}' for {target_date}.")
         minutes = _minutes_between(scheduled_start, scheduled_end)
         run_completion_effects(
             item_type,

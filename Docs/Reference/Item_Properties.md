@@ -26,6 +26,12 @@ Scheduling / Templates
 
 Variants / Status-Aware Scheduling
 - `status_requirements` (map): Gates template selection and variant matching.
+  - Expected format is status-dimension -> value, for example:
+    - `focus: low`
+    - `health: sick`
+  - Multiple dimensions can be set on a single item/template.
+  - Scheduler uses these as context signals to favor/match items when current status aligns.
+  - Intended for schedulable families (habit/task/day/week/routine/subroutine/microroutine and related schedulables).
 - `variants` (list): Each variant can override fields if its `status_requirements` match.
 - `<StatusName>` (legacy keys): Treated like status requirements by the scheduler.
 
@@ -52,3 +58,5 @@ Completion Logging
 Notes
 - Properties are case-insensitive when read from YAML, but consistency is recommended.
 - Defaults can be set per item type in `User/Settings/<type>_defaults.yml`.
+- Project/goal planning fields like `state`, `stage`, `priority`, and `target_date` are supported in dashboard planning views.
+- `stage` is treated as a flexible text field in current dashboard flows (no hard-enforced global enum).

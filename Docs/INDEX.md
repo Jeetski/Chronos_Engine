@@ -11,6 +11,7 @@ This index points to the main documentation entry points in this repo and what e
 
 ## Guides
 - Dashboard: `Docs/Guides/Dashboard.md` - UI tour, widgets, wizards (including Status Mapping), and API endpoints.
+- Gadgets & Dock: `Docs/Guides/Gadgets_and_Dock.md` - bottom dock behavior, built-in gadgets, and gadget extension workflow.
 - Day Builder: `Docs/Guides/DayBuilder.md` - scheduling-first day composition, template lifecycle, validation, and apply-to-today flow.
 - Routine Builder: `Docs/Guides/RoutineBuilder.md` - routine/subroutine/microroutine template composition with drag/drop schedulables, hierarchy editing, and validation.
 - Canvas: `Docs/Guides/Canvas.md` - Canvas board data model and collaboration flow.

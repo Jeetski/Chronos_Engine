@@ -1,9 +1,10 @@
 // Simple app bootstrapper with debug logs
-import { mountWidget, mountView, launchWizard } from './core/runtime.js';
+import { mountWidget, mountView, launchWizard, mountGadget } from './core/runtime.js';
 try { window.__CHRONOS_APP_MANAGED_MOUNTS = true; } catch { }
 const POPUPS_ENABLED_STORAGE_KEY = 'chronos_dashboard_popups_enabled_v1';
 const SHOW_POST_RELEASE_STORAGE_KEY = 'chronos_dashboard_show_post_release_v1';
 const SHOW_BADGES_STORAGE_KEY = 'chronos_dashboard_show_badges_v1';
+const DISABLED_GADGETS_STORAGE_KEY = 'chronos_dashboard_disabled_gadgets_v1';
 const POST_RELEASE_WIDGETS = ['InventoryManager', 'Link', 'MP3Player', 'ResolutionTracker'];
 const PRIORITY_WIDGETS = new Set(['Terminal', 'Review', 'Rewards']);
 const URGENT_WIDGETS = new Set([
@@ -67,7 +68,8 @@ const URGENT_VIEWS = new Set(['calendar', 'weekly']);
 const GOOD_ENOUGH_VIEWS = new Set(['docs', 'editor']);
 const POST_RELEASE_PANELS = new Set(['map of happiness', 'flashcards']);
 const PRIORITY_PANELS = new Set(['commitments', 'commitments snapshot']);
-const URGENT_PANELS = new Set(['status strip', 'schedule panel', 'matrix', 'matrix visuals']);
+const URGENT_PANELS = new Set(['status chart', 'status strip', 'schedule panel', 'matrix', 'matrix visuals']);
+const URGENT_GADGETS = new Set(['timer', 'reschedule']);
 
 function arePopupsEnabled() {
   try {
@@ -111,6 +113,32 @@ function setBadgesVisible(enabled) {
   try { localStorage.setItem(SHOW_BADGES_STORAGE_KEY, enabled ? 'true' : 'false'); } catch { }
 }
 
+function getGadgetKey(gadget) {
+  return String(gadget?.id || gadget?.module || '').trim();
+}
+
+function getDisabledGadgets() {
+  try {
+    const raw = localStorage.getItem(DISABLED_GADGETS_STORAGE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map((v) => String(v || '').trim()).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
+function setDisabledGadgets(disabledKeys) {
+  try {
+    const values = Array.from(disabledKeys || [])
+      .map((v) => String(v || '').trim())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    localStorage.setItem(DISABLED_GADGETS_STORAGE_KEY, JSON.stringify(values));
+  } catch { }
+}
+
 function ready(fn) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
 
 if (typeof window !== 'undefined' && !window.__cockpitPanelDefinitions) {
@@ -152,6 +180,146 @@ function apiBase() {
   const o = window.location.origin;
   if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357';
   return o;
+}
+
+function setupDockReveal(gadgets = []) {
+  const dock = document.getElementById('chronosDock');
+  const hotzone = document.getElementById('dockHotzone');
+  const dockShell = document.getElementById('chronosDockShell');
+  if (!dock || !hotzone || !dockShell) return;
+  const DOCK_DOCKED_STORAGE_KEY = 'chronos_dashboard_dock_docked_v1';
+
+  const showDockToast = (text, tone = 'info', ms = 2000) => {
+    const toast = document.createElement('div');
+    toast.textContent = String(text || '');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '76px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.padding = '9px 14px';
+    toast.style.borderRadius = '10px';
+    toast.style.zIndex = '1001';
+    toast.style.border = '1px solid #444c63';
+    toast.style.background = '#2b3040';
+    toast.style.color = '#e6e8ef';
+    if (tone === 'success') {
+      toast.style.border = '1px solid rgba(91,220,130,.55)';
+      toast.style.background = 'rgba(24,54,38,.95)';
+    } else if (tone === 'error') {
+      toast.style.border = '1px solid rgba(255,120,120,.55)';
+      toast.style.background = 'rgba(62,30,36,.95)';
+    }
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), ms);
+  };
+
+  if (!dock.dataset.revealBound) {
+    let hideTimer = null;
+    let isVisible = false;
+    let isHoveringDock = false;
+    let isDocked = true;
+    const BOTTOM_TRIGGER_PX = 26;
+
+    try {
+      const raw = localStorage.getItem(DOCK_DOCKED_STORAGE_KEY);
+      if (raw === 'false') isDocked = false;
+    } catch { }
+    dock.dataset.docked = isDocked ? 'true' : 'false';
+
+    const clearHideTimer = () => {
+      if (!hideTimer) return;
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    };
+
+    const showDock = () => {
+      clearHideTimer();
+      if (isVisible) return;
+      isVisible = true;
+      dock.classList.add('is-visible');
+    };
+
+    const hideDock = (delay = 220) => {
+      if (isDocked) {
+        showDock();
+        return;
+      }
+      clearHideTimer();
+      hideTimer = setTimeout(() => {
+        if (isHoveringDock) return;
+        isVisible = false;
+        dock.classList.remove('is-visible');
+        hideTimer = null;
+      }, delay);
+    };
+
+    const setDocked = (next) => {
+      isDocked = !!next;
+      dock.dataset.docked = isDocked ? 'true' : 'false';
+      try { localStorage.setItem(DOCK_DOCKED_STORAGE_KEY, isDocked ? 'true' : 'false'); } catch { }
+      if (isDocked) showDock();
+      else hideDock(0);
+    };
+
+    try {
+      window.ChronosDockReveal = () => showDock();
+      window.ChronosDockSetDocked = (next) => setDocked(!!next);
+      window.ChronosDockIsDocked = () => isDocked;
+    } catch { }
+
+    if (isDocked) showDock();
+
+    hotzone.addEventListener('mouseenter', showDock);
+    dock.addEventListener('mouseenter', () => {
+      isHoveringDock = true;
+      showDock();
+    });
+    dock.addEventListener('mouseleave', () => {
+      isHoveringDock = false;
+      hideDock(120);
+    });
+
+    window.addEventListener('pointermove', (ev) => {
+      if (ev.clientY >= (window.innerHeight - BOTTOM_TRIGGER_PX)) {
+        showDock();
+        return;
+      }
+      if (!isHoveringDock) hideDock(240);
+    }, { passive: true });
+
+    window.addEventListener('blur', () => hideDock(0));
+    document.addEventListener('mouseleave', () => hideDock(0));
+    dockShell.addEventListener('click', (ev) => {
+      if (ev.target !== dockShell) return;
+      setDocked(!isDocked);
+    });
+    dock.dataset.revealBound = '1';
+  }
+
+  dockShell.innerHTML = '';
+  const disabled = getDisabledGadgets();
+  const items = Array.isArray(gadgets)
+    ? gadgets.filter((g) => g && g.enabled !== false && !disabled.has(getGadgetKey(g)))
+    : [];
+  items
+    .sort((a, b) => {
+      const ao = Number(a.order ?? 100);
+      const bo = Number(b.order ?? 100);
+      if (ao !== bo) return ao - bo;
+      return String(a.label || a.module || '').localeCompare(String(b.label || b.module || ''), undefined, { sensitivity: 'base' });
+    })
+    .forEach((gadget) => {
+      const host = document.createElement('div');
+      host.className = 'dock-gadget';
+      host.dataset.gadget = String(gadget.id || gadget.module || '');
+      dockShell.appendChild(host);
+      mountGadget(host, gadget.module, {
+        apiBase,
+        showToast: showDockToast,
+        bus: window.ChronosBus,
+        gadget,
+      });
+    });
 }
 
 async function startChronosDay(options = {}) {
@@ -199,6 +367,7 @@ ready(async () => {
   let wizardCatalog = [];
   let themeOptions = [];
   let popupCatalog = [];
+  let gadgetCatalog = [];
   const THEME_STORAGE_KEY = 'chronos_dashboard_theme_v1';
   const themeStylesheet = document.getElementById('themeStylesheet');
   const UI_SCALE_STORAGE_KEY = 'chronos_dashboard_ui_scale_v1';
@@ -567,6 +736,21 @@ ready(async () => {
       if (!name) return;
       await openPane(String(name), label || String(name));
     };
+    window.ChronosOpenEditorFile = async (path, line) => {
+      const req = {
+        path: String(path || '').replace(/\\/g, '/'),
+        line: Number.isFinite(Number(line)) ? Number(line) : undefined,
+      };
+      if (!req.path) return;
+      try { window.__chronosEditorOpenRequest = req; } catch { }
+      await openPane('Editor', 'Editor');
+      try { window.ChronosBus?.emit?.('editor:open', req); } catch { }
+      try {
+        setTimeout(() => {
+          try { window.ChronosBus?.emit?.('editor:open', req); } catch { }
+        }, 120);
+      } catch { }
+    };
     window.ChronosOpenDoc = async (path, line) => {
       const req = { path: String(path || ''), line: Number.isFinite(Number(line)) ? Number(line) : undefined };
       try { window.__chronosDocsOpenRequest = req; } catch { }
@@ -624,6 +808,27 @@ ready(async () => {
     const name = el.getAttribute('data-widget');
     try { await mountWidget(el, name); } catch (e) { console.error('[Chronos][app] Widget mount error:', name, e); }
   }
+
+  let editorOpenPollBusy = false;
+  async function consumeEditorOpenRequest() {
+    if (editorOpenPollBusy) return;
+    editorOpenPollBusy = true;
+    try {
+      const r = await fetch(apiBase() + '/api/editor/open-request');
+      if (!r.ok) return;
+      const j = await r.json().catch(() => ({}));
+      const req = j?.request;
+      if (!req || !req.path) return;
+      await window.ChronosOpenEditorFile?.(req.path, req.line);
+    } catch { }
+    finally {
+      editorOpenPollBusy = false;
+    }
+  }
+  try {
+    window.setTimeout(() => { void consumeEditorOpenRequest(); }, 450);
+    window.setInterval(() => { void consumeEditorOpenRequest(); }, 1500);
+  } catch { }
 
   // Simple topbar menus
   function closeMenus() { document.querySelectorAll('#topbar .dropdown').forEach(d => d.classList.remove('open')); }
@@ -707,6 +912,7 @@ ready(async () => {
       const id = btn.getAttribute('data-menu');
       // Rebuild widgets menu each time it opens so checkmarks reflect current visibility
       if (id === 'widgets') buildWidgetsMenu();
+      if (id === 'gadgets') buildGadgetsMenu();
       if (id === 'wizards') buildWizardsMenu();
       if (id === 'panels') buildPanelsMenu();
       if (id === 'appearance') buildAppearanceMenu();
@@ -805,6 +1011,81 @@ ready(async () => {
   }
   // Initial build
   buildWidgetsMenu();
+
+  function buildGadgetsMenu() {
+    const gadgetsMenu = document.getElementById('menu-gadgets');
+    if (!gadgetsMenu) return;
+    gadgetsMenu.innerHTML = '';
+
+    const disabled = getDisabledGadgets();
+    const entries = [...gadgetCatalog]
+      .filter((g) => g && g.enabled !== false && getGadgetKey(g))
+      .sort((a, b) => {
+        const ao = Number(a.order ?? 100);
+        const bo = Number(b.order ?? 100);
+        if (ao !== bo) return ao - bo;
+        const al = String(a.label || a.module || a.id || '');
+        const bl = String(b.label || b.module || b.id || '');
+        return al.localeCompare(bl, undefined, { sensitivity: 'base' });
+      });
+
+    if (!entries.length) {
+      const emptyCol = document.createElement('div');
+      emptyCol.className = 'column';
+      const empty = document.createElement('div');
+      empty.className = 'item disabled';
+      empty.textContent = 'No gadgets discovered.';
+      emptyCol.appendChild(empty);
+      gadgetsMenu.appendChild(emptyCol);
+      return;
+    }
+
+    const createItem = (gadget) => {
+      const key = getGadgetKey(gadget);
+      const label = String(gadget.label || gadget.module || key || 'Unnamed Gadget');
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.setAttribute('data-search', `${label} ${key}`);
+      const check = document.createElement('span');
+      check.className = 'check';
+      check.textContent = disabled.has(key) ? '' : '✓';
+      const span = document.createElement('span');
+      span.textContent = label;
+      item.append(check, span);
+      if (areBadgesVisible()) {
+        const normalized = String(label || key).trim().toLowerCase();
+        const normalizedKey = String(key || '').trim().toLowerCase();
+        if (URGENT_GADGETS.has(normalized) || URGENT_GADGETS.has(normalizedKey)) {
+          const badge = document.createElement('span');
+          badge.className = 'urgent-badge';
+          badge.textContent = 'urgent';
+          badge.title = 'Urgent gadget';
+          item.appendChild(badge);
+        }
+      }
+      item.addEventListener('click', () => {
+        if (disabled.has(key)) disabled.delete(key);
+        else disabled.add(key);
+        setDisabledGadgets(disabled);
+        check.textContent = disabled.has(key) ? '' : '✓';
+        setupDockReveal(gadgetCatalog);
+      });
+      return item;
+    };
+
+    const frag = document.createDocumentFragment();
+    const chunks = chunkForSearchLayout(entries, 9, 10);
+    for (const group of chunks) {
+      const column = document.createElement('div');
+      column.className = 'column';
+      for (const gadget of group) {
+        column.appendChild(createItem(gadget));
+      }
+      frag.appendChild(column);
+    }
+    gadgetsMenu.appendChild(frag);
+    attachDropdownSearch(gadgetsMenu, 'Search gadgets...');
+  }
 
   function formatBytes(bytes) {
     const n = Number(bytes);
@@ -1161,13 +1442,15 @@ ready(async () => {
     fetch(apiBase() + '/api/registry?name=themes').then(r => r.json()).then(d => d.registry?.themes || []),
     fetch(apiBase() + '/api/registry?name=views').then(r => r.json()).then(d => d.registry?.views || []),
     fetch(apiBase() + '/api/registry?name=panels').then(r => r.json()).then(d => d.registry?.panels || []),
-    fetch(apiBase() + '/api/registry?name=popups').then(r => r.json()).then(d => d.registry?.popups || [])
-  ]).then(([wizards, themes, views, panels, popups]) => {
-    console.log('[Chronos][app] Registries loaded:', { wizards: wizards.length, themes: themes.length, views: views.length, panels: panels.length, popups: popups.length });
+    fetch(apiBase() + '/api/registry?name=popups').then(r => r.json()).then(d => d.registry?.popups || []),
+    fetch(apiBase() + '/api/registry?name=gadgets').then(r => r.json()).then(d => d.registry?.gadgets || []),
+  ]).then(([wizards, themes, views, panels, popups, gadgets]) => {
+    console.log('[Chronos][app] Registries loaded:', { wizards: wizards.length, themes: themes.length, views: views.length, panels: panels.length, popups: popups.length, gadgets: gadgets.length });
 
     wizardCatalog = wizards;
     themeOptions = themes.filter(t => t.id !== 'theme-base'); // Exclude Theme Base
     popupCatalog = Array.isArray(popups) ? popups : [];
+    gadgetCatalog = Array.isArray(gadgets) ? gadgets : [];
     availableViews = (views || []).filter(v => {
       const enabled = v?.enabled;
       if (enabled === false) return false;
@@ -1190,6 +1473,8 @@ ready(async () => {
     // Build views menu now that registry is loaded
     buildViewsMenu();
     buildPopupsMenu();
+    buildGadgetsMenu();
+    setupDockReveal(gadgetCatalog);
 
     // Build panel loaders dynamically from registry
     const panelLoaders = (panels || [])
@@ -1963,6 +2248,7 @@ ready(async () => {
     try { await openPane('Calendar', 'Calendar'); } catch { }
   }
   rebuildPaneResizers();
+  setupDockReveal(gadgetCatalog);
 
   console.log('[Chronos][app] Dashboard app ready');
   // Listen for widget:show to reveal/pulse a widget (e.g., ItemManager)

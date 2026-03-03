@@ -626,6 +626,99 @@
       animation: widgetPulse 900ms ease;
     }
 
+    #dockHotzone {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 28px;
+      z-index: 38;
+      pointer-events: auto;
+      background: transparent;
+    }
+
+    #chronosDock {
+      position: fixed;
+      left: 50%;
+      bottom: 8px;
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 39;
+      transition: opacity 220ms ease, transform 260ms cubic-bezier(.2, .7, .2, 1);
+    }
+
+    #chronosDock.is-visible {
+      transform: translate(-50%, 0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .dock-shell {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 16px;
+      border: 1px solid color-mix(in srgb, var(--border) 72%, rgba(255, 255, 255, 0.28));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+      backdrop-filter: blur(16px) saturate(145%);
+      -webkit-backdrop-filter: blur(16px) saturate(145%);
+      cursor: pointer;
+      transition: border-color 140ms ease, box-shadow 180ms ease, transform 120ms ease;
+    }
+
+    .dock-shell:hover {
+      border-color: color-mix(in srgb, var(--chronos-accent-strong, var(--accent)) 56%, var(--border));
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .dock-shell:active {
+      transform: translateY(1px);
+    }
+
+    .dock-gadget {
+      position: relative;
+      z-index: 1;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 140ms ease;
+    }
+
+    .dock-gadget:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .dock-pin {
+      border: 1px solid color-mix(in srgb, var(--border) 68%, rgba(255, 255, 255, 0.32));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.07));
+      color: var(--text);
+      border-radius: 12px;
+      min-width: 92px;
+      height: 36px;
+      padding: 0 12px;
+      font-size: 12px;
+      font-family: var(--font-stack-base);
+      letter-spacing: .01em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .dock-pin:hover {
+      transform: translateY(-1px);
+      border-color: var(--chronos-accent-strong, var(--accent));
+      background: linear-gradient(180deg, rgba(122, 162, 247, 0.28), rgba(122, 162, 247, 0.12));
+    }
+
+    .dock-pin:active {
+      transform: translateY(0);
+    }
+
     @keyframes widgetPulse {
       0% {
         box-shadow: 0 0 0 0 rgba(122, 162, 247, 0.0), var(--shadow);
@@ -677,6 +770,10 @@
       <div class="dropdown" id="menu-widgets"></div>
     </div>
     <div class="menu">
+      <button class="menubtn" data-menu="gadgets">Gadgets &#9662;</button>
+      <div class="dropdown" id="menu-gadgets"></div>
+    </div>
+    <div class="menu">
       <button class="menubtn" data-menu="wizards">Wizards &#9662;</button>
       <div class="dropdown" id="menu-wizards"></div>
     </div>
@@ -694,11 +791,11 @@
       data-widget="Admin" data-label="System Admin"></aside>
     <aside class="widget" id="stickyNotesWidget" style="display: none; right: 20px; top: 1720px; width: 420px;"
       data-widget="StickyNotes" data-label="Sticky Notes"></aside>
-    <aside class="widget" id="statusWidget" style="display: none; right: 396px; top: 60px; width: 360px;"
+    <aside class="widget" id="statusWidget" style="display: none; right: 396px; top: 60px; width: 320px; height: 420px;"
       data-widget="Status" data-label="Status"></aside>
-    <aside class="widget" id="todayWidget" style="display: none; right: 20px; top: 440px; width: 420px;"
+    <aside class="widget" id="todayWidget" style="display: none; right: 20px; top: 440px; width: 360px;"
       data-widget="Today" data-label="Scheduler"></aside>
-    <aside class="widget" id="clockWidget" style="display: none; right: 20px; top: 60px; width: 420px;"
+    <aside class="widget" id="clockWidget" style="display: none; right: 20px; top: 60px; width: 270px; height: 290px;"
       data-widget="Clock" data-label="Clock"></aside>
     <aside class="widget" id="habitsWidget" style="display: none; right: 460px; top: 440px; width: 520px;"
       data-widget="HabitTracker" data-label="Habits"></aside>
@@ -708,7 +805,7 @@
       data-widget="ItemManager" data-label="Items"></aside>
     <aside class="widget" id="inventoryManagerWidget" style="display: none; right: 20px; top: 1720px; width: 760px;"
       data-widget="InventoryManager" data-label="Inventories"></aside>
-    <aside class="widget" id="timerWidget" style="display: none; right: 20px; top: 540px; width: 420px;"
+    <aside class="widget" id="timerWidget" style="display: none; right: 20px; top: 540px; width: 420px; height: 620px;"
       data-widget="Timer" data-label="Timer"></aside>
     <aside class="widget" id="trendsWidget" style="display: none; right: 20px; top: 120px; width: 650px; height: 450px;"
       data-widget="Trends" data-label="Performance"></aside>
@@ -746,6 +843,11 @@
     <aside class="widget" id="niaAssistantWidget"
       style="display: block; right: 20px; bottom: 24px; top: auto; width: 72px; height: 72px;"
       data-widget="NiaAssistant" data-label="Nia AI Assistant"></aside>
+  </div>
+
+  <div id="dockHotzone" aria-hidden="true"></div>
+  <div id="chronosDock" aria-label="Chronos Dock">
+    <div class="dock-shell" id="chronosDockShell"></div>
   </div>
 </body>
 

@@ -5,12 +5,54 @@ classic_pomodoro:
   points_per_focus: 0
   short_break_minutes: 5
   type: pomodoro
+deep_work_60_10:
+  focus_minutes: 60
+  long_break_every: 3
+  long_break_minutes: 20
+  points_per_focus: 10
+  short_break_minutes: 10
+  type: pomodoro
 deep_work_50_10:
   focus_minutes: 50
   long_break_every: 4
   long_break_minutes: 20
   points_per_focus: 10
   short_break_minutes: 10
+  type: pomodoro
+desk_time_52_17:
+  focus_minutes: 52
+  long_break_every: 3
+  long_break_minutes: 20
+  points_per_focus: 12
+  short_break_minutes: 17
+  type: pomodoro
+desk_time_112_26:
+  focus_minutes: 112
+  long_break_every: 2
+  long_break_minutes: 30
+  points_per_focus: 20
+  short_break_minutes: 26
+  type: pomodoro
+hourly_55_5:
+  focus_minutes: 55
+  long_break_every: 4
+  long_break_minutes: 15
+  points_per_focus: 8
+  short_break_minutes: 5
+  type: pomodoro
+microbreak_25_2:
+  focus_minutes: 25
+  long_break_every: 4
+  long_break_minutes: 10
+  points_per_focus: 5
+  short_break_minutes: 2
+  type: pomodoro
+sprint_75_15:
+  focus_minutes: 75
+  long_break_every: 3
+  long_break_minutes: 20
+  points_per_focus: 12
+  short_break_minutes: 15
   type: pomodoro
 sprint_90_30:
   focus_minutes: 90

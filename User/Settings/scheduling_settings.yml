@@ -9,3 +9,6 @@
 # 
 # conflict_resolution:
 #   allow_cutting: true
+#
+# status_matching:
+#   requirement_threshold: 0.5

@@ -45,28 +45,38 @@ function injectStyles(){
     }
     .schedule-day-picker input[type="date"] {
       background: var(--chronos-surface-soft);
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid var(--chronos-border, var(--border, rgba(255,255,255,0.12)));
       border-radius: 8px;
       padding: 6px 10px;
       color: var(--chronos-text);
       font-size: 13px;
+      color-scheme: dark;
+      -webkit-color-scheme: dark;
+    }
+    .schedule-day-picker input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.9) saturate(0.8);
+      opacity: 0.9;
+      cursor: pointer;
     }
     .schedule-panel-refresh {
-      background: var(--chronos-accent-gradient);
-      border: none;
-      color: white;
+      background: transparent;
+      border: 2px solid var(--chronos-accent-strong, var(--chronos-accent, #569cd6));
+      color: var(--chronos-accent-strong, var(--chronos-accent, #569cd6));
       border-radius: 10px;
       padding: 8px 14px;
       font-weight: 600;
       cursor: pointer;
+      transition: all 0.3s ease;
     }
     .schedule-panel-refresh:hover {
-      filter: brightness(1.1);
+      transform: translateY(-2px);
+      filter: brightness(1.12);
+      box-shadow: 0 0 20px color-mix(in srgb, var(--chronos-accent-strong, var(--chronos-accent, #569cd6)) 80%, transparent);
     }
     .schedule-panel-start {
-      background: linear-gradient(135deg, var(--chronos-success), var(--chronos-accent));
+      background: var(--chronos-accent-gradient);
       border: none;
-      color: var(--chronos-bg, #0b0f16);
+      color: #ffffff;
       border-radius: 10px;
       padding: 8px 14px;
       font-weight: 600;
@@ -77,7 +87,7 @@ function injectStyles(){
       cursor: default;
     }
     .schedule-panel-start:hover:not([disabled]) {
-      filter: brightness(1.05);
+      filter: brightness(1.1);
     }
     .schedule-panel-status {
       font-size: 12px;
@@ -579,6 +589,8 @@ function mountSchedulePanel(root){
         completeBtn.className = 'schedule-quick-btn';
         completeBtn.dataset.action = 'complete';
         completeBtn.dataset.nodeName = String(node.text || '');
+        completeBtn.dataset.nodeStart = String(node.start || '');
+        completeBtn.dataset.nodeEnd = String(node.end || '');
         completeBtn.title = node.completed ? 'Already completed' : 'Mark completed';
         completeBtn.setAttribute('aria-label', 'Mark completed');
         completeBtn.textContent = '✓';
@@ -588,8 +600,10 @@ function mountSchedulePanel(root){
         skipBtn.className = 'schedule-quick-btn';
         skipBtn.dataset.action = 'skip';
         skipBtn.dataset.nodeName = String(node.text || '');
-        skipBtn.title = 'Mark skipped';
-        skipBtn.setAttribute('aria-label', 'Mark skipped');
+        skipBtn.dataset.nodeStart = String(node.start || '');
+        skipBtn.dataset.nodeEnd = String(node.end || '');
+        skipBtn.title = 'Mark as skipped for today';
+        skipBtn.setAttribute('aria-label', 'Mark as skipped for today');
         skipBtn.textContent = '⏭';
         quickActions.append(completeBtn, skipBtn);
         nodeCell.appendChild(quickActions);
@@ -676,13 +690,20 @@ function mountSchedulePanel(root){
       renderTree();
     }
   };
-  const markNodeStatus = async (name, status)=>{
-    const normalizedName = String(name || '').trim();
+  const markNodeStatus = async (node, status)=>{
+    const normalizedName = String(node?.text || '').trim();
     if (!normalizedName || !status) return;
-    const label = status === 'completed' ? 'done' : status;
+    const label = status === 'completed' ? 'done' : (status === 'skipped' ? 'skipped for today' : status);
     setStatus(`Marking ${label}...`);
     setMessage('');
-    const result = await runCli('mark', [`${normalizedName}:${status}`], {});
+    const props = {};
+    const selectedDay = String(dateInput?.value || today || '').trim();
+    if (selectedDay) props.date = selectedDay;
+    const start = String(node?.start || '').trim();
+    const end = String(node?.end || '').trim();
+    if (start) props.start_time = start;
+    if (end) props.end_time = end;
+    const result = await runCli('mark', [`${normalizedName}:${status}`], props);
     if (!result?.ok) {
       const msg = String(result?.error || result?.stderr || result?.text || 'Action failed');
       setMessage(`Failed to mark "${normalizedName}" as ${label}: ${msg}`, true);
@@ -701,11 +722,14 @@ function mountSchedulePanel(root){
       if (actionBtn.disabled) return;
       const action = actionBtn.getAttribute('data-action');
       const nodeName = actionBtn.getAttribute('data-node-name');
+      const nodeStart = actionBtn.getAttribute('data-node-start');
+      const nodeEnd = actionBtn.getAttribute('data-node-end');
       if (!nodeName) return;
+      const actionNode = { text: nodeName, start: nodeStart, end: nodeEnd };
       if (action === 'complete') {
-        await markNodeStatus(nodeName, 'completed');
+        await markNodeStatus(actionNode, 'completed');
       } else if (action === 'skip') {
-        await markNodeStatus(nodeName, 'skipped');
+        await markNodeStatus(actionNode, 'skipped');
       }
       return;
     }

@@ -341,6 +341,85 @@ def score_status_alignment(requirements, status_context):
 
     return total
 
+def status_requirements_probability(requirements, status_context, default_unknown=0.5):
+    """
+    Returns a soft compatibility score in [0, 1] for normalized status requirements.
+
+    Design intent:
+    - Exact match -> 1.0 for that status dimension
+    - Near match (when numeric level maps exist) -> decays smoothly with distance
+    - Missing/unknown current status -> neutral-ish fallback (`default_unknown`)
+    - Weighted average by status rank (lower rank number = higher weight)
+
+    This is intentionally separate from `score_status_alignment()`:
+    - probability => pass/fail gate friendliness (hard filter replacement)
+    - alignment score => additive scoring signal in ranking
+    """
+    if not requirements:
+        return 1.0
+    if not isinstance(status_context, dict):
+        return max(0.0, min(1.0, float(default_unknown)))
+
+    types = status_context.get("types", {}) if isinstance(status_context.get("types", {}), dict) else {}
+    current_values = status_context.get("current", {}) if isinstance(status_context.get("current", {}), dict) else {}
+
+    ranks = []
+    for type_info in types.values():
+        try:
+            ranks.append(float(type_info.get("rank", 1)))
+        except Exception:
+            ranks.append(1.0)
+    max_rank = max(ranks) if ranks else 1.0
+
+    weighted_sum = 0.0
+    total_weight = 0.0
+
+    for status_slug, values in requirements.items():
+        type_info = types.get(status_slug, {}) if isinstance(types, dict) else {}
+        try:
+            rank = float(type_info.get("rank", 1))
+        except Exception:
+            rank = 1.0
+
+        # Invert rank so Rank=1 carries strongest influence.
+        weight = max(1.0, (max_rank - rank + 1.0))
+        total_weight += weight
+
+        normalized_values = [str(val).strip().lower() for val in (values or []) if str(val).strip()]
+        if not normalized_values:
+            weighted_sum += weight * max(0.0, min(1.0, float(default_unknown)))
+            continue
+
+        current_value = str(current_values.get(status_slug, "")).strip().lower()
+        if current_value and current_value in normalized_values:
+            weighted_sum += weight
+            continue
+
+        level_map = type_info.get("values") if isinstance(type_info.get("values"), dict) else {}
+        if current_value and current_value in level_map and level_map:
+            diffs = []
+            for candidate in normalized_values:
+                if candidate in level_map:
+                    try:
+                        diffs.append(abs(float(level_map[current_value]) - float(level_map[candidate])))
+                    except Exception:
+                        continue
+            if diffs:
+                min_diff = min(diffs)
+                # Distance curve: 0 -> 1.0, 1 -> 0.5, 2 -> 0.33, ...
+                dim_prob = 1.0 / (1.0 + float(min_diff))
+                weighted_sum += weight * dim_prob
+                continue
+
+        if not current_value:
+            weighted_sum += weight * max(0.0, min(1.0, float(default_unknown)))
+        else:
+            weighted_sum += 0.0
+
+    if total_weight <= 0:
+        return max(0.0, min(1.0, float(default_unknown)))
+    return max(0.0, min(1.0, weighted_sum / total_weight))
+
 def select_template_for_day(day_of_week, status_context):
     """
     Smart Template Selection: All templates compete, best wins.
@@ -444,6 +523,77 @@ def load_completion_payload(date_str):
         data = {"entries": {}}
 
     return data, per_day_path
+
+
+def persist_kairos_cut_skips(notes, completion_payload, completion_file_path):
+    """
+    Persist Kairos repair-cut removals as explicit `skipped` entries.
+    This prevents cut items from being reintroduced on same-day reschedules.
+    """
+    if not isinstance(notes, dict) or not isinstance(completion_payload, dict):
+        return 0
+    construct = notes.get("construct", {}) if isinstance(notes.get("construct", {}), dict) else {}
+    repair = construct.get("repair", {}) if isinstance(construct.get("repair", {}), dict) else {}
+    events = repair.get("events") if isinstance(repair.get("events"), list) else []
+    if not events:
+        return 0
+
+    entries = completion_payload.setdefault("entries", {})
+    if not isinstance(entries, dict):
+        entries = {}
+        completion_payload["entries"] = entries
+
+    changed = 0
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    for ev in events:
+        if not isinstance(ev, dict):
+            continue
+        if str(ev.get("action") or "").strip().lower() != "cut":
+            continue
+        name = str(ev.get("item") or "").strip()
+        if not name:
+            continue
+        raw_start = str(ev.get("at") or "").strip()
+        m = re.search(r"(\d{1,2}):(\d{2})", raw_start)
+        if m:
+            hh = max(0, min(23, int(m.group(1))))
+            mm = max(0, min(59, int(m.group(2))))
+            start_hm = f"{hh:02d}:{mm:02d}"
+        else:
+            start_hm = "unscheduled"
+
+        key = build_block_key(name, start_hm)
+        prev = entries.get(key) if isinstance(entries.get(key), dict) else {}
+        prev_status = str(prev.get("status") or "").strip().lower() if isinstance(prev, dict) else ""
+        if prev_status in {"completed", "done"}:
+            continue
+
+        entry = {
+            "name": name,
+            "status": "skipped",
+            "scheduled_start": None if start_hm == "unscheduled" else start_hm,
+            "scheduled_end": str(ev.get("end") or "").strip() or None,
+            "logged_at": now_iso,
+            "source": "kairos_cut",
+            "auto_skipped": True,
+            "reason": str(ev.get("reason") or "").strip() or None,
+        }
+        item_type = str(ev.get("type") or "").strip().lower()
+        if item_type:
+            entry["type"] = item_type
+        block_id = str(ev.get("block_id") or "").strip()
+        if block_id:
+            entry["block_id"] = block_id
+        entries[key] = entry
+        changed += 1
+
+    if changed > 0:
+        try:
+            with open(completion_file_path, "w", encoding="utf-8") as fh:
+                yaml.dump(completion_payload, fh, default_flow_style=False, sort_keys=False)
+        except Exception as write_err:
+            print(f"Warning: failed to persist Kairos auto-skip entries: {write_err}")
+    return changed
 
 def _should_auto_reschedule(item):
     policy = str(item.get("original_item_data", {}).get("reschedule_policy", "auto")).lower()
@@ -1283,6 +1433,17 @@ def run(args, properties):
                     kv = _parse_kv_csv(token.split(":", 1)[1].strip())
                     if kv:
                         ctx["prioritize"] = kv
+                elif (
+                    low.startswith("status-threshold:")
+                    or low.startswith("status_threshold:")
+                    or low.startswith("status-match-threshold:")
+                    or low.startswith("status_match_threshold:")
+                ):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["status_match_threshold"] = max(0.0, min(1.0, float(val)))
+                    except Exception:
+                        warnings.append(f"Invalid status threshold value: {val}")
                 elif low.startswith("custom_property:") or low.startswith("custom-property:"):
                     prop_name = token.split(":", 1)[1].strip()
                     if prop_name:
@@ -1506,7 +1667,7 @@ def run(args, properties):
         today_str = today_date.strftime("%Y-%m-%d")
         schedule_path = schedule_path_for_date(today_str)
         manual_mod_path = manual_modifications_path_for_date(today_str)
-        today_completion_data, _ = load_completion_payload(today_str)
+        today_completion_data, completion_path = load_completion_payload(today_str)
         completion_entries = normalize_completion_entries(today_completion_data)
         reschedule_requested = "reschedule" in args_lower
 
@@ -1603,6 +1764,17 @@ def run(args, properties):
                     kv = _parse_kv_csv(token.split(":", 1)[1].strip())
                     if kv:
                         ctx["prioritize"] = kv
+                elif (
+                    low.startswith("status-threshold:")
+                    or low.startswith("status_threshold:")
+                    or low.startswith("status-match-threshold:")
+                    or low.startswith("status_match_threshold:")
+                ):
+                    val = token.split(":", 1)[1].strip()
+                    try:
+                        ctx["status_match_threshold"] = max(0.0, min(1.0, float(val)))
+                    except Exception:
+                        warnings.append(f"Invalid status threshold value: {token}")
                 elif low.startswith("custom_property:") or low.startswith("custom-property:"):
                     prop_name = token.split(":", 1)[1].strip()
                     if prop_name:
@@ -1732,6 +1904,17 @@ def run(args, properties):
                     ctx["prioritize"] = kv
             elif isinstance(prioritize, dict) and prioritize:
                 ctx["prioritize"] = prioritize
+            status_threshold = _read(
+                "status-threshold",
+                "status_threshold",
+                "status-match-threshold",
+                "status_match_threshold",
+            )
+            if status_threshold is not None and str(status_threshold).strip() != "":
+                try:
+                    ctx["status_match_threshold"] = max(0.0, min(1.0, float(status_threshold)))
+                except Exception:
+                    warnings.append(f"Invalid status threshold value: {status_threshold}")
             custom_prop = _read("custom-property", "custom_property")
             if custom_prop is not None and str(custom_prop).strip():
                 ctx["custom_property"] = str(custom_prop).strip()
@@ -1919,6 +2102,11 @@ def run(args, properties):
                     "window_name": b.get("window_name"),
                     "block_id": b.get("block_id"),
                     "_slug": block_slug or "",
+                    "actual_start": b.get("actual_start"),
+                    "actual_end": b.get("actual_end"),
+                    "scheduled_start": b.get("scheduled_start"),
+                    "scheduled_end": b.get("scheduled_end"),
+                    "completed_logged_at": b.get("completed_logged_at") or b.get("logged_at"),
                 }
                 raw_tags = b.get("tags")
                 norm_tags = []
@@ -2479,6 +2667,15 @@ def run(args, properties):
                     print("- Or make one item flexible by removing `reschedule: never` / `essential: true`.")
                     print("- Rerun: today reschedule")
                     return
+
+                auto_skipped_count = persist_kairos_cut_skips(
+                    notes,
+                    today_completion_data,
+                    completion_path,
+                )
+                if auto_skipped_count > 0:
+                    completion_entries = normalize_completion_entries(today_completion_data)
+                    print(f"[Kairos] Auto-skipped {auto_skipped_count} cut item(s) for today.")
 
                 blocks = result.get("blocks") if isinstance(result, dict) else []
                 construct_notes = notes.get("construct", {}) if isinstance(notes, dict) else {}

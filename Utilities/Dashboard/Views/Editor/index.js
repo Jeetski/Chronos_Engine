@@ -1148,6 +1148,10 @@ function promptEncoding() {
     if (enc) setEncoding(enc);
 }
 
+function normalizeEditorPath(path) {
+    return String(path || '').trim().replace(/\\/g, '/');
+}
+
 async function runCurrentFile() {
     const tab = getActiveTab();
     if (!tab) return;
@@ -1435,4 +1439,29 @@ export function mount(el) {
     if (tabsMenu) {
         tabsMenu.onclick = (e) => showTabsDropdown(tabsMenu);
     }
+
+    const openFromRequest = async (payload) => {
+        try {
+            const p = normalizeEditorPath(payload?.path || payload);
+            if (!p) return;
+            await openFile(p, payload?.encoding || null);
+        } catch { }
+    };
+    let offEditorOpen = null;
+    try {
+        offEditorOpen = window?.ChronosBus?.on?.('editor:open', (payload) => { void openFromRequest(payload); });
+    } catch { }
+    try {
+        const staged = window.__chronosEditorOpenRequest;
+        if (staged && staged.path) {
+            window.__chronosEditorOpenRequest = null;
+            void openFromRequest(staged);
+        }
+    } catch { }
+
+    return {
+        dispose() {
+            try { offEditorOpen?.(); } catch { }
+        }
+    };
 }

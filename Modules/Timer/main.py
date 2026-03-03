@@ -14,7 +14,7 @@ except Exception:
     tk = None  # type: ignore
 
 from Modules.ItemManager import get_user_dir, read_item_data, write_item_data
-from Modules.Scheduler import get_flattened_schedule, schedule_path_for_date
+from Modules.Scheduler import get_flattened_schedule, schedule_path_for_date, stretch_item_in_file
 from Utilities.duration_parser import parse_duration_string
 from Utilities import points as Points
 
@@ -33,7 +33,9 @@ def _ensure_dirs():
 
 
 def _now_str():
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Include fractional seconds so frequent status polling does not quantize
+    # tick calculations to whole-second boundaries.
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
 
 def _load_state():
@@ -111,6 +113,14 @@ def _default_profiles():
             'long_break_every': 4,
             'points_per_focus': 0,
         },
+        'deep_work_60_10': {
+            'type': 'pomodoro',
+            'focus_minutes': 60,
+            'short_break_minutes': 10,
+            'long_break_minutes': 20,
+            'long_break_every': 3,
+            'points_per_focus': 10,
+        },
         'deep_work_50_10': {
             'type': 'pomodoro',
             'focus_minutes': 50,
@@ -118,6 +128,46 @@ def _default_profiles():
             'long_break_minutes': 20,
             'long_break_every': 4,
             'points_per_focus': 10,
+        },
+        'desk_time_52_17': {
+            'type': 'pomodoro',
+            'focus_minutes': 52,
+            'short_break_minutes': 17,
+            'long_break_minutes': 20,
+            'long_break_every': 3,
+            'points_per_focus': 12,
+        },
+        'desk_time_112_26': {
+            'type': 'pomodoro',
+            'focus_minutes': 112,
+            'short_break_minutes': 26,
+            'long_break_minutes': 30,
+            'long_break_every': 2,
+            'points_per_focus': 20,
+        },
+        'hourly_55_5': {
+            'type': 'pomodoro',
+            'focus_minutes': 55,
+            'short_break_minutes': 5,
+            'long_break_minutes': 15,
+            'long_break_every': 4,
+            'points_per_focus': 8,
+        },
+        'microbreak_25_2': {
+            'type': 'pomodoro',
+            'focus_minutes': 25,
+            'short_break_minutes': 2,
+            'long_break_minutes': 10,
+            'long_break_every': 4,
+            'points_per_focus': 5,
+        },
+        'sprint_75_15': {
+            'type': 'pomodoro',
+            'focus_minutes': 75,
+            'short_break_minutes': 15,
+            'long_break_minutes': 20,
+            'long_break_every': 3,
+            'points_per_focus': 12,
         },
         'sprint_90_30': {
             'type': 'pomodoro',
@@ -161,6 +211,7 @@ def start_timer(profile_name: str, *, bind_type: str | None = None, bind_name: s
         'pending_confirmation': None,
         'confirm_completion': False,
         'current_block': None,
+        'waiting_for_anchor_start': False,
     }
     _save_state(st)
     return st
@@ -179,8 +230,6 @@ def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_
 
     blocks = plan.get('blocks') or []
     plan_date = str(plan.get('date') or datetime.now().strftime('%Y-%m-%d'))
-    first_block = blocks[0]
-    focus_sec = _block_minutes_value(first_block) * 60
     schedule_state = {
         'plan': plan,
         'plan_date': plan_date,
@@ -206,11 +255,12 @@ def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_
         'schedule_state': schedule_state,
         'pending_confirmation': None,
         'confirm_completion': bool(confirm_completion),
-        'current_block': first_block,
+        'current_block': None,
+        'waiting_for_anchor_start': False,
     }
     _save_plan(plan)
-    _save_state(st)
-    return st
+    _begin_schedule_block(st, 0)
+    return _load_state()
 
 
 def pause_timer():
@@ -245,6 +295,7 @@ def stop_timer():
     st['schedule_state'] = None
     st['pending_confirmation'] = None
     st['current_block'] = None
+    st['waiting_for_anchor_start'] = False
     _clear_plan_file()
     _save_state(st)
     return st
@@ -268,6 +319,7 @@ def cancel_timer():
         'pending_confirmation': None,
         'confirm_completion': False,
         'current_block': None,
+        'waiting_for_anchor_start': False,
     }
     _clear_plan_file()
     _save_state(st)
@@ -530,8 +582,14 @@ def _begin_schedule_block(st, index):
     st['schedule_state'] = sched
     st['current_phase'] = 'focus' if not block.get('is_buffer') else 'break'
     st['phase_start'] = _now_str()
+    # Reset tick baseline so a restarted block begins at full duration.
+    st['last_tick'] = _now_str()
     st['remaining_seconds'] = _block_minutes_value(block) * 60
+    st['waiting_for_anchor_start'] = False
     st['status'] = 'running'
+    if _is_future_anchor_block(block):
+        st['status'] = 'paused'
+        st['waiting_for_anchor_start'] = True
     st['current_block'] = block
     st['pending_confirmation'] = None
     _save_state(st)
@@ -545,6 +603,7 @@ def _complete_schedule_run(st):
     st['current_block'] = None
     st['pending_confirmation'] = None
     st['schedule_state'] = None
+    st['waiting_for_anchor_start'] = False
     _clear_plan_file()
     _save_state(st)
     _notify('Schedule Complete', 'All schedule blocks finished.', sound_filename=_phase_sound_name('focus_end'))
@@ -580,6 +639,21 @@ def _handle_schedule_completion(st):
         _complete_schedule_run(st)
         return False
 
+    # Respect auto_advance for schedule mode: queue next block paused at full duration.
+    if not bool(st.get('auto_advance', True)):
+        next_block = blocks[next_index]
+        sched['current_index'] = next_index
+        st['schedule_state'] = sched
+        st['current_block'] = next_block
+        st['current_phase'] = 'focus' if not next_block.get('is_buffer') else 'break'
+        st['remaining_seconds'] = _block_minutes_value(next_block) * 60
+        st['status'] = 'paused'
+        st['phase_start'] = _now_str()
+        st['last_tick'] = _now_str()
+        st['pending_confirmation'] = None
+        _save_state(st)
+        return False
+
     return _begin_schedule_block(st, next_index)
 
 
@@ -594,18 +668,85 @@ def _stretch_schedule_block(st, minutes: int):
     block = blocks[block_index] if block_index < len(blocks) else st.get('current_block')
     if not block:
         return st
+    block_name = str(block.get('name') or '').strip()
+    if not block_name:
+        return st
+
+    target_block_id = str(block.get("block_id") or "").strip()
+    target_name_l = block_name.lower()
+    schedule_date = str(
+        (st.get('schedule_state') or {}).get('plan_date')
+        or block.get('date')
+        or datetime.now().strftime('%Y-%m-%d')
+    ).strip()
+    today_key = datetime.now().strftime('%Y-%m-%d')
+
+    # Persist stretch as a manual schedule change first.
     try:
-        existing = int(block.get('stretch_minutes') or 0)
+        path = schedule_path_for_date(schedule_date)
+        stretch_item_in_file(path, block_name, int(minutes))
     except Exception:
-        existing = 0
-    block['stretch_minutes'] = existing + minutes
-    st['current_block'] = block
-    st['current_phase'] = 'focus' if not block.get('is_buffer') else 'break'
-    st['remaining_seconds'] = int(minutes) * 60
-    st['status'] = 'running'
+        # Fallback to timer-only extension if schedule write fails.
+        st['current_block'] = block
+        st['current_phase'] = 'focus' if not block.get('is_buffer') else 'break'
+        st['remaining_seconds'] = int(st.get('remaining_seconds') or 0) + (int(minutes) * 60)
+        st['status'] = 'running'
+        st['phase_start'] = _now_str()
+        st['last_tick'] = _now_str()
+        st['pending_confirmation'] = None
+        _save_state(st)
+        return st
+
+    # Reschedule today so downstream blocks are shifted coherently.
+    if schedule_date == today_key:
+        try:
+            from Commands import Today as TodayCommand
+            TodayCommand.run(['reschedule'], {})
+        except Exception:
+            pass
+
+    # Reload and sync timer state to latest schedule.
+    st = _load_state()
+    st = sync_schedule_state()
+    if not isinstance(st, dict):
+        st = _load_state()
+
+    # Keep focus on the stretched block if still present after reschedule.
+    sched = st.get('schedule_state') or {}
+    all_blocks = _schedule_blocks(st)
+    if isinstance(sched, dict) and isinstance(all_blocks, list) and all_blocks:
+        found_idx = None
+        if target_block_id:
+            for i, b in enumerate(all_blocks):
+                if str((b or {}).get('block_id') or '').strip() == target_block_id:
+                    found_idx = i
+                    break
+        if found_idx is None:
+            for i, b in enumerate(all_blocks):
+                if str((b or {}).get('name') or '').strip().lower() == target_name_l:
+                    found_idx = i
+                    break
+        if found_idx is not None:
+            sched['current_index'] = int(found_idx)
+            st['schedule_state'] = sched
+            st['current_block'] = all_blocks[found_idx]
+            st['current_phase'] = 'focus' if not all_blocks[found_idx].get('is_buffer') else 'break'
+
+    # Add extension to remaining timer and clamp to block duration.
+    rem = int(st.get('remaining_seconds') or 0)
+    rem += int(minutes) * 60
+    try:
+        max_sec = _block_minutes_value(st.get('current_block') or {}) * 60
+        if max_sec > 0:
+            rem = min(rem, int(max_sec))
+    except Exception:
+        pass
+    st['remaining_seconds'] = max(0, rem)
+    st['pending_confirmation'] = None
     st['phase_start'] = _now_str()
     st['last_tick'] = _now_str()
-    st['pending_confirmation'] = None
+    st['status'] = 'running'
+    st = _sync_waiting_anchor_state(st)
     _save_state(st)
     return st
 
@@ -616,7 +757,20 @@ def confirm_schedule_block(completed: bool | None = None, action: str | None = N
         return st
     pending = st.get('pending_confirmation')
     if not pending:
-        return st
+        # Allow manual block actions from UI even when no pending check-in is active.
+        blocks = _schedule_blocks(st)
+        sched = st.get('schedule_state') or {}
+        block_index = int(sched.get('current_index', 0) or 0)
+        block = blocks[block_index] if block_index < len(blocks) else st.get('current_block')
+        if not block:
+            return st
+        pending = {
+            'block_index': block_index,
+            'next_index': block_index + 1,
+            'block': block,
+            'prompted_at': _now_str(),
+        }
+        st['pending_confirmation'] = pending
 
     block_index = int(pending.get('block_index', 0))
     next_index = int(pending.get('next_index', block_index + 1))
@@ -634,6 +788,21 @@ def confirm_schedule_block(completed: bool | None = None, action: str | None = N
             completed = False
 
     if action in {'start_over', 'restart', 'repeat'}:
+        # Restart should truly rewind this block in schedule state.
+        sched = st.get('schedule_state') or {}
+        completed = sched.get('completed_indices')
+        if isinstance(completed, list):
+            rewound = []
+            for i in completed:
+                try:
+                    if int(i) == block_index:
+                        continue
+                except Exception:
+                    pass
+                rewound.append(i)
+            sched['completed_indices'] = rewound
+        sched['current_index'] = block_index
+        st['schedule_state'] = sched
         _begin_schedule_block(st, block_index)
         return _load_state()
 
@@ -684,12 +853,17 @@ def tick():
 def _seconds_since(ts: str | None) -> int:
     if not ts:
         return 0
-    try:
-        dt = datetime.strptime(ts, '%Y-%m-%d %H:%M:%S')
-        delta = datetime.now() - dt
-        return max(0, int(delta.total_seconds()))
-    except Exception:
+    text = str(ts).strip()
+    if not text:
         return 0
+    for fmt in ('%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S'):
+        try:
+            dt = datetime.strptime(text, fmt)
+            delta = datetime.now() - dt
+            return max(0, int(delta.total_seconds()))
+        except Exception:
+            continue
+    return 0
 
 
 def _tick_seconds(st: dict, seconds: int):
@@ -730,10 +904,18 @@ def _tick_seconds(st: dict, seconds: int):
 def auto_tick():
     sync_schedule_state()
     st = _load_state()
+    st_before = dict(st)
+    st = _sync_waiting_anchor_state(st)
+    if st != st_before:
+        _save_state(st)
     if st.get('status') != 'running':
         return st
-    delta = _seconds_since(st.get('last_tick')) or 1
+    delta = _seconds_since(st.get('last_tick'))
+    if delta <= 0:
+        return st
     return _tick_seconds(st, delta)
+
+
 def _block_minutes_value(block):
     try:
         minutes = block.get('minutes', 1)
@@ -757,6 +939,62 @@ def _block_identity(block: dict) -> str:
     end = str(block.get("end") or block.get("scheduled_end") or "").strip()
     buf = "1" if bool(block.get("is_buffer")) else "0"
     return f"{name}|{start}|{end}|{buf}"
+
+
+def _time_to_minutes(label):
+    if not isinstance(label, str):
+        return None
+    txt = label.strip()
+    if not txt:
+        return None
+    try:
+        dt = datetime.strptime(txt, "%H:%M")
+        return (dt.hour * 60) + dt.minute
+    except Exception:
+        return None
+
+
+def _is_future_anchor_block(block):
+    if not isinstance(block, dict):
+        return False
+    schedule_type = str(block.get("schedule_type") or "").strip().lower()
+    if "anchor" not in schedule_type:
+        return False
+    start_label = block.get("start") or block.get("scheduled_start")
+    start_min = _time_to_minutes(str(start_label or ""))
+    if start_min is None:
+        return False
+    now = datetime.now()
+    now_min = (int(now.hour) * 60) + int(now.minute)
+    return start_min > now_min
+
+
+def _sync_waiting_anchor_state(st):
+    if not isinstance(st, dict):
+        return st
+    if st.get("mode") != "schedule":
+        st["waiting_for_anchor_start"] = False
+        return st
+    block = st.get("current_block")
+    if not isinstance(block, dict):
+        st["waiting_for_anchor_start"] = False
+        return st
+    # Any future anchor should remain waiting/paused until scheduled time.
+    if _is_future_anchor_block(block):
+        st["waiting_for_anchor_start"] = True
+        st["status"] = "paused"
+        return st
+    waiting = bool(st.get("waiting_for_anchor_start"))
+    if not waiting:
+        return st
+    if _is_future_anchor_block(block):
+        st["status"] = "paused"
+        return st
+    st["waiting_for_anchor_start"] = False
+    st["status"] = "running"
+    st["phase_start"] = _now_str()
+    st["last_tick"] = _now_str()
+    return st
 
 
 def _normalize_time_label(value):

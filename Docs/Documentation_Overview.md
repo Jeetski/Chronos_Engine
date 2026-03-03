@@ -107,12 +107,18 @@ today reschedule
 - Sleep Settings widget for direct sleep-anchor management across day templates
 - Notes, Journal, Profile, Review, Inventory Manager, Sticky Notes
 
+**Dock + Gadgets**:
+- Bottom revealable dock with quick-action gadgets.
+- Gadgets are toggleable from topbar **Gadgets** menu.
+- Built-ins include Timer (countdown/actions) and Reschedule (`today reschedule`) shortcuts.
+
 **Key APIs**:
 - `/api/cli` - Run commands from dashboard
 - `/api/items`, `/api/item` - CRUD operations
 - `/api/today`, `/api/today/reschedule` - Schedule management
 - `/api/timer/*`, `/api/points`, `/api/rewards`, `/api/achievements`
 - `/api/settings`, `/api/theme`, `/api/vars`
+- `/api/registry?name=gadgets` - Dock gadget registry
 
 ### 4. CHS Scripting Language
 
@@ -215,16 +221,17 @@ SQLite mirrors for fast analytics:
 - **Views**: `Utilities/Dashboard/Views/<Name>/`
 - **Panels**: `Utilities/Dashboard/Panels/<Name>/`
 - **Popups**: `Utilities/Dashboard/Popups/<Name>/`
+- **Gadgets**: `Utilities/Dashboard/Gadgets/<Name>/`
 
 **APIs**:
-- `GET /api/registry?name=wizards|themes|widgets|views|panels|popups`
+- `GET /api/registry?name=wizards|themes|widgets|views|panels|popups|gadgets`
 - `GET /api/registry?name=commands|items|properties` (legacy)
 - Dashboard auto-discovers and lists all extensions
 
 **Adding Components**:
 1. **Command**: Create `Commands/Name.py` with `run(args, properties)`
 2. **Item Type**: Create `Modules/Type/main.py` with `handle_command`
-3. **Widget/View/Panel/Popup**: Create folder in appropriate directory with `index.js`
+3. **Widget/View/Panel/Popup/Gadget**: Create folder in appropriate directory with `index.js`
 4. **Wizard**: Create folder in `Wizards/` with `index.js`
 5. **Theme**: Drop CSS file into `Themes/`
 6. Refresh dashboard - component appears automatically

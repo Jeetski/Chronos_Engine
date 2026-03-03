@@ -39,6 +39,11 @@ Defines the dimensions of your human state (Energy, Focus, Mood).
 - **`theme_settings.yml`**: Controls CLI colors and prompts.
 - **`console_settings.yml`**: Controls interactive console behavior (`prompt_toolkit_default`, `autocomplete_enabled`).
   - Also controls startup behavior: `show_startup_banner`, `run_startup_sync`, `play_startup_sound`.
+- **`config.yml`**: Global runtime overrides.
+  - `default_editor`: Default editor command used by `edit`.
+    - Special value: `chronos_editor` routes opens into the dashboard Editor view instead of external apps.
+  - `dashboard_browser` (or `browser`): Optional browser command override for `dashboard`.
+    - If unset, `dashboard` uses the system default browser.
 - **`User/Profile/preferences_settings.yml`**: Controls Agent/System verbosity and behavior.
 - **`User/Profile/profile.yml`**: The "User Object" (Nickname, preferences).
 

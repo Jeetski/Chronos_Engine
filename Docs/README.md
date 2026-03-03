@@ -13,6 +13,7 @@ Links
 - Day Builder: Guides/DayBuilder.md
 - Routine Builder: Guides/RoutineBuilder.md
 - Status Mapping Wizard: Guides/Dashboard.md
+- Dock + Gadgets: Guides/Gadgets_and_Dock.md
 - Cockpit Panels: Guides/Cockpit.md
 - Canvas: Guides/Canvas.md
 - Sequence Mirrors: Dev/Sequence.md
@@ -23,7 +24,7 @@ Scripting & Automation Docs
 - Macros (BEFORE/AFTER): Dev/Macros.md
 
 ## Structure
-- Guides/ — user-facing how-tos (Dashboard, Settings, Workflows, Conditions, Cockpit).
+- Guides/ — user-facing how-tos (Dashboard, Dock/Gadgets, Settings, Workflows, Conditions, Cockpit).
 - Dev/ — engine and API docs (Architecture, CHS Scripting, Macros, Sequence mirrors).
 - Agents/ — agent persona and developer guides.
 - Designs/ — design notes/specs (may be aspirational; check Guides for current state).
@@ -57,7 +58,7 @@ High level
 - CLI runtime: `Modules/Console.py` dynamically loads commands (`Commands/*.py`) and item modules (`Modules/*/main.py`).
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `Modules/Listener/Listener.py` runs alarms, reminders, and timer lifecycle.
-- Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views.
+- Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
 - Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
@@ -128,7 +129,7 @@ Server
 - Serves assets and provides JSON/YAML endpoints (see Dashboard API guide).
 
 UI
-- `Utilities/Dashboard/` contains auto-discovered views, widgets, panels, and popups.
+- `Utilities/Dashboard/` contains auto-discovered views, widgets, panels, popups, and gadgets.
 - Views:
 - **Calendar** (year/month/week/day canvas with a Day List tree). Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable).
   - **Template Builder** (drag/drop week/day/routine trees plus goal/project/inventory builders with duration badges, nesting inspector, and POST `/api/template` saves).
@@ -144,7 +145,7 @@ Selected endpoints (JSON unless noted)
 - Commitments & Milestones: `GET /api/commitments`, `GET /api/milestones`, `POST /api/milestone/update`.
 - Rewards & Points: `GET /api/points`, `GET /api/rewards`, `POST /api/reward/redeem`.
 - Achievements: `GET /api/achievements`, `POST /api/achievement/update`.
-- Timer: `GET /api/timer/status|profiles|settings`, `POST /api/timer/start|pause|resume|stop`.
+- Timer: `GET /api/timer/status|profiles|settings`, `POST /api/timer/start|pause|resume|stop|cancel|confirm`.
 - Variables/Theme/Profile: `GET /api/vars`, `POST /api/vars`, `POST /api/vars/expand`, `GET /api/profile`, `GET /api/theme?name=...`.
 - Settings: `GET /api/settings`, `GET /api/settings?file=Name.yml`, `POST /api/settings?file=Name.yml` (raw YAML preserved after validation).
 
@@ -211,3 +212,4 @@ Recent improvements
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+

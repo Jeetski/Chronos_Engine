@@ -61,7 +61,7 @@
           </select>
           <select id="tplName" style="flex:1"></select>
           <button class="btn" id="btnLoad">Load</button>
-          <button class="btn" id="btnSave">Save</button>  <label class="hint" style="display:flex; align-items:center; gap:6px;"><input type="checkbox" id="tplExpandToggle" checked /> fx</label>
+          <button class="btn" id="btnSave">Save</button>
         </div>
         <div id="tree" class="list"></div>
       </div>
@@ -130,7 +130,6 @@
   const tplName = el.querySelector('#tplName');
   const btnLoad = el.querySelector('#btnLoad');
   const btnSave = el.querySelector('#btnSave');
-  const expandToggle = el.querySelector('#tplExpandToggle');
   const treeEl = el.querySelector('#tree');
   const propType = el.querySelector('#propType');
   const propName = el.querySelector('#propName');
@@ -399,10 +398,8 @@
   let children = [];
   let selIdx = -1;
   let selPath = '';
-  let expandFx = true;
-  function maybeExpand(s) { try { if (!expandFx) return String(s || ''); return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
+  function maybeExpand(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
   function isInventoryTemplate() { return canonicalType(tplType.value || '') === 'inventory'; }
-  try { expandToggle?.addEventListener('change', () => { expandFx = !!expandToggle.checked; renderTree(); renderTreeNested?.(); }); } catch { }
 
   // Window filter helpers
   function renderFilterRows(filters) {

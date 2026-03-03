@@ -1,4 +1,4 @@
-export function mount(el) {
+export function mount(el, context) {
   // Load CSS
   if (!document.getElementById('milestones-css')) {
     const link = document.createElement('link');
@@ -77,6 +77,12 @@ export function mount(el) {
             <option value="in-progress">In Progress</option>
             <option value="completed">Completed</option>
           </select>
+          <select id="msProjectFilter" class="input" style="flex:0 0 200px;">
+            <option value="all">All projects</option>
+          </select>
+          <select id="msGoalFilter" class="input" style="flex:0 0 220px;">
+            <option value="all">All goals</option>
+          </select>
           <div class="spacer"></div>
           <button class="btn" id="msRefresh">Refresh</button>
         </div>
@@ -97,6 +103,8 @@ export function mount(el) {
   const listSectionEl = el.querySelector('#msListSection');
   const searchEl = el.querySelector('#msSearch');
   const statusSel = el.querySelector('#msStatusFilter');
+  const projectSel = el.querySelector('#msProjectFilter');
+  const goalSel = el.querySelector('#msGoalFilter');
   const statusLine = el.querySelector('#msStatus');
   const listEl = el.querySelector('#msList');
   const totalEl = el.querySelector('#msTotal');
@@ -112,6 +120,7 @@ export function mount(el) {
   let counts = { total: 0, completed: 0, in_progress: 0, pending: 0 };
   let loading = false;
   const expanded = new Set();
+  let pendingFilter = null;
 
   function setListOpen(isOpen) {
     if (!listToggleBtn || !listSectionEl) return;
@@ -126,6 +135,139 @@ export function mount(el) {
     statusLine.className = `ms-status${tone ? ' ' + tone : ''}`;
   }
 
+  function norm(v) { return String(v || '').trim().toLowerCase(); }
+  function canon(v) {
+    return norm(v)
+      .replace(/\bproject\b/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function findBestOptionValue(selectEl, value) {
+    if (!selectEl || !value) return null;
+    const target = String(value).trim();
+    const targetNorm = norm(target);
+    const targetCanon = canon(target);
+    const options = Array.from(selectEl.options || []);
+    let hit = options.find(o => norm(o.value) === targetNorm);
+    if (hit) return hit.value;
+    if (targetCanon) {
+      hit = options.find(o => canon(o.value) === targetCanon);
+      if (hit) return hit.value;
+      hit = options.find(o => {
+        const c = canon(o.value);
+        return !!c && (c.includes(targetCanon) || targetCanon.includes(c));
+      });
+      if (hit) return hit.value;
+    }
+    return null;
+  }
+
+  function setSelectOptions(selectEl, values, allLabel) {
+    if (!selectEl) return;
+    const prev = selectEl.value || 'all';
+    selectEl.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = 'all';
+    allOpt.textContent = allLabel;
+    selectEl.appendChild(allOpt);
+    values.forEach((v) => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      selectEl.appendChild(opt);
+    });
+    const keep = Array.from(selectEl.options).some(o => o.value === prev);
+    selectEl.value = keep ? prev : 'all';
+  }
+
+  function availableProjects() {
+    const set = new Set();
+    milestones.forEach((m) => {
+      const p = String(m?.project || '').trim();
+      if (p) set.add(p);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }
+
+  function availableGoals(projectValue = 'all') {
+    const want = norm(projectValue);
+    const set = new Set();
+    milestones.forEach((m) => {
+      const project = String(m?.project || '').trim();
+      if (want !== 'all' && norm(project) !== want) return;
+      const goal = String(m?.goal || '').trim();
+      if (goal) set.add(goal);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }
+
+  function syncFilterOptions() {
+    setSelectOptions(projectSel, availableProjects(), 'All projects');
+    setSelectOptions(goalSel, availableGoals(projectSel?.value || 'all'), 'All goals');
+  }
+
+  function getFilteredMilestones({ includeSearch = true } = {}) {
+    const term = includeSearch ? (searchEl.value || '').trim().toLowerCase() : '';
+    const wanted = (statusSel.value || 'all').toLowerCase();
+    const wantedProject = projectSel?.value || 'all';
+    const wantedGoal = goalSel?.value || 'all';
+    return milestones.filter(item => {
+      if (wanted !== 'all' && (item.status || '').toLowerCase() !== wanted) return false;
+      if (wantedProject !== 'all') {
+        const itemProjectNorm = norm(item.project);
+        const wantedNorm = norm(wantedProject);
+        const itemProjectCanon = canon(item.project);
+        const wantedCanon = canon(wantedProject);
+        const match = itemProjectNorm === wantedNorm
+          || (!!itemProjectCanon && !!wantedCanon && (itemProjectCanon === wantedCanon || itemProjectCanon.includes(wantedCanon) || wantedCanon.includes(itemProjectCanon)));
+        if (!match) return false;
+      }
+      if (wantedGoal !== 'all' && norm(item.goal) !== norm(wantedGoal)) return false;
+      if (!term) return true;
+      const hay = `${item.name || ''} ${item.goal || ''} ${item.project || ''} ${item.category || ''}`.toLowerCase();
+      return hay.includes(term);
+    });
+  }
+
+  function applyExternalFilter(filter, options = {}) {
+    const deferIfMissing = options.deferIfMissing !== false;
+    if (!filter || typeof filter !== 'object') return;
+    pendingFilter = filter;
+    if (projectSel && filter.project && deferIfMissing) {
+      const matchedValue = findBestOptionValue(projectSel, filter.project);
+      if (!matchedValue) return;
+    }
+    if (projectSel && filter.project) {
+      const matchedValue = findBestOptionValue(projectSel, filter.project);
+      if (matchedValue) projectSel.value = matchedValue;
+    }
+    setSelectOptions(goalSel, availableGoals(projectSel?.value || 'all'), 'All goals');
+    if (goalSel && filter.goal && deferIfMissing) {
+      const matchedValue = findBestOptionValue(goalSel, filter.goal);
+      if (!matchedValue) return;
+    }
+    if (goalSel && filter.goal) {
+      const matchedValue = findBestOptionValue(goalSel, filter.goal);
+      if (matchedValue) goalSel.value = matchedValue;
+    } else if (goalSel && filter.project && !filter.goal) {
+      goalSel.value = 'all';
+    }
+    pendingFilter = null;
+    try {
+      const staged = window.__chronosMilestonesFilter;
+      if (staged && typeof staged === 'object') {
+        const sameProject = norm(staged.project) === norm(filter.project);
+        const sameGoal = norm(staged.goal) === norm(filter.goal);
+        if (sameProject && sameGoal) window.__chronosMilestonesFilter = null;
+      }
+    } catch { }
+    setListOpen(true);
+    renderSummary();
+    renderList();
+  }
+
   async function refresh(dataOnly = false) {
     if (loading) return;
     loading = true;
@@ -136,6 +278,8 @@ export function mount(el) {
       const json = await resp.json();
       milestones = Array.isArray(json?.milestones) ? json.milestones : [];
       counts = json?.counts || { total: milestones.length, completed: 0, in_progress: 0, pending: 0 };
+      syncFilterOptions();
+      if (pendingFilter) applyExternalFilter(pendingFilter);
       renderSummary();
       renderList();
       if (!dataOnly) setStatus('');
@@ -148,21 +292,15 @@ export function mount(el) {
   }
 
   function renderSummary() {
-    totalEl.textContent = (counts.total ?? milestones.length).toString();
-    completedEl.textContent = (counts.completed ?? milestones.filter(m => m.status === 'completed').length).toString();
-    inProgressEl.textContent = (counts.in_progress ?? milestones.filter(m => m.status === 'in-progress').length).toString();
+    const visible = getFilteredMilestones({ includeSearch: false });
+    totalEl.textContent = visible.length.toString();
+    completedEl.textContent = visible.filter(m => (m.status || '').toLowerCase() === 'completed').length.toString();
+    inProgressEl.textContent = visible.filter(m => (m.status || '').toLowerCase() === 'in-progress').length.toString();
   }
 
   function renderList() {
     listEl.innerHTML = '';
-    const term = (searchEl.value || '').trim().toLowerCase();
-    const wanted = (statusSel.value || 'all').toLowerCase();
-    const filtered = milestones.filter(item => {
-      if (wanted !== 'all' && (item.status || '').toLowerCase() !== wanted) return false;
-      if (!term) return true;
-      const hay = `${item.name || ''} ${item.goal || ''} ${item.category || ''}`.toLowerCase();
-      return hay.includes(term);
-    });
+    const filtered = getFilteredMilestones({ includeSearch: true });
     if (!filtered.length) {
       const empty = document.createElement('div');
       empty.className = 'ms-card-meta';
@@ -230,6 +368,7 @@ export function mount(el) {
       meta.className = 'ms-meta';
       const bits = [];
       if (item.goal) bits.push(`Goal: ${item.goal}`);
+      if (item.project) bits.push(`Project: ${item.project}`);
       if (item.due_date) bits.push(`Due: ${item.due_date}`);
       if (item.weight) bits.push(`Weight: ${item.weight}`);
       meta.textContent = bits.join(' | ') || 'No metadata.';
@@ -305,13 +444,35 @@ export function mount(el) {
     }
   }
 
-  searchEl.addEventListener('input', () => renderList());
-  statusSel.addEventListener('change', () => renderList());
+  searchEl.addEventListener('input', () => { renderSummary(); renderList(); });
+  statusSel.addEventListener('change', () => { renderSummary(); renderList(); });
+  projectSel?.addEventListener('change', () => {
+    if (!pendingFilter) {
+      setSelectOptions(goalSel, availableGoals(projectSel?.value || 'all'), 'All goals');
+      goalSel.value = 'all';
+    }
+    renderSummary();
+    renderList();
+  });
+  goalSel?.addEventListener('change', () => { renderSummary(); renderList(); });
   refreshBtn.addEventListener('click', () => refresh());
 
   listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
   setListOpen(false);
+  const bus = context?.bus || window?.ChronosBus;
+  const onExternalFilter = (payload) => {
+    applyExternalFilter(payload || {});
+    try { window?.ChronosBus?.emit?.('widget:show', 'Milestones'); } catch { }
+  };
+  try {
+    const staged = window.__chronosMilestonesFilter;
+    if (staged && typeof staged === 'object') pendingFilter = staged;
+  } catch { }
+  try { bus?.on?.('milestones:filter', onExternalFilter); } catch { }
   refresh();
 
-  return { refresh: () => refresh() };
+  return {
+    refresh: () => refresh(),
+    unmount: () => { try { bus?.off?.('milestones:filter', onExternalFilter); } catch { } }
+  };
 }

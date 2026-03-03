@@ -151,16 +151,19 @@ async function maybeShowWelcome(done) {
   injectStyles();
   buildPopup(data, {
     onOpenProfile: async (el) => {
+      try { window.ChronosBus?.emit?.('widget:show', 'Profile'); } catch {}
       try {
-        await fetch(apiBase() + '/api/open-in-editor', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: 'User/Profile/profile.yml' })
-      });
-    } catch {}
-    el.remove();
-    done?.();
-  },
+        const profileWidget =
+          document.querySelector('[data-widget="Profile"]') ||
+          document.getElementById('profileWidget');
+        if (profileWidget) {
+          profileWidget.style.display = '';
+          try { window.ChronosFocusWidget?.(profileWidget); } catch {}
+        }
+      } catch {}
+      el.remove();
+      done?.();
+    },
   onDismiss: () => {
     done?.();
   }

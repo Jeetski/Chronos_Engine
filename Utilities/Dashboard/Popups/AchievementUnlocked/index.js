@@ -325,7 +325,16 @@ function buildPopup(award, done) {
     if (!btn) return;
     const action = btn.getAttribute('data-action');
     if (action === 'open-achievements') {
-      try { window.ChronosBus?.emit?.('widget:show', 'Achievements'); } catch { }
+      try {
+        const w = document.querySelector('[data-widget="Achievements"]');
+        if (w) {
+          w.style.display = '';
+          w.classList.remove('minimized');
+          try { window?.ChronosFocusWidget?.(w); } catch { }
+        }
+      } catch { }
+      try { window?.ChronosBus?.emit?.('widget:show', 'Achievements'); } catch { }
+      try { window?.__chronosBus?.emit?.('widget:show', 'Achievements'); } catch { }
     }
     closePopup(overlay, done, cleanup);
   });

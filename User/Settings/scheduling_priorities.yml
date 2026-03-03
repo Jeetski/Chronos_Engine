@@ -30,7 +30,7 @@ Scheduling_Priorities:
     Description: Matches items to current energy, focus, and emotional states.
   - Name: Priority Property
     Order: 7
-    Rank: 2
+    Rank: 4
     Description: Uses the item's explicit Priority property.
   - Name: Template Membership
     Order: 8

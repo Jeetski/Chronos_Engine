@@ -44,20 +44,20 @@ function injectStyles() {
       position: relative;
       width: 100%;
       height: 100%;
-      border: 1px solid rgba(34,40,53,0.9);
+      border: 1px solid var(--chronos-border-strong, var(--border, rgba(34,40,53,0.9)));
       border-radius: 18px;
       overflow: hidden;
-      background: radial-gradient(circle at 20% 20%, rgba(14,18,28,0.92), rgba(8,10,16,0.98));
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 60px rgba(0,0,0,0.45);
+      background: var(--chronos-overlay-gradient, radial-gradient(circle at 20% 20%, rgba(14,18,28,0.92), rgba(8,10,16,0.98)));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), var(--chronos-shadow, 0 18px 60px rgba(0,0,0,0.45));
       touch-action: none;
     }
     .cockpit-grid {
       position: absolute;
       inset: 0;
-      background-color: #0c111a;
+      background-color: var(--chronos-bg, var(--bg, #0c111a));
       background-image:
-        radial-gradient(circle at center, rgba(120,150,220,0.8) 2px, transparent 0),
-        radial-gradient(circle at center, rgba(120,150,220,0.45) 2px, transparent 0);
+        radial-gradient(circle at center, color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 85%, transparent) 2px, transparent 0),
+        radial-gradient(circle at center, color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 45%, transparent) 2px, transparent 0);
       background-size: 60px 60px, 12px 12px;
       background-position: 0 0, 0 0;
       opacity: 0.9;
@@ -80,7 +80,7 @@ function injectStyles() {
       justify-content: center;
       text-align: center;
       gap: 12px;
-      color: #e6e8ef;
+      color: var(--chronos-text, var(--text, #e6e8ef));
       padding: 20px;
       pointer-events: auto;
       transition: opacity 0.2s ease, transform 0.2s ease;
@@ -98,13 +98,13 @@ function injectStyles() {
     }
     .cockpit-subtitle {
       font-size: 16px;
-      color: #9aa3b8;
+      color: var(--chronos-text-muted, var(--text-dim, #9aa3b8));
       max-width: 420px;
       line-height: 1.5;
     }
     .cockpit-hint {
       font-size: 13px;
-      color: rgba(154,163,184,0.8);
+      color: color-mix(in srgb, var(--chronos-text-muted, var(--text-dim, #9aa3b8)) 85%, transparent);
     }
     .cockpit-panel {
       position: absolute;
@@ -128,9 +128,9 @@ function injectStyles() {
       animation: cockpitPulse 900ms ease;
     }
     @keyframes cockpitPulse {
-      0% { box-shadow: 0 0 0 0 rgba(122,162,247,0.0), 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
-      25% { box-shadow: 0 0 0 3px rgba(122,162,247,0.35), 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
-      70% { box-shadow: 0 0 0 2px rgba(122,162,247,0.2), 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 0%, transparent), 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
+      25% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 35%, transparent), 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
+      70% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 20%, transparent), 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
       100% { box-shadow: 0 18px 50px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.03); }
     }
     .cockpit-panel-header {
@@ -141,7 +141,7 @@ function injectStyles() {
       padding: 12px 18px 10px;
       color: var(--text);
       cursor: grab;
-      background: linear-gradient(180deg, rgba(28, 34, 48, 0.85), rgba(18, 22, 32, 0.85));
+      background: linear-gradient(180deg, color-mix(in srgb, var(--chronos-surface-highlight, var(--panel, #1c2230)) 85%, transparent), color-mix(in srgb, var(--chronos-surface-strong, var(--panel, #121620)) 85%, transparent));
       border-bottom: 1px solid var(--border);
       user-select: none;
       border-top-left-radius: var(--radius);
@@ -162,7 +162,7 @@ function injectStyles() {
       gap: 6px;
     }
     .cockpit-panel-actions button {
-      background: #0f141d;
+      background: var(--chronos-surface-strong, #0f141d);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--text-dim);
@@ -173,8 +173,8 @@ function injectStyles() {
     }
     .cockpit-panel-actions button:hover {
       color: var(--text);
-      border-color: #2b3343;
-      background: #0b0f16;
+      border-color: var(--chronos-border-strong, var(--border, #2b3343));
+      background: color-mix(in srgb, var(--chronos-surface-strong, #0f141d) 82%, #000);
     }
     .cockpit-panel-help-btn {
       width: 28px;
@@ -198,19 +198,19 @@ function injectStyles() {
     }
     .cockpit-panel-empty-prompt {
       font-size: 13px;
-      color: #9aa3b8;
+      color: var(--chronos-text-muted, var(--text-dim, #9aa3b8));
       text-align: center;
       margin-top: 40px;
     }
     .cockpit-panel-resizer {
       position: absolute;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.08);
+      background: color-mix(in srgb, var(--chronos-accent-soft, rgba(122,162,247,0.2)) 50%, transparent);
       border-radius: 4px;
       opacity: 0.85;
     }
     .cockpit-panel-resizer:hover {
-      background: rgba(255, 255, 255, 0.16);
+      background: color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 30%, transparent);
       border-color: var(--accent, #7aa2f7);
     }
     .cockpit-panel-resizer.se {
@@ -251,11 +251,11 @@ function injectStyles() {
       display: flex;
       gap: 10px;
       align-items: center;
-      background: rgba(9,12,20,0.9);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: color-mix(in srgb, var(--chronos-surface-strong, #090c14) 90%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 70%, transparent);
       border-radius: 999px;
       padding: 6px 12px;
-      color: #dbe3ff;
+      color: var(--chronos-text, var(--text, #dbe3ff));
       pointer-events: auto;
       box-shadow: 0 6px 20px rgba(0,0,0,0.45);
       z-index: 30;
@@ -273,9 +273,9 @@ function injectStyles() {
       width: 30px;
       height: 30px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.08);
-      color: #f8fbff;
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 65%, transparent);
+      background: color-mix(in srgb, var(--chronos-accent-soft, rgba(122,162,247,0.2)) 55%, transparent);
+      color: var(--chronos-text, var(--text, #f8fbff));
       cursor: pointer;
       font-weight: 600;
     }
@@ -284,8 +284,8 @@ function injectStyles() {
     .cockpit-fit-btn:hover,
     .cockpit-snap-btn:hover,
     .cockpit-minimap-btn:hover {
-      border-color: rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.15);
+      border-color: var(--chronos-accent-strong, var(--chronos-accent, var(--accent, #7aa2f7)));
+      background: color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 25%, transparent);
     }
     .cockpit-zoom-label {
       min-width: 48px;
@@ -300,11 +300,11 @@ function injectStyles() {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(9,12,20,0.9);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: color-mix(in srgb, var(--chronos-surface-strong, #090c14) 90%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 70%, transparent);
       border-radius: 16px;
       padding: 8px 10px;
-      color: #dbe3ff;
+      color: var(--chronos-text, var(--text, #dbe3ff));
       pointer-events: auto;
       box-shadow: 0 6px 20px rgba(0,0,0,0.45);
       z-index: 30;
@@ -313,17 +313,17 @@ function injectStyles() {
       font-size: 11px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: rgba(160,170,196,0.9);
+      color: var(--chronos-text-muted, var(--text-dim, rgba(160,170,196,0.9)));
       padding: 0 2px;
     }
     .cockpit-panel-launcher {
       position: relative;
     }
     .cockpit-panel-launcher button {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: color-mix(in srgb, var(--chronos-accent-soft, rgba(122,162,247,0.2)) 55%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 80%, transparent);
       border-radius: 10px;
-      color: #f3f6ff;
+      color: var(--chronos-text, var(--text, #f3f6ff));
       padding: 6px 10px;
       cursor: pointer;
       font-size: 12px;
@@ -331,15 +331,15 @@ function injectStyles() {
       letter-spacing: 0.03em;
     }
     .cockpit-panel-launcher button:hover {
-      background: rgba(255,255,255,0.14);
+      background: color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 25%, transparent);
     }
     .cockpit-panel-menu {
       position: absolute;
       top: calc(100% + 8px);
       left: 0;
       width: 240px;
-      background: rgba(10,14,24,0.96);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: color-mix(in srgb, var(--chronos-surface-strong, #0a0e18) 94%, #000);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 70%, transparent);
       border-radius: 14px;
       box-shadow: 0 14px 26px rgba(0,0,0,0.5);
       padding: 10px;
@@ -353,9 +353,9 @@ function injectStyles() {
       width: 100%;
       padding: 6px 8px;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(6,8,16,0.9);
-      color: #dfe6ff;
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 75%, transparent);
+      background: color-mix(in srgb, var(--chronos-surface-soft, #060810) 92%, #000);
+      color: var(--chronos-text, var(--text, #dfe6ff));
       font-size: 12px;
       margin-bottom: 8px;
     }
@@ -373,13 +373,13 @@ function injectStyles() {
       gap: 8px;
       padding: 6px 8px;
       border-radius: 8px;
-      background: rgba(255,255,255,0.04);
-      color: #dbe3ff;
+      background: color-mix(in srgb, var(--chronos-surface-highlight, rgba(255,255,255,0.04)) 45%, transparent);
+      color: var(--chronos-text, var(--text, #dbe3ff));
       cursor: pointer;
       font-size: 12px;
     }
     .cockpit-panel-menu-item:hover {
-      background: rgba(255,255,255,0.1);
+      background: color-mix(in srgb, var(--chronos-accent-soft, rgba(122,162,247,0.2)) 70%, transparent);
     }
     .cockpit-panel-menu-item.danger {
       background: rgba(220, 68, 68, 0.18);
@@ -399,7 +399,7 @@ function injectStyles() {
     .cockpit-panel-menu-item em {
       font-style: normal;
       font-size: 11px;
-      color: rgba(170,182,208,0.8);
+      color: var(--chronos-text-muted, var(--text-dim, rgba(170,182,208,0.8)));
     }
     .cockpit-minimap {
       position: fixed;
@@ -407,12 +407,12 @@ function injectStyles() {
       bottom: 16px;
       width: 220px;
       height: 170px;
-      background: rgba(9,12,20,0.92);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: color-mix(in srgb, var(--chronos-surface-strong, #090c14) 92%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 70%, transparent);
       border-radius: 16px;
       display: flex;
       flex-direction: column;
-      color: #dbe3ff;
+      color: var(--chronos-text, var(--text, #dbe3ff));
       pointer-events: auto;
       box-shadow: 0 10px 24px rgba(0,0,0,0.55);
       z-index: 40;
@@ -430,11 +430,11 @@ function injectStyles() {
       align-items: center;
       justify-content: space-between;
       padding: 8px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 55%, transparent);
       font-size: 11px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(160,170,196,0.9);
+      color: var(--chronos-text-muted, var(--text-dim, rgba(160,170,196,0.9)));
       cursor: move;
       user-select: none;
     }
@@ -447,9 +447,9 @@ function injectStyles() {
     .cockpit-minimap-track {
       position: relative;
       flex: 1;
-      background: rgba(4,6,12,0.75);
+      background: color-mix(in srgb, var(--chronos-surface-soft, #04060c) 80%, #000);
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 50%, transparent);
       overflow: hidden;
       cursor: grab;
     }
@@ -459,8 +459,8 @@ function injectStyles() {
     .cockpit-minimap-panel {
       position: absolute;
       border-radius: 4px;
-      background: rgba(122,162,247,0.45);
-      border: 1px solid rgba(122,162,247,0.7);
+      background: color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 45%, transparent);
+      border: 1px solid color-mix(in srgb, var(--chronos-accent-strong, var(--chronos-accent, var(--accent, #7aa2f7))) 75%, transparent);
       box-shadow: 0 0 0 1px rgba(15,20,32,0.4);
       pointer-events: none;
       min-width: 3px;
@@ -469,8 +469,8 @@ function injectStyles() {
     .cockpit-minimap-viewport {
       position: absolute;
       border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.75);
-      background: rgba(255,255,255,0.08);
+      border: 1px solid color-mix(in srgb, var(--chronos-text, var(--text, #e6e8ef)) 75%, transparent);
+      background: color-mix(in srgb, var(--chronos-text, var(--text, #e6e8ef)) 10%, transparent);
       box-shadow: 0 0 0 1px rgba(5,8,16,0.6);
       pointer-events: none;
     }
@@ -744,8 +744,8 @@ class CockpitPanelManager {
   _updateSnapButton() {
     if (!this.snapBtn) return;
     this.snapBtn.style.background = this.view.snap
-      ? 'rgba(122,162,247,0.3)'
-      : 'rgba(255,255,255,0.08)';
+      ? 'color-mix(in srgb, var(--chronos-accent, var(--accent, #7aa2f7)) 35%, transparent)'
+      : 'color-mix(in srgb, var(--chronos-accent-soft, rgba(122,162,247,0.2)) 55%, transparent)';
     this.snapBtn.title = this.view.snap ? 'Snap on' : 'Snap off';
   }
 
@@ -1360,7 +1360,7 @@ class CockpitPanelManager {
     const divider = document.createElement('div');
     divider.style.height = '1px';
     divider.style.margin = '8px 0';
-    divider.style.background = 'rgba(255,255,255,0.08)';
+    divider.style.background = 'color-mix(in srgb, var(--chronos-border, var(--border, #222835)) 60%, transparent)';
     this.panelMenuList.appendChild(divider);
 
     items.forEach(entry => {

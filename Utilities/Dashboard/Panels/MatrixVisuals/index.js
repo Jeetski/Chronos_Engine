@@ -27,6 +27,7 @@ const DIMENSION_OPTIONS = [
 let managerRef = null;
 let panelApi = null;
 let latestSnapshot = null;
+const VISUAL_SNAPSHOT_KEY = '__chronosMatrixVisualSnapshot';
 
 function injectStyles(){
   if (document.getElementById(STYLE_ID)) return;
@@ -150,6 +151,11 @@ function createDefinition(){
 function registerPanels(manager){
   injectStyles();
   managerRef = manager;
+  try {
+    if (!latestSnapshot && window[VISUAL_SNAPSHOT_KEY]) {
+      latestSnapshot = enrichSnapshot(window[VISUAL_SNAPSHOT_KEY]);
+    }
+  } catch {}
   manager.registerPanel(createDefinition());
   ensureService();
 }
@@ -532,10 +538,12 @@ function ensureService(){
   window.MatrixVisualPanelService = {
     setSnapshot(snapshot){
       latestSnapshot = enrichSnapshot(snapshot);
+      try { window[VISUAL_SNAPSHOT_KEY] = latestSnapshot; } catch {}
       try { panelApi?.update?.(latestSnapshot); } catch {}
     },
     openWithPayload(snapshot){
       latestSnapshot = enrichSnapshot(snapshot);
+      try { window[VISUAL_SNAPSHOT_KEY] = latestSnapshot; } catch {}
       try {
         panelApi?.update?.(latestSnapshot);
         managerRef?.setVisible?.(PANEL_ID, true);
