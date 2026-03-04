@@ -50,7 +50,8 @@ export function mount(el, context) {
         <div id="twBannerText" style="font-weight:600; margin-bottom:8px;">Completed the current block?</div>
         <div class="row" style="gap:8px; flex-wrap:wrap;">
           <button class="btn btn-primary" id="twBannerYes">Yes</button>
-          <button class="btn" id="twBannerSkip">Skip Today</button>
+          <button class="btn" id="twBannerSkipToday">Skip Today</button>
+          <button class="btn" id="twBannerSkip">Later</button>
           <button class="btn btn-secondary" id="twBannerRestart">Start Over</button>
           <button class="btn" id="twBannerStretch">Stretch</button>
         </div>
@@ -105,6 +106,7 @@ export function mount(el, context) {
   const banner = el.querySelector('#twBanner');
   const bannerText = el.querySelector('#twBannerText');
   const bannerYes = el.querySelector('#twBannerYes');
+  const bannerSkipToday = el.querySelector('#twBannerSkipToday');
   const bannerSkip = el.querySelector('#twBannerSkip');
   const bannerRestart = el.querySelector('#twBannerRestart');
   const bannerStretch = el.querySelector('#twBannerStretch');
@@ -297,6 +299,7 @@ export function mount(el, context) {
         }
         banner.style.display = (hasPending || hasActionTarget || (waitingForAnchor && currentBlock)) ? '' : 'none';
         if (bannerYes) bannerYes.disabled = !hasActionTarget;
+        if (bannerSkipToday) bannerSkipToday.disabled = !hasActionTarget;
         if (bannerSkip) bannerSkip.disabled = !hasActionTarget;
         if (bannerRestart) bannerRestart.disabled = !hasActionTarget;
         if (bannerStretch) bannerStretch.disabled = !hasActionTarget;
@@ -355,6 +358,7 @@ export function mount(el, context) {
   refreshBtn.addEventListener('click', async () => { await reloadProfilesAndRefresh(); await status(); });
   profSel.addEventListener('change', () => { try { localStorage.setItem('twProfile', profSel.value); } catch { } });
   bannerYes?.addEventListener('click', () => confirmBlock('yes'));
+  bannerSkipToday?.addEventListener('click', () => confirmBlock('skip'));
   bannerSkip?.addEventListener('click', () => confirmBlock('skip'));
   bannerRestart?.addEventListener('click', () => confirmBlock('start_over'));
   bannerStretch?.addEventListener('click', () => confirmBlock('stretch'));

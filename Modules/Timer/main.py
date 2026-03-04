@@ -229,6 +229,8 @@ def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_
     prof = profs.get(profile_name) or {}
 
     blocks = plan.get('blocks') or []
+    first_block = blocks[0]
+    focus_sec = _block_minutes_value(first_block) * 60
     plan_date = str(plan.get('date') or datetime.now().strftime('%Y-%m-%d'))
     schedule_state = {
         'plan': plan,

@@ -214,7 +214,7 @@ export function mount(el, context = {}) {
           <div class="dock-timer-confirm-text" data-dock-timer-confirm-text>Finished this block?</div>
           <div class="dock-timer-confirm-row">
             <button class="dock-timer-confirm-btn" type="button" data-dock-timer-confirm-yes>Yes</button>
-            <button class="dock-timer-confirm-btn" type="button" data-dock-timer-confirm-skip>Skip Today</button>
+            <button class="dock-timer-confirm-btn" type="button" data-dock-timer-confirm-skip>Later</button>
             <button class="dock-timer-confirm-btn" type="button" data-dock-timer-confirm-restart>Start Over</button>
             <button class="dock-timer-confirm-btn" type="button" data-dock-timer-confirm-stretch>Stretch</button>
           </div>
