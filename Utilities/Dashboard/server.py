@@ -3658,7 +3658,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 # first is '' (leading slash), second is 'assets' (any case), rel is the remainder
             except ValueError:
                 rel = ''
-            assets_root = os.path.join(ROOT_DIR, 'Assets')
+            assets_root = os.path.join(ROOT_DIR, 'assets')
             fpath = os.path.abspath(os.path.join(assets_root, rel))
             # Prevent path traversal
             if not fpath.startswith(os.path.abspath(assets_root)):

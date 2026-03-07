@@ -15,7 +15,7 @@ except Exception:
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "sound_settings.yml")
-ASSETS_DIR = os.path.join(ROOT_DIR, "Assets")
+ASSETS_DIR = os.path.join(ROOT_DIR, "assets")
 
 DEFAULT_SETTINGS = {
     "enabled": True,
@@ -26,10 +26,10 @@ DEFAULT_SETTINGS = {
         "exit": True,
     },
     "files": {
-        "startup": "Startup.mp3",
-        "done": "Done.mp3",
-        "error": "Error.mp3",
-        "exit": "Exit.mp3",
+        "startup": "startup.mp3",
+        "done": "done.mp3",
+        "error": "error.mp3",
+        "exit": "exit.mp3",
     },
 }
 
