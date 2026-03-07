@@ -238,7 +238,7 @@ Reviews (Daily/Weekly)
   - Capture lessons learned in a `note` or `journal_entry`.
 
 - Weekly
-  - Use `user/Reviews/weekly/<YYYY-WW>.yml` as a template (existing examples in repo).
+  - Use `user/reviews/weekly/<YYYY-WW>.yml` as a template (existing examples in repo).
   - Command helper (if present): `review weekly` then `edit` the generated file.
   - Actions: archive completed tasks, adjust goals, refresh templates.
 
@@ -338,7 +338,7 @@ Reviews & Reflections
 
 - Daily review
   - `review daily`
-  - `edit review "<today>"` (or open the generated file in `user/Reviews/`).
+  - `edit review "<today>"` (or open the generated file in `user/reviews/`).
 - Weekly review
   - `review weekly`
   - Archive completed items and adjust templates.
@@ -483,6 +483,7 @@ Next Steps
 - Explore `docs/dev/architecture.md` to extend commands and modules.
 - Review `docs/guides/dashboard.md` for APIs and widget ideas.
 - Add your own templates and scripts to shape Chronos to your workflow.
+
 
 
 
