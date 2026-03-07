@@ -16,7 +16,7 @@ if ROOT_DIR not in sys.path:
 
 USER_DIR = os.path.join(ROOT_DIR, "User")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
-PRESET_DIR = os.path.join(ROOT_DIR, "Presets", "Matrix")
+PRESET_DIR = os.path.join(ROOT_DIR, "presets", "matrix")
 LEGACY_PRESET_DIR = os.path.join(ROOT_DIR, "matrix", "presets")
 DATA_DIR = os.path.join(USER_DIR, "Data")
 MATRIX_DB_PATH = os.path.join(DATA_DIR, "chronos_matrix.db")

@@ -420,7 +420,7 @@ MEDIA_ROOT = os.path.join(ROOT_DIR, "User", "Media")
 MP3_DIR = os.path.join(MEDIA_ROOT, "MP3")
 PLAYLIST_DIR = os.path.join(MEDIA_ROOT, "Playlists")
 DEFAULT_PLAYLIST_SLUG = "default"
-CALENDAR_OVERLAY_PRESET_DIR = os.path.join(ROOT_DIR, "Presets", "Calendar_Overlays")
+CALENDAR_OVERLAY_PRESET_DIR = os.path.join(ROOT_DIR, "presets", "calendar_overlays")
 
 
 def _normalize_bool(value):

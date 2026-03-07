@@ -31,11 +31,11 @@ class TestRegistries(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_wizards_registry(self):
-        # Create a dummy wizard
-        wizards_dir = os.path.join(registry_builder.SETTINGS_DIR, "Wizards")
+        # Create a dummy wizard under Utilities/Dashboard/Wizards/<WizardName>/wizard.yml
+        wizards_dir = os.path.join(registry_builder.ROOT_DIR, "Utilities", "Dashboard", "Wizards", "MagicWizard")
         os.makedirs(wizards_dir, exist_ok=True)
-        
-        with open(os.path.join(wizards_dir, "MagicWizard.yml"), "w") as f:
+
+        with open(os.path.join(wizards_dir, "wizard.yml"), "w", encoding="utf-8") as f:
             yaml.dump({"id": "magic", "label": "Magic Wizard", "module": "Magic"}, f)
             
         # Build registry

@@ -20,7 +20,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 ## Views & Widgets
 
 ### Views
-- **Calendar** - Year/Month/Week/Day canvas with a Day List tree for the selected day. Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable). Month overlays load presets from `Presets/Calendar_Overlays/` (including Happiness overlays for scheduled vs completed days).
+- **Calendar** - Year/Month/Week/Day canvas with a Day List tree for the selected day. Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable). Month overlays load presets from `presets/calendar_overlays/` (including Happiness overlays for scheduled vs completed days).
 - **Tracker** - Year-at-a-glance tracker view with 12 month grids and a right inspector for selecting one habit or commitment to track.
   - Future days are gray.
   - Past days with no data are gray with a white `?`.
@@ -33,7 +33,7 @@ Both start the local HTTP server (`Utilities/Dashboard/server.py`) and open the 
 - **Project Manager** - Project planning view with state filtering, milestone linkage, and editable project metadata (`description`, `state`, `stage`, `priority`, `target date`). `Open Milestones` opens the Milestones widget pre-filtered to the selected project.
 - **Goal Planner** - Goal-focused planning view aligned with Project Manager behavior. Shows goals only in the goal list (not milestone rows), supports editable goal metadata (`description`, `state`, `stage`, `priority`, `target date`), and opens Milestones pre-filtered to the selected goal.
 - **Cockpit** - A drag-and-drop canvas powered by `Utilities/Dashboard/Views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `docs/guides/cockpit.md` for panel details and troubleshooting.
-  - The Matrix panel loads presets from `Presets/Matrix/` (YAML). It ships with curated defaults there (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category), and you can drop new preset files into that folder.
+  - The Matrix panel loads presets from `presets/matrix/` (YAML). It ships with curated defaults there (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category), and you can drop new preset files into that folder.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 - **Editor** - A full-featured code editor for managing Chronos scripts (`.chs`), YAML settings, and Markdown notes (`User/` directory).
   - **Features**: Syntax Highlighting, Shell Integration (`Run > Run File`), Settings (Theme/Tab Size), and Sidebar File Management.
