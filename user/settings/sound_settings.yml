@@ -5,7 +5,7 @@ sounds:
   error: true
   exit: true
 files:
-  startup: startup.mp3
-  done: done.mp3
-  error: error.mp3
-  exit: exit.mp3
+  startup: sounds/startup.mp3
+  done: sounds/done.mp3
+  error: sounds/error.mp3
+  exit: sounds/exit.mp3

@@ -1,4 +1,3 @@
-import copy
 import os
 import threading
 
@@ -26,12 +25,30 @@ DEFAULT_SETTINGS = {
         "exit": True,
     },
     "files": {
-        "startup": "startup.mp3",
-        "done": "done.mp3",
-        "error": "error.mp3",
-        "exit": "exit.mp3",
+        "startup": "sounds/startup.mp3",
+        "done": "sounds/done.mp3",
+        "error": "sounds/error.mp3",
+        "exit": "sounds/exit.mp3",
     },
 }
+
+def _base_settings():
+    # Avoid stdlib `copy` dependency because command module loading can shadow it.
+    return {
+        "enabled": bool(DEFAULT_SETTINGS.get("enabled", True)),
+        "sounds": {
+            "startup": bool(DEFAULT_SETTINGS["sounds"].get("startup", True)),
+            "done": bool(DEFAULT_SETTINGS["sounds"].get("done", True)),
+            "error": bool(DEFAULT_SETTINGS["sounds"].get("error", True)),
+            "exit": bool(DEFAULT_SETTINGS["sounds"].get("exit", True)),
+        },
+        "files": {
+            "startup": str(DEFAULT_SETTINGS["files"].get("startup", "sounds/startup.mp3")),
+            "done": str(DEFAULT_SETTINGS["files"].get("done", "sounds/done.mp3")),
+            "error": str(DEFAULT_SETTINGS["files"].get("error", "sounds/error.mp3")),
+            "exit": str(DEFAULT_SETTINGS["files"].get("exit", "sounds/exit.mp3")),
+        },
+    }
 
 _mixer_lock = threading.Lock()
 _mixer_ready = False
@@ -39,7 +56,7 @@ _mixer_failed = False
 
 
 def _merged_settings(data):
-    out = copy.deepcopy(DEFAULT_SETTINGS)
+    out = _base_settings()
     if not isinstance(data, dict):
         return out
 
@@ -140,9 +157,13 @@ def _resolve_sound_path(sound_name):
     if not fn:
         return None
     candidate = fn if os.path.isabs(fn) else os.path.join(ASSETS_DIR, fn)
-    if not os.path.exists(candidate):
-        return None
-    return candidate
+    if os.path.exists(candidate):
+        return candidate
+    # Backward compatibility for legacy settings that used bare filenames.
+    fallback = os.path.join(ASSETS_DIR, "sounds", os.path.basename(str(fn)))
+    if os.path.exists(fallback):
+        return fallback
+    return None
 
 
 def _ensure_mixer():

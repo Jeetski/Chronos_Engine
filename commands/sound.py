@@ -33,6 +33,33 @@ def run(args, properties):
         _print_status()
         return
 
+    # sound test <name|all>
+    if a0 == "test":
+        target = str(args[1]).strip().lower() if len(args) > 1 else ""
+        known = list(SoundFX.list_sound_names())
+        known_set = set(known)
+        if not target:
+            print("Usage: sound test <startup|done|error|exit|all>")
+            return
+        if target in {"all", "*"}:
+            played = 0
+            for name in known:
+                ok = SoundFX.play(name, wait=True)
+                print(f"test {name}: {'ok' if ok else 'failed'}")
+                if ok:
+                    played += 1
+            if played == 0:
+                print("No sounds played. Check global/per-sound toggles and file paths.")
+            return
+        if target not in known_set:
+            print(f"Unknown sound '{target}'. Available: {', '.join(sorted(known_set))}")
+            return
+        ok = SoundFX.play(target, wait=True)
+        print(f"test {target}: {'ok' if ok else 'failed'}")
+        if not ok:
+            print("Check sound toggles and sound_settings.yml file path for this sound.")
+        return
+
     # sound on/off  OR  sounds on/off (via alias)
     global_toggle = _to_bool_token(a0)
     if global_toggle is not None:
@@ -81,6 +108,7 @@ Usage:
   sound
   sound <startup|done|error|exit>
   sound <startup|done|error|exit> <on|off>
+  sound test <startup|done|error|exit|all>
   sound <on|off>
   sound all <on|off>
   sounds <on|off>

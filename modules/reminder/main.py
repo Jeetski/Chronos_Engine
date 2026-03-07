@@ -8,7 +8,24 @@ from tkinter import messagebox
 
 # --- Constants ---
 REMINDERS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'Reminders'))
-REMINDER_SOUNDS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Sounds'))
+REMINDER_SOUNDS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
+
+def _resolve_reminder_sound_path(sound_value):
+    if not sound_value:
+        return None
+    raw = str(sound_value).strip()
+    if not raw:
+        return None
+    if os.path.isabs(raw):
+        return raw if os.path.exists(raw) else None
+    candidate = os.path.join(REMINDER_SOUNDS_DIR, raw)
+    if os.path.exists(candidate):
+        return candidate
+    # Backward compatibility for legacy filenames without "sounds/" prefix.
+    fallback = os.path.join(REMINDER_SOUNDS_DIR, 'sounds', os.path.basename(raw))
+    if os.path.exists(fallback):
+        return fallback
+    return candidate
 
 # Initialize pygame mixer (only once)
 try:
@@ -101,8 +118,8 @@ def trigger_reminder(reminder, filepath):
                     reminder_sound_filename = defaults.get('default_sound')
 
         if reminder_sound_filename:
-            full_sound_path = os.path.join(REMINDER_SOUNDS_DIR, reminder_sound_filename)
-            if os.path.exists(full_sound_path):
+            full_sound_path = _resolve_reminder_sound_path(reminder_sound_filename)
+            if full_sound_path and os.path.exists(full_sound_path):
                 reminder_sound = pygame.mixer.Sound(full_sound_path)
                 channel = pygame.mixer.Channel(1) # Use channel 1 for reminders
                 if not channel.get_busy():

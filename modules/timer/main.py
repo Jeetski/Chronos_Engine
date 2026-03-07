@@ -25,6 +25,24 @@ SESSIONS_DIR = os.path.join(STATE_DIR, 'sessions')
 PLAN_FILE = os.path.join(STATE_DIR, 'start_day_plan.yml')
 PROFILES_FILE = os.path.join(get_user_dir(), 'Settings', 'Timer_Profiles.yml')
 SETTINGS_FILE = os.path.join(get_user_dir(), 'Settings', 'Timer_Settings.yml')
+ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
+
+def _resolve_timer_sound_path(sound_value: str | None):
+    if not sound_value:
+        return None
+    raw = str(sound_value).strip()
+    if not raw:
+        return None
+    if os.path.isabs(raw):
+        return raw if os.path.exists(raw) else None
+    candidate = os.path.join(ASSETS_DIR, raw)
+    if os.path.exists(candidate):
+        return candidate
+    # Backward compatibility for legacy filenames without "sounds/" prefix.
+    fallback = os.path.join(ASSETS_DIR, 'sounds', os.path.basename(raw))
+    if os.path.exists(fallback):
+        return fallback
+    return candidate
 
 
 def _ensure_dirs():
@@ -382,8 +400,8 @@ def _notify(title: str, message: str, *, channel_index: int = 2, sound_filename:
         if pygame and pygame.mixer:
             pygame.mixer.init()
             if sound_filename:
-                from_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Alarm', 'Sounds')), sound_filename)
-                if os.path.exists(from_path):
+                from_path = _resolve_timer_sound_path(sound_filename)
+                if from_path and os.path.exists(from_path):
                     snd = pygame.mixer.Sound(from_path)
                     ch = pygame.mixer.Channel(channel_index)
                     if not ch.get_busy():

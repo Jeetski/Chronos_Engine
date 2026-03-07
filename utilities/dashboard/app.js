@@ -352,8 +352,8 @@ ready(async () => {
   try {
     const logo = document.getElementById('chronosLogo');
     if (logo) {
-      const want = apiBase() + '/assets/logo_no_background.png';
-      if (!logo.src || logo.src.startsWith('file:') || logo.src.endsWith('/assets/logo_no_background.png')) {
+      const want = apiBase() + '/assets/images/logo_no_background.png';
+      if (!logo.src || logo.src.startsWith('file:') || logo.src.endsWith('/assets/images/logo_no_background.png')) {
         logo.src = want;
       }
       logo.addEventListener('error', () => { logo.src = want; });

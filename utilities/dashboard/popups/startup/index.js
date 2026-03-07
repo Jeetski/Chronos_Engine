@@ -209,8 +209,8 @@ function closePopup(el, done, cleanup) {
 function buildPopup(done) {
   const overlay = document.createElement('div');
   overlay.className = 'alpha-launch-overlay';
-  const logoSrc = `${apiBase()}/assets/logo_no_background.png`;
-  const hiveLogoSrc = `${apiBase()}/assets/hivemind_studio_icon.ico`;
+  const logoSrc = `${apiBase()}/assets/images/logo_no_background.png`;
+  const hiveLogoSrc = `${apiBase()}/assets/images/hivemind_studio_icon.ico`;
   overlay.innerHTML = `
     <div class="alpha-launch-card" role="dialog" aria-modal="true" aria-label="Chronos Engine Alpha">
       <img class="alpha-launch-logo" src="${logoSrc}" alt="Chronos Engine Logo" />
