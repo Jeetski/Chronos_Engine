@@ -625,11 +625,15 @@ export function mount(el, context) {
   initialGreetingBubble = appendMsg(`Hello ${userName}, I'm Nia. How can I help you today?`, 'assistant');
 
   orb?.addEventListener('click', () => {
+    try { el.style.display = ''; } catch { }
     isOpen = !shell.classList.contains('is-open');
     setOpen(isOpen);
     if (isOpen) input?.focus();
   });
-  btnMin?.addEventListener('click', () => setOpen(false));
+  btnMin?.addEventListener('click', (ev) => {
+    try { ev.preventDefault(); ev.stopPropagation(); } catch { }
+    setOpen(false);
+  });
   btnSettings?.addEventListener('click', () => {
     if (settingsPane?.hasAttribute('hidden')) openSettings();
     else closeSettings();
@@ -668,10 +672,18 @@ export function mount(el, context) {
       .then(() => appendMsg('Nia memories deleted.', 'assistant'))
       .catch(() => appendMsg('Failed to delete Nia memories.', 'assistant'));
   });
-  btnClose?.addEventListener('click', () => {
+  btnClose?.addEventListener('click', (ev) => {
+    try { ev.preventDefault(); ev.stopPropagation(); } catch { }
     // Keep widget shell visible so the bottom-right orb remains clickable.
     setOpen(false);
     closeSettings();
+    // Restore anchored default so reopen always appears near orb.
+    if (panel) {
+      panel.style.left = '';
+      panel.style.top = '';
+      panel.style.right = '6px';
+      panel.style.bottom = '82px';
+    }
   });
 
   const onSend = () => {
@@ -757,6 +769,10 @@ export function mount(el, context) {
 
   // Optional light drag by panel header.
   header?.addEventListener('pointerdown', (ev) => {
+    const target = ev.target;
+    if (target && target.closest && target.closest('button, .controls, input, select, textarea, a')) {
+      return;
+    }
     const rect = panel?.getBoundingClientRect();
     if (!rect) return;
     const offX = ev.clientX - rect.left;
