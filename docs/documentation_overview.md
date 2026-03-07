@@ -366,9 +366,9 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 - `user/profile/personality.yml` - Big 5 psychometric traits
 
 ### Data Mirrors
-- `user/Data/databases.yml` - Mirror registry
-- `user/Data/sequence_automation.yml` - Nightly sync state
-- `user/Data/trends.md` - Behavior digest for agents
+- `user/data/databases.yml` - Mirror registry
+- `user/data/sequence_automation.yml` - Nightly sync state
+- `user/data/trends.md` - Behavior digest for agents
 
 ---
 
@@ -635,6 +635,7 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+
 
 
 

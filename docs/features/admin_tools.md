@@ -88,7 +88,7 @@ Common paths impacted by Admin Tools:
 - `user/logs/`
 - `user/schedules/`
 - `user/archive/`
-- `user/Data/*.db`
+- `user/data/*.db`
 - `user/.cache/`
 
 Mirror DB names typically include:
@@ -116,4 +116,5 @@ Recovery sequence:
 - `docs/reference/cli_commands.md` (`clear`, `backup`, `sequence`)
 - `docs/guides/dashboard.md` (System Admin widget)
 - `docs/dev/sequence.md` (mirror rebuild model)
+
 

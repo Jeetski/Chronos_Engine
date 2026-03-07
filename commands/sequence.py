@@ -175,7 +175,8 @@ Usage:
       Note: `memory` is deprecated and maps to `behavior` + `journal`.
 
   sequence trends
-      Refreshes `chronos_trends.db` and rewrites `user/Data/trends.md` with the
+      Refreshes `chronos_trends.db` and rewrites `user/data/trends.md` with the
       latest completion metrics.
 """
+
 

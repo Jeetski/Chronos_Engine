@@ -52,7 +52,7 @@ Then recursively collects:
 
 ## 4. Candidate Gather (`gather_candidates`)
 
-Source: `user/Data/chronos_core.db` table `items`.
+Source: `user/data/chronos_core.db` table `items`.
 
 Loaded rows include:
 - executable families (`task`, `habit`, `subroutine`, `microroutine`)
@@ -169,5 +169,6 @@ Paths:
 5. If over-cut/over-trim:
 - tune repair settings, priorities, and anchor/essential properties
 6. Re-run active path: `today reschedule`
+
 
 

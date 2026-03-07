@@ -101,8 +101,8 @@ Kairos reschedule behavior is intentionally "live-day aware":
 - `user/settings/timer_settings.yml`
 - `user/settings/timer_profiles.yml`
 - `user/settings/quick_wins_settings.yml`
-- `user/Data/chronos_core.db`
-- `user/Data/chronos_behavior.db`
+- `user/data/chronos_core.db`
+- `user/data/chronos_behavior.db`
 
 ## Debug Baseline
 
@@ -112,5 +112,6 @@ Kairos reschedule behavior is intentionally "live-day aware":
 - `user/logs/kairos_decision_log_latest.yml`
 3. Adjust status/template/anchors/settings.
 4. Apply with `today reschedule`.
+
 
 

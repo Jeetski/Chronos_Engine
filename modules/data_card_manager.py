@@ -16,7 +16,7 @@ def _ensure_dir():
 def get_series_list():
     """
     Returns a list of available Data Card series.
-    Each series is a subdirectory in user/Data_Cards/.
+    Each series is a subdirectory in user/data_Cards/.
     """
     _ensure_dir()
     series = []
@@ -138,4 +138,5 @@ def import_from_item(item_type, item_name, target_series, mapping=None):
     save_card(target_series, card_id, new_card)
     
     return True, f"Imported {item_name} to {target_series}"
+
 

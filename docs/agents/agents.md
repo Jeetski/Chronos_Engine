@@ -16,7 +16,7 @@ Operational depth lives in `docs/agents/skills/*`.
 - `user/profile/preferences.md`
 - `user/profile/preferences_settings.yml` (or equivalent)
 - `user/profile/personality.yml` (if present)
-- `user/Data/trends.md` (or run sequence refresh if stale)
+- `user/data/trends.md` (or run sequence refresh if stale)
 
 ## 3. Safety Contract
 
@@ -56,4 +56,5 @@ Do not preload all skills. Load only what matches intent.
 - Dashboard API: `docs/reference/dashboard_api.md`
 - Item properties: `docs/reference/item_properties.md`
 - System docs index: `docs/index.md`
+
 

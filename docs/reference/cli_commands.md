@@ -422,7 +422,7 @@ Performs system maintenance by clearing logs, databases, registries, and other s
 **Targets:**
 - `logs` - Delete all log files from `user/logs`
 - `schedules` - Delete generated schedule files from `user/schedules`
-- `cache` - Delete all database mirrors (all `.db` files in `user/Data`)
+- `cache` - Delete all database mirrors (all `.db` files in `user/data`)
 - `db:<name>` - Delete a specific database (e.g., `clear db:chronos_core`)
 - `registry:<name>` - Clear a specific registry cache (e.g., `clear registry:wizards`)
 - `temp` - Delete temporary files (`.tmp`, `.bak`, cache files)
@@ -583,5 +583,6 @@ Manages achievement awards and progression evaluation.
 ### `redeem`
 Redeems a reward and applies its target.
 **Usage:** `redeem reward <name>`
+
 
 

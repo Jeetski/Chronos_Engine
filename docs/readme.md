@@ -62,7 +62,7 @@ High level
 - Data model: YAML items under `user/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `modules/listener/listener.py` runs alarms, reminders, and timer lifecycle.
 - Dashboard: `utilities/dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
-- Data mirrors: the `sequence` CLI builds SQLite mirrors in `user/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
+- Data mirrors: the `sequence` CLI builds SQLite mirrors in `user/data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
 - `commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
@@ -177,7 +177,7 @@ target:
 This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and runs it when the alarm/reminder triggers.
 
 ## Sequence mirrors & digest
-- `sequence status` lists every mirror tracked in `user/Data/databases.yml`.
+- `sequence status` lists every mirror tracked in `user/data/databases.yml`.
   - `chronos_core.db` — canonical mirror of YAML items, relations, completions, and schedules.
   - `chronos_matrix.db` — fast analytics cache powering cockpit Matrix panels.
   - `chronos_events.db` — listener log stream plus command/trigger history.
@@ -185,8 +185,8 @@ This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and
   - `chronos_journal.db` — status snapshots and narratives for context filtering.
   - `chronos_trends.db` + `trends.md` — digest of completion rates/variance for agents.
 - `sequence sync <targets>` rebuilds one or more datasets (`matrix core events behavior journal trends`). Omit the target list to refresh everything.
-- `sequence trends` is a shortcut that rebuilds the behavior/trends chain and rewrites `user/Data/trends.md`.
-- The Listener automatically runs `sequence sync behavior journal trends` shortly after midnight (tracked in `user/Data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
+- `sequence trends` is a shortcut that rebuilds the behavior/trends chain and rewrites `user/data/trends.md`.
+- The Listener automatically runs `sequence sync behavior journal trends` shortly after midnight (tracked in `user/data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
 
 ## Development Notes
 Coding style
@@ -219,6 +219,7 @@ Recent improvements
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+
 
 
 

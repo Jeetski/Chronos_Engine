@@ -3,7 +3,7 @@ Sequence module scaffolding.
 
 Future phases will populate the SQLite mirrors (`chronos_core.db`, `chronos_matrix.db`,
 etc.) and behavior logging. For now we expose helper utilities that manage the local
-`user/Data/` workspace and registry metadata so commands can inspect the state.
+`user/data/` workspace and registry metadata so commands can inspect the state.
 """
 
 from .registry import (  # noqa: F401
@@ -27,4 +27,5 @@ __all__ = [
     "REGISTRY_PATH",
     "DEFAULT_DATABASES",
 ]
+
 
