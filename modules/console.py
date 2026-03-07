@@ -163,7 +163,7 @@ def _extract_runtime_options(argv_tokens):
 
 
 
-REGISTRY_DIR = os.path.join(ROOT_DIR, "Registry")
+REGISTRY_DIR = os.path.join(ROOT_DIR, "registry")
 _REGISTRY_CACHE = {}
 _REGISTRY_MTIMES = {}
 _COMMAND_REGISTRY_CHECKED_AT = 0.0

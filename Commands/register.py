@@ -54,5 +54,6 @@ Usage:
 
 Description:
   Builds JSON registries used by autosuggest and tooling.
-  Outputs files under the Registry/ folder.
+  Outputs files under the registry/ folder.
 """
+

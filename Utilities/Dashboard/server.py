@@ -979,7 +979,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if name not in ("command", "item", "property"):
                     self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
 
-                reg_dir = os.path.join(ROOT_DIR, 'Registry')
+                reg_dir = os.path.join(ROOT_DIR, 'registry')
                 fpath = os.path.join(reg_dir, f"{name}_registry.json")
                 
                 if not os.path.exists(fpath):
@@ -2602,7 +2602,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 name = (qs.get("name") or [""])[0].strip().lower()
                 if name not in {"command", "item", "property"}:
                     self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
-                reg_path = os.path.join(ROOT_DIR, "Registry", f"{name}_registry.json")
+                reg_path = os.path.join(ROOT_DIR, "registry", f"{name}_registry.json")
                 if not os.path.exists(reg_path):
                     self._write_json(404, {"ok": False, "error": "Registry not found"}); return
                 with open(reg_path, "r", encoding="utf-8") as fh:

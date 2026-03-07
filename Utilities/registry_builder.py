@@ -10,7 +10,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 COMMANDS_DIR = os.path.join(ROOT_DIR, "Commands")
 USER_DIR = os.path.join(ROOT_DIR, "User")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
-REGISTRY_DIR = os.path.join(ROOT_DIR, "Registry")
+REGISTRY_DIR = os.path.join(ROOT_DIR, "registry")
 
 SKIP_ITEM_DIRS = {
     "archive",
