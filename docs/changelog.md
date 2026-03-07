@@ -146,14 +146,14 @@
 
 ### Testing - Dashboard API Smoke Coverage
 - Added one-command smoke test script:
-  - `Tests/smoke_dashboard_api.ps1`
+  - `tests/smoke_dashboard_api.ps1`
 - Script behavior:
   - starts dashboard server on an isolated port
   - validates refactored write endpoints end-to-end
   - checks item CRUD, bulk ops, achievement/milestone update endpoints, yesterday check-in, timer actions, and template save
   - stops server and returns non-zero on failures
 - Executed smoke script in-session:
-  - `pwsh -NoProfile -ExecutionPolicy Bypass -File Tests/smoke_dashboard_api.ps1`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File tests/smoke_dashboard_api.ps1`
   - result: all checks passed (exit code `0`)
 
 ### CLI - Listener Command + Dashboard Integration

@@ -9,7 +9,7 @@ Alpha v0.2 focuses on **stability, observability, and hygiene**. We have introdu
 ### ✨ New Features
 *   **Centralized Logging**: The engine now writes structured logs to `Logs/engine.log`. No more flying blind when backend commands fail.
 *   **Live Debug Console**: The Dashboard's Debug Widget now connects to the backend logs. You can see server-side errors, warnings, and info messages directly in the UI.
-*   **Test Suite**: We have established a foundational test suite (`Tests/`) to ensure core stability covering Item Management and Scheduling basics.
+*   **Test Suite**: We have established a foundational test suite (`tests/`) to ensure core stability covering Item Management and Scheduling basics.
 
 ### 🛠️ Improvements
 *   **Debug Hygiene**: `debug_delete.txt` and other ad-hoc debug files are now neatly contained in the `Debug/` directory, keeping your project root clean.
