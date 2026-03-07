@@ -69,7 +69,7 @@ Folders
 - `modules/`: engine features (ItemManager, Scheduler, Timer, Conditions, etc.).
 - `utilities/`: helper libs and Dashboard code.
 - `user/`: your data (items, schedules, settings, logs).
-- `user/Inventories`, `user/Inventory_Items`, `user/tools`: optional gear and capability records that inventories/templates can reference.
+- `user/Inventories`, `user/inventory_items`, `user/tools`: optional gear and capability records that inventories/templates can reference.
 
 Key defaults and conventions
 - Item directories: lowercase, underscored, plural (e.g., `user/notes`, `user/goals`).
@@ -219,6 +219,7 @@ Recent improvements
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+
 
 
 
