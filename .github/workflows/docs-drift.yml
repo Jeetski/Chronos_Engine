@@ -19,4 +19,4 @@ jobs:
           python-version: "3.11"
 
       - name: Run docs drift checks
-        run: python Scripts/check_docs_drift.py
+        run: python scripts/check_docs_drift.py

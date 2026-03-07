@@ -340,7 +340,7 @@ def evaluate_and_trigger():
       - never: true, forbidden_items: [{type,name},...]
       Triggers: triggers: { on_met: [...], on_violation: [...] }
         action entries can be:
-          - { type: 'script', path: 'Scripts/my.chs' }
+          - { type: 'script', path: 'scripts/my.chs' }
           - { type: 'achievement', name: '...', properties: {...} }
           - { type: 'reward', name: '...', properties: {...} }
     """
@@ -440,3 +440,4 @@ def _update_properties(name: str, updates: dict):
         data[str(key).lower()] = value
     write_item_data(ITEM_TYPE, name, data)
     print(f"Commitment '{name}' updated.")
+

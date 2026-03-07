@@ -36,7 +36,7 @@ Description: Creates a new item of the specified type with the given name and pr
 Example: create note MyMeetingNotes category:work priority:high
 
 Note: For 'alarm' and 'reminder' item types, you can add a 'script' property to execute a .chs file when triggered.
-Example: create alarm MyAlarm time:08:00 script:Scripts/my_script.chs
+Example: create alarm MyAlarm time:08:00 script:scripts/my_script.chs
 
 Linking alarms/reminders to items:
 - Add a 'target' object to the YAML (via properties or by editing the file) to execute an action on trigger.
@@ -47,3 +47,4 @@ Linking alarms/reminders to items:
     status: completed  # required only when action == set_status
     properties: { minutes: 25 }  # optional extra args for the action
 """
+

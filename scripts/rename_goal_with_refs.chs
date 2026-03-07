@@ -1,7 +1,7 @@
 # Rename a goal and batch-update common goal references across items.
 # Usage:
 # 1) Edit old_goal/new_goal below
-# 2) run Scripts/rename_goal_with_refs.chs
+# 2) run scripts/rename_goal_with_refs.chs
 
 set var old_goal:Old Goal Name
 set var new_goal:New Goal Name
@@ -21,3 +21,4 @@ list habits goal_name:@old_goal then set habit @name goal_name:@new_goal
 list commitments goal_name:@old_goal then set commitment @name goal_name:@new_goal
 
 echo "Goal rename batch complete."
+

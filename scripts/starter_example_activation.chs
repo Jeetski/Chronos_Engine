@@ -4,7 +4,8 @@
 # - Activates live copies by removing "_example" from filenames (if missing)
 
 echo === Activating all *_example.yml items/templates ===
-powershell -NoProfile -ExecutionPolicy Bypass -File "Scripts/starter_example_activation.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts/starter_example_activation.ps1"
 sequence sync core matrix behavior journal trends
 today reschedule
 today
+

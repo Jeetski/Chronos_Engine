@@ -28,7 +28,7 @@ Script reliability rules:
 - Dashboard script tooling should remain syntax-compatible with CLI runtime.
 
 ## Data and Settings
-- Scripts commonly live under `Scripts/`.
+- Scripts commonly live under `scripts/`.
 - Script outcomes mutate normal `User/*` item/schedule/settings state.
 
 ## Validation
@@ -39,3 +39,4 @@ Script reliability rules:
 ## Related Docs
 - `docs/dev/chs_scripting.md`
 - `docs/guides/conditions_cookbook.md`
+

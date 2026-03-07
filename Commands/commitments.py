@@ -20,7 +20,7 @@ Commitment YAML fields (examples):
   triggers:
     on_met:
       - { type: achievement, name: Exercise streak! }
-      - { type: script, path: Scripts/congrats.chs }
+      - { type: script, path: scripts/congrats.chs }
 
   name: Grow Honeycomb Lab
   type: commitment
@@ -57,4 +57,5 @@ def run(args, properties):
         return
 
     print("Unknown subcommand.\n" + get_help_message())
+
 

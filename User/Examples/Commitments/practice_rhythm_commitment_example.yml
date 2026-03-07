@@ -12,7 +12,7 @@ targets:
 triggers:
   on_violation:
     - type: script
-      path: Scripts/commitments/miss_example.chs
+      path: scripts/commitments/miss_example.chs
   on_met:
     - type: achievement
       name: Practice Streak Achievement (Example)
@@ -21,3 +21,4 @@ triggers:
 totals:
   minutes: 0
   sessions: 0
+

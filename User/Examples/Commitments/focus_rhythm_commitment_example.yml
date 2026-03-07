@@ -15,8 +15,9 @@ triggers:
       name: Adventure Break Reward (Example)
   on_violation:
     - type: script
-      path: Scripts/commitments/miss_example.chs
+      path: scripts/commitments/miss_example.chs
 totals:
   minutes: 0
   sessions: 0
+
 

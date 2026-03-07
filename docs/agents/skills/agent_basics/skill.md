@@ -47,9 +47,9 @@ If syntax is uncertain:
 ## `.chs` Scripting Basics
 
 ### Create script
-- Save file in `Scripts/` (or any reachable path), extension `.chs`.
+- Save file in `scripts/` (or any reachable path), extension `.chs`.
 
-Example `Scripts/daily_reset.chs`:
+Example `scripts/daily_reset.chs`:
 ```chs
 status energy:medium focus:high
 today reschedule
@@ -57,7 +57,7 @@ quickwins limit:5
 ```
 
 ### Run script
-- `run Scripts/daily_reset.chs`
+- `run scripts/daily_reset.chs`
 
 ### Common script primitives
 - variables: `set var ...`, `vars`, `unset`
@@ -86,3 +86,4 @@ Reference:
 - `docs/dev/chs_scripting.md`
 - `docs/guides/conditions_cookbook.md`
 - `docs/agents/skills/index.md`
+

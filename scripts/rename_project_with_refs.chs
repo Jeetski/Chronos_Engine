@@ -1,7 +1,7 @@
 # Rename a project and batch-update common project references across items.
 # Usage:
 # 1) Edit old_project/new_project below
-# 2) run Scripts/rename_project_with_refs.chs
+# 2) run scripts/rename_project_with_refs.chs
 
 set var old_project:Old Project Name
 set var new_project:New Project Name
@@ -26,3 +26,4 @@ list goals resolution_ref:@old_project then set goal @name resolution_ref:@new_p
 list milestones resolution_ref:@old_project then set milestone @name resolution_ref:@new_project
 
 echo "Project rename batch complete."
+

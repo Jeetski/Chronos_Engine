@@ -25,8 +25,8 @@ def run(args, properties):
         execute_script(path)
         return
         
-    # Try inside Scripts/
-    path = os.path.join(ROOT_DIR, "Scripts", script_name)
+    # Try inside scripts/
+    path = os.path.join(ROOT_DIR, "scripts", script_name)
     if os.path.isfile(path):
         execute_script(path)
         return
@@ -46,7 +46,7 @@ def run(args, properties):
             execute_script(path)
             return
 
-        path = os.path.join(ROOT_DIR, "Scripts", script_name)
+        path = os.path.join(ROOT_DIR, "scripts", script_name)
         if os.path.isfile(path):
             execute_script(path)
             return
@@ -60,9 +60,10 @@ Usage:
 
 Description:
   Executes a Chronos Script (.chs) file.
-  Searches in current directory, project root, and Scripts/ folder.
+  Searches in current directory, project root, and scripts/ folder.
   
 Example:
   run my_script.chs
   run test_safety
 """
+

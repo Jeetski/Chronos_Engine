@@ -63,5 +63,6 @@ Description: Creates a new item of the specified type with the given name and pr
 Example: new note MyMeetingNotes category:work priority:high
 
 Note: For 'alarm' and 'reminder' item types, you can add a 'script' property to execute a .chs file when triggered.
-Example: new alarm MyAlarm time:08:00 script:Scripts/my_script.chs
+Example: new alarm MyAlarm time:08:00 script:scripts/my_script.chs
 """
+

@@ -3759,7 +3759,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 qs = parse_qs(parsed.query or "")
                 path_arg = (qs.get("path") or [""])[0].strip()
-                # Security: allow access only to User/, Scripts/
+                # Security: allow access only to User/, scripts/
                 # Logic: resolve path absolute, check if starts with ROOT_DIR
                 target_path = os.path.abspath(os.path.join(ROOT_DIR, path_arg))
                 if not target_path.startswith(ROOT_DIR):
@@ -5675,3 +5675,4 @@ if __name__ == "__main__":
         port = 7357
     serve(host=host, port=port)
         
+

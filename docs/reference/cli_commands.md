@@ -346,7 +346,7 @@ targets:
   - { type: habit, name: Smoke }
 triggers:
   on_violation:
-    - { type: script, path: Scripts/commitments/miss_example.chs }
+    - { type: script, path: scripts/commitments/miss_example.chs }
 ```
 
 ### `review`
@@ -583,3 +583,4 @@ Manages achievement awards and progression evaluation.
 ### `redeem`
 Redeems a reward and applies its target.
 **Usage:** `redeem reward <name>`
+

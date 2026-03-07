@@ -327,7 +327,7 @@ Listener & Timer
   - `timer pause` / `timer resume` / `timer stop`
 - Create a reminder that runs a script
   - `new reminder "Hydrate" time:15:00 enabled:true`
-  - Add `script: "Scripts/hydrate.chs"` in the reminder YAML.
+  - Add `script: "scripts/hydrate.chs"` in the reminder YAML.
 - Dismiss a ringing alarm
   - `dismiss "Deep Work"`
   - `snooze "Deep Work"`
@@ -419,8 +419,8 @@ Maintenance & Backups
 Scripts (Automation)
 
 - Run a script file
-  - Put a `.chs` file anywhere (e.g., `Scripts/morning.chs`), then run:
-    - `"Scripts/morning.chs"`
+  - Put a `.chs` file anywhere (e.g., `scripts/morning.chs`), then run:
+    - `"scripts/morning.chs"`
 
 - Script example
   ```chs
@@ -483,3 +483,4 @@ Next Steps
 - Explore `docs/dev/architecture.md` to extend commands and modules.
 - Review `docs/guides/dashboard.md` for APIs and widget ideas.
 - Add your own templates and scripts to shape Chronos to your workflow.
+

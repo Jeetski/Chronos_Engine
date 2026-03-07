@@ -1,6 +1,6 @@
 # CHS Lifecycle Test
 # This script verifies that we can creation, read, and delete items via the CLI.
-# Run with: python modules/console.py Scripts/test_lifecycle.chs
+# Run with: python modules/console.py scripts/test_lifecycle.chs
 
 # 1. Clean up potential leftovers
 if exists item:task:Test_Lifecycle then
@@ -44,3 +44,4 @@ if exists item:task:Test_Lifecycle then
 else
     echo "PASS: Lifecycle test complete"
 end
+

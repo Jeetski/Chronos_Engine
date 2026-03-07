@@ -85,13 +85,13 @@ class TestCommitments(unittest.TestCase):
             "rule": {"kind": "frequency", "times": 1, "period": "day"},
             "targets": [{"type": "habit", "name": "Morning Walk"}],
             "triggers": {
-                "on_complete": [{"type": "script", "command": "Scripts/commitments/miss_example.chs"}]
+                "on_complete": [{"type": "script", "command": "scripts/commitments/miss_example.chs"}]
             },
         }
         status = CommitmentModule.get_commitment_status(commitment)
         self.assertIn("on_met", status["triggers"])
         action = status["triggers"]["on_met"][0]
-        self.assertEqual(action.get("path"), "Scripts/commitments/miss_example.chs")
+        self.assertEqual(action.get("path"), "scripts/commitments/miss_example.chs")
 
     def test_frequency_per_target_counts_met(self):
         today = datetime.now().strftime("%Y-%m-%d")
@@ -176,3 +176,4 @@ class TestCommitments(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
