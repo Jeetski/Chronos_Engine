@@ -1,6 +1,6 @@
 # Chronos Starter Example Activation (generic)
 # - Scans user/**/*_example.yml
-# - Mirrors every example into user/Examples
+# - Mirrors every example into user/examples
 # - Activates live copies by removing "_example" from filenames (if missing)
 
 echo === Activating all *_example.yml items/templates ===

@@ -19,7 +19,7 @@ $skipped = 0
 foreach ($file in $exampleFiles) {
   $relative = $file.FullName.Substring($userRoot.Length).TrimStart('\', '/')
 
-  # Mirror every example into user/Examples preserving User-relative layout.
+  # Mirror every example into user/examples preserving User-relative layout.
   $mirrorPath = Join-Path $examplesRoot $relative
   $mirrorDir = Split-Path $mirrorPath -Parent
   New-Item -ItemType Directory -Path $mirrorDir -Force | Out-Null
