@@ -3014,7 +3014,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/logs":
             try:
-                log_path = os.path.join(ROOT_DIR, "Logs", "engine.log")
+                log_path = os.path.join(ROOT_DIR, "logs", "engine.log")
                 if not os.path.exists(log_path):
                     self._write_json(200, {"ok": True, "logs": []})
                     return
@@ -4842,7 +4842,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/logs":
             try:
                 # Basic log reader: returns last N lines
-                log_path = os.path.join(ROOT_DIR, "Logs", "engine.log")
+                log_path = os.path.join(ROOT_DIR, "logs", "engine.log")
                 if not os.path.exists(log_path):
                     self._write_json(200, {"ok": True, "logs": []})
                     return

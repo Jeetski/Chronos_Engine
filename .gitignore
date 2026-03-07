@@ -64,7 +64,7 @@ User/Settings/link_settings.yml
 
 # Generated registries/logs
 Registry/*.json
-Logs/*.log
+logs/*.log
 
 # ADUC runtime state + memories (local/user-specific)
 Agents Dress Up Committee/familiars/*/state.json

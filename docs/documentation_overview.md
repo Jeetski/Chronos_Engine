@@ -553,7 +553,7 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ## 📝 Release Notes Summary
 
 **Alpha v0.2** (Jan 2026):
-- Centralized logging (`Logs/engine.log`)
+- Centralized logging (`logs/engine.log`)
 - Live Debug Console in dashboard
 - Test suite foundation
 - Debug hygiene (Debug/ directory)

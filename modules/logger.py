@@ -5,7 +5,7 @@ import traceback
 
 # Setup paths
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-LOGS_DIR = os.path.join(ROOT_DIR, "Logs")
+LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 DEBUG_DIR = os.path.join(ROOT_DIR, "Debug")
 
 if not os.path.exists(LOGS_DIR):
