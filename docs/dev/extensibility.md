@@ -22,7 +22,7 @@ The extensibility system is powered by `utilities/registry_builder.py`, which sc
 
 Interactive flows that guide users through step-by-step processes (e.g., goal creation, onboarding).
 
-**Location:** `utilities/dashboard/Wizards/<Name>/`
+**Location:** `utilities/dashboard/wizards/<Name>/`
 
 **Required Files:**
 - `index.js` - Main wizard module with step definitions
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 

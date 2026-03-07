@@ -215,7 +215,7 @@ SQLite mirrors for fast analytics:
 **Auto-Discovery System**:
 - All dashboard components are plug-and-play (drop folder → auto-discovered)
 - No configuration files or code editing required
-- **Wizards**: `utilities/dashboard/Wizards/<Name>/`
+- **Wizards**: `utilities/dashboard/wizards/<Name>/`
 - **Themes**: `utilities/dashboard/themes/<name>.css`
 - **Widgets**: `utilities/dashboard/widgets/<Name>/`
 - **Views**: `utilities/dashboard/views/<Name>/`
@@ -635,6 +635,7 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+
 
 
 

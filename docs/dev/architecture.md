@@ -141,7 +141,7 @@ A generic Vanilla JS Single Page Application (SPA).
   5. Add server endpoints if needed; prefer JSON responses for easy parsing
 
 - Add a Wizard or Theme
-  - Wizards: Create folder in `utilities/dashboard/Wizards/<Name>/` with `index.js`
+  - Wizards: Create folder in `utilities/dashboard/wizards/<Name>/` with `index.js`
   - Themes: Drop CSS file into `utilities/dashboard/themes/`
   - Component auto-discovered on server restart
   - See `docs/dev/extensibility.md` for the full specification
@@ -152,6 +152,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
+
 
 
 

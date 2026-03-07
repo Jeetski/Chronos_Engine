@@ -31,8 +31,8 @@ class TestRegistries(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_wizards_registry(self):
-        # Create a dummy wizard under utilities/dashboard/Wizards/<WizardName>/wizard.yml
-        wizards_dir = os.path.join(registry_builder.ROOT_DIR, "utilities", "dashboard", "Wizards", "MagicWizard")
+        # Create a dummy wizard under utilities/dashboard/wizards/<WizardName>/wizard.yml
+        wizards_dir = os.path.join(registry_builder.ROOT_DIR, "utilities", "dashboard", "wizards", "MagicWizard")
         os.makedirs(wizards_dir, exist_ok=True)
 
         with open(os.path.join(wizards_dir, "wizard.yml"), "w", encoding="utf-8") as f:

@@ -104,19 +104,19 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - Full guide (usage + extension): [Gadgets & Dock](./Gadgets_and_Dock.md)
 
 ### Wizards
-- **Life Setup Wizard** (`utilities/dashboard/Wizards/LifeSetup/index.js`) - Guided flow to create schedule anchors and apply them to day templates.
+- **Life Setup Wizard** (`utilities/dashboard/wizards/LifeSetup/index.js`) - Guided flow to create schedule anchors and apply them to day templates.
 - **Flow**: Anchors → Configure → Review.
 - **Anchors**: Sleep, Meals, Work, School/University, Commute, Exercise, plus custom anchors.
 - **Output**: Generates fixed `timeblock` entries (reschedule: never, essential, non-flexible) and applies them to templates.
 - **Conflicts**: Detects overlaps among anchors and against existing template blocks; requires resolution before apply. Recheck Conflicts only lights up after changes.
 - **Templates**: Default is to create a new day template; can optionally apply to selected or all templates and either override conflicts or create a new template instead. When applying to existing templates, anchors override flexible items.
-- **Sleep Hygiene Wizard** (`utilities/dashboard/Wizards/SleepSettings/index.js`) - Conversational guided flow that asks sleep pattern/times, captures sleep-hygiene optimizations (meal timing, screen cutoff, caffeine cutoff, blackout), and can create example bedtime microroutines before handing a draft to the Sleep Settings widget.
+- **Sleep Hygiene Wizard** (`utilities/dashboard/wizards/SleepSettings/index.js`) - Conversational guided flow that asks sleep pattern/times, captures sleep-hygiene optimizations (meal timing, screen cutoff, caffeine cutoff, blackout), and can create example bedtime microroutines before handing a draft to the Sleep Settings widget.
 - **Meals**: Supports 1–3 meal blocks with default labels and custom times.
 - **Commute**: Includes an auto-add helper to generate 30-minute before/after commute blocks from work/school anchors.
 - **Coaching**: Review step summarizes sleep and exercise totals with gentle, informational nudges when totals are low.
 - **Completion**: “Your life skeleton is set. You can now plan freely inside it.”
-- **Chore Setup Wizard** (`utilities/dashboard/Wizards/ChoreSetup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
-- **Status Mapping Wizard** (`utilities/dashboard/Wizards/StatusMapping/index.js`) - Bulk status-tagging workflow for items/templates.
+- **Chore Setup Wizard** (`utilities/dashboard/wizards/ChoreSetup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
+- **Status Mapping Wizard** (`utilities/dashboard/wizards/StatusMapping/index.js`) - Bulk status-tagging workflow for items/templates.
 - **Flow**: Status Map -> Scope -> Preview.
 - **Status Map**: Loads dimensions/values from `User/Settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
 - **Scope**: Filter by type/name/category/tag, limit to items missing status tags, and choose merge vs replace behavior.
@@ -221,7 +221,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 | Panel | `utilities/dashboard/panels/<Name>/` | `register(manager)` | `panel.yml` |
 | Popup | `utilities/dashboard/popups/<Name>/` | `mount(el)` | `popup.yml` |
 | Gadget | `utilities/dashboard/gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
-| Wizard | `utilities/dashboard/Wizards/<Name>/` | (wizard-specific) | `wizard.yml` |
+| Wizard | `utilities/dashboard/wizards/<Name>/` | (wizard-specific) | `wizard.yml` |
 | Theme | `utilities/dashboard/themes/<name>.css` | N/A (CSS file) | (in CSS comments) |
 
 ### Example: Adding a Simple Widget
@@ -282,6 +282,7 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 
 

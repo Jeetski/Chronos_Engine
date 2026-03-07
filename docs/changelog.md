@@ -594,7 +594,7 @@
   - Manages sleep anchors directly in day templates.
   - Supports mono/bi/poly presets, segment editing, day toggles, overlap checks, and apply-to selected/all/new templates.
 - Added new guided wizard (renamed): `Sleep Hygiene`
-  - File path: `utilities/dashboard/Wizards/SleepSettings/`
+  - File path: `utilities/dashboard/wizards/SleepSettings/`
   - Conversational setup flow for schedule pattern and timing.
   - Includes sleep optimization prompts (meal buffer, screen cutoff, caffeine cutoff, blackout room).
   - Can create example bedtime microroutines and a bedtime routine pack.
@@ -653,6 +653,7 @@
   - `User/Days/weekday_builder_example.yml` -> `at_school`
   - `User/Days/weekday_example.yml` -> `at_home`
 - Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

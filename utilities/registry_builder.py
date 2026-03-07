@@ -662,7 +662,7 @@ def build_wizards_registry():
     """Auto-discover wizards by scanning Dashboard/Wizards directory."""
     wizards = []
     dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
-    wizards_dir = os.path.join(dashboard_dir, "Wizards")
+    wizards_dir = os.path.join(dashboard_dir, "wizards")
     
     if not os.path.exists(wizards_dir):
         return {
