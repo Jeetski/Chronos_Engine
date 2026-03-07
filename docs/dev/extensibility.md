@@ -308,7 +308,7 @@ GET /api/registry?name=popups
 
 Dock gadgets are compact action modules mounted into the bottom Dashboard dock.
 
-**Location:** `utilities/dashboard/Gadgets/<Name>/`
+**Location:** `utilities/dashboard/gadgets/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(element, context)` function
@@ -527,5 +527,6 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 

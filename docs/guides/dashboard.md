@@ -93,7 +93,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
   - See `clear` command in [CLI Reference](../Reference/CLI_Commands.md) for details
 
 ### Dock & Gadgets
-- Chronos includes a bottom **Dock** (`#chronosDock`) populated by auto-discovered **Gadgets** from `utilities/dashboard/Gadgets/`.
+- Chronos includes a bottom **Dock** (`#chronosDock`) populated by auto-discovered **Gadgets** from `utilities/dashboard/gadgets/`.
 - Dock reveal:
   - move cursor near the bottom edge (hotzone) to reveal;
   - click empty dock shell space to toggle docked (pinned) mode.
@@ -220,7 +220,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 | View | `utilities/dashboard/Views/<Name>/` | `mount(container, context)` | `view.yml` |
 | Panel | `utilities/dashboard/Panels/<Name>/` | `register(manager)` | `panel.yml` |
 | Popup | `utilities/dashboard/Popups/<Name>/` | `mount(el)` | `popup.yml` |
-| Gadget | `utilities/dashboard/Gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
+| Gadget | `utilities/dashboard/gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
 | Wizard | `utilities/dashboard/Wizards/<Name>/` | (wizard-specific) | `wizard.yml` |
 | Theme | `utilities/dashboard/Themes/<name>.css` | N/A (CSS file) | (in CSS comments) |
 
@@ -282,5 +282,6 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 

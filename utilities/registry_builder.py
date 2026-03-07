@@ -983,7 +983,7 @@ def build_gadgets_registry():
     """Auto-discover gadgets by scanning Dashboard/Gadgets directory."""
     gadgets = []
     dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
-    gadgets_dir = os.path.join(dashboard_dir, "Gadgets")
+    gadgets_dir = os.path.join(dashboard_dir, "gadgets")
 
     if not os.path.exists(gadgets_dir):
         return {
