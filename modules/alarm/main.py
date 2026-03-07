@@ -39,7 +39,7 @@ except Exception as e:
 
 def load_alarms():
     """
-    Loads all enabled alarm configurations from the user/Alarms directory.
+    Loads all enabled alarm configurations from the user/alarms directory.
     Returns a list of tuples: (alarm_data, filepath).
     """
     if not os.path.exists(ALARMS_DIR):
@@ -187,3 +187,4 @@ if __name__ == '__main__':
         trigger_alarm(triggered[0])
     else:
         print("No alarms to trigger right now.")
+
