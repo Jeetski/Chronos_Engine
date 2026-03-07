@@ -16,7 +16,7 @@ Run the full goal lifecycle in Chronos: define outcomes, decompose into mileston
 - "This goal is stalled, fix it."
 
 ## Source of Truth
-- Goal items: `user/Goals/*.yml`
+- Goal items: `user/goals/*.yml`
 - Milestone items: `user/Milestones/*.yml`
 - Goal/milestone command layer: `commands/` + `modules/goal/` + `modules/milestone/`
 - Progress views:
