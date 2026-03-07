@@ -108,7 +108,7 @@ try {
         type = "task"; name = $taskC
     }
     Assert-Ok "Soft delete task via /api/item/delete" $r
-    $taskCPath = Join-Path $root ("user\Tasks\{0}.yml" -f $taskC)
+    $taskCPath = Join-Path $root ("user\tasks\{0}.yml" -f $taskC)
     Assert (-not (Test-Path $taskCPath)) "Soft-deleted task removed from active folder"
 
     # 2) Bulk set/copy/delete

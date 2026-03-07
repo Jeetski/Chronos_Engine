@@ -131,6 +131,6 @@ Description:
 Example:
   tree routine "Morning Core"
   tree project "My Game"
-  tree dir user/Tasks
+  tree dir user/tasks
 """
 

@@ -17,7 +17,7 @@ Run project execution in Chronos from scope definition to daily delivery: struct
 
 ## Source of Truth
 - Project items: `user/Projects/*.yml`
-- Linked tasks/milestones: `user/Tasks/*.yml`, `user/Milestones/*.yml`
+- Linked tasks/milestones: `user/tasks/*.yml`, `user/Milestones/*.yml`
 - Project/goal rename flows and dashboard views:
   - Project Manager view
   - API rename endpoints mapped to CLI logic
