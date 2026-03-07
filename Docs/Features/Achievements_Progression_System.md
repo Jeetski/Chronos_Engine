@@ -93,7 +93,7 @@ The `achievement_award_feed` field acts as a rolling unlock queue for dashboard 
 ## Evaluation and Triggering
 
 Primary evaluator path:
-- `Modules/Achievement/evaluator.py`
+- `Modules/achievement/evaluator.py`
 
 Award pipeline:
 1. Trigger source invokes evaluator (`sync`, `event`, or direct award command).

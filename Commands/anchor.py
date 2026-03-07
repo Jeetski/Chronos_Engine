@@ -1,6 +1,6 @@
 from datetime import datetime
-from Modules.Scheduler import schedule_path_for_date, anchor_item_in_file
-from Modules.ItemManager import read_item_data, write_item_data
+from Modules.scheduler import schedule_path_for_date, anchor_item_in_file
+from Modules.item_manager import read_item_data, write_item_data
 
 
 def run(args, properties):

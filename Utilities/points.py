@@ -1,7 +1,7 @@
 import os
 import yaml
 from datetime import datetime
-from Modules.ItemManager import ensure_dir, get_user_dir
+from Modules.item_manager import ensure_dir, get_user_dir
 
 
 def _points_dir():

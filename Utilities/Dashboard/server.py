@@ -26,7 +26,7 @@ if COMMANDS_DIR not in sys.path:
     sys.path.insert(0, COMMANDS_DIR)
 DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Utilities", "Dashboard"))
 
-from Modules.Logger import Logger
+from Modules.logger import Logger
 
 from Utilities.dashboard_matrix import (
     compute_matrix,
@@ -38,7 +38,7 @@ from Utilities.dashboard_matrix import (
     save_matrix_preset,
     delete_matrix_preset,
 )
-from Modules.Scheduler import schedule_path_for_date, status_current_path, build_block_key, get_flattened_schedule
+from Modules.scheduler import schedule_path_for_date, status_current_path, build_block_key, get_flattened_schedule
 
 # In-memory dashboard-scoped variables (exposed via /api/vars)
 _DASH_VARS = {}
@@ -167,7 +167,7 @@ def _editor_open_request_pop():
 
 def _vars_all():
     try:
-        from Modules import Variables as _V
+        from Modules import variables as _V
         try:
             m = _V.all_vars()
             if isinstance(m, dict):
@@ -180,7 +180,7 @@ def _vars_all():
 
 def _vars_set(k, v):
     try:
-        from Modules import Variables as _V
+        from Modules import variables as _V
         try:
             _V.set_var(str(k), v)
         except Exception:
@@ -191,7 +191,7 @@ def _vars_set(k, v):
 
 def _vars_unset(k):
     try:
-        from Modules import Variables as _V
+        from Modules import variables as _V
         try:
             _V.unset_var(str(k))
         except Exception:
@@ -202,7 +202,7 @@ def _vars_unset(k):
 
 def _expand_text(text):
     try:
-        from Modules import Variables as _V
+        from Modules import variables as _V
         try:
             return _V.expand_token(text)
         except Exception:
@@ -265,13 +265,13 @@ except Exception:
 def run_console_command(command_name, args_list, properties=None):
     """
     Invoke the Console command pipeline.
-    Preferred: in-process import of Modules.Console.run_command.
+    Preferred: in-process import of Modules.console.run_command.
     Fallback: subprocess execution of Console via Python.
     Returns (ok, stdout, stderr).
     """
     # Try in-process
     try:
-        from Modules import Console as ConsoleModule  # type: ignore
+        from Modules import console as ConsoleModule# type: ignore
         old_out, old_err = sys.stdout, sys.stderr
         out_buf, err_buf = io.StringIO(), io.StringIO()
         sys.stdout, sys.stderr = out_buf, err_buf
@@ -309,7 +309,7 @@ def run_console_command(command_name, args_list, properties=None):
                     merged_args.append(tok)
 
         cmdline = ' '.join([command_name] + [quote(a) for a in merged_args])
-        proc = subprocess.Popen([sys.executable, os.path.join(ROOT_DIR, 'Modules', 'Console.py'), cmdline],
+        proc = subprocess.Popen([sys.executable, os.path.join(ROOT_DIR, 'Modules', 'console.py'), cmdline],
                                 cwd=ROOT_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         out, err = proc.communicate(timeout=30)
         ok = proc.returncode == 0
@@ -585,7 +585,7 @@ def _is_sticky_note(data):
 
 def _ensure_unique_item_name(item_type, base_name):
     try:
-        from Modules.ItemManager import read_item_data
+        from Modules.item_manager import read_item_data
     except Exception:
         return base_name
     candidate = base_name
@@ -598,7 +598,7 @@ def _ensure_unique_item_name(item_type, base_name):
 
 def _sticky_timestamp_for(name):
     try:
-        from Modules.ItemManager import get_item_path
+        from Modules.item_manager import get_item_path
         fpath = get_item_path("note", name)
         if fpath and os.path.exists(fpath):
             return datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(timespec="seconds")
@@ -626,7 +626,7 @@ def _build_sticky_payload(data):
 
 def _list_sticky_notes():
     try:
-        from Modules.ItemManager import list_all_items, read_item_data
+        from Modules.item_manager import list_all_items, read_item_data
     except Exception:
         return []
     rows = list_all_items("note") or []
@@ -997,7 +997,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         sys.stderr.flush()
         # Lazy import ItemManager helpers when API endpoints are hit
         def im():
-            from Modules.ItemManager import list_all_items, read_item_data, write_item_data, delete_item, get_item_path
+            from Modules.item_manager import list_all_items, read_item_data, write_item_data, delete_item, get_item_path
             return list_all_items, read_item_data, write_item_data, delete_item, get_item_path
         if parsed.path == "/health":
             payload = {"ok": True, "service": "chronos-dashboard"}
@@ -1580,12 +1580,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/goals":
             # Return goals with computed overall progress and counts
             try:
-                from Modules.Milestone import main as MilestoneModule  # type: ignore
+                from Modules.milestone import main as MilestoneModule  # type: ignore
                 MilestoneModule.evaluate_and_update_milestones()
             except Exception:
                 pass
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
                 goals = list_all_items('goal') or []
                 milestones = list_all_items('milestone') or []
                 # Group milestones by goal
@@ -1657,7 +1657,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/rewards":
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
                 rewards = list_all_items('reward') or []
                 now = datetime.now()
                 def parse_int(val, default=None):
@@ -1732,7 +1732,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/achievements":
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
                 rows = list_all_items('achievement') or []
                 def parse_int(val):
                     try:
@@ -1791,8 +1791,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/commitments":
             try:
-                from Modules.ItemManager import list_all_items
-                from Modules.Commitment import main as CommitmentModule  # type: ignore
+                from Modules.item_manager import list_all_items
+                from Modules.commitment import main as CommitmentModule  # type: ignore
                 commitments = list_all_items('commitment') or []
                 today_key = datetime.now().strftime('%Y-%m-%d')
                 out = []
@@ -1844,7 +1844,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/tracker/sources":
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
                 habits = list_all_items('habit') or []
                 commitments = list_all_items('commitment') or []
 
@@ -1935,7 +1935,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/tracker/year":
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
 
                 qs = parse_qs(parsed.query or '')
                 year_raw = str((qs.get('year') or [''])[0] or '').strip()
@@ -2265,8 +2265,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/milestones":
             try:
-                from Modules.Milestone import main as MilestoneModule  # type: ignore
-                from Modules.ItemManager import list_all_items
+                from Modules.milestone import main as MilestoneModule  # type: ignore
+                from Modules.item_manager import list_all_items
                 try:
                     MilestoneModule.evaluate_and_update_milestones()
                 except Exception:
@@ -2319,7 +2319,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             sys.stderr.write(f"DEBUG: /api/items handler (line 1170) hit\n")
             sys.stderr.flush()
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
                 qs = parse_qs(parsed.query or '')
                 filter_type = (qs.get('type') or [''])[0].strip().lower()
                 sys.stderr.write(f"DEBUG: filter_type={filter_type}\n")
@@ -2357,7 +2357,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/goal":
             try:
-                from Modules.Milestone import main as MilestoneModule  # type: ignore
+                from Modules.milestone import main as MilestoneModule  # type: ignore
                 MilestoneModule.evaluate_and_update_milestones()
             except Exception:
                 pass
@@ -2366,7 +2366,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 name = (qs.get('name') or [''])[0].strip()
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing goal name"}); return
-                from Modules.ItemManager import read_item_data, list_all_items
+                from Modules.item_manager import read_item_data, list_all_items
                 goal = read_item_data('goal', name)
                 if not goal:
                     self._write_json(404, {"ok": False, "error": "Goal not found"}); return
@@ -2418,7 +2418,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/timer/status":
             try:
-                from Modules.Timer import main as Timer
+                from Modules.timer import main as Timer
                 st = Timer.status()
                 self._write_json(200, {"ok": True, "status": st})
             except Exception as e:
@@ -2426,7 +2426,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/timer/profiles":
             try:
-                from Modules.Timer import main as Timer
+                from Modules.timer import main as Timer
                 Timer.ensure_default_profiles()
                 profiles = {}
                 for name in (Timer.profiles_list() or []):
@@ -2705,7 +2705,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 proj_name = (qs.get('name') or [''])[0].strip()
                 if not proj_name:
                     self._write_json(400, {"ok": False, "error": "Missing project name"}); return
-                from Modules.ItemManager import read_item_data, list_all_items
+                from Modules.item_manager import read_item_data, list_all_items
                 project = read_item_data('project', proj_name)
                 if not project:
                     self._write_json(404, {"ok": False, "error": "Project not found"}); return
@@ -2737,7 +2737,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not t:
                     self._write_json(400, {"ok": False, "error": "Missing type"}); return
                 # Use ItemManager to locate dir
-                from Modules.ItemManager import get_item_dir
+                from Modules.item_manager import get_item_dir
                 d = get_item_dir(t)
                 out = []
                 if os.path.isdir(d):
@@ -2767,7 +2767,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 n = (qs.get('name') or [''])[0].strip()
                 if not t or not n:
                     self._write_json(400, {"ok": False, "error": "Missing type or name"}); return
-                from Modules.ItemManager import read_item_data
+                from Modules.item_manager import read_item_data
                 data = read_item_data(t, n) or {}
                 # Normalize children
                 children = []
@@ -2884,8 +2884,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(400, {"ok": False, "error": "Invalid month"}); return
 
                 import calendar
-                from Modules.Scheduler import get_flattened_schedule, build_block_key as scheduler_build_block_key
-                from Modules.ItemManager import read_item_data
+                from Modules.scheduler import get_flattened_schedule, build_block_key as scheduler_build_block_key
+                from Modules.item_manager import read_item_data
                 from Utilities.happiness_assoc import infer_happiness_values
 
                 def to_hm(val):
@@ -3034,7 +3034,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/yesterday/checkin":
             try:
-                from Modules.ItemManager import list_all_items
+                from Modules.item_manager import list_all_items
                 qs = parse_qs(parsed.query or "")
                 date_raw = str((qs.get("date") or [""])[0] or "").strip()
                 auto_miss_raw = str((qs.get("auto_miss") or ["true"])[0] or "true").strip().lower()
@@ -3580,7 +3580,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         walk((schedule_data.get('items') or schedule_data.get('children') or []), depth=0)
                     return blocks
 
-                from Modules.Planner import build_preview_for_date
+                from Modules.planner import build_preview_for_date
 
                 days_payload = []
                 for offset in range(days):
@@ -4113,7 +4113,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         if parsed.path == "/api/commitments/override":
             try:
-                from Modules.ItemManager import read_item_data, write_item_data
+                from Modules.item_manager import read_item_data, write_item_data
                 name = str(payload.get('name') or '').strip()
                 state = str(payload.get('state') or '').strip().lower()
                 date_key = str(payload.get('date') or datetime.now().strftime('%Y-%m-%d')).strip()
@@ -4156,7 +4156,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     return
                 content["type"] = "canvas_board"
                 content["name"] = name
-                from Modules.ItemManager import write_item_data
+                from Modules.item_manager import write_item_data
                 write_item_data("canvas_board", name, content)
                 self._write_json(200, {"ok": True})
             except Exception as e:
@@ -4166,7 +4166,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path.startswith("/api/datacards/"):
             # /api/datacards/...
             try:
-                from Modules import DataCardManager
+                from Modules import data_card_manager as DataCardManager
                 subpath = parsed.path[len("/api/datacards/"):]
                 
                 # GET /api/datacards/series
@@ -4409,7 +4409,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 pinned = _normalize_bool(payload.get('pinned'))
                 category = str(payload.get('category') or '').strip()
                 priority = str(payload.get('priority') or '').strip()
-                from Modules.ItemManager import write_item_data
+                from Modules.item_manager import write_item_data
                 note_data = {
                     'name': name,
                     'type': 'note',
@@ -4439,7 +4439,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 name = str(payload.get('name') or '').strip()
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing note name"}); return
-                from Modules.ItemManager import read_item_data, write_item_data, delete_item
+                from Modules.item_manager import read_item_data, write_item_data, delete_item
                 data = read_item_data('note', name)
                 if not data:
                     self._write_json(404, {"ok": False, "error": "Note not found"}); return
@@ -4507,7 +4507,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 date_field = str(payload.get('date') or '').strip()
                 reminder_name = str(payload.get('reminder_name') or f"{note_name} reminder").strip() or f"{note_name} reminder"
                 reminder_name = _ensure_unique_item_name('reminder', reminder_name[:160])
-                from Modules.ItemManager import read_item_data, write_item_data
+                from Modules.item_manager import read_item_data, write_item_data
                 note = read_item_data('note', note_name)
                 if not note:
                     self._write_json(404, {"ok": False, "error": "Note not found"}); return
@@ -4879,7 +4879,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 ok, out, err = run_console_command("start", [target])
                 status_snapshot = None
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     status_snapshot = Timer.status()
                 except Exception:
                     status_snapshot = None
@@ -5032,7 +5032,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 props_map.pop('type', None)
                 exists = False
                 try:
-                    from Modules.ItemManager import read_item_data
+                    from Modules.item_manager import read_item_data
                     exists = bool(read_item_data(item_type, name))
                 except Exception:
                     exists = False
@@ -5070,7 +5070,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_yaml(400, {"ok": False, "error": "Missing type, old_name, or new_name"}); return
                 ok, out, err = run_console_command("rename", [item_type, old_name, new_name])
                 try:
-                    from Modules.ItemManager import read_item_data
+                    from Modules.item_manager import read_item_data
                     old_exists = bool(read_item_data(item_type, old_name))
                     new_exists = bool(read_item_data(item_type, new_name))
                     if old_exists or not new_exists:
@@ -5095,13 +5095,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(200, {"ok": True, "renamed": False, "updated_refs": 0, "updated_by_type": {}}); return
 
                 ok, out, err = run_console_command("rename", ["project", old_name, new_name])
-                from Modules.ItemManager import read_item_data
+                from Modules.item_manager import read_item_data
                 old_exists = bool(read_item_data("project", old_name))
                 new_exists = bool(read_item_data("project", new_name))
                 if (not ok) or old_exists or (not new_exists):
                     self._write_json(500, {"ok": False, "error": err or out or "Project rename failed"}); return
 
-                from Modules.ItemManager import list_all_items_any, read_item_data, write_item_data
+                from Modules.item_manager import list_all_items_any, read_item_data, write_item_data
                 old_key = old_name.strip().lower()
                 updated_refs = 0
                 updated_by_type = {}
@@ -5153,13 +5153,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(200, {"ok": True, "renamed": False, "updated_refs": 0, "updated_by_type": {}}); return
 
                 ok, out, err = run_console_command("rename", ["goal", old_name, new_name])
-                from Modules.ItemManager import read_item_data
+                from Modules.item_manager import read_item_data
                 old_exists = bool(read_item_data("goal", old_name))
                 new_exists = bool(read_item_data("goal", new_name))
                 if (not ok) or old_exists or (not new_exists):
                     self._write_json(500, {"ok": False, "error": err or out or "Goal rename failed"}); return
 
-                from Modules.ItemManager import list_all_items_any, read_item_data, write_item_data
+                from Modules.item_manager import list_all_items_any, read_item_data, write_item_data
                 old_key = old_name.strip().lower()
                 updated_refs = 0
                 updated_by_type = {}
@@ -5245,7 +5245,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 
                 full_path = os.path.join(ROOT_DIR, file_to_open)
 
-                from Modules.ItemManager import get_editor_command
+                from Modules.item_manager import get_editor_command
                 
                 editor_command = get_editor_command({}) # empty properties
                 if str(editor_command).strip().lower() == 'chronos_editor':
@@ -5348,7 +5348,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     props['children'] = children
                 exists = False
                 try:
-                    from Modules.ItemManager import read_item_data
+                    from Modules.item_manager import read_item_data
                     exists = bool(read_item_data(t, n))
                 except Exception:
                     exists = False
@@ -5476,7 +5476,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 ts = time.strftime('%Y%m%d_%H%M%S')
                 zip_rel = f"exports_items_{ts}.zip"
                 zip_path = os.path.join(temp_root, zip_rel)
-                from Modules.ItemManager import get_item_path
+                from Modules.item_manager import get_item_path
                 with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
                     for n in names:
                         p = get_item_path(item_type, n)
@@ -5508,7 +5508,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not ok:
                     self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     st = Timer.status()
                 except Exception:
                     st = {}
@@ -5522,7 +5522,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not ok:
                     self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     st = Timer.status()
                 except Exception:
                     st = {}
@@ -5536,7 +5536,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not ok:
                     self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     st = Timer.status()
                 except Exception:
                     st = {}
@@ -5550,7 +5550,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not ok:
                     self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     st = Timer.status()
                 except Exception:
                     st = {}
@@ -5564,7 +5564,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not ok:
                     self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     st = Timer.status()
                 except Exception:
                     st = {}
@@ -5605,7 +5605,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not ok:
                     self._write_json(500, {"ok": False, "stdout": out, "stderr": err}); return
                 try:
-                    from Modules.Timer import main as Timer
+                    from Modules.timer import main as Timer
                     st = Timer.status()
                 except Exception:
                     st = {}

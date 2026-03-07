@@ -4,42 +4,42 @@ This guide explains how Chronos fits together so you can extend it confidently.
 
 ## Runtime Overview
 
-- CLI Entrypoint — `Modules/Console.py`
+- CLI Entrypoint — `Modules/console.py`
   - Adds project paths, sets UTF-8, and loads `Commands/*.py` dynamically.
   - Parses interactive input, CLI args, and `.chs` scripts (supports nested `if/elseif/else/end` and loop blocks).
-  - Uses `Modules/Variables.py` for in-memory variables and token expansion (e.g., `@nickname`).
-  - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `Modules/MacroEngine.py` (enabled by `User/Scripts/Macros/macros.yml`). Dashboard calls also pass through these hooks.
+  - Uses `Modules/variables.py` for in-memory variables and token expansion (e.g., `@nickname`).
+  - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `Modules/macro_engine.py` (enabled by `User/Scripts/Macros/macros.yml`). Dashboard calls also pass through these hooks.
   - Autosuggest and autocomplete are registry-driven; see `Docs/Dev/Autosuggest.md` for the slot model and refresh workflow.
 
-### 2. Item System (`Modules/ItemManager.py`)
+### 2. Item System (`Modules/item_manager.py`)
 Items are the atoms of Chronos. They are stored as YAML files in the `User/` directory.
 - **Polymorphic**: Any item can have `tasks`, `subroutines`, `inventory_items`, or `milestones`.
 - **Fractal**: Items can nest indefinitely. The `Scheduler` creates a flattened view for execution but preserves the hierarchy for planning.
 - **Defaults**: Each item type has a `_defaults.yml` (e.g., `task_defaults.yml`) that defines its initial state.
 
 ### 3. The Scheduler
-- **Command Router**: `Commands/Today.py` dispatches three modes:
+- **Command Router**: `Commands/today.py` dispatches three modes:
   - active Kairos (`today`, `today reschedule`)
   - explicit Kairos tooling (`today kairos ...`)
   - legacy fallback (`today legacy ...`)
-- **Kairos Engine**: `Modules/Scheduler/Kairos.py` is the active daily scheduler.
+- **Kairos Engine**: `Modules/scheduler/kairos.py` is the active daily scheduler.
   - Loads runtime context (status, settings, trends, completion logs)
   - Selects template/windows with strict place+status compatibility
   - Gathers/filter/scores executable backlog from `chronos_core.db`
   - Constructs timeline (anchors, injections, windows, gaps, synthetic buffers/breaks)
   - Runs overlap repair + dependency shift passes
   - Emits decision logs in `User/Logs/kairos_decision_log_*`
-- **Weekly Planner**: `Modules/Scheduler/WeeklyGenerator.py` powers `today kairos week`.
-- **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `Commands/Today.py` so existing dashboard/API/manual-modification flows continue to work.
+- **Weekly Planner**: `Modules/scheduler/weekly_generator.py` powers `today kairos week`.
+- **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `Commands/today.py` so existing dashboard/API/manual-modification flows continue to work.
 - **Manual Modifications**: Persisted in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
 
-### 4. Conditions Engine (`Modules/Conditions.py`)
+### 4. Conditions Engine (`Modules/conditions.py`)
 A recursive descent parser that evaluates logic strings in scripts and triggers.
 - **Grammar**: Supports `( ... )`, `AND`, `OR`, `XOR`, `NOT`.
 - **Operators**: `==`, `!=`, `>`, `<`, `matches` (Regex).
 - **Targets**: Can check file existence (`exists file:...`), environment variables (`exists env:...`), or item properties (`task:MyTask:status == completed`).
 
-### 5. Sequence System (`Modules/Sequence`)
+### 5. Sequence System (`Modules/sequence`)
 The "Long-Term Memory" of Chronos.
 - **Mirroring**: Mirrors the YAML data into SQLite databases (`chronos_behavior.db`, `chronos_journal.db`) for performant querying.
 - **Trends**: Analyzes history to build `chronos_trends.db` and generates a `trends.md` digest.
@@ -50,7 +50,7 @@ The "Long-Term Memory" of Chronos.
   - `clear registry:<name>` - Clears in-memory registry caches (wizards, themes, etc.) to force YAML reload
   - See [Admin Tools](../Features/Admin_Tools.md) for full cleanup reference
 
-- Listener — `Modules/Listener/Listener.py`
+- Listener — `Modules/listener/listener.py`
   - Monitors time for alarms/reminders, triggers sounds (pygame.mixer), handles timer ticks.
   - Can execute scripts and target actions (e.g., complete task on trigger).
 
@@ -126,11 +126,11 @@ A generic Vanilla JS Single Page Application (SPA).
 ## Extending Chronos
 
 - Add a command
-  1. Create `Commands/MyCommand.py` with `run(args, properties)`.
+  1. Create `Commands/my_command.py` with `run(args, properties)`.
   2. Add `get_help_message()` to integrate with `help`.
 
 - Add an item module
-  1. Create `Modules/My_Item/main.py` with `handle_<verb>` or `handle_command`.
+  1. Create `Modules/my_item/main.py` with `handle_<verb>` or `handle_command`.
   2. Reuse `ItemManager` for common behaviors (`new`, `append`, `delete`).
 
 - Add a widget, view, panel, popup, or gadget

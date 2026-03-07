@@ -14,14 +14,14 @@ def run_completion_effects(
     - Awards points only when this event counts as a completion
     """
     try:
-        from Modules.Commitment import main as CommitmentModule  # type: ignore
+        from Modules.commitment import main as CommitmentModule  # type: ignore
         CommitmentModule.evaluate_and_trigger()
     except Exception as e:
         print(f"Warning: Could not evaluate commitments: {e}")
 
     if run_milestones:
         try:
-            from Modules.Milestone import main as MilestoneModule  # type: ignore
+            from Modules.milestone import main as MilestoneModule  # type: ignore
             MilestoneModule.evaluate_and_update_milestones()
         except Exception:
             pass

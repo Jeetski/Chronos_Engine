@@ -5,7 +5,7 @@ The Data Cards system is a generic collection management feature designed to han
 
 ## Core Components
 
-### 1. Backend (`Modules/DataCardManager.py`)
+### 1. Backend (`Modules/data_card_manager.py`)
 - **Series Management**: CRUD operations for Series (folders in `User/Data_Cards/`).
 - **Rules Engine**: Parses `rules.yml` to determine the schema of a card (fields, types, options).
 - **Card Serialization**: Reads/Writes individual cards as YAML files in `cards/` subdirectory.

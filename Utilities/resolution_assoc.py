@@ -41,7 +41,7 @@ def _project_resolution(project_name: str) -> dict | None:
     if not _text(project_name):
         return None
     try:
-        from Modules.ItemManager import read_item_data  # local import to avoid cycles
+        from Modules.item_manager import read_item_data  # local import to avoid cycles
         project = read_item_data("project", project_name) or {}
     except Exception:
         project = {}
@@ -53,7 +53,7 @@ def _goal_project(goal_name: str) -> str:
     if not _text(goal_name):
         return ""
     try:
-        from Modules.ItemManager import read_item_data  # local import to avoid cycles
+        from Modules.item_manager import read_item_data  # local import to avoid cycles
         goal = read_item_data("goal", goal_name) or {}
     except Exception:
         goal = {}
@@ -62,7 +62,7 @@ def _goal_project(goal_name: str) -> str:
 
 def _find_chronos_project_resolution() -> dict | None:
     try:
-        from Modules.ItemManager import list_all_items  # local import to avoid cycles
+        from Modules.item_manager import list_all_items  # local import to avoid cycles
         projects = list_all_items("project") or []
     except Exception:
         projects = []

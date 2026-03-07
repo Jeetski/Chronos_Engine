@@ -24,7 +24,7 @@ SCHEDULES_DIR = os.path.join(USER_DIR, "Schedules")
 COMPLETIONS_DIR = os.path.join(SCHEDULES_DIR, "completions")
 NAME_SEPARATOR = "\x1f"
 
-from Modules.ItemManager import list_all_items  # type: ignore
+from Modules.item_manager import list_all_items  # type: ignore
 from Utilities.duration_parser import parse_duration_string  # type: ignore
 
 DEFAULT_ITEM_TYPES = [

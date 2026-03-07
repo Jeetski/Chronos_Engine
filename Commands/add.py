@@ -1,7 +1,7 @@
 import sys
 import os
 import yaml
-from Modules.ItemManager import get_item_path, read_item_data, write_item_data
+from Modules.item_manager import get_item_path, read_item_data, write_item_data
 
 # --- Template Hierarchy Levels ---
 TEMPLATE_LEVELS = {

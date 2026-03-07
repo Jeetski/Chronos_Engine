@@ -1,7 +1,7 @@
 import os
 import yaml
 from datetime import datetime
-from Modules.Scheduler import schedule_path_for_date
+from Modules.scheduler import schedule_path_for_date
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "User")
@@ -117,7 +117,7 @@ def run(args, properties):
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
     try:
-        from Modules.Achievement import evaluator as AchievementEvaluator  # type: ignore
+        from Modules.achievement import evaluator as AchievementEvaluator  # type: ignore
         AchievementEvaluator.emit_event("template_saved", {
             "template_type": "day",
             "name": name,

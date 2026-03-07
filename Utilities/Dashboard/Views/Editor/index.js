@@ -1168,7 +1168,7 @@ async function runCurrentFile() {
     // If python, maybe python <file>
     let cmd = '';
     if (path.endsWith('.chs')) {
-        cmd = `python Modules/Console.py "${path}"`;
+        cmd = `python Modules/console.py "${path}"`;
     } else if (path.endsWith('.py')) {
         cmd = `python "${path}"`;
     } else {

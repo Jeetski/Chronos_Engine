@@ -31,7 +31,7 @@ after_command: {}
 
 ## Context & Expansion
 
-All step arguments support variable expansion using `Modules/Variables`:
+All step arguments support variable expansion using `Modules/variables`:
 
 - Command context:
   - `@cmd`, `@args0`, `@args1`, …
@@ -72,6 +72,6 @@ after_command:
 ```
 # Files
 # - Config: User/Scripts/Macros/macros.yml
-# - Engine: Modules/MacroEngine.py (invoked by Modules/Console.py)
+# - Engine: Modules/macro_engine.py (invoked by Modules/console.py)
 ```
 

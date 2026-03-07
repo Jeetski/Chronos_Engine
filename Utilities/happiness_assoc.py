@@ -1,6 +1,6 @@
 import os
 import yaml
-from Modules.ItemManager import get_user_dir
+from Modules.item_manager import get_user_dir
 
 ASSOC_FILE = os.path.join(get_user_dir(), "Settings", "happiness_value_name_assoc.yml")
 MAP_FILE = os.path.join(get_user_dir(), "Settings", "map_of_happiness.yml")

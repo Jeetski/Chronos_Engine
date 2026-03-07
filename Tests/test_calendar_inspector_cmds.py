@@ -9,8 +9,8 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in os.sys.path:
     os.sys.path.insert(0, ROOT_DIR)
 
-from Modules import Scheduler
-from Modules import ItemManager
+from Modules.scheduler import v1 as Scheduler
+from Modules import item_manager as ItemManager
 import Commands.stretch as cmd_stretch
 import Commands.anchor as cmd_anchor
 import Commands.split as cmd_split
@@ -111,3 +111,5 @@ class TestNewCommands(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+

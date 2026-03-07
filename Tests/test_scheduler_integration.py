@@ -11,11 +11,11 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Import the actual logic we want to test
-from Commands import Today
-from Modules import Scheduler
-from Modules import ItemManager
+from Commands import today as Today
+from Modules.scheduler import v1 as Scheduler
+from Modules import item_manager as ItemManager
 from unittest.mock import MagicMock
-from Modules import ItemManager
+from Modules import item_manager as ItemManager
 from unittest.mock import MagicMock
 
 class TestSchedulerIntegration(unittest.TestCase):
@@ -142,3 +142,5 @@ class TestSchedulerIntegration(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+

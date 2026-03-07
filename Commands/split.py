@@ -1,5 +1,5 @@
 from datetime import datetime
-from Modules.Scheduler import schedule_path_for_date, split_item_in_file
+from Modules.scheduler import schedule_path_for_date, split_item_in_file
 
 
 def run(args, properties):

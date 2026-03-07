@@ -3,14 +3,14 @@ import os
 import yaml
 import json
 
-from Modules.ItemManager import list_all_items_any
-from Modules.Scheduler import (
+from Modules.item_manager import list_all_items_any
+from Modules.scheduler import (
     schedule_path_for_date,
     get_flattened_schedule,
     build_block_key,
     normalize_completion_entries,
 )
-from Commands.Today import load_completion_payload
+from Commands.today import load_completion_payload
 from Utilities.duration_parser import parse_duration_string
 
 

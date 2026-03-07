@@ -1,9 +1,9 @@
 # Chronos Scheduling Algorithm Deep Dive (Kairos)
 
 Last verified: 2026-03-07  
-Code alignment target: `Modules/Scheduler/Kairos.py` and `Commands/Today.py`
+Code alignment target: `Modules/scheduler/kairos.py` and `Commands/today.py`
 
-## 1. Command Routing (`Commands/Today.py`)
+## 1. Command Routing (`Commands/today.py`)
 
 Kairos-relevant modes:
 
@@ -132,7 +132,7 @@ Placement order is intentional:
 
 After placement and repair, completion entries are reinserted as informational schedule markers so the day view reflects completed history without distorting planning math.
 
-## 10. Active Output Adaptation (`Commands/Today.py`)
+## 10. Active Output Adaptation (`Commands/today.py`)
 
 Kairos block output is adapted into the schedule schema consumed by existing dashboard and CLI flows:
 - normalized `start_time` / `end_time`
@@ -151,7 +151,7 @@ Paths:
 - `User/Logs/kairos_decision_log_latest.md`
 - `User/Logs/kairos_decision_log_latest.yml`
 
-## 12. Weekly Skeleton (`Modules/Scheduler/WeeklyGenerator.py`)
+## 12. Weekly Skeleton (`Modules/scheduler/weekly_generator.py`)
 
 `today kairos week [days:N]`:
 - runs Kairos generation per day in horizon

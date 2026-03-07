@@ -1,7 +1,7 @@
 import os
 import yaml
 from datetime import datetime, timedelta
-from Modules.Alarm.main import update_alarm_yaml
+from Modules.alarm.main import update_alarm_yaml
 
 # --- Constants ---
 ALARMS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'User', 'Alarms'))

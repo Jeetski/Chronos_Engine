@@ -7,7 +7,7 @@ import shlex
 # Ensure Modules can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from Modules.Conditions import evaluate_cond_tokens
+from Modules.conditions import evaluate_cond_tokens
 
 # Improved wrapper using shlex to handle quoted strings properly
 def evaluate_condition(text):
@@ -36,7 +36,7 @@ class TestConditionsUnit(unittest.TestCase):
         # Wait, evaluate_cond_tokens grammar (line 225) calls 'compare'.
         # 'compare' uses coerce_numeric.
         # It does NOT handle boolean literals "True"/"False" directly as boolean values unless they are numeric (1/0).
-        # Let's check coerce_numeric in Modules/Conditions.py.
+        # Let's check coerce_numeric in Modules/conditions.py.
         # It returns float or None.
         # So "True" == "True" is string comparison.
         # "True and True" -> parse_term -> parse_factor -> compare("True", "and", "True")?? NO.

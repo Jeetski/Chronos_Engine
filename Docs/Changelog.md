@@ -158,7 +158,7 @@
 
 ### CLI - Listener Command + Dashboard Integration
 - Added new CLI command module:
-  - `Commands/Listener.py`
+  - `Commands/listener.py`
 - New command capabilities:
   - `listener start`
   - `listener stop`
@@ -173,7 +173,7 @@
   - CLI `listener stop` successfully stops listener after test.
 
 ### Achievements - Event Evaluator Foundation
-- Added evaluator module: `Modules/Achievement/evaluator.py`.
+- Added evaluator module: `Modules/achievement/evaluator.py`.
 - Added command wrapper: `Commands/achievements.py`.
 - Added settings file: `User/Settings/achievements_settings.yml`.
 - Added event-driven awarding APIs:
@@ -366,10 +366,10 @@
   - `startup_sync:true|false`
   - `startup_sound:true|false`
 - Runtime options are parsed before command/script handling.
-- File: `Modules/Console.py`
+- File: `Modules/console.py`
 
 ### CLI - Launcher vs Direct Invocation Behavior Split
-- Direct invocation (`python Modules/Console.py <command>`) now runs quiet by default via settings.
+- Direct invocation (`python Modules/console.py <command>`) now runs quiet by default via settings.
 - Launcher invocation still boots full experience by passing explicit runtime options:
   - `prompt_toolkit:true startup_banner:true startup_sync:true startup_sound:true`
 - File: `console_launcher.ps1`
@@ -380,7 +380,7 @@
 - Fixed recursion in fallback printing path by routing to raw printer.
 - Gated post-command theme repaint so one-shot command mode remains clean.
 - Files:
-  - `Modules/Console.py`
+  - `Modules/console.py`
   - `Modules/console_style.py`
 
 ### Documentation
@@ -527,21 +527,21 @@
 
 ### Kairos - Status/Template Parity and Stability Fixes
 - Fixed `today reschedule` crash caused by manual modification application returning `None` in active Kairos path.
-  - `Modules/Scheduler/v1.py`: `apply_manual_modifications(...)` now returns the schedule.
+  - `Modules/scheduler/v1.py`: `apply_manual_modifications(...)` now returns the schedule.
 - Fixed stale manual modification warning spam by cleaning `User/Schedules/manual_modifications_2026-02-21.yml`.
 - Hardened Kairos day-template selection to better match legacy status behavior:
-  - Added strict template pre-filtering in `Modules/Scheduler/Kairos.py`.
+  - Added strict template pre-filtering in `Modules/scheduler/kairos.py`.
   - Selection now prioritizes:
     1. day-eligible + place match + status-requirements match
     2. day-eligible + place match
     3. legacy score-only fallback
 - Added Kairos template-match diagnostics in phase notes (`template_match`) to show strict/place-only/fallback selection behavior.
 - Prevented stale archived YAML from polluting Kairos candidate DB:
-  - `Modules/Sequence/core_builder.py` now skips `User/Archive` and `User/Backups` when building `chronos_core.db`.
+  - `Modules/sequence/core_builder.py` now skips `User/Archive` and `User/Backups` when building `chronos_core.db`.
 - Added a broad Kairos example content pack across week/day/routine/subroutine/microroutine/task/timeblock templates to expand usable coverage and scheduler stress-testing.
 
 ### Kairos Scheduler Activation
-- Switched active scheduling path to Kairos for `today` and `today reschedule` in `Commands/Today.py`.
+- Switched active scheduling path to Kairos for `today` and `today reschedule` in `Commands/today.py`.
 - Legacy scheduler path is still present and can be forced with `today legacy ...`.
 - Added Kairos-to-schedule conversion when writing `User/Schedules/schedule_YYYY-MM-DD.yml` so existing downstream flows keep working.
 - Added Kairos anchor conflict fail-fast messaging in active runs with remediation guidance.
@@ -625,22 +625,22 @@
 - Renamed popup module from `AlphaLaunch` to `Startup`.
 
 ### CLI Sounds
-- Added new sound engine module: `Modules/SoundFX.py`.
+- Added new sound engine module: `Modules/sound_fx.py`.
 - Added new command: `Commands/sound.py`.
-- Added alias `sounds -> sound` in `Modules/Console.py`.
+- Added alias `sounds -> sound` in `Modules/console.py`.
 - Added settings file: `User/Settings/sound_settings.yml`.
-- Wired sound events in CLI (`Modules/Console.py`):
+- Wired sound events in CLI (`Modules/console.py`):
   - `startup` when CLI starts
   - `done` after `today reschedule`
   - `error` for unknown command / command execution failure / parse failure cases
   - `exit` on `exit`/`quit` and interrupt exits
-- Fixed exit sound cut-off by adding blocking playback support in `Modules/SoundFX.py` and using `wait=True` for exit paths.
+- Fixed exit sound cut-off by adding blocking playback support in `Modules/sound_fx.py` and using `wait=True` for exit paths.
 
 ### Launcher
 - Removed final "Press any key to continue..." pause from `console_launcher.ps1`.
 
 ### Scheduler & Template Selection
-- Fixed `today reschedule` crash (`KeyError: 'duration'`) by ensuring window-scheduled items always set `duration` in `Modules/Scheduler/v1.py`.
+- Fixed `today reschedule` crash (`KeyError: 'duration'`) by ensuring window-scheduled items always set `duration` in `Modules/scheduler/v1.py`.
 
 ### Day Templates / Place Status
 - Updated travel templates to explicitly require travel context:

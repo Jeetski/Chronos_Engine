@@ -18,5 +18,5 @@ fi
 
 export PYTHONIOENCODING="utf-8"
 
-"$PYTHON_EXE" Modules/Console.py "$@"
+"$PYTHON_EXE" Modules/console.py "$@"
 

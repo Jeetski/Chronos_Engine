@@ -29,14 +29,14 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| **Console** | `Modules/Console.py` | CLI entry point, command dispatch, REPL, scripting |
+| **Console** | `Modules/console.py` | CLI entry point, command dispatch, REPL, scripting |
 | **Commands** | `Commands/*.py` | Thin command implementations (`run(args, properties)`) |
 | **Modules** | `Modules/*/main.py` | Item-specific logic, defaults, event handlers |
-| **ItemManager** | `Modules/ItemManager.py` | Generic CRUD operations for all item types |
-| **Scheduler** | `Commands/Today.py` + `Modules/Scheduler.py` | Daily agenda builder with conflict resolution |
-| **Listener** | `Modules/Listener/` | Background service for alarms, reminders, timer |
+| **ItemManager** | `Modules/item_manager.py` | Generic CRUD operations for all item types |
+| **Scheduler** | `Commands/today.py` + `Modules/scheduler.py` | Daily agenda builder with conflict resolution |
+| **Listener** | `Modules/listener/` | Background service for alarms, reminders, timer |
 | **Dashboard** | `Utilities/Dashboard/` | Local HTTP server + vanilla JS SPA |
-| **Sequence** | `Modules/Sequence/` | SQLite mirrors + analytics (`trends.md`) |
+| **Sequence** | `Modules/sequence/` | SQLite mirrors + analytics (`trends.md`) |
 | **User Data** | `User/` | All YAML items, settings, templates, logs |
 
 ### Data Model
@@ -229,8 +229,8 @@ SQLite mirrors for fast analytics:
 - Dashboard auto-discovers and lists all extensions
 
 **Adding Components**:
-1. **Command**: Create `Commands/Name.py` with `run(args, properties)`
-2. **Item Type**: Create `Modules/Type/main.py` with `handle_command`
+1. **Command**: Create `Commands/name.py` with `run(args, properties)`
+2. **Item Type**: Create `Modules/type/main.py` with `handle_command`
 3. **Widget/View/Panel/Popup/Gadget**: Create folder in appropriate directory with `index.js`
 4. **Wizard**: Create folder in `Wizards/` with `index.js`
 5. **Theme**: Drop CSS file into `Themes/`
@@ -392,7 +392,7 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 
 ### For Developers (Skills + Dev Docs)
 **Extension Scenarios**:
-1. New item type -> use `Docs/Dev/Architecture.md` + `Modules/ItemManager.py` patterns
+1. New item type -> use `Docs/Dev/Architecture.md` + `Modules/item_manager.py` patterns
 2. New widget/view/panel/popup -> use `Docs/Dev/Extensibility.md`
 3. Scheduling behavior -> use Kairos docs in `Docs/Scheduling/*`
 4. Agent-facing workflows -> add/update `Docs/Agents/Skills/*`

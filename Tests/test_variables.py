@@ -1,5 +1,5 @@
 import unittest
-from Modules import Variables
+from Modules import variables as Variables
 
 class TestVariables(unittest.TestCase):
     def setUp(self):

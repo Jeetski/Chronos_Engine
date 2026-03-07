@@ -9,7 +9,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $venvPy = Join-Path $root ".venv\Scripts\python.exe"
 $python = if (Test-Path $venvPy) { $venvPy } else { "python" }
 
-$script = Join-Path $root "Modules\Listener\Listener.py"
+$script = Join-Path $root "Modules\listener\listener.py"
 
 # Build argument list; preserve any passthrough args
 $argList = @()

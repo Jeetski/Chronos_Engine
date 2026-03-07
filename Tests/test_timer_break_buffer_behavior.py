@@ -8,8 +8,8 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in os.sys.path:
     os.sys.path.insert(0, ROOT_DIR)
 
-import Commands.Start as cmd_start
-from Modules.Timer import main as timer_main
+import Commands.start as cmd_start
+from Modules.timer import main as timer_main
 
 
 class TestTimerBreakBufferBehavior(unittest.TestCase):

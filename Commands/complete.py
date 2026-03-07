@@ -2,7 +2,7 @@
 # In Commands/complete.py
 
 import sys
-from Modules.ItemManager import dispatch_command
+from Modules.item_manager import dispatch_command
 try:
     from Utilities.tracking import is_trackable, mark_complete
 except Exception:
@@ -11,8 +11,8 @@ except Exception:
 import os
 import yaml
 from datetime import datetime
-from Modules.Scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
-from Commands.Today import load_completion_payload
+from Modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
+from Commands.today import load_completion_payload
 from Modules import quality_utils
 from Utilities.completion_effects import run_completion_effects
 

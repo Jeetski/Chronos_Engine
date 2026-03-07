@@ -4,7 +4,7 @@ Chronos provides context-aware autosuggest in both the CLI and the Dashboard Ter
 
 ## Where It Runs
 
-- CLI: `Modules/Console.py` (prompt_toolkit completer + autosuggest).
+- CLI: `Modules/console.py` (prompt_toolkit completer + autosuggest).
 - Dashboard Terminal: `Utilities/Dashboard/Widgets/Terminal/index.js`.
 - Data source: registry JSON files under `Registry/`.
 
@@ -18,8 +18,8 @@ Chronos provides context-aware autosuggest in both the CLI and the Dashboard Ter
   - `autocomplete off`
   - `autocomplete` (status)
 - One-session runtime override (Chronos syntax, no `--`):
-  - `python Modules/Console.py prompt_toolkit:true`
-  - `python Modules/Console.py prompt_toolkit:true autocomplete:false`
+  - `python Modules/console.py prompt_toolkit:true`
+  - `python Modules/console.py prompt_toolkit:true autocomplete:false`
 
 ## Registry Inputs
 

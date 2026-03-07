@@ -7,7 +7,7 @@ It handles command submission, dispatch, output, and script execution in a singl
 ## CLI
 Primary launch paths:
 - `console_launcher.bat` (Windows launcher)
-- `python Modules/Console.py` (direct invocation)
+- `python Modules/console.py` (direct invocation)
 
 Execution flow:
 1. Read line input.

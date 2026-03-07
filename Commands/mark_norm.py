@@ -2,9 +2,9 @@
 import os
 import yaml
 from datetime import datetime
-from Modules.ItemManager import get_item_path, read_item_data, write_item_data
-from Modules.Scheduler import schedule_path_for_date, build_block_key
-from Commands.Today import load_completion_payload
+from Modules.item_manager import get_item_path, read_item_data, write_item_data
+from Modules.scheduler import schedule_path_for_date, build_block_key
+from Commands.today import load_completion_payload
 from Modules import quality_utils
 try:
     from Utilities import points as Points
@@ -182,7 +182,7 @@ def run(args, properties):
                 pass
         # Evaluate commitments after marking to trigger immediate actions
         try:
-            from Modules.Commitment import main as CommitmentModule  # type: ignore
+            from Modules.commitment import main as CommitmentModule  # type: ignore
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
@@ -201,7 +201,7 @@ def run(args, properties):
                 pass
         # Evaluate commitments after marking to trigger immediate actions
         try:
-            from Modules.Commitment import main as CommitmentModule  # type: ignore
+            from Modules.commitment import main as CommitmentModule  # type: ignore
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")

@@ -16,7 +16,7 @@ elif command -v python >/dev/null 2>&1; then
   PYTHON_EXE="python"
 fi
 
-LISTENER_SCRIPT="Modules/Listener/Listener.py"
+LISTENER_SCRIPT="Modules/listener/listener.py"
 
 # Start the listener in the background so the shell is not blocked
 "$PYTHON_EXE" "$LISTENER_SCRIPT" "$@" >/dev/null 2>&1 &

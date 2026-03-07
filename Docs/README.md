@@ -44,7 +44,7 @@ Scripting & Automation Docs
 3) Guided onboarding
 - Run `onboarding_wizard.bat` (CLI) or from the dashboard Wizards menu choose **Chronos Onboarding Wizard** to customize nickname, categories, statuses, and clone the sample templates/items.
 4) Launch CLI
-- Run `console_launcher.bat` (or `python Modules/Console.py`).
+- Run `console_launcher.bat` (or `python Modules/console.py`).
 - Type `help` to see available commands.
 5) Start Background Listener
 - Run `listener_launcher.bat` to enable alarms, reminders, and timer ticks.
@@ -58,9 +58,9 @@ Tips
 
 ## What's Inside
 High level
-- CLI runtime: `Modules/Console.py` dynamically loads commands (`Commands/*.py`) and item modules (`Modules/*/main.py`).
+- CLI runtime: `Modules/console.py` dynamically loads commands (`Commands/*.py`) and item modules (`Modules/*/main.py`).
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
-- Listener: `Modules/Listener/Listener.py` runs alarms, reminders, and timer lifecycle.
+- Listener: `Modules/listener/listener.py` runs alarms, reminders, and timer lifecycle.
 - Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
 - Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
@@ -97,7 +97,7 @@ Listener services
 ## CLI Overview
 Entry points
 - Windows: run `console_launcher.bat` or `console_launcher.ps1`.
-- Direct: `python Modules/Console.py <command ...>`
+- Direct: `python Modules/console.py <command ...>`
 
 Common commands (all item types now share the same verbs via `handle_command`)
 - `help` — list commands and usage.
@@ -127,7 +127,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 
 Variables
 - The console seeds `@nickname` from `User/Profile/profile.yml`. Use in scripts/messages.
-- Set/read variables programmatically via `Modules/Variables.py` or CLI patterns.
+- Set/read variables programmatically via `Modules/variables.py` or CLI patterns.
 
 ## Dashboard
 Server

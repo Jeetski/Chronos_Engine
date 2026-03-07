@@ -21,13 +21,13 @@ Teach agents the operational baseline for using Chronos safely: launchers, direc
 - `ADUC_launcher.bat` - run ADUC familiar interface in Chronos mode.
 
 ### Direct CLI Invocation
-- `python Modules/Console.py`
-- `python Modules/Console.py <command> <args...>`
+- `python Modules/console.py`
+- `python Modules/console.py <command> <args...>`
 
 Examples:
-- `python Modules/Console.py today`
-- `python Modules/Console.py today reschedule`
-- `python Modules/Console.py status energy:low focus:medium`
+- `python Modules/console.py today`
+- `python Modules/console.py today reschedule`
+- `python Modules/console.py status energy:low focus:medium`
 
 ## Command Argument Basics
 

@@ -248,6 +248,19 @@ def _extract_usage_lines(help_text: str):
 def _normalize_token(token: str) -> str:
     return token.strip().strip("[]")
 
+
+def _canonical_command_name(command_name: str) -> str:
+    name = str(command_name or "").strip()
+    if not name:
+        return ""
+    name = name.replace("-", "_").replace(" ", "_")
+    name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", name)
+    name = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", "_", name)
+    name = name.lower()
+    name = re.sub(r"_+", "_", name)
+    return name.strip("_")
+
+
 def _strip_bracketed(text: str) -> str:
     import re
     out = re.sub(r"\[[^\]]*\]", " ", text)
@@ -391,8 +404,8 @@ def _infer_type_from_dir(dir_name: str) -> str:
 
 def _load_command_aliases():
     aliases = {}
-    # Core aliases in Modules/Console.py
-    console_path = os.path.join(ROOT_DIR, "Modules", "Console.py")
+    # Core aliases in Modules/console.py
+    console_path = os.path.join(ROOT_DIR, "Modules", "console.py")
     try:
         tree = ast.parse(open(console_path, "r", encoding="utf-8").read(), filename=console_path)
         for node in tree.body:
@@ -403,7 +416,10 @@ def _load_command_aliases():
                             for k, v in zip(node.value.keys, node.value.values):
                                 if isinstance(k, ast.Constant) and isinstance(v, ast.Constant):
                                     if isinstance(k.value, str) and isinstance(v.value, str):
-                                        aliases[k.value.lower()] = v.value.lower()
+                                        src = _canonical_command_name(k.value)
+                                        dst = _canonical_command_name(v.value)
+                                        if src and dst:
+                                            aliases[src] = dst
     except Exception:
         pass
     # User aliases
@@ -412,7 +428,10 @@ def _load_command_aliases():
     if isinstance(data, dict):
         for k, v in data.items():
             if isinstance(k, str) and isinstance(v, str):
-                aliases[k.lower()] = v.lower()
+                src = _canonical_command_name(k)
+                dst = _canonical_command_name(v)
+                if src and dst:
+                    aliases[src] = dst
     return aliases
 
 
@@ -425,7 +444,9 @@ def build_command_registry():
         if fn == "__init__.py":
             continue
         stem = os.path.splitext(fn)[0]
-        name = stem.lower()
+        name = _canonical_command_name(stem)
+        if not name:
+            continue
         help_text = _extract_help_text(os.path.join(COMMANDS_DIR, fn))
         usage_lines = _extract_usage_lines(help_text or "")
         subcommands, sub_groups = _extract_subcommands(name, usage_lines)

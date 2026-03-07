@@ -14,7 +14,7 @@ Give agents a fast, accurate understanding of what Chronos is, how it is structu
 
 ## Core Explanation (Agent Version)
 Chronos is a YAML-first life management engine with:
-- CLI command runtime (`Modules/Console.py`, `Commands/*.py`)
+- CLI command runtime (`Modules/console.py`, `Commands/*.py`)
 - item-based data model under `User/`
 - Kairos scheduler (`today`, `today reschedule`)
 - listener (alarms/reminders/timer)

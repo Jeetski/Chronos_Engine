@@ -1,7 +1,7 @@
 import os
 import re
 import yaml
-from Modules.ItemManager import read_item_data, write_item_data
+from Modules.item_manager import read_item_data, write_item_data
 
 
 SUPPORTED_TYPES = {"task", "milestone", "goal", "project"}
