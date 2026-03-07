@@ -425,7 +425,7 @@ def select_template_for_day(day_of_week, status_context):
     Smart Template Selection: All templates compete, best wins.
     
     Process:
-    1. Gather ALL templates from user/Days/
+    1. Gather ALL templates from user/days/
     2. Filter by eligibility (days property + filename matching)
     3. Score by status alignment
     4. Pick highest scorer
@@ -2822,7 +2822,7 @@ def run(args, properties):
         template = template_info.get("template")
         template_path = template_info.get("path")
         if not template:
-            print(f"No template found for {day_of_week}. Please create a '{day_of_week}.yml' file in the 'user/Days' directory.")
+            print(f"No template found for {day_of_week}. Please create a '{day_of_week}.yml' file in the 'user/days' directory.")
             return
         canonical_path = get_day_template_path(day_of_week)
         if template_info.get("score", 0) > 0 and os.path.normpath(template_path) != os.path.normpath(canonical_path):
@@ -3144,5 +3144,6 @@ Examples:
   today routines
   today legacy reschedule
 """
+
 
 

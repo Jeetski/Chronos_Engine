@@ -644,15 +644,16 @@
 
 ### Day Templates / Place Status
 - Updated travel templates to explicitly require travel context:
-  - `user/Days/travel_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
-  - `user/Days/travel_reset_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
+  - `user/days/travel_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
+  - `user/days/travel_reset_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
 - Added normalized `place` coverage across `*_example.yml` day templates:
-  - `user/Days/deep_work_day_kairos_example.yml` -> `at_work`
-  - `user/Days/recovery_and_reset_day_example.yml` -> `at_home`
-  - `user/Days/sick_day_example.yml` -> `at_home`
-  - `user/Days/weekday_builder_example.yml` -> `at_school`
-  - `user/Days/weekday_example.yml` -> `at_home`
+  - `user/days/deep_work_day_kairos_example.yml` -> `at_work`
+  - `user/days/recovery_and_reset_day_example.yml` -> `at_home`
+  - `user/days/sick_day_example.yml` -> `at_home`
+  - `user/days/weekday_builder_example.yml` -> `at_school`
+  - `user/days/weekday_example.yml` -> `at_home`
 - Expanded `user/settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

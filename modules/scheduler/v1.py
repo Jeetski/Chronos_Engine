@@ -68,7 +68,7 @@ def get_day_template_path(day_of_week):
 
 def list_day_template_paths(day_of_week):
     """
-    Returns ALL template candidates from user/Days/.
+    Returns ALL template candidates from user/days/.
     Templates self-describe their eligibility via 'days' property.
     If no 'days' property, the template is eligible for any day.
     """
@@ -86,7 +86,7 @@ def list_day_template_paths(day_of_week):
 
 def list_all_day_templates():
     """
-    Returns all template files from user/Days/ without any filtering.
+    Returns all template files from user/days/ without any filtering.
     """
     days_dir = os.path.join(USER_DIR, "Days")
     if not os.path.isdir(days_dir):
@@ -993,5 +993,6 @@ def schedule_flexible_items(schedule, windows, status_context, current_date=None
                  print(f"  -> Could not fit '{candidate['name']}' in window.")
                  
     return schedule
+
 
 
