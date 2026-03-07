@@ -1,0 +1,5 @@
+id: alerts-center
+label: Alerts Center
+module: alerts_center
+enabled: true
+priority: 880

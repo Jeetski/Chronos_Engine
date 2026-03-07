@@ -20,7 +20,7 @@ except Exception as e:
 
 def load_reminders():
     """
-    Loads all reminder configurations from the user/Reminders directory.
+    Loads all reminder configurations from the user/reminders directory.
     Returns a list of tuples: (reminder_data, filepath).
     """
     if not os.path.exists(REMINDERS_DIR):
@@ -126,3 +126,4 @@ def update_reminder_yaml(filepath, reminder_data):
     """
     with open(filepath, 'w') as f:
         yaml.dump(reminder_data, f, default_flow_style=False, sort_keys=False)
+

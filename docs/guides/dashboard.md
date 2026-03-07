@@ -144,6 +144,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 
 ### Popups
 - Startup popup is loaded first in popup queue.
+- Alerts Center popup polls for active `ringing` alarms/reminders and appears when live alerts need action.
 - Yesterday Check-in popup is hard-ordered second in popup queue.
 - Sleep Check-In popup is loaded after Yesterday Check-in (priority-driven).
 - Achievement Unlocked popup listens for new profile award-feed events and shows:
