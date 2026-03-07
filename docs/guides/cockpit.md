@@ -40,7 +40,8 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 
 ## Extending
 
-- Panels live in `utilities/dashboard/Panels/<Name>/` and register via `window.__cockpitPanelRegister` in `utilities/dashboard/Views/Cockpit/`.
+- Panels live in `utilities/dashboard/panels/<Name>/` and register via `window.__cockpitPanelRegister` in `utilities/dashboard/Views/Cockpit/`.
 - For new panels, expose minimal GET/POST endpoints in `server.py` and reuse matrix/core mirrors when possible.
+
 
 

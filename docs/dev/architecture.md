@@ -92,7 +92,7 @@ A generic Vanilla JS Single Page Application (SPA).
   - Security: permissive CORS for local dev; do not expose publicly without adding auth and controls.
 
 - UI runtime (`utilities/dashboard/app.js` + widgets/views)
-  - Views: Calendar, Template Builder, and the Cockpit canvas (panels under `utilities/dashboard/Panels/`).
+  - Views: Calendar, Template Builder, and the Cockpit canvas (panels under `utilities/dashboard/panels/`).
   - Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console.
   - Gadgets + Dock: Bottom dock (`#chronosDock`) populated by gadget registry (`GET /api/registry?name=gadgets`); gadgets mount via `mountGadget()` and can be toggled from the topbar Gadgets menu.
   - Event bus: `mount(el, context)` receives a `context.bus` used by widgets (e.g., emit `vars:changed`, `widget:show`, `calendar:selected`).
@@ -152,6 +152,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
+
 
 
 

@@ -218,7 +218,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 |-----------|-----------|-----------------|-------------------|
 | Widget | `utilities/dashboard/Widgets/<Name>/` | `mount(el, context)` | `widget.yml` |
 | View | `utilities/dashboard/Views/<Name>/` | `mount(container, context)` | `view.yml` |
-| Panel | `utilities/dashboard/Panels/<Name>/` | `register(manager)` | `panel.yml` |
+| Panel | `utilities/dashboard/panels/<Name>/` | `register(manager)` | `panel.yml` |
 | Popup | `utilities/dashboard/popups/<Name>/` | `mount(el)` | `popup.yml` |
 | Gadget | `utilities/dashboard/gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
 | Wizard | `utilities/dashboard/Wizards/<Name>/` | (wizard-specific) | `wizard.yml` |
@@ -282,6 +282,7 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 
 

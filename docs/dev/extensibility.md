@@ -208,7 +208,7 @@ GET /api/registry?name=widgets
 
 Drag-and-drop components for the Cockpit view (e.g., Schedule, Matrix, Status Strip).
 
-**Location:** `utilities/dashboard/Panels/<Name>/`
+**Location:** `utilities/dashboard/panels/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `register(manager)` function
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 

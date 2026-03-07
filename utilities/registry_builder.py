@@ -890,7 +890,7 @@ def build_panels_registry():
     """Auto-discover panels by scanning Dashboard/Panels directory."""
     panels = []
     dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
-    panels_dir = os.path.join(dashboard_dir, "Panels")
+    panels_dir = os.path.join(dashboard_dir, "panels")
     
     if not os.path.exists(panels_dir):
         return {
