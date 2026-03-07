@@ -16,7 +16,7 @@ Run project execution in Chronos from scope definition to daily delivery: struct
 - "Turn project plan into this week/day execution."
 
 ## Source of Truth
-- Project items: `user/Projects/*.yml`
+- Project items: `user/projects/*.yml`
 - Linked tasks/milestones: `user/tasks/*.yml`, `user/Milestones/*.yml`
 - Project/goal rename flows and dashboard views:
   - Project Manager view
