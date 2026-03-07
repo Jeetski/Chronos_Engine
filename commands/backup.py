@@ -61,7 +61,7 @@ def create_backup(args, properties):
 
 def list_backups():
     if not os.path.exists(BACKUPS_DIR):
-        print("No backups found (user/Backups directory missing).")
+        print("No backups found (user/backups directory missing).")
         return
         
     files = glob.glob(os.path.join(BACKUPS_DIR, "*.zip"))
@@ -85,7 +85,7 @@ Usage:
 
 Description:
   Creates a full backup of the 'user' directory.
-  Saves to 'user/Backups/'.
+  Saves to 'user/backups/'.
   
 Example:
   backup
