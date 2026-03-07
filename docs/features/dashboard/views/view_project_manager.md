@@ -9,7 +9,7 @@ Project portfolio view for listing projects, drilling detail, and lifecycle upda
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/views/ProjectManager/`
+- Runtime source: `utilities/dashboard/views/project_manager/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/item`
@@ -36,6 +36,7 @@ Project portfolio view for listing projects, drilling detail, and lifecycle upda
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

@@ -9,7 +9,7 @@ Unified familiar interaction surface for ADUC status, startup, and live log visi
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/views/ADUC/`
+- Runtime source: `utilities/dashboard/views/aduc/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/aduc/log`
@@ -35,6 +35,7 @@ Unified familiar interaction surface for ADUC status, startup, and live log visi
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

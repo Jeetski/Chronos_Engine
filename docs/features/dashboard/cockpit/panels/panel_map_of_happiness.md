@@ -10,7 +10,7 @@ Panels are modular cockpit components and should remain composable in multi-pane
 - Syntax reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/panels/MapOfHappiness/`
+- Runtime source: `utilities/dashboard/panels/map_of_happiness/`
 - Mount contract: panel registration and lifecycle through cockpit panel manager.
 - API endpoints used by this panel:
   - `/api/items`
@@ -36,6 +36,7 @@ Panels are modular cockpit components and should remain composable in multi-pane
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

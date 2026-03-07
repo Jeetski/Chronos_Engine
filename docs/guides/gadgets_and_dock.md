@@ -43,7 +43,7 @@ As of March 2026, two gadgets ship by default.
 
 ### 1. Timer Gadget
 
-Location: `utilities/dashboard/gadgets/Timer/`
+Location: `utilities/dashboard/gadgets/timer/`
 
 Behavior:
 - Shows countdown (`MM:SS`) and circular progress ring.
@@ -61,7 +61,7 @@ Behavior:
 
 ### 2. Reschedule Gadget
 
-Location: `utilities/dashboard/gadgets/Reschedule/`
+Location: `utilities/dashboard/gadgets/reschedule/`
 
 Behavior:
 - One-click button to run `today reschedule`.
@@ -172,6 +172,7 @@ export function mount(el, context = {}) {
 - Registry looks stale:
   - Hard-refresh dashboard (`Ctrl+Shift+R`).
   - Optionally clear registry cache via admin tools (`clear registry:...`) and reload.
+
 
 
 

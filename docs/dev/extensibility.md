@@ -370,10 +370,10 @@ GET /api/registry?name=gadgets
 
 ```bash
 # 1. Create widget folder
-mkdir "utilities/dashboard/widgets/HelloWorld"
+mkdir "utilities/dashboard/widgets/hello_world"
 
 # 2. Create index.js
-cat > "utilities/dashboard/widgets/HelloWorld/index.js" <<EOF
+cat > "utilities/dashboard/widgets/hello_world/index.js" <<EOF
 export function mount(el, context) {
   el.innerHTML = \`
     <div class="widget-glass">
@@ -386,7 +386,7 @@ export function mount(el, context) {
 EOF
 
 # 3. (Optional) Add metadata
-cat > "utilities/dashboard/widgets/HelloWorld/widget.yml" <<EOF
+cat > "utilities/dashboard/widgets/hello_world/widget.yml" <<EOF
 label: "My Hello World Widget"
 EOF
 
@@ -443,7 +443,7 @@ GET /api/registry?name=properties  # Property definitions
     "generated_at": "2026-01-28T00:00:00Z",
     "widgets": [
       {
-        "name": "HelloWorld",
+        "name": "hello_world",
         "label": "Hello World",
         "enabled": true
       }
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 

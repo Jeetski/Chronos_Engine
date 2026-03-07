@@ -217,7 +217,7 @@
 
 ### Dashboard - Achievement Unlocked Popup
 - Added popup module:
-  - `utilities/dashboard/popups/AchievementUnlocked/`
+  - `utilities/dashboard/popups/achievement_unlocked/`
   - `popup.yml` metadata included (auto-discovered registry)
 - Popup behavior:
   - polls profile award feed
@@ -247,7 +247,7 @@
 ## 2026-02-25
 
 ### Dashboard - Nia Assistant Widget (ADUC-Backed)
-- Added a new floating widget: `Nia AI Assistant` (`utilities/dashboard/widgets/NiaAssistant/`).
+- Added a new floating widget: `Nia AI Assistant` (`utilities/dashboard/widgets/nia_assistant/`).
 - Nia is available as a floating bottom-right orb and as a standard dashboard widget entry.
 - Widget now communicates through dashboard ADUC proxy APIs (no direct browser-to-ADUC coupling).
 - Added live waiting indicator while replies are pending:
@@ -322,7 +322,7 @@
 - Calendar Inspector `Deadlines & Due Dates` sections now default to collapsed in both:
   - Month view
   - Day view
-- File: `utilities/dashboard/views/Calendar/Inspector.js`
+- File: `utilities/dashboard/views/calendar/Inspector.js`
 
 ### Dashboard - Startup Popup Buttons
 - Added new startup popup action button:
@@ -330,7 +330,7 @@
 - Added startup popup action button:
   - `Set Up Nia AI` (currently inert / no action attached)
 - Kept existing `Tour` button as placeholder.
-- File: `utilities/dashboard/popups/Startup/index.js`
+- File: `utilities/dashboard/popups/startup/index.js`
 
 ### Dashboard - Docs View Markdown Rendering
 - Docs view now renders `.md` / `.markdown` files with formatted HTML instead of raw textarea-only output.
@@ -404,7 +404,7 @@
 
 ### Dashboard - Popup Reliability and New Sleep Check-In Popup
 - Added new popup module:
-  - `utilities/dashboard/popups/SleepCheckin/`
+  - `utilities/dashboard/popups/sleep_checkin/`
   - `popup.yml` priority: `850`
 - Startup queue behavior now effectively runs:
   1. `Startup`
@@ -475,7 +475,7 @@
 
 ### Dashboard - Yesterday Check-in Popup + Auto-Miss
 - Added popup module:
-  - `utilities/dashboard/popups/YesterdayCheckin/`
+  - `utilities/dashboard/popups/yesterday_checkin/`
 - Added endpoints:
   - `GET /api/yesterday/checkin`
   - `POST /api/yesterday/checkin`
@@ -492,7 +492,7 @@
 
 ### Dashboard - New Tracker View
 - Added new view module:
-  - `utilities/dashboard/views/Tracker/`
+  - `utilities/dashboard/views/tracker/`
 - Added tracker APIs:
   - `GET /api/tracker/sources`
   - `GET /api/tracker/year?type=habit|commitment&name=<item>&year=<yyyy>`
@@ -548,7 +548,7 @@
 - Preserved archive-before-overwrite behavior when regenerating today schedule.
 
 ### Dashboard - Scheduler Widget Kairos Quick Toggles
-- Updated `utilities/dashboard/widgets/Today/index.js` reschedule action to call `/api/cli` with `today reschedule` plus Kairos properties.
+- Updated `utilities/dashboard/widgets/today/index.js` reschedule action to call `/api/cli` with `today reschedule` plus Kairos properties.
 - Added persistent quick toggles in Scheduler widget:
   - `buffers`
   - `breaks` (timer/none)
@@ -560,11 +560,11 @@
 - Added `custom_property:<property_name>` Kairos context support and custom-property scoring weight (`prioritize:custom_property=<n>`).
 - Scheduler widget Custom Property field now accepts any property key (free text) and forwards it to Kairos during reschedule.
 - Controls are stored in localStorage under `chronos_sched_controls` and applied on each Generate/Reschedule click.
-- Added toggle-chip styling in `utilities/dashboard/widgets/Today/scheduler.css`.
+- Added toggle-chip styling in `utilities/dashboard/widgets/today/scheduler.css`.
 
 ### Tests
 - Ran Kairos test suite: `python -m pytest tests/test_kairos.py -q` (6 passed).
-- Verified widget script syntax: `node --check utilities/dashboard/widgets/Today/index.js`.
+- Verified widget script syntax: `node --check utilities/dashboard/widgets/today/index.js`.
 
 ### Versioning
 - Standardized visible release labeling to `Alpha v0.2` across docs, console title/banner, and dashboard startup subtitle.
@@ -590,11 +590,11 @@
 ### Sleep System Refactor
 - Removed legacy `sleep_settings.yml` flow from Life Setup wizard behavior.
 - Deleted obsolete file: `User/Settings/sleep_settings.yml`.
-- Added new persistent widget: `utilities/dashboard/widgets/SleepSettings/`
+- Added new persistent widget: `utilities/dashboard/widgets/sleep_settings/`
   - Manages sleep anchors directly in day templates.
   - Supports mono/bi/poly presets, segment editing, day toggles, overlap checks, and apply-to selected/all/new templates.
 - Added new guided wizard (renamed): `Sleep Hygiene`
-  - File path: `utilities/dashboard/wizards/SleepSettings/`
+  - File path: `utilities/dashboard/wizards/sleep_settings/`
   - Conversational setup flow for schedule pattern and timing.
   - Includes sleep optimization prompts (meal buffer, screen cutoff, caffeine cutoff, blackout room).
   - Can create example bedtime microroutines and a bedtime routine pack.
@@ -610,14 +610,14 @@
 ## 2026-02-15
 
 ### Dashboard
-- Added a new startup popup module at `utilities/dashboard/popups/Startup/`.
+- Added a new startup popup module at `utilities/dashboard/popups/startup/`.
 - Updated startup experience to feature the new Chronos logo prominently.
 - Startup popup now shows:
   - Large Chronos logo on the left
   - `Chronos Engine` title
   - `Alpha v0.2` subtitle
   - Hyperlink to `https://chronosengine.online`
-- Added popup metadata `priority: 1000` in `utilities/dashboard/popups/Startup/popup.yml`.
+- Added popup metadata `priority: 1000` in `utilities/dashboard/popups/startup/popup.yml`.
 - Updated popup loading in `utilities/dashboard/app.js`:
   - Popups are sorted by `priority` (desc), then module name.
   - Popup imports are now sequential (not parallel) so queue order is deterministic.
@@ -653,6 +653,7 @@
   - `User/Days/weekday_builder_example.yml` -> `at_school`
   - `User/Days/weekday_example.yml` -> `at_home`
 - Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

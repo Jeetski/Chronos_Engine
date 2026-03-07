@@ -1,4 +1,4 @@
 label: "Timer"
-module: "Timer"
+module: "timer"
 enabled: true
 order: 10

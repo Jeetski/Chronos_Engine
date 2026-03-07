@@ -1,6 +1,5 @@
 id: achievement-unlocked
 label: Achievement Unlocked
-module: AchievementUnlocked
+module: achievement_unlocked
 enabled: true
 priority: 90
-

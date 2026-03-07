@@ -9,7 +9,7 @@ Weekly summary and plan surface for seven-day review/planning loops.
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/views/Weekly/`
+- Runtime source: `utilities/dashboard/views/weekly/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/week?days=7`
@@ -33,6 +33,7 @@ Weekly summary and plan surface for seven-day review/planning loops.
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

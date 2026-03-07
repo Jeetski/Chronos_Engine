@@ -10,7 +10,7 @@ It is optimized for quick interaction while staying in non-timer views.
 - Command reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/gadgets/Timer/`
+- Runtime source: `utilities/dashboard/gadgets/timer/`
 - Dock behavior: compact timer state + controls from dock surface.
 - API endpoints used by this gadget:
   - `/api/timer/settings`
@@ -42,6 +42,7 @@ It is optimized for quick interaction while staying in non-timer views.
 - `docs/features/dashboard/widgets/widget_timer.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

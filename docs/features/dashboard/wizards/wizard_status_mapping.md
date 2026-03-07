@@ -10,7 +10,7 @@ Wizards should produce deterministic item/settings outcomes that remain editable
 - Command syntax reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/wizards/StatusMapping/`
+- Runtime source: `utilities/dashboard/wizards/status_mapping/`
 - Primary intent: guided multi-step workflow with reduced setup friction.
 - API endpoints used by this wizard:
   - `/api/item`
@@ -37,6 +37,7 @@ Wizards should produce deterministic item/settings outcomes that remain editable
 - `docs/reference/dashboard_api.md`
 - `docs/guides/settings.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

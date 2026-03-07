@@ -32,7 +32,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Routine Builder** - Template-composition editor for `routine`, `subroutine`, and `microroutine` templates with drag/drop schedulables (routines, subroutines, microroutines/habit stacks, habits/chores, tasks, windows, buffers, breaks), hierarchy editing, validation, and template lifecycle controls. See `docs/guides/routine_builder.md`.
 - **Project Manager** - Project planning view with state filtering, milestone linkage, and editable project metadata (`description`, `state`, `stage`, `priority`, `target date`). `Open Milestones` opens the Milestones widget pre-filtered to the selected project.
 - **Goal Planner** - Goal-focused planning view aligned with Project Manager behavior. Shows goals only in the goal list (not milestone rows), supports editable goal metadata (`description`, `state`, `stage`, `priority`, `target date`), and opens Milestones pre-filtered to the selected goal.
-- **Cockpit** - A drag-and-drop canvas powered by `utilities/dashboard/views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `docs/guides/cockpit.md` for panel details and troubleshooting.
+- **Cockpit** - A drag-and-drop canvas powered by `utilities/dashboard/views/cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `docs/guides/cockpit.md` for panel details and troubleshooting.
   - The Matrix panel loads presets from `presets/matrix/` (YAML). It ships with curated defaults there (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category), and you can drop new preset files into that folder.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 - **Editor** - A full-featured code editor for managing Chronos scripts (`.chs`), YAML settings, and Markdown notes (`User/` directory).
@@ -104,19 +104,19 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - Full guide (usage + extension): [Gadgets & Dock](./Gadgets_and_Dock.md)
 
 ### Wizards
-- **Life Setup Wizard** (`utilities/dashboard/wizards/LifeSetup/index.js`) - Guided flow to create schedule anchors and apply them to day templates.
+- **Life Setup Wizard** (`utilities/dashboard/wizards/life_setup/index.js`) - Guided flow to create schedule anchors and apply them to day templates.
 - **Flow**: Anchors → Configure → Review.
 - **Anchors**: Sleep, Meals, Work, School/University, Commute, Exercise, plus custom anchors.
 - **Output**: Generates fixed `timeblock` entries (reschedule: never, essential, non-flexible) and applies them to templates.
 - **Conflicts**: Detects overlaps among anchors and against existing template blocks; requires resolution before apply. Recheck Conflicts only lights up after changes.
 - **Templates**: Default is to create a new day template; can optionally apply to selected or all templates and either override conflicts or create a new template instead. When applying to existing templates, anchors override flexible items.
-- **Sleep Hygiene Wizard** (`utilities/dashboard/wizards/SleepSettings/index.js`) - Conversational guided flow that asks sleep pattern/times, captures sleep-hygiene optimizations (meal timing, screen cutoff, caffeine cutoff, blackout), and can create example bedtime microroutines before handing a draft to the Sleep Settings widget.
+- **Sleep Hygiene Wizard** (`utilities/dashboard/wizards/sleep_settings/index.js`) - Conversational guided flow that asks sleep pattern/times, captures sleep-hygiene optimizations (meal timing, screen cutoff, caffeine cutoff, blackout), and can create example bedtime microroutines before handing a draft to the Sleep Settings widget.
 - **Meals**: Supports 1–3 meal blocks with default labels and custom times.
 - **Commute**: Includes an auto-add helper to generate 30-minute before/after commute blocks from work/school anchors.
 - **Coaching**: Review step summarizes sleep and exercise totals with gentle, informational nudges when totals are low.
 - **Completion**: “Your life skeleton is set. You can now plan freely inside it.”
-- **Chore Setup Wizard** (`utilities/dashboard/wizards/ChoreSetup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
-- **Status Mapping Wizard** (`utilities/dashboard/wizards/StatusMapping/index.js`) - Bulk status-tagging workflow for items/templates.
+- **Chore Setup Wizard** (`utilities/dashboard/wizards/chore_setup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
+- **Status Mapping Wizard** (`utilities/dashboard/wizards/status_mapping/index.js`) - Bulk status-tagging workflow for items/templates.
 - **Flow**: Status Map -> Scope -> Preview.
 - **Status Map**: Loads dimensions/values from `User/Settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
 - **Scope**: Filter by type/name/category/tag, limit to items missing status tags, and choose merge vs replace behavior.
@@ -228,10 +228,10 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 
 ```bash
 # 1. Create widget folder
-mkdir "utilities/dashboard/widgets/HelloWorld"
+mkdir "utilities/dashboard/widgets/hello_world"
 
 # 2. Create index.js
-cat > "utilities/dashboard/widgets/HelloWorld/index.js" <<EOF
+cat > "utilities/dashboard/widgets/hello_world/index.js" <<EOF
 export function mount(el, context) {
   el.innerHTML = \`
     <div class="widget-glass">
@@ -244,11 +244,11 @@ export function mount(el, context) {
 EOF
 
 # 3. (Optional) Create metadata file
-cat > "utilities/dashboard/widgets/HelloWorld/widget.yml" <<EOF
+cat > "utilities/dashboard/widgets/hello_world/widget.yml" <<EOF
 label: "My Hello World Widget"
 EOF
 
-# 4. Refresh dashboard → HelloWorld appears in Widgets menu automatically!
+# 4. Refresh dashboard → hello_world appears in Widgets menu automatically!
 ```
 
 ### Metadata Options
@@ -282,6 +282,8 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
+
 
 
 

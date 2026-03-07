@@ -10,7 +10,7 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - Command reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/widgets/CockpitMinimap/`
+- Runtime source: `utilities/dashboard/widgets/cockpit_minimap/`
 - Primary role: focused operational UI for this feature domain.
 - API endpoints used by this widget:
   - (No direct endpoint strings detected in source.)
@@ -34,6 +34,7 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

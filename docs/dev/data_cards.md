@@ -17,7 +17,7 @@ The Data Cards system is a generic collection management feature designed to han
 - `POST /api/datacards/series/<name>/cards`: Create or update a card.
 - `POST /api/datacards/import`: Import generic items (e.g., from CSV or other sources) into a series.
 
-### 3. Frontend (`utilities/dashboard/panels/DataCards/`)
+### 3. Frontend (`utilities/dashboard/panels/data_cards/`)
 - **Cockpit Panel**: Data Cards are implemented as a **Cockpit Panel**, allowing users to spawn multiple instances (e.g., one for "NPCs", one for "Locations") on the same canvas.
 - **Deck Mode UI**:
   - **Sequential Navigation**: View one card at a time with "Next" and "Previous" controls, similar to a physical index card deck.
@@ -51,6 +51,7 @@ schema:
 ## Extensibility
 - **Dynamic Registries**: The system uses `utilities/registry_builder.py` to allow drop-in usage of new Wizards and Themes.
 - **Visualization**: (Future) Potential for scatter plots or network graphs based on `rules.yml` data types.
+
 
 
 

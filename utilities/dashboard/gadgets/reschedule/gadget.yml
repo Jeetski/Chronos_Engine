@@ -1,4 +1,4 @@
 label: "Reschedule"
-module: "Reschedule"
+module: "reschedule"
 enabled: true
 order: 20
