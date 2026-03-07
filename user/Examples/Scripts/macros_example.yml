@@ -1,10 +1,10 @@
-# Example macros config. Copy to user/Scripts/Macros/macros.yml to activate (without overwriting your own).
+# Example macros config. Copy to user/scripts/Macros/macros.yml to activate (without overwriting your own).
 enable_macros: true
 default_timeout_ms: 12000
 
 before_command:
   today:
-    - chs: user/Scripts/Macros/status_seed_example.chs
+    - chs: user/scripts/Macros/status_seed_example.chs
   new:
     - cli: ["echo", "Creating @args0 '@args1'"]
   "*":
@@ -12,19 +12,19 @@ before_command:
 
 after_command:
   today:
-    - chs: user/Scripts/Macros/reschedule_digest_example.chs
+    - chs: user/scripts/Macros/reschedule_digest_example.chs
   complete:
-    - chs: user/Scripts/Macros/reward_check_example.chs
+    - chs: user/scripts/Macros/reward_check_example.chs
   mark:
-    - chs: user/Scripts/Macros/reward_check_example.chs
+    - chs: user/scripts/Macros/reward_check_example.chs
   timer:
-    - chs: user/Scripts/Macros/timer_log_example.chs
+    - chs: user/scripts/Macros/timer_log_example.chs
   sequence:
-    - chs: user/Scripts/Macros/sequence_digest_example.chs
+    - chs: user/scripts/Macros/sequence_digest_example.chs
   milestone:
-    - chs: user/Scripts/Macros/milestone_nudge_example.chs
+    - chs: user/scripts/Macros/milestone_nudge_example.chs
   commitments:
-    - chs: user/Scripts/Macros/commitments_digest_example.chs
+    - chs: user/scripts/Macros/commitments_digest_example.chs
   "*":
-    - chs: user/Scripts/Macros/command_log_example.chs
+    - chs: user/scripts/Macros/command_log_example.chs
 

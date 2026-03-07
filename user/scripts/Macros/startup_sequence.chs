@@ -1,5 +1,5 @@
 # Startup macro: run sequence sync once per console session.
-# Wire this by uncommenting the block in user/Scripts/Macros/macros.yml.
+# Wire this by uncommenting the block in user/scripts/Macros/macros.yml.
 # To force a rerun, delete user/temp/startup_sequence.flag.
 
 if exists file:user/temp/startup_sequence.flag then

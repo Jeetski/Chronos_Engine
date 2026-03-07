@@ -78,6 +78,6 @@ Usage:
   macro disable
 
 Description:
-  Manages the macro system (user/Scripts/Macros/macros.yml).
+  Manages the macro system (user/scripts/Macros/macros.yml).
 """
 

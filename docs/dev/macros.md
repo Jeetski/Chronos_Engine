@@ -4,7 +4,7 @@ Chronos supports opt-in macros that run before or after any CLI command. Macros 
 
 ## Enable
 
-1) Create `user/Scripts/Macros/macros.yml`
+1) Create `user/scripts/Macros/macros.yml`
 2) Minimal config:
 
 ```
@@ -24,7 +24,7 @@ after_command: {}
   - List: `cli: ["echo", "Creating @args0 '@args1'"]`
   - String (shlex split): `cli: "echo Created: @args0 @args1"`
 - `chs`: run a `.chs` script via the console pipeline
-  - Example: `chs: user/Scripts/Macros/log_mark.chs`
+  - Example: `chs: user/scripts/Macros/log_mark.chs`
 - `setvar`: set a variable in the shared variable store
   - Example: `setvar: { name: last_cmd, value: "@cmd" }`
 - `noop`: placeholder, does nothing
@@ -71,7 +71,7 @@ after_command:
 
 ```
 # Files
-# - Config: user/Scripts/Macros/macros.yml
+# - Config: user/scripts/Macros/macros.yml
 # - Engine: modules/macro_engine.py (invoked by modules/console.py)
 ```
 
