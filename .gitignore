@@ -79,3 +79,9 @@ Agents Dress Up Committee/familiars/*/state.json
 Agents Dress Up Committee/familiars/*/milestones.json
 Agents Dress Up Committee/familiars/*/memory.json
 Agents Dress Up Committee/familiars/*/docs/memories.md
+
+# Playwright CLI local artifacts
+.playwright-cli/
+
+# Pytest cache
+.pytest_cache/
