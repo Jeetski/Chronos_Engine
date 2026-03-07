@@ -15,10 +15,10 @@ except Exception:
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 def _read_dashboard_browser_setting():
-    """Optional browser override from User/Settings config."""
+    """Optional browser override from user/Settings config."""
     if yaml is None:
         return ""
-    settings_dir = os.path.join(ROOT_DIR, "User", "Settings")
+    settings_dir = os.path.join(ROOT_DIR, "user", "Settings")
     for fname in ("config.yml", "Config.yml"):
         path = os.path.join(settings_dir, fname)
         if not os.path.exists(path):
@@ -137,20 +137,20 @@ def get_help_message():
     return """
 Usage: dashboard
 Description: Opens the Chronos dashboard UI in your default browser.
-Optional: set `browser` (or `dashboard_browser`) in User/Settings/config.yml, or pass `browser:<cmd>`.
-Also pre-bundles User/Settings YAML into generated/settings_bundle.js for the UI to consume.
+Optional: set `browser` (or `dashboard_browser`) in user/Settings/config.yml, or pass `browser:<cmd>`.
+Also pre-bundles user/Settings YAML into generated/settings_bundle.js for the UI to consume.
 """
 
 
 def bundle_settings_for_dashboard():
     """
-    Reads relevant YAMLs from User/Settings and writes utilities/dashboard/generated/settings_bundle.js
+    Reads relevant YAMLs from user/Settings and writes utilities/dashboard/generated/settings_bundle.js
     that sets window.CHRONOS_SETTINGS for the dashboard to use without fetch.
     """
     if yaml is None:
         raise RuntimeError("PyYAML not available")
 
-    settings_dir = os.path.join(ROOT_DIR, "User", "Settings")
+    settings_dir = os.path.join(ROOT_DIR, "user", "Settings")
     out_dir = os.path.join(ROOT_DIR, "utilities", "dashboard", "generated")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "settings_bundle.js")
@@ -305,5 +305,6 @@ def bundle_settings_for_dashboard():
         f.write('window.CHRONOS_SETTINGS = ')
         json.dump(bundle, f, ensure_ascii=False)
         f.write(';')
+
 
 

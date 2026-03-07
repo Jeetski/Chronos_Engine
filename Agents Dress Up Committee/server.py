@@ -688,7 +688,7 @@ def get_familiar_activities(fam_id):
 def get_user_profile():
     """Return user's nickname and avatar from Chronos profile.yml if in Chronos mode.
     
-    In Chronos mode (ADUC_PROJECT_PATH set), reads User/Profile/profile.yml.
+    In Chronos mode (ADUC_PROJECT_PATH set), reads user/Profile/profile.yml.
     Falls back to familiar's profile.json nickname.
     """
     result = {"nickname": "You", "avatar": "/static/avatar-default.svg", "source": "default"}
@@ -696,8 +696,8 @@ def get_user_profile():
     # Check for Chronos mode - ADUC_PROJECT_PATH points to Chronos Engine root
     project_path = os.environ.get("ADUC_PROJECT_PATH", "")
     if project_path:
-        # Try to read User/Profile/profile.yml
-        profile_yml = Path(project_path) / "User" / "Profile" / "profile.yml"
+        # Try to read user/Profile/profile.yml
+        profile_yml = Path(project_path) / "user" / "Profile" / "profile.yml"
         if profile_yml.exists():
             try:
                 import yaml
@@ -729,10 +729,10 @@ def get_user_profile():
 
 @app.route("/user-avatar")
 def serve_user_avatar():
-    """Serve user's avatar from Chronos User/Profile/avatar.* if in Chronos mode."""
+    """Serve user's avatar from Chronos user/Profile/avatar.* if in Chronos mode."""
     project_path = os.environ.get("ADUC_PROJECT_PATH", "")
     if project_path:
-        profile_dir = Path(project_path) / "User" / "Profile"
+        profile_dir = Path(project_path) / "user" / "Profile"
         # Try common image extensions
         for ext in ["jpg", "jpeg", "png", "gif", "webp"]:
             avatar_path = profile_dir / f"avatar.{ext}"
@@ -1935,3 +1935,4 @@ if __name__ == "__main__":
     reset_all_familiar_states()
     port = int(os.environ.get("PORT", "8080"))
     app.run(host="0.0.0.0", port=port, debug=True)
+

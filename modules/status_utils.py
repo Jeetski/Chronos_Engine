@@ -7,7 +7,7 @@ except Exception:
     yaml = None
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_SETTINGS_DIR = os.path.join(ROOT_DIR, "User", "Settings")
+USER_SETTINGS_DIR = os.path.join(ROOT_DIR, "user", "Settings")
 
 
 def status_slug(name):
@@ -58,3 +58,4 @@ def canonicalize_status_value(indicator, value):
         if status_slug(opt) == raw_slug:
             return opt, None
     return None, f"Invalid value '{raw}' for {indicator}. Allowed: {', '.join(options)}"
+

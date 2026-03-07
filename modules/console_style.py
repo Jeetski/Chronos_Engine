@@ -23,9 +23,9 @@ except Exception:  # pragma: no cover
     ColorDepth = None
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-COLOR_SETTINGS_PATH = ROOT_DIR / "User" / "Settings" / "console_color_settings.yml"
-CONSOLE_THEME_SETTINGS_PATH = ROOT_DIR / "User" / "Settings" / "console_theme_settings.yml"
-CONSOLE_THEME_DIR = ROOT_DIR / "User" / "Settings" / "console_themes"
+COLOR_SETTINGS_PATH = ROOT_DIR / "user" / "Settings" / "console_color_settings.yml"
+CONSOLE_THEME_SETTINGS_PATH = ROOT_DIR / "user" / "Settings" / "console_theme_settings.yml"
+CONSOLE_THEME_DIR = ROOT_DIR / "user" / "Settings" / "console_themes"
 LEGACY_THEME_PATH = CONSOLE_THEME_DIR / "blue_skies_theme.yml"
 
 DEFAULT_PALETTE: Dict[str, str] = {
@@ -147,7 +147,7 @@ def reset_theme_cache() -> None:
 
 
 def _active_theme_name() -> str:
-    profile_path = ROOT_DIR / "User" / "Profile" / "profile.yml"
+    profile_path = ROOT_DIR / "user" / "Profile" / "profile.yml"
     prof = _safe_load_yaml(profile_path)
     if isinstance(prof, dict):
         name = prof.get("theme")
@@ -355,3 +355,4 @@ def enable_themed_print(default_role: str = "default") -> None:
         __builtins__["print"] = themed_print
     else:
         __builtins__.print = themed_print
+

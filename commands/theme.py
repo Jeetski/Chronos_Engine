@@ -20,8 +20,8 @@ def get_help_message():
         "  set-colors [background:<name|#hex>] [text:<name|#hex>]\n"
         "                       Set explicit console colors (overrides theme)\n"
         "Notes:\n"
-        "- Themes come from User/Settings/console_theme_settings.yml (themes: { name: { background, text } }).\n"
-        "- Current selection is stored in User/Profile/profile.yml under 'theme' or 'console: { theme }'.\n"
+        "- Themes come from user/Settings/console_theme_settings.yml (themes: { name: { background, text } }).\n"
+        "- Current selection is stored in user/Profile/profile.yml under 'theme' or 'console: { theme }'.\n"
         "- Explicit 'background'/'text' in profile override the theme.\n"
     )
 
@@ -50,23 +50,23 @@ def _save_yaml(path: str, data: Any) -> bool:
 
 def _read_themes() -> Dict[str, Dict[str, str]]:
     # Console themes live here.
-    cfg = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'console_theme_settings.yml'))
+    cfg = _load_yaml(os.path.join(ROOT_DIR, 'user', 'Settings', 'console_theme_settings.yml'))
     if isinstance(cfg, dict) and isinstance(cfg.get('themes'), dict):
         return cfg['themes']  # type: ignore
     # Backward-compatible fallback.
-    legacy = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml'))
+    legacy = _load_yaml(os.path.join(ROOT_DIR, 'user', 'Settings', 'theme_settings.yml'))
     if isinstance(legacy, dict) and isinstance(legacy.get('themes'), dict):
         return legacy['themes']  # type: ignore
     return {}
 
 
 def _read_profile() -> Dict[str, Any]:
-    prof = _load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml'))
+    prof = _load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml'))
     return prof if isinstance(prof, dict) else {}
 
 
 def _write_profile(prof: Dict[str, Any]) -> bool:
-    return _save_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml'), prof)
+    return _save_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml'), prof)
 
 
 def _resolve_profile_theme(prof: Dict[str, Any], themes: Dict[str, Dict[str, str]]) -> Tuple[str, str, str]:
@@ -156,7 +156,7 @@ def run(args, properties):
 
     if sub == 'list':
         if not themes:
-            print("No themes found. Ensure User/Settings/console_theme_settings.yml exists.")
+            print("No themes found. Ensure user/Settings/console_theme_settings.yml exists.")
             return
         print("Available themes:")
         for name, t in themes.items():
@@ -214,3 +214,4 @@ def run(args, properties):
         return
 
     print("Unknown subcommand.\n" + get_help_message())
+

@@ -78,7 +78,7 @@ Creates an alarm from an item's deadline or due date.
 Opens an item in the configured default editor.
 **Usage:** `edit <type> <name>`
 **Notes:**
-- Reads `default_editor` from `User/Settings/config.yml` (fallback behavior applies if missing).
+- Reads `default_editor` from `user/Settings/config.yml` (fallback behavior applies if missing).
 - Special case: `default_editor: chronos_editor` routes the open request into the dashboard Editor view.
 
 ### `delete`
@@ -146,7 +146,7 @@ Lists small, high-leverage candidates from missed blocks and due/overdue work.
 - `quickwins date:2026-03-06 missed:true overdue:true due:false`
 - `quickwins format:json limit:5`
 **Notes:**
-- Reads defaults from `User/Settings/quick_wins_settings.yml`.
+- Reads defaults from `user/Settings/quick_wins_settings.yml`.
 - Good companion with `today inject "<name>" at HH:MM`.
 
 ### `timer`
@@ -299,7 +299,7 @@ Controls interactive CLI autocomplete suggestions.
 - `autocomplete on|off`
 - `autocomplete toggle`
 **Notes:**
-- Updates `User/Settings/console_settings.yml` (`autocomplete_enabled`).
+- Updates `user/Settings/console_settings.yml` (`autocomplete_enabled`).
 - Applies to new interactive sessions.
 
 ### `bulk`
@@ -314,8 +314,8 @@ Bundles settings and launches the Chronos Dashboard in your browser.
 **Notes:**
 - Browser resolution order:
   - `browser:<cmd>` argument
-  - `dashboard_browser` in `User/Settings/config.yml`
-  - `browser` in `User/Settings/config.yml`
+  - `dashboard_browser` in `user/Settings/config.yml`
+  - `browser` in `user/Settings/config.yml`
   - system default browser (fallback)
 
 ### `macro`
@@ -378,7 +378,7 @@ Visualizes item hierarchy or directory structure.
 ## Utilities
 
 ### `archive`
-Moves an item to `User/Archive`.
+Moves an item to `user/Archive`.
 **Usage:** `archive <type> <name>`
 
 ### `backup`
@@ -420,9 +420,9 @@ Performs system maintenance by clearing logs, databases, registries, and other s
 **Usage:** `clear <target> [force]` or `clear <target> force:true`
 
 **Targets:**
-- `logs` - Delete all log files from `User/Logs`
-- `schedules` - Delete generated schedule files from `User/Schedules`
-- `cache` - Delete all database mirrors (all `.db` files in `User/Data`)
+- `logs` - Delete all log files from `user/Logs`
+- `schedules` - Delete generated schedule files from `user/Schedules`
+- `cache` - Delete all database mirrors (all `.db` files in `user/Data`)
 - `db:<name>` - Delete a specific database (e.g., `clear db:chronos_core`)
 - `registry:<name>` - Clear a specific registry cache (e.g., `clear registry:wizards`)
 - `temp` - Delete temporary files (`.tmp`, `.bak`, cache files)
@@ -583,4 +583,5 @@ Manages achievement awards and progression evaluation.
 ### `redeem`
 Redeems a reward and applies its target.
 **Usage:** `redeem reward <name>`
+
 

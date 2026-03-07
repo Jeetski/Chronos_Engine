@@ -57,6 +57,7 @@ Completion Logging
 
 Notes
 - Properties are case-insensitive when read from YAML, but consistency is recommended.
-- Defaults can be set per item type in `User/Settings/<type>_defaults.yml`.
+- Defaults can be set per item type in `user/Settings/<type>_defaults.yml`.
 - Project/goal planning fields like `state`, `stage`, `priority`, and `target_date` are supported in dashboard planning views.
 - `stage` is treated as a flexible text field in current dashboard flows (no hard-enforced global enum).
+

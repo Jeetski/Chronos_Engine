@@ -52,7 +52,7 @@ Then recursively collects:
 
 ## 4. Candidate Gather (`gather_candidates`)
 
-Source: `User/Data/chronos_core.db` table `items`.
+Source: `user/Data/chronos_core.db` table `items`.
 
 Loaded rows include:
 - executable families (`task`, `habit`, `subroutine`, `microroutine`)
@@ -146,10 +146,10 @@ Each run emits:
 - YAML payload with `phase_notes` and final blocks
 
 Paths:
-- `User/Logs/kairos_decision_log_<timestamp>.md`
-- `User/Logs/kairos_decision_log_<timestamp>.yml`
-- `User/Logs/kairos_decision_log_latest.md`
-- `User/Logs/kairos_decision_log_latest.yml`
+- `user/Logs/kairos_decision_log_<timestamp>.md`
+- `user/Logs/kairos_decision_log_<timestamp>.yml`
+- `user/Logs/kairos_decision_log_latest.md`
+- `user/Logs/kairos_decision_log_latest.yml`
 
 ## 12. Weekly Skeleton (`modules/scheduler/weekly_generator.py`)
 
@@ -169,4 +169,5 @@ Paths:
 5. If over-cut/over-trim:
 - tune repair settings, priorities, and anchor/essential properties
 6. Re-run active path: `today reschedule`
+
 

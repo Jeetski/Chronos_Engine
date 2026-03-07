@@ -16,15 +16,15 @@ Maintain accurate user status context (energy/focus/mood/stress/etc.) and apply 
 5. Explain what changed due to status shift.
 
 ## Status Settings Files
-- `User/Settings/status_settings.yml`
+- `user/Settings/status_settings.yml`
   - Canonical status registry used by scheduling and template matching.
 - Per-dimension settings files (examples):
-  - `User/Settings/health_settings.yml`
-  - `User/Settings/energy_settings.yml`
-  - `User/Settings/focus_settings.yml`
-  - `User/Settings/emotion_settings.yml`
-  - `User/Settings/mind_state_settings.yml`
-  - `User/Settings/vibe_settings.yml`
+  - `user/Settings/health_settings.yml`
+  - `user/Settings/energy_settings.yml`
+  - `user/Settings/focus_settings.yml`
+  - `user/Settings/emotion_settings.yml`
+  - `user/Settings/mind_state_settings.yml`
+  - `user/Settings/vibe_settings.yml`
 
 Keep per-dimension files aligned with the dimensions defined in `status_settings.yml`.
 
@@ -72,3 +72,4 @@ Legacy status keys are still recognized, but `status_requirements` is preferred.
 - `docs/reference/cli_commands.md`
 - `docs/reference/item_properties.md`
 - `docs/scheduling/scheduling_algorithm_overview.md`
+

@@ -85,11 +85,11 @@ Example API payload:
 ## Data and Files Affected
 
 Common paths impacted by Admin Tools:
-- `User/Logs/`
-- `User/Schedules/`
-- `User/Archive/`
-- `User/Data/*.db`
-- `User/.cache/`
+- `user/Logs/`
+- `user/Schedules/`
+- `user/Archive/`
+- `user/Data/*.db`
+- `user/.cache/`
 
 Mirror DB names typically include:
 - `chronos_core.db`
@@ -116,3 +116,4 @@ Recovery sequence:
 - `docs/reference/cli_commands.md` (`clear`, `backup`, `sequence`)
 - `docs/guides/dashboard.md` (System Admin widget)
 - `docs/dev/sequence.md` (mirror rebuild model)
+

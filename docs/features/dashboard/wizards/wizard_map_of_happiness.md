@@ -21,7 +21,7 @@ Wizards should produce deterministic item/settings outcomes that remain editable
   - `/api/settings?file=map_of_happiness.yml`
 
 ## Data and Settings
-- Wizard outputs should land in canonical `User/*` item files and/or `User/Settings/*.yml`.
+- Wizard outputs should land in canonical `user/*` item files and/or `user/Settings/*.yml`.
 - Generated artifacts must remain fully compatible with manual CLI edits after creation.
 
 ## Operational Workflows
@@ -40,6 +40,7 @@ Wizards should produce deterministic item/settings outcomes that remain editable
 - `docs/reference/dashboard_api.md`
 - `docs/guides/settings.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

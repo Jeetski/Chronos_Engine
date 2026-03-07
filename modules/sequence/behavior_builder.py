@@ -7,7 +7,7 @@ from modules.sequence.registry import ensure_data_home, update_database_entry, l
 from modules.sequence.core_builder import build_core_db
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 DATA_DIR = os.path.join(USER_DIR, "Data")
 CORE_DB_PATH = os.path.join(DATA_DIR, "chronos_core.db")
 BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
@@ -237,3 +237,4 @@ def build_behavior_db(registry: Dict[str, Any]) -> None:
 def sync_behavior_db() -> None:
     registry = load_registry()
     build_behavior_db(registry)
+

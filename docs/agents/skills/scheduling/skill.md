@@ -19,12 +19,12 @@ Operate Chronos scheduling end-to-end using Kairos only: build plans, repair con
 - Scheduler entrypoint: `commands/today.py`
 - Scheduler engine: `modules/scheduler/kairos.py`
 - Weekly skeleton: `modules/scheduler/weekly_generator.py`
-- Active schedule output: `User/Schedules/schedule_YYYY-MM-DD.yml`
-- Manual modifications: `User/Schedules/manual_modifications_YYYY-MM-DD.yml`
-- Completion logs: `User/Schedules/completions/YYYY-MM-DD.yml`
+- Active schedule output: `user/Schedules/schedule_YYYY-MM-DD.yml`
+- Manual modifications: `user/Schedules/manual_modifications_YYYY-MM-DD.yml`
+- Completion logs: `user/Schedules/completions/YYYY-MM-DD.yml`
 - Decision logs:
-  - `User/Logs/kairos_decision_log_latest.md`
-  - `User/Logs/kairos_decision_log_latest.yml`
+  - `user/Logs/kairos_decision_log_latest.md`
+  - `user/Logs/kairos_decision_log_latest.yml`
 
 ## Kairos Mental Model
 Kairos is a constrained optimizer with deterministic phases:
@@ -238,4 +238,5 @@ Good summary format:
 - `docs/reference/cli_commands.md`
 - `docs/reference/item_properties.md`
 - `docs/agents/agents.md`
+
 

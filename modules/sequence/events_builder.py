@@ -8,7 +8,7 @@ import yaml
 from modules.sequence.registry import ensure_data_home, update_database_entry, load_registry
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 LOGS_DIR = os.path.join(USER_DIR, "Logs")
 LISTENER_LOG = os.path.join(LOGS_DIR, "listener.log")
 DATA_DIR = os.path.join(USER_DIR, "Data")
@@ -224,3 +224,4 @@ def build_events_db(registry: Dict[str, Any]) -> None:
 def sync_events_db() -> None:
     registry = load_registry()
     build_events_db(registry)
+

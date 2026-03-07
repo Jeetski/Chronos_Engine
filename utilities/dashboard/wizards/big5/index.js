@@ -702,9 +702,9 @@ export async function launch(context, options = {}) {
         yamlSnapshot += `answers:\n`;
         Object.keys(answers).forEach(id => { yamlSnapshot += `  ${id}: ${answers[id]}\n`; });
 
-        await saveFile(`User/Profile/Big5/results_${activeTestId}_${dateStr}.yml`, yamlSnapshot);
-        await saveFile(`User/Profile/personality_${activeTestId}.yml`, yamlSnapshot);
-        await saveFile(`User/Profile/personality.yml`, yamlSnapshot);
+        await saveFile(`user/Profile/Big5/results_${activeTestId}_${dateStr}.yml`, yamlSnapshot);
+        await saveFile(`user/Profile/personality_${activeTestId}.yml`, yamlSnapshot);
+        await saveFile(`user/Profile/personality.yml`, yamlSnapshot);
 
         let summary = `## ${activeTest.name} ${dateStr}\n\n`;
         Object.keys(traits).forEach(t => {
@@ -722,12 +722,12 @@ export async function launch(context, options = {}) {
 
         let currentMd = "";
         try {
-            const res = await apiRequest(`/api/file/read?path=User/Profile/personality.md`);
+            const res = await apiRequest(`/api/file/read?path=user/Profile/personality.md`);
             if (res.ok !== false) currentMd = res.content || "";
         } catch { }
 
         const newMd = currentMd + "\n\n" + summary;
-        await saveFile(`User/Profile/personality.md`, newMd);
+        await saveFile(`user/Profile/personality.md`, newMd);
     }
 
     function resetWizard() {
@@ -763,3 +763,4 @@ export async function launch(context, options = {}) {
 
     updateUI();
 }
+

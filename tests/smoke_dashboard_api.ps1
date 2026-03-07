@@ -108,7 +108,7 @@ try {
         type = "task"; name = $taskC
     }
     Assert-Ok "Soft delete task via /api/item/delete" $r
-    $taskCPath = Join-Path $root ("User\Tasks\{0}.yml" -f $taskC)
+    $taskCPath = Join-Path $root ("user\Tasks\{0}.yml" -f $taskC)
     Assert (-not (Test-Path $taskCPath)) "Soft-deleted task removed from active folder"
 
     # 2) Bulk set/copy/delete
@@ -180,7 +180,7 @@ try {
         additional = @()
     }
     Assert-Ok "Yesterday check-in via /api/yesterday/checkin" $r @(200, 207)
-    $completionPath = Join-Path $root "User\Schedules\completions\$yDate.yml"
+    $completionPath = Join-Path $root "user\Schedules\completions\$yDate.yml"
     Assert (Test-Path $completionPath) "Completion file created/updated for yesterday"
     if (Test-Path $completionPath) {
         $content = Get-Content -Path $completionPath -Raw

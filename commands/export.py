@@ -11,7 +11,7 @@ import time
 from modules.console import run_command, parse_input
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 EXPORTS_DIR = os.path.join(USER_DIR, "Exports")
 
 def run(args, properties):
@@ -30,7 +30,7 @@ def run(args, properties):
             zip_name += '.zip'
         os.makedirs(EXPORTS_DIR, exist_ok=True)
         out_path = os.path.join(EXPORTS_DIR, zip_name)
-        # Create zip with paths relative to ROOT_DIR so contents include 'User/...'
+        # Create zip with paths relative to ROOT_DIR so contents include 'user/...'
         with zipfile.ZipFile(out_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
             for folder, _dirs, files in os.walk(USER_DIR):
                 for fname in files:
@@ -48,7 +48,7 @@ def run(args, properties):
     filename = args[0]
     command_to_execute = args[1:]
 
-    # Ensure the User/Exports directory exists
+    # Ensure the user/Exports directory exists
     if not os.path.exists(EXPORTS_DIR):
         os.makedirs(EXPORTS_DIR)
 
@@ -93,10 +93,11 @@ Usage:
   export <filename> <command> [args...]
 
 Description:
-  export all: Zips the entire User/ directory into User/Exports/[filename].zip.
-  export filename: Executes a command and saves its table output to YAML in User/Exports/.
+  export all: Zips the entire user/ directory into user/Exports/[filename].zip.
+  export filename: Executes a command and saves its table output to YAML in user/Exports/.
 
 Example:
   export all chronos_backup.zip
   export my_tasks.yml list tasks priority:high
 """
+

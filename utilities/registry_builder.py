@@ -8,7 +8,7 @@ import yaml
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
 REGISTRY_DIR = os.path.join(ROOT_DIR, "registry")
 
@@ -517,7 +517,7 @@ def build_item_registry():
 
 def build_settings_registry():
     """
-    Fast scan of User/Settings/ to build authoritative lists for UI/Autocomplete.
+    Fast scan of user/Settings/ to build authoritative lists for UI/Autocomplete.
     """
     # Status indicators + values
     status_settings = _read_yaml(os.path.join(SETTINGS_DIR, "status_settings.yml"))
@@ -1024,6 +1024,7 @@ def build_gadgets_registry():
         "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "gadgets": gadgets,
     }
+
 
 
 

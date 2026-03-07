@@ -5,9 +5,9 @@ Achievements tracks unlockable milestones and ties each unlock to both points an
 ## Overview
 
 Core model:
-- Achievement definitions are YAML items under `User/Achievements/`.
+- Achievement definitions are YAML items under `user/Achievements/`.
 - Unlocks update achievement state and progression state.
-- Progression state is persisted in `User/Profile/profile.yml`.
+- Progression state is persisted in `user/Profile/profile.yml`.
 
 Award results:
 - points are granted to the points ledger
@@ -77,10 +77,10 @@ Example update payload:
 ## Data Model and Settings
 
 Key settings and defaults:
-- `User/Settings/achievements_settings.yml`
-- `User/Settings/Achievement_Defaults.yml`
+- `user/Settings/achievements_settings.yml`
+- `user/Settings/Achievement_Defaults.yml`
 
-Progression fields in `User/Profile/profile.yml`:
+Progression fields in `user/Profile/profile.yml`:
 - `xp_total`
 - `level`
 - `xp_into_level`
@@ -115,7 +115,7 @@ If unlock popups are missing:
 3. Refresh dashboard and re-check `GET /api/achievements`.
 
 If XP/level looks incorrect:
-1. Inspect `User/Profile/profile.yml` progression fields.
+1. Inspect `user/Profile/profile.yml` progression fields.
 2. Run `achievements sync`.
 3. If still inconsistent in test environments, use `achievements reset-progress` and re-run sync.
 
@@ -124,3 +124,4 @@ If XP/level looks incorrect:
 - `docs/reference/cli_commands.md` (`achievements`, `points`)
 - `docs/reference/dashboard_api.md` (`/api/achievements`, `/api/achievement/update`, `/api/points`)
 - `docs/guides/dashboard.md` (Achievements widget behavior)
+

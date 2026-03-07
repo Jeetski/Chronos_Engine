@@ -9,7 +9,7 @@ from modules.logger import Logger
 
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 SKIP_ITEM_DIRS = {
     "archive",
     "backups",
@@ -84,7 +84,7 @@ def get_item_dir(item_type):
         words = item_type.lower().split('_')
         words[-1] = _pluralize(words[-1])
         dir_name = '_'.join(words)
-    return os.path.join(ROOT_DIR, "User", dir_name)
+    return os.path.join(ROOT_DIR, "user", dir_name)
 
 def get_item_path(item_type, name):
     """
@@ -442,4 +442,5 @@ def open_item_in_editor(item_type, name, editor_command):
         print(f"❌ Editor '{editor_command}' not found. Please ensure it's in your PATH.")
     except Exception as e:
         Logger.error(f"An error occurred while opening the editor: {e}")
+
 

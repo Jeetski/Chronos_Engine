@@ -14,7 +14,7 @@ except Exception:
 
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "sound_settings.yml")
+SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "sound_settings.yml")
 ASSETS_DIR = os.path.join(ROOT_DIR, "assets")
 
 DEFAULT_SETTINGS = {
@@ -198,3 +198,4 @@ def play(sound_name, wait=False, max_wait_seconds=2.0):
         return _play_sync(path, wait=True, max_wait_seconds=max_wait_seconds)
     threading.Thread(target=_play_sync, args=(path, False, max_wait_seconds), daemon=True).start()
     return True
+

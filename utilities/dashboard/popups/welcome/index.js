@@ -110,7 +110,7 @@ function buildPopup(payload, actions) {
   const { lines = [], nickname } = payload || {};
   const titleRaw = nickname ? `Welcome, ${nickname}` : 'Welcome back';
   const title = exp(titleRaw);
-  const body = (lines.length ? lines : ['Set your welcome message in User/Profile/profile.yml']).map(line => exp(String(line || '')));
+  const body = (lines.length ? lines : ['Set your welcome message in user/Profile/profile.yml']).map(line => exp(String(line || '')));
   wrap.innerHTML = `
     <div class="welcome-card">
       <div class="welcome-head">
@@ -180,3 +180,4 @@ function initWelcomePopup() {
 initWelcomePopup();
 
 export {};
+

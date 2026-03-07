@@ -32,7 +32,7 @@ def run(args, properties):
 
 def handle_undo_delete(args):
     """
-    Restores the most recently modified file in User/Archive.
+    Restores the most recently modified file in user/Archive.
     If a type is provided, filters by that type.
     """
     target_type = args[0].lower() if args else None
@@ -40,7 +40,7 @@ def handle_undo_delete(args):
     search_pattern = os.path.join(ARCHIVE_DIR, "**", "*.yml")
     if target_type:
          # Need to resolve the actual usage directory name (e.g. note -> notes)
-         # get_item_dir returns full path User/notes
+         # get_item_dir returns full path user/notes
          full_dir = get_item_dir(target_type)
          dir_name = os.path.basename(full_dir)
          search_pattern = os.path.join(ARCHIVE_DIR, dir_name, "*.yml")
@@ -56,7 +56,7 @@ def handle_undo_delete(args):
     latest_file = files[0]
     
     # Restore it
-    # rel_path relative to Archive -> User/Archive/tasks/foo.yml -> tasks/foo.yml
+    # rel_path relative to Archive -> user/Archive/tasks/foo.yml -> tasks/foo.yml
     rel_path = os.path.relpath(latest_file, ARCHIVE_DIR)
     dest_path = os.path.join(USER_DIR, rel_path)
     
@@ -87,7 +87,7 @@ def handle_undo_delete(args):
 
 def handle_undo_reschedule():
     """
-    Restores the latest schedule from User/Archive/Schedules/
+    Restores the latest schedule from user/Archive/Schedules/
     """
     schedules_dir = os.path.join(ARCHIVE_DIR, "Schedules")
     if not os.path.exists(schedules_dir):
@@ -128,3 +128,4 @@ Description:
   undo delete: Restores the most recently archived item.
   undo reschedule: Reverts today's schedule file to the previous version.
 """
+

@@ -91,7 +91,7 @@ export function mount(el, context) {
           <div id="notePreview" class="textarea notes-preview" data-expand="text"></div>
         </div>
         <div class="notes-card notes-footer">
-          <span class="hint">Create saves to User/Notes (or provided path). Load can open YAML/Markdown files.</span>
+          <span class="hint">Create saves to user/Notes (or provided path). Load can open YAML/Markdown files.</span>
           <div class="notes-actions">
             <button class="btn btn-secondary" id="notesLoad">Load</button>
             <button class="btn" id="notesToSticky">To Sticky</button>
@@ -245,7 +245,7 @@ export function mount(el, context) {
       } else {
         const ext = fmt === 'markdown' ? '.md' : '.yml';
         const fname = sanitizeNameForPath(name) || 'untitled';
-        const target = currentPath || `User/notes/${fname}${ext}`;
+        const target = currentPath || `user/notes/${fname}${ext}`;
         const body = {
           path: target,
           content: fmt === 'markdown' ? asMarkdown : asYaml,
@@ -458,3 +458,4 @@ export function mount(el, context) {
   console.log('[Chronos][Notes] Widget ready');
   return { fillFromObj };
 }
+

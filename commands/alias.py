@@ -3,7 +3,7 @@ import os
 import yaml
 from modules.console import ROOT_DIR
 
-ALIASES_PATH = os.path.join(ROOT_DIR, 'User', 'Settings', 'aliases.yml')
+ALIASES_PATH = os.path.join(ROOT_DIR, 'user', 'Settings', 'aliases.yml')
 
 def run(args, properties):
     """
@@ -91,10 +91,11 @@ Usage:
 
 Description:
   Creates custom command shortcuts.
-  Aliases are stored in User/Settings/aliases.yml.
+  Aliases are stored in user/Settings/aliases.yml.
 
 Example:
   alias gm start today
   alias n new note
   alias backup_notes archive notes
 """
+

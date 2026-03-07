@@ -10,7 +10,7 @@ from modules.sequence.behavior_builder import build_behavior_db
 from modules.scheduler import status_current_path
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 DATA_DIR = os.path.join(USER_DIR, "Data")
 BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
 JOURNAL_DB_PATH = os.path.join(DATA_DIR, "chronos_journal.db")
@@ -171,3 +171,4 @@ def build_journal_db(registry: Dict[str, Any]) -> None:
 def sync_journal_db() -> None:
     registry = load_registry()
     build_journal_db(registry)
+

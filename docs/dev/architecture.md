@@ -8,11 +8,11 @@ This guide explains how Chronos fits together so you can extend it confidently.
   - Adds project paths, sets UTF-8, and loads `commands/*.py` dynamically.
   - Parses interactive input, CLI args, and `.chs` scripts (supports nested `if/elseif/else/end` and loop blocks).
   - Uses `modules/variables.py` for in-memory variables and token expansion (e.g., `@nickname`).
-  - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `modules/macro_engine.py` (enabled by `User/Scripts/Macros/macros.yml`). Dashboard calls also pass through these hooks.
+  - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `modules/macro_engine.py` (enabled by `user/Scripts/Macros/macros.yml`). Dashboard calls also pass through these hooks.
   - Autosuggest and autocomplete are registry-driven; see `docs/dev/autosuggest.md` for the slot model and refresh workflow.
 
 ### 2. Item System (`modules/item_manager.py`)
-Items are the atoms of Chronos. They are stored as YAML files in the `User/` directory.
+Items are the atoms of Chronos. They are stored as YAML files in the `user/` directory.
 - **Polymorphic**: Any item can have `tasks`, `subroutines`, `inventory_items`, or `milestones`.
 - **Fractal**: Items can nest indefinitely. The `Scheduler` creates a flattened view for execution but preserves the hierarchy for planning.
 - **Defaults**: Each item type has a `_defaults.yml` (e.g., `task_defaults.yml`) that defines its initial state.
@@ -28,10 +28,10 @@ Items are the atoms of Chronos. They are stored as YAML files in the `User/` dir
   - Gathers/filter/scores executable backlog from `chronos_core.db`
   - Constructs timeline (anchors, injections, windows, gaps, synthetic buffers/breaks)
   - Runs overlap repair + dependency shift passes
-  - Emits decision logs in `User/Logs/kairos_decision_log_*`
+  - Emits decision logs in `user/Logs/kairos_decision_log_*`
 - **Weekly Planner**: `modules/scheduler/weekly_generator.py` powers `today kairos week`.
 - **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `commands/today.py` so existing dashboard/API/manual-modification flows continue to work.
-- **Manual Modifications**: Persisted in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
+- **Manual Modifications**: Persisted in `user/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
 
 ### 4. Conditions Engine (`modules/conditions.py`)
 A recursive descent parser that evaluates logic strings in scripts and triggers.
@@ -66,7 +66,7 @@ The Dashboard is a hybrid Desktop/Web application.
 ### Backend (`utilities/dashboard/server.py`)
 A `ThreadingHTTPServer` that acts as the bridge between the browser and the file system.
 - **API**: Provides JSON endpoints (`/api/profile`, `/api/cockpit/matrix`, `/api/media/mp3`) to read/write system state.
-- **Streaming**: Streams MP3s from `User/Media` for the music player.
+- **Streaming**: Streams MP3s from `user/Media` for the music player.
 - **Bundler**: The `dashboard` CLI command pre-bundles static settings into `generated/settings_bundle.js` for fast startup.
 
 ### Frontend (`utilities/dashboard/app.js`)
@@ -107,7 +107,7 @@ A generic Vanilla JS Single Page Application (SPA).
 
 ## Settings
 
-- Location: `User/Settings/`
+- Location: `user/Settings/`
 - Conventions:
   - Prefer lowercase filenames, e.g., `points_settings.yml`, `achievement_defaults.yml`, `<item>_defaults.yml`.
   - Timer files keep legacy names (e.g., `Timer_Settings.yml`) — accessible via Dashboard endpoints.
@@ -152,6 +152,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
+
 
 
 

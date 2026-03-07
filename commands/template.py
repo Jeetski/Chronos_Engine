@@ -4,7 +4,7 @@ from datetime import datetime
 from modules.scheduler import schedule_path_for_date
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 
 
 def _format_time(dt):
@@ -135,3 +135,4 @@ Usage: template save day [name:<name>] [weekday:<Weekday>] [overwrite:true|false
 Description: Saves the current schedule as a day template.
 Example: template save day name:"Focus Friday" overwrite:true
 """
+

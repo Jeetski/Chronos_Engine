@@ -29,8 +29,8 @@ def resolve_theme_colors(root_dir: str | Path) -> Dict[str, str]:
     colors: Dict[str, str] = DEFAULT_THEME.copy()
     root = Path(root_dir)
 
-    profile = _safe_load_yaml(root / "User" / "Profile" / "profile.yml") or {}
-    theme_cfg = _safe_load_yaml(root / "User" / "Settings" / "console_theme_settings.yml") or {}
+    profile = _safe_load_yaml(root / "user" / "Profile" / "profile.yml") or {}
+    theme_cfg = _safe_load_yaml(root / "user" / "Settings" / "console_theme_settings.yml") or {}
     themes = (theme_cfg.get("themes") if isinstance(theme_cfg, dict) else None) or {}
 
     theme_name = None
@@ -174,3 +174,4 @@ def apply_theme_to_console(root_dir: str | Path, colors: Dict[str, str] | None =
         except Exception:  # pragma: no cover - best-effort
             os.system("color 1F")
     return resolved
+

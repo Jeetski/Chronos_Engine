@@ -59,22 +59,22 @@ Tips
 ## What's Inside
 High level
 - CLI runtime: `modules/console.py` dynamically loads commands (`commands/*.py`) and item modules (`modules/*/main.py`).
-- Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
+- Data model: YAML items under `user/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `modules/listener/listener.py` runs alarms, reminders, and timer lifecycle.
 - Dashboard: `utilities/dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
-- Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
+- Data mirrors: the `sequence` CLI builds SQLite mirrors in `user/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
 - `commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
 - `modules/`: engine features (ItemManager, Scheduler, Timer, Conditions, etc.).
 - `utilities/`: helper libs and Dashboard code.
-- `User/`: your data (items, schedules, settings, logs).
-- `User/Inventories`, `User/Inventory_Items`, `User/Tools`: optional gear and capability records that inventories/templates can reference.
+- `user/`: your data (items, schedules, settings, logs).
+- `user/Inventories`, `user/Inventory_Items`, `user/Tools`: optional gear and capability records that inventories/templates can reference.
 
 Key defaults and conventions
-- Item directories: lowercase, underscored, plural (e.g., `User/notes`, `User/goals`).
-- Default templates: prefer lowercase `<item>_defaults.yml` in `User/Settings/`.
-- Points settings: `User/Settings/points_settings.yml` (backward compatible with `Points.yml`).
+- Item directories: lowercase, underscored, plural (e.g., `user/notes`, `user/goals`).
+- Default templates: prefer lowercase `<item>_defaults.yml` in `user/Settings/`.
+- Points settings: `user/Settings/points_settings.yml` (backward compatible with `Points.yml`).
 
 ## Core Concepts
 Items and hierarchy
@@ -82,7 +82,7 @@ Items and hierarchy
 - Items live as single YAML files. Many items can nest other items (the "fractal" structure).
 
 Status-aware scheduling
-- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `User/Settings/status_settings.yml` (legacy `Status_Settings.yml` still supported), scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
+- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `user/Settings/status_settings.yml` (legacy `Status_Settings.yml` still supported), scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
 - `today reschedule` rebuilds the day with those signals, boosts blocks whose tags match the current state, and automatically re-queues missed-but-important blocks (with a summary of what moved) instead of leaving them stuck in the past.
 - Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, marking, and `did` entries all update the plan.
 
@@ -101,7 +101,7 @@ Entry points
 
 Common commands (all item types now share the same verbs via `handle_command`)
 - `help` — list commands and usage.
-- `new|create <type> <name> [k:v ...]` — create any item (tasks, commitments, rewards, achievements, goals, milestones, etc.). Defaults merge from `User/Settings/<type>_defaults.yml`.
+- `new|create <type> <name> [k:v ...]` — create any item (tasks, commitments, rewards, achievements, goals, milestones, etc.). Defaults merge from `user/Settings/<type>_defaults.yml`.
 - `append <type> <name> "text"` / `set <type> <name> prop:value [...]` / `remove <type> <name> prop` — edit YAML content without leaving the CLI.
 - `list <type> [filters] [then <command> ...]`, `find <type> keyword [filters]`, `count <type> [filters]` – inspect collections; piped commands automatically receive the current type/name.
 - `inventory ...` – manage inventories, inventory items, and tools (list/show/new/add/remove) without remembering every verb.
@@ -118,7 +118,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `status [k:v ...]` — view or set energy/focus/mood/stress values that influence scheduling.
 - `timer start <profile> [bind_type:task bind_name:"Name"]`, `timer pause|resume|stop|cancel` — run focus sessions bound to items if desired.
 - `points balance|history|add|subtract` — inspect or adjust the points ledger.
-- `settings <file_shortcut> key value` - mutate `User/Settings/*.yml` files safely.
+- `settings <file_shortcut> key value` - mutate `user/Settings/*.yml` files safely.
 - `sequence <subcommand>` - manage data mirrors (`status`, `sync <targets>`, `trends` to refresh the digest).
 - Listener & reminders: `listener start|stop`, `dismiss|snooze|skip <alarm>`.
 - Templates & variables: `template ...`, `filter ...`, `variables` via dashboard or CLI helper commands.
@@ -126,7 +126,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - Registry & sound tooling: `register ...`, `sound ...`.
 
 Variables
-- The console seeds `@nickname` from `User/Profile/profile.yml`. Use in scripts/messages.
+- The console seeds `@nickname` from `user/Profile/profile.yml`. Use in scripts/messages.
 - Set/read variables programmatically via `modules/variables.py` or CLI patterns.
 
 ## Dashboard
@@ -157,10 +157,10 @@ Selected endpoints (JSON unless noted)
 - Settings: `GET /api/settings`, `GET /api/settings?file=Name.yml`, `POST /api/settings?file=Name.yml` (raw YAML preserved after validation).
 
 ## Profile file path
-- Canonical path: `User/Profile/profile.yml`.
+- Canonical path: `user/Profile/profile.yml`.
 - Long-form brief & preferences live next to it:
-  - `User/Profile/pilot_brief.md` — free-form priorities, motivations, how you want to use Chronos.
-  - `User/Profile/preferences.md` — interaction preferences for the agent (tone, rituals, etc.).
+  - `user/Profile/pilot_brief.md` — free-form priorities, motivations, how you want to use Chronos.
+  - `user/Profile/preferences.md` — interaction preferences for the agent (tone, rituals, etc.).
 
 ## Listener target actions
 Alarms and reminders can execute linked actions when they trigger. In the item YAML:
@@ -177,7 +177,7 @@ target:
 This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and runs it when the alarm/reminder triggers.
 
 ## Sequence mirrors & digest
-- `sequence status` lists every mirror tracked in `User/Data/databases.yml`.
+- `sequence status` lists every mirror tracked in `user/Data/databases.yml`.
   - `chronos_core.db` — canonical mirror of YAML items, relations, completions, and schedules.
   - `chronos_matrix.db` — fast analytics cache powering cockpit Matrix panels.
   - `chronos_events.db` — listener log stream plus command/trigger history.
@@ -185,8 +185,8 @@ This builds a console command (e.g., `complete task "Deep Work" minutes:50`) and
   - `chronos_journal.db` — status snapshots and narratives for context filtering.
   - `chronos_trends.db` + `trends.md` — digest of completion rates/variance for agents.
 - `sequence sync <targets>` rebuilds one or more datasets (`matrix core events behavior journal trends`). Omit the target list to refresh everything.
-- `sequence trends` is a shortcut that rebuilds the behavior/trends chain and rewrites `User/Data/trends.md`.
-- The Listener automatically runs `sequence sync behavior journal trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
+- `sequence trends` is a shortcut that rebuilds the behavior/trends chain and rewrites `user/Data/trends.md`.
+- The Listener automatically runs `sequence sync behavior journal trends` shortly after midnight (tracked in `user/Data/sequence_automation.yml`) so dashboards and agents start the day with fresh behavior summaries.
 
 ## Development Notes
 Coding style
@@ -212,13 +212,14 @@ Recent improvements
   - widget manages sleep anchor blocks directly in day templates.
 - Cockpit panels (Schedule, Matrix, Matrix Visuals, Lists, Commitments) now respect the shared theme tokens, improving readability across palettes.
 - Virtualenv installer (`install_dependencies.bat`) to isolate dependencies.
-- Settings widget + API for editing `User/Settings/*.yml` from the dashboard.
+- Settings widget + API for editing `user/Settings/*.yml` from the dashboard.
 - Points config standardized to `points_settings.yml` (backward compatible).
 - Item defaults resolver supports lowercase `<item>_defaults.yml` first.
 - Listener uses project-relative launcher; reduces hardcoded paths.
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+
 
 
 

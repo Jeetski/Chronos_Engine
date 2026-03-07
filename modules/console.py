@@ -38,7 +38,7 @@ else:
 # --- Path Configuration ---
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-CONSOLE_SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "console_settings.yml")
+CONSOLE_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "console_settings.yml")
 
 # Add ROOT_DIR to sys.path to allow absolute imports from project root
 if ROOT_DIR not in sys.path:
@@ -629,7 +629,7 @@ def _load_profile_and_seed_vars():
             Variables.set_var('nickname', 'Pilot')
         except Exception:
             pass
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')) or {}
         if isinstance(prof, dict):
             nick = prof.get('nickname') or (isinstance(prof.get('profile'), dict) and prof['profile'].get('nickname'))
             if isinstance(nick, str) and nick:
@@ -643,7 +643,7 @@ def _load_profile_and_seed_vars():
 
 def _load_welcome_lines():
     """
-    Load welcome lines exclusively from User/Profile/profile.yml.
+    Load welcome lines exclusively from user/Profile/profile.yml.
     Supports either 'welcome' or 'welcome_message' block, each with line1/line2/line3.
     Expands @nickname and other variables via Variables.
     """
@@ -653,7 +653,7 @@ def _load_welcome_lines():
         "🌌 You are the navigator of your reality.",
     ]
     try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')) or {}
         block = None
         if isinstance(prof, dict):
             block = prof.get('welcome') or prof.get('welcome_message')
@@ -677,7 +677,7 @@ def _load_welcome_lines():
 
 def _load_exit_lines():
     """
-    Load exit lines from User/Profile/profile.yml.
+    Load exit lines from user/Profile/profile.yml.
     Supports 'exit_message' or 'goodbye_message', each with line1/line2.
     Expands @nickname and other variables.
     """
@@ -686,7 +686,7 @@ def _load_exit_lines():
         "🌌 Returning you to baseline reality...",
     ]
     try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')) or {}
         block = None
         if isinstance(prof, dict):
             block = prof.get('exit_message') or prof.get('goodbye_message')
@@ -776,8 +776,8 @@ def _run_startup_core_sync_with_macro_hook():
             pass
 
 def _load_aliases():
-    """Load aliases from User/Settings/aliases.yml"""
-    path = os.path.join(ROOT_DIR, 'User', 'Settings', 'aliases.yml')
+    """Load aliases from user/Settings/aliases.yml"""
+    path = os.path.join(ROOT_DIR, 'user', 'Settings', 'aliases.yml')
     aliases = {}
     
     # Load default map first
@@ -1597,5 +1597,6 @@ if __name__ == "__main__":
                         time.sleep(1)
                     _play_cli_sound("exit", wait=True)
                     break
+
 
 

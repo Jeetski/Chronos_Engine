@@ -29,7 +29,7 @@ Script reliability rules:
 
 ## Data and Settings
 - Scripts commonly live under `scripts/`.
-- Script outcomes mutate normal `User/*` item/schedule/settings state.
+- Script outcomes mutate normal `user/*` item/schedule/settings state.
 
 ## Validation
 1. Run a small script with a conditional.
@@ -39,4 +39,5 @@ Script reliability rules:
 ## Related Docs
 - `docs/dev/chs_scripting.md`
 - `docs/guides/conditions_cookbook.md`
+
 

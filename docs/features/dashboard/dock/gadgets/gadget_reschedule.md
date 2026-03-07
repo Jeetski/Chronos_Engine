@@ -16,7 +16,7 @@ It is intended for fast corrective replanning during the day.
   - `/api/cli`
 
 ## Data and Settings
-- Rebuilds today schedule output in `User/Schedules/*` through normal scheduling pipeline.
+- Rebuilds today schedule output in `user/Schedules/*` through normal scheduling pipeline.
 - Outcome is affected by current status/settings/template state at invocation time.
 
 ## Operational Workflows
@@ -35,6 +35,7 @@ It is intended for fast corrective replanning during the day.
 - `docs/scheduling/scheduling_algorithm_overview.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

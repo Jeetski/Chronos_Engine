@@ -3,7 +3,7 @@ import os
 import yaml
 
 def find_settings_file(file_shortcut):
-    settings_dir = os.path.join("User", "Settings")
+    settings_dir = os.path.join("user", "Settings")
     best_match = None
     for filename in os.listdir(settings_dir):
         if filename.endswith(".yml"):
@@ -75,3 +75,4 @@ Arguments:
   <property>: The name of the property to modify. Use dot notation for nested properties (e.g., 'global_dynamic_buffer.buffer_interval_minutes').
   <value>: The new value for the property.
 '''
+

@@ -26,9 +26,9 @@ Use cases:
 - Dashboard performance and insights depend on up-to-date mirrors.
 
 ## Data and Settings
-- Mirror DBs live under `User/Data/*.db`.
-- Digest path: `User/Data/trends.md`.
-- Automation marker/state: `User/Data/sequence_automation.yml`.
+- Mirror DBs live under `user/Data/*.db`.
+- Digest path: `user/Data/trends.md`.
+- Automation marker/state: `user/Data/sequence_automation.yml`.
 
 ## Validation
 1. Run `sequence status` and capture baseline.
@@ -39,3 +39,4 @@ Use cases:
 - `docs/dev/sequence.md`
 - `docs/reference/cli_commands.md`
 - `docs/scheduling/scheduling_algorithm_overview.md`
+

@@ -98,5 +98,6 @@ Description:
   
 Example:
   diff routine "Morning A" "Morning B"
-  diff file User/Settings/Points.yml User/Settings/Points.bak
+  diff file user/Settings/Points.yml user/Settings/Points.bak
 """
+

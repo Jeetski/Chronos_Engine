@@ -16,8 +16,8 @@ Run project execution in Chronos from scope definition to daily delivery: struct
 - "Turn project plan into this week/day execution."
 
 ## Source of Truth
-- Project items: `User/Projects/*.yml`
-- Linked tasks/milestones: `User/Tasks/*.yml`, `User/Milestones/*.yml`
+- Project items: `user/Projects/*.yml`
+- Linked tasks/milestones: `user/Tasks/*.yml`, `user/Milestones/*.yml`
 - Project/goal rename flows and dashboard views:
   - Project Manager view
   - API rename endpoints mapped to CLI logic
@@ -201,3 +201,4 @@ When running project operations, always report:
 - `docs/reference/item_properties.md`
 - `docs/agents/agents.md`
 - `docs/agents/skills/goal_planning/skill.md`
+

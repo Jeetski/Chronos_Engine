@@ -7,7 +7,7 @@ except Exception:
     yaml = None
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_SETTINGS_DIR = os.path.join(ROOT_DIR, "User", "Settings")
+USER_SETTINGS_DIR = os.path.join(ROOT_DIR, "user", "Settings")
 
 
 def _slugify(value: str) -> str:
@@ -59,3 +59,4 @@ def canonicalize_quality(value):
         if _slugify(opt) == raw_slug:
             return opt, None
     return None, f"Invalid quality '{raw}'. Allowed: {', '.join(options)}"
+

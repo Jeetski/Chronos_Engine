@@ -94,7 +94,7 @@ def build_preview_for_date(target_date, *, save_path=None, show_warnings=True):
     template_info = select_template_for_day(day_of_week, settings["status_context"])
     template = template_info.get("template")
     if not template:
-        print(f"No template found for {day_of_week}. Create 'User/Days/{day_of_week}.yml' first.")
+        print(f"No template found for {day_of_week}. Create 'user/Days/{day_of_week}.yml' first.")
         return None, None
     if template_info.get("score", 0) > 0:
         print(f"Status-aware pick: {os.path.basename(template_info['path'])} (score {template_info['score']:.2f}).")
@@ -124,4 +124,5 @@ def build_preview_for_date(target_date, *, save_path=None, show_warnings=True):
         print(f"Preview saved: {save_path}")
 
     return resolved_schedule, remaining_conflicts
+
 

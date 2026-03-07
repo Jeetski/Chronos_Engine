@@ -37,7 +37,7 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 | **Listener** | `modules/listener/` | Background service for alarms, reminders, timer |
 | **Dashboard** | `utilities/dashboard/` | Local HTTP server + vanilla JS SPA |
 | **Sequence** | `modules/sequence/` | SQLite mirrors + analytics (`trends.md`) |
-| **User Data** | `User/` | All YAML items, settings, templates, logs |
+| **User Data** | `user/` | All YAML items, settings, templates, logs |
 
 ### Data Model
 
@@ -55,7 +55,7 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 **The Killer Feature**: Templates and items include `status_requirements` that match against your current state (energy, focus, mood, stress).
 
 **How it works**:
-- `User/Settings/status_settings.yml` defines status dimensions (legacy `Status_Settings.yml` still supported)
+- `user/Settings/status_settings.yml` defines status dimensions (legacy `Status_Settings.yml` still supported)
 - Templates are scored based on alignment with current status
 - The best-fit template is automatically selected for today
 - Items matching your status get importance boosts
@@ -339,7 +339,7 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 ### Backend
 - `ThreadingHTTPServer` (Python)
 - JSON/YAML endpoints
-- Streams MP3s from `User/Media`
+- Streams MP3s from `user/Media`
 - Settings bundler for fast startup
 
 ### Cockpit Panels
@@ -352,7 +352,7 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 ## 📊 Configuration Files
 
 ### Core Settings
-- `User/Settings/*_defaults.yml` - Item type defaults
+- `user/Settings/*_defaults.yml` - Item type defaults
 - `scheduling_settings.yml`, `scheduling_priorities.yml`
 - `status_settings.yml`, `energy_settings.yml`, etc.
 - `category_settings.yml`, `priority_settings.yml`
@@ -360,15 +360,15 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 - `buffer_settings.yml`, `map_of_happiness.yml`
 
 ### Profile
-- `User/Profile/profile.yml` - Nickname, preferences
-- `User/Profile/pilot_brief.md` - Priorities, motivations
-- `User/Profile/preferences.md` - Agent interaction preferences
-- `User/Profile/personality.yml` - Big 5 psychometric traits
+- `user/Profile/profile.yml` - Nickname, preferences
+- `user/Profile/pilot_brief.md` - Priorities, motivations
+- `user/Profile/preferences.md` - Agent interaction preferences
+- `user/Profile/personality.yml` - Big 5 psychometric traits
 
 ### Data Mirrors
-- `User/Data/databases.yml` - Mirror registry
-- `User/Data/sequence_automation.yml` - Nightly sync state
-- `User/Data/trends.md` - Behavior digest for agents
+- `user/Data/databases.yml` - Mirror registry
+- `user/Data/sequence_automation.yml` - Nightly sync state
+- `user/Data/trends.md` - Behavior digest for agents
 
 ---
 
@@ -445,7 +445,7 @@ Chronos Engine/
 │   │   ├── Views/
 │   │   └── Themes/
 │   └── points.py
-├── User/               # Your data
+├── user/               # Your data
 │   ├── Tasks/, Notes/, Goals/, Habits/, etc.
 │   ├── Settings/
 │   ├── Profile/
@@ -635,6 +635,7 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+
 
 
 

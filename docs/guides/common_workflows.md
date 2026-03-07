@@ -8,7 +8,7 @@ Who this is for
 
 Conventions
 - Text in backticks is a command you can run in the Chronos console.
-- Filenames refer to `User/…` unless stated otherwise.
+- Filenames refer to `user/…` unless stated otherwise.
 - Replace angle‑bracket placeholders with your values.
 
 ----------------------------------------
@@ -31,7 +31,7 @@ Capture & Organize
   - List just project tasks: `list task project:"Home Gym"`
 
 - Use defaults
-  - Put defaults in `User/Settings/task_defaults.yml` (lowercase preferred):
+  - Put defaults in `user/Settings/task_defaults.yml` (lowercase preferred):
     ```yaml
     default_priority: medium
     default_status: pending
@@ -128,7 +128,7 @@ Plan the Day
 - Log completions & actuals
   - Capture what really happened: `did "Morning Meditation" start_time:07:30 end_time:07:55 status:completed note:"Felt great"`
   - Today now shows `upcoming/in progress/missed/completed/skipped/partial` next to each block, and `today reschedule` re-queues missed-but-still-important work automatically.
-  - Daily completion entries live in `User/Schedules/completions/YYYY-MM-DD.yml` under `entries:` (used by `did`, `mark`, and `complete`).
+  - Daily completion entries live in `user/Schedules/completions/YYYY-MM-DD.yml` under `entries:` (used by `did`, `mark`, and `complete`).
   - `mark "Block":completed` and `complete <type> "<name>"` now share the same completion side effects (commitments/triggers, milestones, points). Use one of them per block to avoid double awarding points.
 
 - Resolve conflicts & dependencies
@@ -140,7 +140,7 @@ Tips for agents
 - When a user says “shorten reading by five,” translate to: `trim "Read 10 min" 5` then `today`.
 
 Preview upcoming days
-- Peek at tomorrow: `tomorrow` (or `tomorrow days:3` to jump a few days out). Saves to `User/Schedules/schedule_YYYY-MM-DD.yml` for quick reference.
+- Peek at tomorrow: `tomorrow` (or `tomorrow days:3` to jump a few days out). Saves to `user/Schedules/schedule_YYYY-MM-DD.yml` for quick reference.
 - Check the current week: `this friday` to see how the rest of the week unfolds without altering today.
 - Plan further out: `next tuesday` (or `next 12th of March`) to simulate the same scheduler logic for the next matching weekday/date.
 
@@ -238,7 +238,7 @@ Reviews (Daily/Weekly)
   - Capture lessons learned in a `note` or `journal_entry`.
 
 - Weekly
-  - Use `User/Reviews/weekly/<YYYY-WW>.yml` as a template (existing examples in repo).
+  - Use `user/Reviews/weekly/<YYYY-WW>.yml` as a template (existing examples in repo).
   - Command helper (if present): `review weekly` then `edit` the generated file.
   - Actions: archive completed tasks, adjust goals, refresh templates.
 
@@ -252,7 +252,7 @@ Points & Rewards
   - `points subtract 5 reason:"late start"`
 
 - Configure earning
-  - Edit `User/Settings/points_settings.yml`:
+  - Edit `user/Settings/points_settings.yml`:
     ```yaml
     earn:
       task: 10
@@ -338,7 +338,7 @@ Reviews & Reflections
 
 - Daily review
   - `review daily`
-  - `edit review "<today>"` (or open the generated file in `User/Reviews/`).
+  - `edit review "<today>"` (or open the generated file in `user/Reviews/`).
 - Weekly review
   - `review weekly`
   - Archive completed items and adjust templates.
@@ -435,7 +435,7 @@ Scripts (Automation)
   ```
 
 - Variables
-  - Use `@nickname` (from `User/Profile/profile.yml`) in messages.
+  - Use `@nickname` (from `user/Profile/profile.yml`) in messages.
   - Set inside scripts with `set var <name> <value>` or via specific command outputs.
 
 ----------------------------------------
@@ -446,7 +446,7 @@ Dashboard Essentials
   - Select a block in Day view; use Scheduler to Trim/Change/Cut/Mark (today only); press Reschedule.
 
 - Settings widget
-  - Browse and edit `User/Settings/*.yml` with YAML validation and preserved formatting.
+  - Browse and edit `user/Settings/*.yml` with YAML validation and preserved formatting.
 
 - Items/Notes/Timer/Status/Goals/Habits widgets
   - Use for quick ops; for heavy lifts, combine with CLI.
@@ -483,6 +483,7 @@ Next Steps
 - Explore `docs/dev/architecture.md` to extend commands and modules.
 - Review `docs/guides/dashboard.md` for APIs and widget ideas.
 - Add your own templates and scripts to shape Chronos to your workflow.
+
 
 
 

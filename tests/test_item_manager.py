@@ -13,7 +13,7 @@ class TestItemManager(unittest.TestCase):
         ItemManager.ROOT_DIR = self.test_dir # Mock root to keep it contained
         
         # Create structure
-        os.makedirs(os.path.join(self.test_dir, "User", "Tasks"), exist_ok=True)
+        os.makedirs(os.path.join(self.test_dir, "user", "Tasks"), exist_ok=True)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -37,3 +37,4 @@ class TestItemManager(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

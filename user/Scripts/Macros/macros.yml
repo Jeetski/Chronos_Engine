@@ -23,8 +23,9 @@ after_command:
 # before_command:
 #   "__startup__":
 #     - cli: echo Startup hook: before core sync
-#     - chs: User/Scripts/Macros/startup_register.chs
-#     - chs: User/Scripts/Macros/startup_sequence.chs
+#     - chs: user/Scripts/Macros/startup_register.chs
+#     - chs: user/Scripts/Macros/startup_sequence.chs
 # after_command:
 #   "__startup__":
 #     - cli: echo Startup hook: after core sync (ok=@result_ok)
+

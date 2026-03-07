@@ -436,7 +436,7 @@ export function Inspector() {
       for (let day = 1; day <= ctx.totalDays; day++) {
         const dateObj = new Date(ctx.year, ctx.monthIndex, day);
         const dateKey = getDayKey(dateObj);
-        const path = `User/Schedules/schedule_${dateKey}.yml`;
+        const path = `user/Schedules/schedule_${dateKey}.yml`;
         const content = await readProjectFile(path);
         if (!content) continue;
         const blocks = parseScheduleYamlContent(content);
@@ -2455,3 +2455,4 @@ export function Inspector() {
 
   return { mount, update };
 }
+

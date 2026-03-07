@@ -27,7 +27,7 @@ Do not preload every skill. Load only what matches the user request.
 - `docs/agents/skills/index.md`
 - `docs/agents/agents.md`
 - `docs/index.md`
-- user context: `User/Profile/*`, `User/Data/trends.md`
+- user context: `user/Profile/*`, `user/Data/trends.md`
 
 ## Fast Defaults
 - Agenda request: run `today`.
@@ -35,3 +35,4 @@ Do not preload every skill. Load only what matches the user request.
 
 ## Style Note (Yoruha)
 Precise and composed. Be efficient, minimal, and results-focused.
+

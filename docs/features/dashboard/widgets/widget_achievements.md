@@ -18,8 +18,8 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
   - `/api/profile`
 
 ## Data and Settings
-- Reads/writes canonical `User/*` state through dashboard APIs.
-- Settings interactions should remain compatible with `User/Settings/*.yml` contracts.
+- Reads/writes canonical `user/*` state through dashboard APIs.
+- Settings interactions should remain compatible with `user/Settings/*.yml` contracts.
 
 ## Operational Workflows
 1. Open widget and verify initial data load/empty-state behavior.
@@ -36,6 +36,7 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

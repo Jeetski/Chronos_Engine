@@ -47,7 +47,7 @@ _ADUC_PORT = 8080
 _ADUC_LOG_PATH = os.path.join(tempfile.gettempdir(), "aduc_launch.log")
 _ADUC_NO_BROWSER_FLAG = os.path.join(tempfile.gettempdir(), "ADUC", "no_browser.flag")
 _ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "temp", "no_browser.flag")
-_LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "link_settings.yml")
+_LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "link_settings.yml")
 _EDITOR_OPEN_REQUEST_PATH = os.path.join(ROOT_DIR, "Temp", "editor_open_request.json")
 
 
@@ -223,7 +223,7 @@ def _expand_text(text):
 def _vars_seed_defaults():
     try:
         # Seed nickname from profile.yml
-        prof_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+        prof_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
         if os.path.exists(prof_path):
             try:
                 with open(prof_path, 'r', encoding='utf-8') as f:
@@ -238,8 +238,8 @@ def _vars_seed_defaults():
                     _vars_set('nickname', nick)
             except Exception:
                 pass
-        # Seed from optional User/Settings/vars.yml
-        vpath = os.path.join(ROOT_DIR, 'User', 'Settings', 'vars.yml')
+        # Seed from optional user/Settings/vars.yml
+        vpath = os.path.join(ROOT_DIR, 'user', 'Settings', 'vars.yml')
         if os.path.exists(vpath):
             try:
                 with open(vpath, 'r', encoding='utf-8') as f:
@@ -317,7 +317,7 @@ def run_console_command(command_name, args_list, properties=None):
 
 
 def _list_system_databases():
-    data_dir = os.path.join(ROOT_DIR, "User", "Data")
+    data_dir = os.path.join(ROOT_DIR, "user", "Data")
     registry_path = os.path.join(data_dir, "databases.yml")
     databases = []
     seen = set()
@@ -416,7 +416,7 @@ STICKY_NOTE_COLORS = {
 }
 DEFAULT_STICKY_NOTE_COLOR = "amber"
 
-MEDIA_ROOT = os.path.join(ROOT_DIR, "User", "Media")
+MEDIA_ROOT = os.path.join(ROOT_DIR, "user", "Media")
 MP3_DIR = os.path.join(MEDIA_ROOT, "MP3")
 PLAYLIST_DIR = os.path.join(MEDIA_ROOT, "Playlists")
 DEFAULT_PLAYLIST_SLUG = "default"
@@ -839,7 +839,7 @@ def _ensure_default_playlist(library=None):
     tracks = [{"file": track["file"]} for track in lib]
     data = {
         "name": "All Tracks",
-        "description": "Auto playlist of every MP3 in User/Media/MP3.",
+        "description": "Auto playlist of every MP3 in user/Media/MP3.",
         "tracks": tracks,
     }
     _write_playlist(DEFAULT_PLAYLIST_SLUG, data)
@@ -1043,7 +1043,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/profile":
             # Return profile as JSON map (nickname/theme/etc.)
             try:
-                prof_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                prof_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
                 data = {}
                 if os.path.exists(prof_path):
                     with open(prof_path, 'r', encoding='utf-8') as f:
@@ -1099,7 +1099,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/preferences":
             try:
-                pref_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences_settings.yml')
+                pref_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences_settings.yml')
                 data = {}
                 if os.path.exists(pref_path):
                     with open(pref_path, 'r', encoding='utf-8') as f:
@@ -1337,13 +1337,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Failed to search docs: {e}"})
             return
         if parsed.path == "/api/theme":
-            # Lookup a theme by name in User/Settings/theme_settings.yml
+            # Lookup a theme by name in user/Settings/theme_settings.yml
             try:
                 qs = parse_qs(parsed.query or '')
                 name = (qs.get('name') or [''])[0].strip()
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing name"}); return
-                settings_path = os.path.join(ROOT_DIR, 'User', 'Settings', 'theme_settings.yml')
+                settings_path = os.path.join(ROOT_DIR, 'user', 'Settings', 'theme_settings.yml')
                 if not os.path.exists(settings_path):
                     self._write_json(404, {"ok": False, "error": "theme_settings.yml not found"}); return
                 with open(settings_path, 'r', encoding='utf-8') as f:
@@ -1420,7 +1420,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/trends/metrics":
             try:
                 import sqlite3
-                data_dir = os.path.join(ROOT_DIR, 'User', 'Data')
+                data_dir = os.path.join(ROOT_DIR, 'user', 'Data')
                 trends_db = os.path.join(data_dir, 'chronos_trends.db')
                 
                 if not os.path.exists(trends_db):
@@ -1526,7 +1526,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/habits":
             # Enumerate habits with basic fields and today status
             try:
-                user_dir = os.path.join(ROOT_DIR, 'User')
+                user_dir = os.path.join(ROOT_DIR, 'user')
                 habits_dir = os.path.join(user_dir, 'Habits')
                 items = []
                 today = None
@@ -2117,7 +2117,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
                 # Overlay/augment from completion entries for the full year.
                 # This lets tracker reflect explicit check-ins saved by popups and schedule logs.
-                comp_dir = os.path.join(ROOT_DIR, 'User', 'Schedules', 'completions')
+                comp_dir = os.path.join(ROOT_DIR, 'user', 'Schedules', 'completions')
                 span_days = (end_dt - start_dt).days + 1
                 for offset in range(span_days):
                     dt = start_dt + timedelta(days=offset)
@@ -2438,7 +2438,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/timer/settings":
             try:
                 # Load Timer_Settings.yml if present
-                path = os.path.join(ROOT_DIR, 'User', 'Settings', 'Timer_Settings.yml')
+                path = os.path.join(ROOT_DIR, 'user', 'Settings', 'Timer_Settings.yml')
                 data = {}
                 if os.path.exists(path):
                     with open(path, 'r') as f:
@@ -2449,7 +2449,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/profile":
             try:
-                profile_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                profile_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
                 profile_data = {}
                 nickname = None
                 title = None
@@ -2485,9 +2485,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     # preferences: support preferences.yml/.yaml and preferences_settings.yml
                     try:
                         pref_candidates = [
-                            os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences.yml'),
-                            os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences.yaml'),
-                            os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences_settings.yml'),
+                            os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences.yml'),
+                            os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences.yaml'),
+                            os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences_settings.yml'),
                         ]
                         for pp in pref_candidates:
                             if os.path.exists(pp) and os.path.isfile(pp):
@@ -2503,7 +2503,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if isinstance(avatar_rel, str) and avatar_rel.strip():
                     # Allow either forward or back slashes in YAML
                     norm_rel = avatar_rel.replace('\\', '/').lstrip('/')
-                    # If path is already under User/, respect as project-relative
+                    # If path is already under user/, respect as project-relative
                     avatar_abs = os.path.join(ROOT_DIR, norm_rel) if not os.path.isabs(norm_rel) else norm_rel
                     try:
                         if os.path.exists(avatar_abs) and os.path.isfile(avatar_abs):
@@ -2525,7 +2525,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/profile/avatar":
             try:
-                profile_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                profile_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
                 avatar_rel = None
                 if os.path.exists(profile_path):
                     with open(profile_path, 'r', encoding='utf-8') as f:
@@ -2559,10 +2559,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
             return
         if parsed.path == "/api/settings":
-            # List or fetch user settings files under User/Settings
+            # List or fetch user settings files under user/Settings
             try:
                 qs = parse_qs(parsed.query or '')
-                settings_root = os.path.join(ROOT_DIR, 'User', 'Settings')
+                settings_root = os.path.join(ROOT_DIR, 'user', 'Settings')
                 if not os.path.isdir(settings_root):
                     self._write_json(200, {"ok": True, "files": []}); return
                 fname = (qs.get('file') or [''])[0].strip()
@@ -2795,7 +2795,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 period = (qs.get('period') or [''])[0].strip()
                 if t not in ("daily", "weekly", "monthly"):
                     self._write_yaml(400, {"ok": False, "error": "Invalid type (daily|weekly|monthly)"}); return
-                base = os.path.join(ROOT_DIR, 'User', 'Reviews', t)
+                base = os.path.join(ROOT_DIR, 'user', 'Reviews', t)
                 os.makedirs(base, exist_ok=True)
                 fname = None
                 if t == 'daily':
@@ -2959,7 +2959,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
                 def count_completed(date_obj):
                     date_str = date_obj.strftime("%Y-%m-%d")
-                    comp_path = os.path.join(ROOT_DIR, "User", "Schedules", "completions", f"{date_str}.yml")
+                    comp_path = os.path.join(ROOT_DIR, "user", "Schedules", "completions", f"{date_str}.yml")
                     if not os.path.exists(comp_path):
                         return 0
                     try:
@@ -3140,7 +3140,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         "scheduled_end": end,
                     })
 
-                completions_dir = os.path.join(ROOT_DIR, "User", "Schedules", "completions")
+                completions_dir = os.path.join(ROOT_DIR, "user", "Schedules", "completions")
                 os.makedirs(completions_dir, exist_ok=True)
                 completion_path = os.path.join(completions_dir, f"{target_date}.yml")
                 completion_payload = {"entries": {}}
@@ -3330,7 +3330,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     if arr:
                         days_raw = str(arr[0])
 
-                comp_dir = os.path.join(ROOT_DIR, 'User', 'Schedules', 'completions')
+                comp_dir = os.path.join(ROOT_DIR, 'user', 'Schedules', 'completions')
 
                 def _read_completed_for_date(target_date: str):
                     comp_path = os.path.join(comp_dir, f"{target_date}.yml")
@@ -3759,7 +3759,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 qs = parse_qs(parsed.query or "")
                 path_arg = (qs.get("path") or [""])[0].strip()
-                # Security: allow access only to User/, scripts/
+                # Security: allow access only to user/, scripts/
                 # Logic: resolve path absolute, check if starts with ROOT_DIR
                 target_path = os.path.abspath(os.path.join(ROOT_DIR, path_arg))
                 if not target_path.startswith(ROOT_DIR):
@@ -3968,7 +3968,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     target_dt = datetime.now() - timedelta(days=1)
                 target_date = target_dt.strftime("%Y-%m-%d")
 
-                completions_dir = os.path.join(ROOT_DIR, "User", "Schedules", "completions")
+                completions_dir = os.path.join(ROOT_DIR, "user", "Schedules", "completions")
                 os.makedirs(completions_dir, exist_ok=True)
                 completion_path = os.path.join(completions_dir, f"{target_date}.yml")
                 completion_payload = {"entries": {}}
@@ -4889,11 +4889,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/profile":
-            # Save nickname and welcome/exit message lines into User/Profile/profile.yml
+            # Save nickname and welcome/exit message lines into user/Profile/profile.yml
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
-                prof_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+                prof_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
                 # Load existing to preserve other fields (e.g., avatar)
                 data = {}
                 if os.path.exists(prof_path):
@@ -4940,7 +4940,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/profile/avatar":
-            # Save avatar image and set profile avatar path to User/Profile/avatar.png
+            # Save avatar image and set profile avatar path to user/Profile/avatar.png
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
@@ -4958,7 +4958,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not raw:
                     self._write_json(400, {"ok": False, "error": "Empty avatar payload"}); return
 
-                prof_dir = os.path.join(ROOT_DIR, 'User', 'Profile')
+                prof_dir = os.path.join(ROOT_DIR, 'user', 'Profile')
                 prof_path = os.path.join(prof_dir, 'profile.yml')
                 avatar_path = os.path.join(prof_dir, 'avatar.png')
                 os.makedirs(prof_dir, exist_ok=True)
@@ -4974,7 +4974,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         data = {}
                 if not isinstance(data, dict):
                     data = {}
-                data['avatar'] = 'User/Profile/avatar.png'
+                data['avatar'] = 'user/Profile/avatar.png'
                 with open(prof_path, 'w', encoding='utf-8') as f:
                     yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
@@ -4987,7 +4987,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
-                pref_path = os.path.join(ROOT_DIR, 'User', 'Profile', 'preferences_settings.yml')
+                pref_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences_settings.yml')
                 existing = {}
                 if os.path.exists(pref_path):
                     with open(pref_path, 'r', encoding='utf-8') as f:
@@ -5240,7 +5240,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(400, {"ok": False, "error": "Missing file_path"}); return
 
                 # Basic sanitization
-                if '..' in file_to_open or not file_to_open.startswith('User/Profile/'):
+                if '..' in file_to_open or not file_to_open.startswith('user/Profile/'):
                     self._write_json(400, {"ok": False, "error": "Invalid file path"}); return
                 
                 full_path = os.path.join(ROOT_DIR, file_to_open)
@@ -5271,7 +5271,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             # - Payload: { file: Name.yml, raw: "yaml..." } (server writes raw)
             try:
                 qs = parse_qs(parsed.query or '')
-                settings_root = os.path.join(ROOT_DIR, 'User', 'Settings')
+                settings_root = os.path.join(ROOT_DIR, 'user', 'Settings')
                 os.makedirs(settings_root, exist_ok=True)
 
                 fname = (qs.get('file') or [''])[0].strip()
@@ -5675,6 +5675,7 @@ if __name__ == "__main__":
         port = 7357
     serve(host=host, port=port)
         
+
 
 
 

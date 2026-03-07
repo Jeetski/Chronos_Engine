@@ -19,9 +19,9 @@ class TestRegistries(unittest.TestCase):
         self.original_user_dir = registry_builder.USER_DIR
         self.original_root_dir = registry_builder.ROOT_DIR
         
-        registry_builder.USER_DIR = os.path.join(self.test_dir, "User")
+        registry_builder.USER_DIR = os.path.join(self.test_dir, "user")
         registry_builder.ROOT_DIR = self.test_dir
-        registry_builder.SETTINGS_DIR = os.path.join(self.test_dir, "User", "Settings")
+        registry_builder.SETTINGS_DIR = os.path.join(self.test_dir, "user", "Settings")
         
         os.makedirs(registry_builder.SETTINGS_DIR, exist_ok=True)
 
@@ -47,7 +47,7 @@ class TestRegistries(unittest.TestCase):
         self.assertEqual(reg["wizards"][0]["label"], "Magic Wizard")
 
     def test_themes_registry(self):
-        # Create a dummy theme in User/Themes
+        # Create a dummy theme in user/Themes
         themes_dir = os.path.join(registry_builder.USER_DIR, "Themes")
         os.makedirs(themes_dir, exist_ok=True)
         
@@ -69,5 +69,6 @@ class TestRegistries(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 
 

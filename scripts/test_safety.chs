@@ -19,7 +19,7 @@ else
     echo "ERROR: Note still exists in active items."
 end
 
-if exists file:"User/Archive/notes/SafetyTestNote.yml" then
+if exists file:"user/Archive/notes/SafetyTestNote.yml" then
     echo "Note found in Archive."
 else
     echo "ERROR: Note not found in Archive."
@@ -37,7 +37,7 @@ end
 echo "--- 4. Delete Command (Soft) Test ---"
 delete note "SafetyTestNote"
 
-if not exists note:"SafetyTestNote" and exists file:"User/Archive/notes/SafetyTestNote.yml" then
+if not exists note:"SafetyTestNote" and exists file:"user/Archive/notes/SafetyTestNote.yml" then
     echo "Soft delete successful."
 else
     echo "ERROR: Soft delete failed."
@@ -50,13 +50,13 @@ echo "--- 5. Delete Command (Hard) Test ---"
 undo delete note
 delete note "SafetyTestNote" force:true
 
-if not exists note:"SafetyTestNote" and not exists file:"User/Archive/notes/SafetyTestNote.yml" then
+if not exists note:"SafetyTestNote" and not exists file:"user/Archive/notes/SafetyTestNote.yml" then
     echo "Hard delete successful (not in active, not in archive - assuming archive was clean or overwritten? wait, hard delete shouldn't touch archive if it was already there, but here we restored it first)."
     # Actually, if I restored it, it moved FROM archive TO active. So archive should be empty of it. 
     # Then hard delete removes it from active. So it should be nowhere.
     echo "Verified functionality."
 else
-    if exists file:"User/Archive/notes/SafetyTestNote.yml" then
+    if exists file:"user/Archive/notes/SafetyTestNote.yml" then
         echo "ERROR: File found in archive after hard delete (did it fallback to soft delete?)."
     else
         echo "ERROR: File still exists in active?"
@@ -64,3 +64,4 @@ else
 end
 
 echo "--- Safety Tests Complete ---"
+

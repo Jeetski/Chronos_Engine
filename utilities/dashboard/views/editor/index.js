@@ -172,14 +172,14 @@ async function loadFileTree(dirPath, parentEl) {
 function renderBreadcrumbs(path, containerEl) {
     let header = containerEl.previousElementSibling;
     if (!header || !header.classList.contains('editor-sidebar-header')) return;
-    header.textContent = path || 'User';
-    if (path && path !== 'User' && path !== '.') {
+    header.textContent = path || 'user';
+    if (path && path !== 'user' && path !== '.') {
         const upBtn = document.createElement('button');
         upBtn.textContent = '⬆';
         upBtn.title = 'Up one level';
         upBtn.style.cssText = 'background:none; border:none; color:#ccc; float:right; cursor:pointer; font-size:12px;';
         upBtn.onclick = () => {
-            const up = path.split('/').slice(0, -1).join('/') || 'User';
+            const up = path.split('/').slice(0, -1).join('/') || 'user';
             loadFileTree(up, containerEl);
             renderBreadcrumbs(up, containerEl);
         };
@@ -1019,7 +1019,7 @@ async function saveAs() {
         tab.name = newPath.split('/').pop();
         tab.unsaved = false;
         renderTabs();
-        loadFileTree('User', viewContainer.querySelector('#fileTree')); // refresh tree
+        loadFileTree('user', viewContainer.querySelector('#fileTree')); // refresh tree
         alert('File saved as ' + newPath);
     } catch (e) {
         alert('Save As failed: ' + e.message);
@@ -1041,7 +1041,7 @@ async function saveCopyAs() {
         });
         const d = await r.json();
         if (!d.ok) throw new Error(d.error);
-        loadFileTree('User', viewContainer.querySelector('#fileTree'));
+        loadFileTree('user', viewContainer.querySelector('#fileTree'));
         alert('Copy saved to ' + newPath);
     } catch (e) {
         alert('Save Copy failed: ' + e.message);
@@ -1092,7 +1092,7 @@ async function renameFile() {
         tab.path = newPath;
         tab.name = newPath.split('/').pop();
         renderTabs();
-        loadFileTree('User', viewContainer.querySelector('#fileTree'));
+        loadFileTree('user', viewContainer.querySelector('#fileTree'));
     } catch (e) {
         alert('Rename failed: ' + e.message);
     }
@@ -1363,7 +1363,7 @@ export function mount(el) {
     `;
 
     // Sidebar init
-    loadFileTree('User', el.querySelector('#fileTree'));
+    loadFileTree('user', el.querySelector('#fileTree'));
 
     // Ensure at least one file
     if (tabs.length === 0) {
@@ -1465,3 +1465,4 @@ export function mount(el) {
         }
     };
 }
+

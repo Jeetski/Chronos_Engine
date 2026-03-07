@@ -1,7 +1,7 @@
 import os, sys, time, shlex, subprocess, yaml
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 MACROS_CONF = os.path.join(USER_DIR, "Scripts", "Macros", "macros.yml")
 
 _CFG = None
@@ -136,4 +136,5 @@ def run_after(cmd, args, props, result):
     if not steps: return
     t = int(cfg.get('default_timeout_ms') or 15000)
     for st in steps: _run_step(st, cmd, args or [], props or {}, t)
+
 

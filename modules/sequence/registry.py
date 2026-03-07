@@ -6,7 +6,7 @@ import yaml
 
 # Paths
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 DATA_DIR = os.path.join(USER_DIR, "Data")
 REGISTRY_PATH = os.path.join(DATA_DIR, "databases.yml")
 
@@ -188,3 +188,4 @@ def describe_registry(registry: Dict[str, Any]) -> List[str]:
         if entry.get("notes"):
             lines.append(f"  notes      : {entry.get('notes')}")
     return lines
+

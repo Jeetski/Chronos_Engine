@@ -14,7 +14,7 @@ from utilities import registry_builder
 
 class TestRegistryBuilder(unittest.TestCase):
     def setUp(self):
-        # Create a temp directory to mock the User/ environment
+        # Create a temp directory to mock the user/ environment
         self.test_dir = tempfile.mkdtemp()
         self.original_user_dir = registry_builder.USER_DIR
         self.original_settings_dir = registry_builder.SETTINGS_DIR
@@ -81,4 +81,5 @@ class TestRegistryBuilder(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 

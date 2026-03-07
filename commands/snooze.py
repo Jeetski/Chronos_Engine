@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from modules.alarm.main import update_alarm_yaml
 
 # --- Constants ---
-ALARMS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'User', 'Alarms'))
+ALARMS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'user', 'Alarms'))
 
 # --- Core Functions ---
 def run(args, properties):
@@ -43,3 +43,4 @@ Usage: snooze <alarm_name>
 Description: Snoozes a specified alarm for its configured snooze duration.
 Example: snooze "Morning Alarm"
 """
+

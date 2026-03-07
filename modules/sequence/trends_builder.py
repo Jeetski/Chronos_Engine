@@ -9,7 +9,7 @@ from modules.sequence.registry import ensure_data_home, update_database_entry, l
 from modules.sequence.behavior_builder import build_behavior_db
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 DATA_DIR = os.path.join(USER_DIR, "Data")
 BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
 TRENDS_DB_PATH = os.path.join(DATA_DIR, "chronos_trends.db")
@@ -818,3 +818,4 @@ def build_trends_report(registry: Dict[str, Any]) -> None:
 def sync_trends() -> None:
     registry = load_registry()
     build_trends_report(registry)
+

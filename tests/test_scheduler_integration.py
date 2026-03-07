@@ -23,7 +23,7 @@ class TestSchedulerIntegration(unittest.TestCase):
     def setUp(self):
         # Create a temp directory to act as the User root
         self.test_dir = tempfile.mkdtemp()
-        self.user_dir = os.path.join(self.test_dir, "User")
+        self.user_dir = os.path.join(self.test_dir, "user")
         os.makedirs(os.path.join(self.user_dir, "Days"))
         os.makedirs(os.path.join(self.user_dir, "Tasks"))
         os.makedirs(os.path.join(self.user_dir, "Settings"))
@@ -142,6 +142,7 @@ class TestSchedulerIntegration(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
 

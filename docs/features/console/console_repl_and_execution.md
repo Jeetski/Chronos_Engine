@@ -32,7 +32,7 @@ Failure contract:
 - Most widgets are specialized REPL clients that emit structured command/API calls.
 
 ## Data and Settings
-- REPL reads and writes across `User/` through command handlers.
+- REPL reads and writes across `user/` through command handlers.
 - Launch behavior depends on project environment and installed dependencies.
 
 ## Validation
@@ -43,4 +43,5 @@ Failure contract:
 ## Related Docs
 - `docs/reference/cli_commands.md`
 - `docs/features/dashboard/widgets/widget_terminal.md`
+
 

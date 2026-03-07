@@ -46,13 +46,13 @@
   - CLI/dashboard open-in-editor requests can target the in-dashboard Editor view instead of external apps.
   - Server now queues editor-open requests and dashboard app consumes them to open Editor with file context.
 - Updated default editor setting to:
-  - `User/Settings/config.yml` -> `default_editor: chronos_editor`
+  - `user/Settings/config.yml` -> `default_editor: chronos_editor`
 
 ### CLI - Dashboard Browser Override
 - `dashboard` command now supports optional browser overrides from:
   - `browser:<cmd>` command property
-  - `dashboard_browser` in `User/Settings/config.yml`
-  - `browser` in `User/Settings/config.yml`
+  - `dashboard_browser` in `user/Settings/config.yml`
+  - `browser` in `user/Settings/config.yml`
 - When unset, dashboard continues opening in the system default browser.
 
 ## 2026-02-28
@@ -79,7 +79,7 @@
 ### Schedule Loading + Apply Flow
 - Added generated schedule loading:
   - `Load Today`
-  - `Load Date Schedule` (from `User/Schedules/schedule_YYYY-MM-DD.yml` via `/api/file/read`)
+  - `Load Date Schedule` (from `user/Schedules/schedule_YYYY-MM-DD.yml` via `/api/file/read`)
   - fallback to `/api/today` for current-day load
 - Added `Apply Draft To Today`:
   - validates draft
@@ -164,7 +164,7 @@
   - `listener stop`
   - `listener status`
 - Listener lifecycle now uses a PID file for tracking:
-  - `User/Temp/listener.pid`
+  - `user/Temp/listener.pid`
 - Updated dashboard server listener endpoint to use CLI bridge instead of direct process spawning:
   - `POST /api/listener/start` now calls `run_console_command("listener", ["start"])`.
 - Verified in-session:
@@ -175,7 +175,7 @@
 ### Achievements - Event Evaluator Foundation
 - Added evaluator module: `modules/achievement/evaluator.py`.
 - Added command wrapper: `commands/achievements.py`.
-- Added settings file: `User/Settings/achievements_settings.yml`.
+- Added settings file: `user/Settings/achievements_settings.yml`.
 - Added event-driven awarding APIs:
   - `emit_event(event_name, payload)`
   - `award_by_id(...)`, `award_by_name(...)`
@@ -194,13 +194,13 @@
   - resolutions creation
 
 ### Achievements - Starter Catalog and Defaults
-- Replaced existing achievements with new starter set (one file per achievement under `User/Achievements/`).
+- Replaced existing achievements with new starter set (one file per achievement under `user/Achievements/`).
 - Set title = name for starter achievements.
 - Standardized starter reward payloads to 10 points + 10 XP per achievement.
-- Updated defaults in `User/Settings/Achievement_Defaults.yml` to include awarded/status/title fields.
+- Updated defaults in `user/Settings/Achievement_Defaults.yml` to include awarded/status/title fields.
 
 ### Profile Progression - XP/Level Wiring
-- Achievement awards now update `User/Profile/profile.yml` progression fields:
+- Achievement awards now update `user/Profile/profile.yml` progression fields:
   - `xp_total`
   - `level`
   - `xp_into_level`
@@ -346,7 +346,7 @@
 - File: `utilities/dashboard/views/docs/index.js`
 
 ### CLI - Prompt Toolkit and Autocomplete Controls
-- Added `User/Settings/console_settings.yml` for console runtime behavior:
+- Added `user/Settings/console_settings.yml` for console runtime behavior:
   - `prompt_toolkit_default`
   - `autocomplete_enabled`
   - `show_startup_banner`
@@ -428,8 +428,8 @@
   - short nights and below-target counts
   - rolling 7d/30d averages
 - Added `sleep: true` to active sleep habits:
-  - `User/Habits/sleep.yml`
-  - `User/Habits/bedtime.yml`
+  - `user/Habits/sleep.yml`
+  - `user/Habits/bedtime.yml`
 
 ### Dashboard - Terminal Theme and Behavior
 - Terminal widget now uses active **console theme** palette (not dashboard theme) via:
@@ -439,7 +439,7 @@
 
 ### CLI/Theme System - Console Theme Alignment
 - Updated `theme` command to read console theme source:
-  - `User/Settings/console_theme_settings.yml`
+  - `user/Settings/console_theme_settings.yml`
   - legacy fallback: `theme_settings.yml`
 - Fixed `theme list` messaging and theme source mismatch.
 - Refactored console style resolution:
@@ -528,7 +528,7 @@
 ### Kairos - Status/Template Parity and Stability Fixes
 - Fixed `today reschedule` crash caused by manual modification application returning `None` in active Kairos path.
   - `modules/scheduler/v1.py`: `apply_manual_modifications(...)` now returns the schedule.
-- Fixed stale manual modification warning spam by cleaning `User/Schedules/manual_modifications_2026-02-21.yml`.
+- Fixed stale manual modification warning spam by cleaning `user/Schedules/manual_modifications_2026-02-21.yml`.
 - Hardened Kairos day-template selection to better match legacy status behavior:
   - Added strict template pre-filtering in `modules/scheduler/kairos.py`.
   - Selection now prioritizes:
@@ -537,13 +537,13 @@
     3. legacy score-only fallback
 - Added Kairos template-match diagnostics in phase notes (`template_match`) to show strict/place-only/fallback selection behavior.
 - Prevented stale archived YAML from polluting Kairos candidate DB:
-  - `modules/sequence/core_builder.py` now skips `User/Archive` and `User/Backups` when building `chronos_core.db`.
+  - `modules/sequence/core_builder.py` now skips `user/Archive` and `user/Backups` when building `chronos_core.db`.
 - Added a broad Kairos example content pack across week/day/routine/subroutine/microroutine/task/timeblock templates to expand usable coverage and scheduler stress-testing.
 
 ### Kairos Scheduler Activation
 - Switched active scheduling path to Kairos for `today` and `today reschedule` in `commands/today.py`.
 - Legacy scheduler path is still present and can be forced with `today legacy ...`.
-- Added Kairos-to-schedule conversion when writing `User/Schedules/schedule_YYYY-MM-DD.yml` so existing downstream flows keep working.
+- Added Kairos-to-schedule conversion when writing `user/Schedules/schedule_YYYY-MM-DD.yml` so existing downstream flows keep working.
 - Added Kairos anchor conflict fail-fast messaging in active runs with remediation guidance.
 - Preserved archive-before-overwrite behavior when regenerating today schedule.
 
@@ -589,7 +589,7 @@
 
 ### Sleep System Refactor
 - Removed legacy `sleep_settings.yml` flow from Life Setup wizard behavior.
-- Deleted obsolete file: `User/Settings/sleep_settings.yml`.
+- Deleted obsolete file: `user/Settings/sleep_settings.yml`.
 - Added new persistent widget: `utilities/dashboard/widgets/sleep_settings/`
   - Manages sleep anchors directly in day templates.
   - Supports mono/bi/poly presets, segment editing, day toggles, overlap checks, and apply-to selected/all/new templates.
@@ -628,7 +628,7 @@
 - Added new sound engine module: `modules/sound_fx.py`.
 - Added new command: `commands/sound.py`.
 - Added alias `sounds -> sound` in `modules/console.py`.
-- Added settings file: `User/Settings/sound_settings.yml`.
+- Added settings file: `user/Settings/sound_settings.yml`.
 - Wired sound events in CLI (`modules/console.py`):
   - `startup` when CLI starts
   - `done` after `today reschedule`
@@ -644,15 +644,16 @@
 
 ### Day Templates / Place Status
 - Updated travel templates to explicitly require travel context:
-  - `User/Days/travel_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
-  - `User/Days/travel_reset_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
+  - `user/Days/travel_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
+  - `user/Days/travel_reset_day_example.yml` -> `place: travel`, `status_requirements.place: [travel]`
 - Added normalized `place` coverage across `*_example.yml` day templates:
-  - `User/Days/deep_work_day_kairos_example.yml` -> `at_work`
-  - `User/Days/recovery_and_reset_day_example.yml` -> `at_home`
-  - `User/Days/sick_day_example.yml` -> `at_home`
-  - `User/Days/weekday_builder_example.yml` -> `at_school`
-  - `User/Days/weekday_example.yml` -> `at_home`
-- Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+  - `user/Days/deep_work_day_kairos_example.yml` -> `at_work`
+  - `user/Days/recovery_and_reset_day_example.yml` -> `at_home`
+  - `user/Days/sick_day_example.yml` -> `at_home`
+  - `user/Days/weekday_builder_example.yml` -> `at_school`
+  - `user/Days/weekday_example.yml` -> `at_home`
+- Expanded `user/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

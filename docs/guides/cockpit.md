@@ -18,7 +18,7 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 - **Lists** - Ad-hoc `/api/items` queries for pinning "due soon", "blocked", etc.
 - **Deadlines** - Read-only list of deadlines and due dates with filters and range controls.
 - **Commitments** - Snapshot of rules, violations, on-track counts; evaluate via `/api/cli commitments check`.
-- **Map of Happiness** - Reads `User/Settings/map_of_happiness.yml`; shows coverage/satisfaction.
+- **Map of Happiness** - Reads `user/Settings/map_of_happiness.yml`; shows coverage/satisfaction.
 - **Status Strip** - Horizontal ticker of status indicators, color-coded by priority.
 
 ## Data Sources
@@ -42,6 +42,7 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 
 - Panels live in `utilities/dashboard/panels/<Name>/` and register via `window.__cockpitPanelRegister` in `utilities/dashboard/views/cockpit/`.
 - For new panels, expose minimal GET/POST endpoints in `server.py` and reuse matrix/core mirrors when possible.
+
 
 
 

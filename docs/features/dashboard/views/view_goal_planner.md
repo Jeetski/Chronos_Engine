@@ -19,8 +19,8 @@ Goal-centered planning workspace for inspecting and updating goal structures.
   - `/api/items?type=goal`
 
 ## Data and Settings
-- Reads/writes through APIs into canonical `User/*` YAML/markdown state.
-- Settings access (if present) should flow through `User/Settings/*.yml` endpoints.
+- Reads/writes through APIs into canonical `user/*` YAML/markdown state.
+- Settings access (if present) should flow through `user/Settings/*.yml` endpoints.
 
 ## Operational Workflows
 1. Load view and confirm initial data hydration succeeds.
@@ -37,6 +37,7 @@ Goal-centered planning workspace for inspecting and updating goal structures.
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

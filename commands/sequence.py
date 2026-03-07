@@ -153,7 +153,7 @@ def run(args, properties):  # noqa: D401 - standard command entrypoint
         try:
             build_trends_report(registry)
             print(f"Trends digest refreshed at: {_timestamp()}")
-            print(f"Path: {os.path.join('User', 'Data', 'trends.md')}")
+            print(f"Path: {os.path.join('user', 'Data', 'trends.md')}")
         except Exception as exc:
             print(f"Unable to refresh trends digest: {exc}")
     else:
@@ -175,6 +175,7 @@ Usage:
       Note: `memory` is deprecated and maps to `behavior` + `journal`.
 
   sequence trends
-      Refreshes `chronos_trends.db` and rewrites `User/Data/trends.md` with the
+      Refreshes `chronos_trends.db` and rewrites `user/Data/trends.md` with the
       latest completion metrics.
 """
+

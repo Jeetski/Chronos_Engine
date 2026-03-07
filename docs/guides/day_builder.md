@@ -52,7 +52,7 @@ Template persistence uses:
 ## Loading Generated Schedules
 
 - `Load Today` loads current-day generated schedule.
-- `Load Date Schedule` loads `User/Schedules/schedule_YYYY-MM-DD.yml`.
+- `Load Date Schedule` loads `user/Schedules/schedule_YYYY-MM-DD.yml`.
 
 If a current-day file lookup fails, Day Builder can fall back to `GET /api/today`.
 
@@ -98,9 +98,9 @@ Template-level metadata editor supports:
 
 - `Auto Buffers/Breaks` (with toggles for buffers and breaks)
   - Reads:
-    - `User/Settings/Buffer_Settings.yml`
-    - `User/Settings/Timer_Settings.yml`
-    - `User/Settings/Timer_Profiles.yml`
+    - `user/Settings/Buffer_Settings.yml`
+    - `user/Settings/Timer_Settings.yml`
+    - `user/Settings/Timer_Profiles.yml`
 - `Snap 5m`
 - `Auto Pack` from a configurable start time
 - `Validate` (time sanity + overlap checks)
@@ -122,4 +122,5 @@ Current validator flags:
 
 - Day Builder is scheduling-focused, not a full execution-action console.
 - Explainability overlays (why Kairos selected blocks) are not implemented in this view.
+
 

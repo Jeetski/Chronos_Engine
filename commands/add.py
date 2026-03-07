@@ -141,7 +141,7 @@ def find_all_matching_items(item_name):
     Finds all items with a given name across all User subdirectories.
     """
     found_items = []
-    user_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'User'))
+    user_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'user'))
 
     for dir_name in os.listdir(user_dir):
         if not os.path.isdir(os.path.join(user_dir, dir_name)):

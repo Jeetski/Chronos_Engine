@@ -3228,7 +3228,7 @@ class KairosScheduler:
             from modules.item_manager import get_user_dir
             user_dir = get_user_dir()
         except Exception:
-            user_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "User"))
+            user_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "user"))
         logs_dir = os.path.join(user_dir, "Logs")
         os.makedirs(logs_dir, exist_ok=True)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -3445,5 +3445,6 @@ if __name__ == "__main__":
     for block in schedule.get("blocks", []):
         print(f"[{block.get('start_time', '??:??')}] {block.get('name')} (Score: {block.get('kairos_score', 0)})")
     print("--- End Shadow Run ---")
+
 
 

@@ -48,7 +48,7 @@ def prompt_yes_no(text: str, default: bool = True) -> bool:
 class OnboardingWizard:
     def __init__(self) -> None:
         self.root = ROOT_DIR
-        self.user_dir = self.root / "User"
+        self.user_dir = self.root / "user"
         self.settings_dir = self.user_dir / "Settings"
         self.profile_path = self.user_dir / "Profile" / "profile.yml"
         self.current_status_path = Path(status_current_path())
@@ -466,3 +466,4 @@ if __name__ == "__main__":
         wizard.run()
     except KeyboardInterrupt:
         print("\nWizard cancelled.")
+

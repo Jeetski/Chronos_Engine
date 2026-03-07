@@ -5,7 +5,7 @@ The Canvas view is a realtime, board-style workspace inside the Dashboard. It is
 ## What the Canvas is
 
 - Infinite board with nodes, connections, ink strokes, and media.
-- Boards are stored as YAML items under `User/Canvas_Boards/`.
+- Boards are stored as YAML items under `user/Canvas_Boards/`.
 - The Dashboard uses `/api/item` and `/api/items?type=canvas_board` to load/save.
 
 ## Data model (stored in YAML)
@@ -78,3 +78,4 @@ Behavior
 Sharing
 - Use the Canvas Invite button to generate a Link URL + token.
 - Use the Link widget to connect to a peer and sync a board.
+

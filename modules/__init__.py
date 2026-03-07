@@ -43,7 +43,7 @@ _ALIAS_MAP = {
     "Timeblock": "timeblock",
     "Timer": "timer",
     "Tool": "tool",
-    "User": "user",
+    "user": "user",
     "Week": "week",
     "Window": "window",
 }
@@ -59,3 +59,4 @@ def __getattr__(name: str):
 
 
 __all__ = sorted(_ALIAS_MAP.keys())
+

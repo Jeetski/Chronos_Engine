@@ -28,7 +28,7 @@ Behavior rule:
 - UI and CLI timer state should stay in sync.
 
 ## Data and Settings
-- Timer profiles/settings are in `User/Settings` files referenced by timer APIs/commands.
+- Timer profiles/settings are in `user/Settings` files referenced by timer APIs/commands.
 - Listener state and logs are stored under runtime/user data/log locations.
 
 ## Validation
@@ -40,3 +40,4 @@ Behavior rule:
 - `docs/reference/cli_commands.md`
 - `docs/reference/dashboard_api.md`
 - `docs/agents/skills/timer/skill.md`
+

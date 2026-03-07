@@ -28,7 +28,7 @@ def run(args, properties):
     
     # Helper paths
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    user_dir = os.path.join(root_dir, "User")
+    user_dir = os.path.join(root_dir, "user")
     
     # Parse target type
     is_specific_db = target.startswith("db:")
@@ -212,7 +212,7 @@ def clear_specific_registry(root_dir, registry_name):
     # Registry caches are typically stored in memory and loaded from YAML
     # We'll clear the cached data by touching a marker file or clearing temp cache
     
-    cache_dir = os.path.join(root_dir, "User", ".cache")
+    cache_dir = os.path.join(root_dir, "user", ".cache")
     os.makedirs(cache_dir, exist_ok=True)
     
     registry_cache_file = os.path.join(cache_dir, f"registry_{registry_name}.cache")
@@ -290,3 +290,4 @@ Examples:
   clear registry:wizards
   clear all force:true
 """
+

@@ -3,7 +3,7 @@ import yaml
 
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-FILTER_STATE_PATH = os.path.join(ROOT_DIR, "User", "Settings", "active_filter.yml")
+FILTER_STATE_PATH = os.path.join(ROOT_DIR, "user", "Settings", "active_filter.yml")
 
 class FilterManager:
 
@@ -87,3 +87,4 @@ class FilterManager:
             if match:
                 filtered_items.append(item)
         return filtered_items
+

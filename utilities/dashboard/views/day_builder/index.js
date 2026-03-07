@@ -610,7 +610,7 @@ export async function mount(el, context) {
 
   const loadScheduleForDate = async (key) => {
     const k = String(key || '').trim(); if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) { emit('error', 'Use YYYY-MM-DD.'); return; }
-    const txt = await readFile(`User/Schedules/schedule_${k}.yml`);
+    const txt = await readFile(`user/Schedules/schedule_${k}.yml`);
     if (txt) {
       const y = yparse(txt);
       if (y) {
@@ -687,9 +687,9 @@ export async function mount(el, context) {
   const autoInsert = async () => {
     if (!state.schedule.length) { emit('error', 'Load or build a schedule draft first.'); return; }
     pushHistory();
-    const rawBuf = await readFile('User/Settings/Buffer_Settings.yml');
-    const rawTs = await readFile('User/Settings/Timer_Settings.yml');
-    const rawTp = await readFile('User/Settings/Timer_Profiles.yml');
+    const rawBuf = await readFile('user/Settings/Buffer_Settings.yml');
+    const rawTs = await readFile('user/Settings/Timer_Settings.yml');
+    const rawTp = await readFile('user/Settings/Timer_Profiles.yml');
     const b = (yparse(rawBuf) && typeof yparse(rawBuf) === 'object') ? yparse(rawBuf) : {};
     const ts = (yparse(rawTs) && typeof yparse(rawTs) === 'object') ? yparse(rawTs) : {};
     const tp = (yparse(rawTp) && typeof yparse(rawTp) === 'object') ? yparse(rawTp) : {};
@@ -906,3 +906,4 @@ export async function mount(el, context) {
   await loadPalette();
   await loadTemplateList();
 }
+

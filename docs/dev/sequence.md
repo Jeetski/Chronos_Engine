@@ -4,15 +4,15 @@ Chronos ships a `sequence` CLI that builds fast mirrors of your YAML data. This 
 
 ## Mirrors
 
-- `User/Data/chronos_core.db` — canonical mirror of YAML items, relations, completions, schedules.
-- `User/Data/chronos_matrix.db` — analytics cache that powers Matrix panels/queries.
-- `User/Data/chronos_events.db` — listener log stream plus command/trigger history.
-- `User/Data/chronos_behavior.db` — planned vs. actual activity facts + variance.
-- `User/Data/chronos_journal.db` — status snapshots + narratives.
-- `User/Data/chronos_trends.db` — derived trends store.
-- `User/Data/trends.md` — human-readable digest of completion rates/variance for agents.
-- `User/Data/databases.yml` — registry of known mirrors and their state.
-- `User/Data/sequence_automation.yml` — listener automation state for nightly syncs.
+- `user/Data/chronos_core.db` — canonical mirror of YAML items, relations, completions, schedules.
+- `user/Data/chronos_matrix.db` — analytics cache that powers Matrix panels/queries.
+- `user/Data/chronos_events.db` — listener log stream plus command/trigger history.
+- `user/Data/chronos_behavior.db` — planned vs. actual activity facts + variance.
+- `user/Data/chronos_journal.db` — status snapshots + narratives.
+- `user/Data/chronos_trends.db` — derived trends store.
+- `user/Data/trends.md` — human-readable digest of completion rates/variance for agents.
+- `user/Data/databases.yml` — registry of known mirrors and their state.
+- `user/Data/sequence_automation.yml` — listener automation state for nightly syncs.
   - Deprecated: `chronos_memory.db` (replaced by behavior + journal).
 
 ## Commands
@@ -29,7 +29,7 @@ Chronos ships a `sequence` CLI that builds fast mirrors of your YAML data. This 
 
 ## Automation
 
-The Listener calls `sequence sync behavior journal trends` shortly after midnight (tracked in `User/Data/sequence_automation.yml`) so the dashboard starts each day with fresh summaries. If you disable the listener, schedule `sequence trends` yourself.
+The Listener calls `sequence sync behavior journal trends` shortly after midnight (tracked in `user/Data/sequence_automation.yml`) so the dashboard starts each day with fresh summaries. If you disable the listener, schedule `sequence trends` yourself.
 
 ## Consumers
 
@@ -39,4 +39,5 @@ The Listener calls `sequence sync behavior journal trends` shortly after midnigh
 ## Tips
 
 - YAML remains the source of truth; mirrors are rebuildable. If a DB corrupts, delete it and rerun `sequence sync`.
-- Keep `User/Data` under source control ignore rules to avoid noisy diffs.
+- Keep `user/Data` under source control ignore rules to avoid noisy diffs.
+

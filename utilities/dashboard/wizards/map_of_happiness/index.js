@@ -223,7 +223,7 @@ function mountOverlay(context) {
     <div class="moh-shell chronos-wizard-shell">
       <div class="moh-header chronos-wizard-header">
         <div class="moh-title">Map of Happiness Wizard <span class="moh-pill">Sam Vaknin technique</span></div>
-        <div class="moh-sub">Capture everything you cannot be happy without, cluster them into needs, rank them, define sufficiency, and save to <code>User/Settings/map_of_happiness.yml</code> so items can tag <code>happiness</code> values.</div>
+        <div class="moh-sub">Capture everything you cannot be happy without, cluster them into needs, rank them, define sufficiency, and save to <code>user/Settings/map_of_happiness.yml</code> so items can tag <code>happiness</code> values.</div>
         <div class="moh-steps chronos-wizard-stepper" data-stepper></div>
       </div>
       <div class="moh-body chronos-wizard-body" data-body></div>
@@ -703,7 +703,7 @@ function renderAssociationsStep(container) {
       <h3>Associations (auto-tagging)</h3>
       <p class="moh-help">Define rules that automatically add <code>happiness</code> values to items when they match certain properties. Each happiness key can map to any item property. Suffix a property with <code>_contains</code> for substring matches (e.g., <code>name_contains</code>).</p>
       <textarea class="moh-textarea" data-assoc-yaml style="min-height:260px;" spellcheck="false">${escapeHtml(wizardState.associationsRaw)}</textarea>
-      <p class="moh-small">Saved to <code>User/Settings/happiness_value_name_assoc.yml</code>.</p>
+      <p class="moh-small">Saved to <code>user/Settings/happiness_value_name_assoc.yml</code>.</p>
     </div>
   `;
   container.querySelector('[data-assoc-yaml]')?.addEventListener('input', (ev) => {
@@ -825,7 +825,7 @@ function renderReviewStep(container) {
   container.innerHTML = `
     <div class="moh-card">
       <h3>Review & Save</h3>
-      <p class="moh-help">We will archive the previous file to <code>map_of_happiness.archive.*.yml</code> in User/Settings, then replace <code>map_of_happiness.yml</code>. Items can reference needs via <code>happiness: [&lt;key&gt;]</code>. Associations (if provided) are saved to <code>happiness_value_name_assoc.yml</code>.</p>
+      <p class="moh-help">We will archive the previous file to <code>map_of_happiness.archive.*.yml</code> in user/Settings, then replace <code>map_of_happiness.yml</code>. Items can reference needs via <code>happiness: [&lt;key&gt;]</code>. Associations (if provided) are saved to <code>happiness_value_name_assoc.yml</code>.</p>
       <div class="moh-inline" style="margin-bottom:10px;">
         <span class="moh-badge">${mapCount} needs</span>
         <span class="moh-badge">${escapeHtml(derivedNote)}</span>
@@ -968,3 +968,4 @@ function escapeAttr(str) {
 export async function launch(context, options = {}) {
   mountOverlay(context);
 }
+

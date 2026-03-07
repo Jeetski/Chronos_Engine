@@ -87,7 +87,7 @@ for /r "%DOCS_DIR%" %%f in (*.md) do (
 )
 
 :: 1b. Bundle User Profile (pilot_brief.md, preferences.md)
-set "PROFILE_DIR=%CHRONOS_ROOT%\User\Profile"
+set "PROFILE_DIR=%CHRONOS_ROOT%\user\Profile"
 echo [Chronos] Bundling User Profile context...
 echo. >> "%CTX_FILE%"
 echo # USER PROFILE >> "%CTX_FILE%"

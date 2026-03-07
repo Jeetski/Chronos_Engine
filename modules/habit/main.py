@@ -10,7 +10,7 @@ ITEM_TYPE = "habit"
 
 def get_habit_settings():
     """
-    Loads habit settings from User/Settings/Habit_Settings.yml.
+    Loads habit settings from user/Settings/Habit_Settings.yml.
     """
     settings_path = os.path.join(get_user_dir(), "Settings", "Habit_Settings.yml")
     if os.path.exists(settings_path):
@@ -188,3 +188,4 @@ def handle_command(command, item_type, item_name, arguments, properties):
 
     else:
         print(f"Unknown command for habit: {command}")
+

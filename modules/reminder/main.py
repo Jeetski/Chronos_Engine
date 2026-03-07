@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 # --- Constants ---
-REMINDERS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'User', 'Reminders'))
+REMINDERS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'Reminders'))
 REMINDER_SOUNDS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Sounds'))
 
 # Initialize pygame mixer (only once)
@@ -20,7 +20,7 @@ except Exception as e:
 
 def load_reminders():
     """
-    Loads all reminder configurations from the User/Reminders directory.
+    Loads all reminder configurations from the user/Reminders directory.
     Returns a list of tuples: (reminder_data, filepath).
     """
     if not os.path.exists(REMINDERS_DIR):
@@ -93,7 +93,7 @@ def trigger_reminder(reminder, filepath):
     try:
         reminder_sound_filename = reminder.get('sound')
         if not reminder_sound_filename:
-            settings_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'User', 'Settings'))
+            settings_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'Settings'))
             reminder_defaults_path = os.path.join(settings_dir, "Reminder_Defaults.yml")
             if os.path.exists(reminder_defaults_path):
                 with open(reminder_defaults_path, 'r') as f:

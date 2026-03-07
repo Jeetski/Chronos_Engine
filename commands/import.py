@@ -18,10 +18,10 @@ def run(args, properties):
     
     # Check if the file exists
     if not os.path.exists(file_path_arg):
-        # If not, try to find it in the User/Exports directory
-        file_path = os.path.join(ROOT_DIR, "User", "Exports", file_path_arg)
+        # If not, try to find it in the user/Exports directory
+        file_path = os.path.join(ROOT_DIR, "user", "Exports", file_path_arg)
         if not os.path.exists(file_path):
-            print(f"Error: File not found at '{file_path_arg}' or in 'User/Exports/'.")
+            print(f"Error: File not found at '{file_path_arg}' or in 'user/Exports/'.")
             return
     else:
         file_path = file_path_arg
@@ -34,11 +34,11 @@ def run(args, properties):
             if properties.get('overwrite') is True or str(mode).lower() == 'overwrite':
                 overwrite = True
         try:
-            user_dir = os.path.join(ROOT_DIR, 'User')
+            user_dir = os.path.join(ROOT_DIR, 'user')
             with zipfile.ZipFile(file_path, 'r') as zf:
-                # Decide extraction base: if archive contains 'User/...', extract to ROOT_DIR; else to User/
+                # Decide extraction base: if archive contains 'user/...', extract to ROOT_DIR; else to user/
                 names = zf.namelist()
-                contains_user_root = any(n.startswith('User/') or n.startswith('User\\') for n in names)
+                contains_user_root = any(n.startswith('user/') or n.startswith('user\\') for n in names)
                 base = ROOT_DIR if contains_user_root else user_dir
                 base = os.path.abspath(base)
                 for member in names:
@@ -107,11 +107,12 @@ Usage:
   import <file_path>
 
 Description:
-  - If <file_path> ends with .zip, extracts the backup into the User/ directory.
+  - If <file_path> ends with .zip, extracts the backup into the user/ directory.
     Use property overwrite:true or mode:overwrite to overwrite existing files.
   - If <file_path> is a YAML list, imports items (skips if already exist).
 
 Example:
-  import User/Exports/my_tasks.yml
-  import User/Exports/chronos_backup.zip overwrite:true
+  import user/Exports/my_tasks.yml
+  import user/Exports/chronos_backup.zip overwrite:true
 """
+

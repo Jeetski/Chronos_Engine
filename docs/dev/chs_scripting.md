@@ -44,8 +44,8 @@ Two forms are supported:
 
 ### Sources
 
-- Status: `status:<key>` reads from `User/current_status.yml`
-- Status history snapshots append to `User/Logs/status_YYYY-MM-DD.yml`
+- Status: `status:<key>` reads from `user/current_status.yml`
+- Status history snapshots append to `user/Logs/status_YYYY-MM-DD.yml`
 - Items: `<type>:<name>:<property>` (e.g., `task:"Deep Work":priority`)
 - Existence checks:
   - Items: `exists <type>:<name>[:<property>]` (e.g., `exists task:"My Task":due_date`)
@@ -113,3 +113,4 @@ end
 
 - Single-line and block `if` report concise parse errors.
 - In `.chs` files, errors include the line number for easier debugging.
+

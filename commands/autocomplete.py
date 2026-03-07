@@ -6,7 +6,7 @@ except Exception:
     yaml = None
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SETTINGS_PATH = os.path.join(ROOT_DIR, "User", "Settings", "console_settings.yml")
+SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "console_settings.yml")
 
 
 def _to_bool(value):
@@ -100,7 +100,8 @@ Usage:
 
 Description:
   Turns interactive CLI autocomplete suggestions on or off.
-  This updates User/Settings/console_settings.yml.
+  This updates user/Settings/console_settings.yml.
   Changes apply to new interactive console sessions.
 """
+
 

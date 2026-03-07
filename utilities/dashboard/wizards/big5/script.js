@@ -329,10 +329,10 @@ async function persistData(scores) {
     yamlSnapshot += `answers:\n`;
     for (let id in ANSWERS) yamlSnapshot += `  ${id}: ${ANSWERS[id]}\n`;
 
-    await saveFile(`User/Profile/Big5/results_${dateStr}.yml`, yamlSnapshot);
+    await saveFile(`user/Profile/Big5/results_${dateStr}.yml`, yamlSnapshot);
 
     // 2. Save Source of Truth (personality.yml)
-    await saveFile(`User/Profile/personality.yml`, yamlSnapshot);
+    await saveFile(`user/Profile/personality.yml`, yamlSnapshot);
 
     // 3. Update personality.md
     let summary = `## Assessment ${dateStr}\n\n`;
@@ -347,19 +347,19 @@ async function persistData(scores) {
     // Read existing or create new
     let currentMd = "";
     try {
-        const res = await apiRequest(`/api/file/read?path=User/Profile/personality.md`);
+        const res = await apiRequest(`/api/file/read?path=user/Profile/personality.md`);
         if (res.ok) currentMd = res.content;
     } catch (e) { }
 
     const newMd = currentMd + "\n\n" + summary;
-    await saveFile(`User/Profile/personality.md`, newMd);
+    await saveFile(`user/Profile/personality.md`, newMd);
 
     // 4. Update Profile.yml (Traits)
     // We need to read profile.yml first? Or just use the API if available.
     // The server implementation check suggests we can't easily PATCH profile.yml via standard API 
     // without rewriting it. Let's try to read, modify, write using file API to be safe.
     try {
-        const profRes = await apiRequest(`/api/file/read?path=User/Profile/profile.yml`);
+        const profRes = await apiRequest(`/api/file/read?path=user/Profile/profile.yml`);
         if (profRes.ok) {
             let lines = profRes.content.split('\n');
             // Naive YAML injection for now to avoid parsing issues without a library
@@ -393,3 +393,4 @@ prevBtn.addEventListener('click', () => {
 });
 
 updateUI();
+

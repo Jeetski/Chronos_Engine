@@ -7,7 +7,7 @@ new note "DiffB" content:"Line 1\nLine 2 Modified"
 
 echo "--- Tree Test ---"
 tree note DiffA
-tree dir User/Settings
+tree dir user/Settings
 
 echo "--- Diff Test ---"
 diff note DiffA DiffB
@@ -48,3 +48,4 @@ delete note DiffB force:true
 delete note RestoreTarget force:true
 
 echo "--- Done ---"
+

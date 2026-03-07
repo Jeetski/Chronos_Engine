@@ -5,10 +5,10 @@ import yaml
 def run(args, properties):
     """
     Handles the 'check' command.
-    scans all items in User/ and reports issues.
+    scans all items in user/ and reports issues.
     """
     ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    USER_DIR = os.path.join(ROOT_DIR, "User")
+    USER_DIR = os.path.join(ROOT_DIR, "user")
 
     print("🕵️ Running integrity check...")
     
@@ -36,7 +36,7 @@ def run(args, properties):
                          
                     item_type = os.path.basename(root)
                     # We might need better type inference if folder structure varies, 
-                    # but standard Chronos is User/<Type>/<Name>.yml
+                    # but standard Chronos is user/<Type>/<Name>.yml
                     
                     # Store for cross-ref
                     uid = f"{item_type}/{data.get('name')}" # Pseudo-ID
@@ -91,6 +91,7 @@ Usage:
   check
 
 Description:
-  Scans valid items in User/ directory and reports data integrity issues.
+  Scans valid items in user/ directory and reports data integrity issues.
   (Basic scan implemented, will handle more complex checks in future).
 """
+

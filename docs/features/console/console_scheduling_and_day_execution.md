@@ -33,9 +33,9 @@ Kairos rules to preserve:
 - Most schedule mutations are command-backed, even when initiated through UI controls.
 
 ## Data and Settings
-- Schedule output: `User/Schedules/schedule_YYYY-MM-DD.yml`.
-- Manual adjustments: `User/Schedules/manual_modifications_YYYY-MM-DD.yml`.
-- Scheduling settings and priorities live in `User/Settings/*.yml`.
+- Schedule output: `user/Schedules/schedule_YYYY-MM-DD.yml`.
+- Manual adjustments: `user/Schedules/manual_modifications_YYYY-MM-DD.yml`.
+- Scheduling settings and priorities live in `user/Settings/*.yml`.
 
 ## Validation
 1. Build a day with `today reschedule`.
@@ -46,3 +46,4 @@ Kairos rules to preserve:
 - `docs/scheduling/kairos_elements_reference.md`
 - `docs/scheduling/scheduling_algorithm_overview.md`
 - `docs/reference/cli_commands.md`
+

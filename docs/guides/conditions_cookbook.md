@@ -25,7 +25,7 @@ Practical `if` patterns for Chronos scripts.
 
 - Filesystem and environment:
   - `if exists file:README.md then echo HAVE_README`
-  - `if exists dir:User/Notes then echo NOTES_DIR_PRESENT`
+  - `if exists dir:user/Notes then echo NOTES_DIR_PRESENT`
   - `if exists env:PATH then echo HAS_PATH`
 
 ## Regex Matching
@@ -54,4 +54,5 @@ Practical `if` patterns for Chronos scripts.
 - Quote names with spaces: `task:"Deep Work"`
 - Use `@{var}` for clarity when adjacent to letters/digits.
 - Prefer block `if` for multiple commands; single-line is great for one-offs.
+
 

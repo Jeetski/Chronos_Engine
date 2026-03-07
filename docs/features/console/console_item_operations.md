@@ -19,7 +19,7 @@ copy task "Write outline" "Write outline v2"
 ```
 
 Best practices:
-1. Use defaults files for repeatable fields (`User/Settings/*_defaults.yml`).
+1. Use defaults files for repeatable fields (`user/Settings/*_defaults.yml`).
 2. Prefer `set`/`append` over manual file edits for consistent formatting.
 3. Confirm changes with `view` after critical updates.
 
@@ -28,8 +28,8 @@ Best practices:
 - Mixed CLI + dashboard workflows are safe when both use canonical item commands/APIs.
 
 ## Data and Settings
-- Primary state: `User/<TypePlural>/*.yml`.
-- Defaults: `User/Settings/<type>_defaults.yml`.
+- Primary state: `user/<TypePlural>/*.yml`.
+- Defaults: `user/Settings/<type>_defaults.yml`.
 
 ## Validation
 1. Create an item with properties.
@@ -39,3 +39,4 @@ Best practices:
 ## Related Docs
 - `docs/reference/cli_commands.md`
 - `docs/reference/item_properties.md`
+

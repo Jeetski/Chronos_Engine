@@ -193,7 +193,7 @@ function renderIntro(container) {
       <p class="fsd-sub">You speak as your future actualized self to your past self, then write a letter to your future self and read it through past/present/future lenses. The emotional contrast surfaces gaps, tensions, and missed lessons. Source: <a class="fsd-link" href="${SOURCE_LINK}" target="_blank" rel="noopener">Vaknin Talks</a>.</p>
       <div class="fsd-grid two">
         <div><strong>Steps</strong><br/>Future → Past dialogue · Letter to Future · Reactions (past/present/future) · Save as journal</div>
-        <div><strong>Output</strong><br/>Journal entry under <code>User/Journal/</code> with prompts, reactions, tags.</div>
+        <div><strong>Output</strong><br/>Journal entry under <code>user/Journal/</code> with prompts, reactions, tags.</div>
       </div>
       <button class="fsd-btn" data-start>Begin</button>
     </div>
@@ -259,7 +259,7 @@ function renderReview(container) {
   container.innerHTML = `
     <div class="fsd-card">
       <h3>Review & Save</h3>
-      <p class="fsd-sub">This will write a journal entry under <code>User/Journal/</code> with your dialogue, letter, and reactions. Source: <a class="fsd-link" href="${SOURCE_LINK}" target="_blank" rel="noopener">Vaknin Talks</a>.</p>
+      <p class="fsd-sub">This will write a journal entry under <code>user/Journal/</code> with your dialogue, letter, and reactions. Source: <a class="fsd-link" href="${SOURCE_LINK}" target="_blank" rel="noopener">Vaknin Talks</a>.</p>
       <div class="fsd-yaml">${escapeHtml(yaml)}</div>
       <button class="fsd-btn" data-copy>Copy to clipboard</button>
     </div>
@@ -382,3 +382,4 @@ function escapeAttr(str) {
 export async function launch(context, options = {}) {
   mountOverlay(context);
 }
+

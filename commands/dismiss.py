@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from modules.alarm.main import update_alarm_yaml
 
 # --- Constants ---
-ALARMS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'User', 'Alarms'))
+ALARMS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'user', 'Alarms'))
 
 # --- Core Functions ---
 def run(args, properties):
@@ -45,3 +45,4 @@ Usage: dismiss <alarm_name>
 Description: Dismisses a specified alarm for the remainder of the current day.
 Example: dismiss "Morning Alarm"
 """
+

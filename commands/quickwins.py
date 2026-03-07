@@ -15,7 +15,7 @@ from utilities.duration_parser import parse_duration_string
 
 
 DONE_STATUSES = {"completed", "done", "skipped", "archived"}
-SETTINGS_FILE = os.path.join("User", "Settings", "quick_wins_settings.yml")
+SETTINGS_FILE = os.path.join("user", "Settings", "quick_wins_settings.yml")
 
 
 def _load_settings():
@@ -384,9 +384,10 @@ def get_help_message():
     return """
 Usage: quickwins [minutes:N] [days:N] [limit:N] [missed:true|false] [overdue:true|false] [due:true|false] [date:YYYY-MM-DD] [format:json]
 Description: Lists small quick wins (<= minutes) from overdue/due soon items and missed blocks today.
-Settings file: User/Settings/quick_wins_settings.yml
+Settings file: user/Settings/quick_wins_settings.yml
 Date: quickwins date:YYYY-MM-DD
 Example: quickwins minutes:15 days:3 limit:15
 """
+
 
 

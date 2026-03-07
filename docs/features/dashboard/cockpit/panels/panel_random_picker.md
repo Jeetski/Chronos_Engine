@@ -18,7 +18,7 @@ Panels are modular cockpit components and should remain composable in multi-pane
   - `/api/status/current`
 
 ## Data and Settings
-- Reads/writes canonical `User/*` state via dashboard APIs.
+- Reads/writes canonical `user/*` state via dashboard APIs.
 - Panel-specific settings (if any) should remain compatible with Cockpit persistence model.
 
 ## Operational Workflows
@@ -37,6 +37,7 @@ Panels are modular cockpit components and should remain composable in multi-pane
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 
 

@@ -43,7 +43,7 @@ def create_backup(args, properties):
     try:
         with zipfile.ZipFile(out_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
             # Walk User dir
-            # We want the zip to contain 'User/...' so we walk USER_DIR but use ROOT_DIR for relpath
+            # We want the zip to contain 'user/...' so we walk USER_DIR but use ROOT_DIR for relpath
             for folder, _dirs, files in os.walk(USER_DIR):
                 for fname in files:
                     # Skip the Backups folder itself to avoid recursion or huge files
@@ -61,7 +61,7 @@ def create_backup(args, properties):
 
 def list_backups():
     if not os.path.exists(BACKUPS_DIR):
-        print("No backups found (User/Backups directory missing).")
+        print("No backups found (user/Backups directory missing).")
         return
         
     files = glob.glob(os.path.join(BACKUPS_DIR, "*.zip"))
@@ -84,11 +84,12 @@ Usage:
   backup list
 
 Description:
-  Creates a full backup of the 'User' directory.
-  Saves to 'User/Backups/'.
+  Creates a full backup of the 'user' directory.
+  Saves to 'user/Backups/'.
   
 Example:
   backup
   backup snapshot_v1
   backup list
 """
+

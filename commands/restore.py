@@ -49,7 +49,7 @@ def run(args, properties):
     # Confirmation
     force = bool(properties.get('force', False))
     if not force:
-        print(f"⚠️  WARNING: This will overwrite your current 'User' data with '{os.path.basename(backup_path)}'.")
+        print(f"⚠️  WARNING: This will overwrite your current 'user' data with '{os.path.basename(backup_path)}'.")
         print("Type 'yes' to confirm or use restore <file> force:true")
         # In actual CLI usage, interactive input isn't always easy. 
         # But Console.py supports input() so we can try.
@@ -62,10 +62,10 @@ def run(args, properties):
     
     try:
         with zipfile.ZipFile(backup_path, 'r') as zf:
-            # We extract to ROOT_DIR because the zip contains 'User/...' structure
+            # We extract to ROOT_DIR because the zip contains 'user/...' structure
             # But let's verify archive structure
             names = zf.namelist()
-            has_user_prefix = any(n.startswith('User/') or n.startswith('User\\') for n in names)
+            has_user_prefix = any(n.startswith('user/') or n.startswith('user\\') for n in names)
             
             extract_root = ROOT_DIR if has_user_prefix else USER_DIR
             
@@ -82,11 +82,12 @@ Usage:
   restore <filename|latest> force:true
 
 Description:
-  Restores the 'User' directory from a backup zip.
+  Restores the 'user' directory from a backup zip.
   Requires 'force:true' property to confirm overwrite.
   
 Example:
   restore latest force:true
   restore chronos_backup_20250101.zip force:true
 """
+
 

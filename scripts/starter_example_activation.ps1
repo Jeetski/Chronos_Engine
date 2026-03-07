@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$userRoot = Join-Path $repoRoot "User"
+$userRoot = Join-Path $repoRoot "user"
 $examplesRoot = Join-Path $userRoot "Examples"
 
 New-Item -ItemType Directory -Path $examplesRoot -Force | Out-Null
@@ -19,7 +19,7 @@ $skipped = 0
 foreach ($file in $exampleFiles) {
   $relative = $file.FullName.Substring($userRoot.Length).TrimStart('\', '/')
 
-  # Mirror every example into User/Examples preserving User-relative layout.
+  # Mirror every example into user/Examples preserving User-relative layout.
   $mirrorPath = Join-Path $examplesRoot $relative
   $mirrorDir = Split-Path $mirrorPath -Parent
   New-Item -ItemType Directory -Path $mirrorDir -Force | Out-Null
@@ -48,4 +48,5 @@ Write-Host ("  Found examples : {0}" -f $exampleFiles.Count)
 Write-Host ("  Mirrored       : {0}" -f $mirrored)
 Write-Host ("  Activated new  : {0}" -f $activated)
 Write-Host ("  Skipped        : {0}" -f $skipped)
+
 

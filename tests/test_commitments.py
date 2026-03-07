@@ -16,8 +16,8 @@ class TestCommitments(unittest.TestCase):
         ItemManager.USER_DIR = self.test_dir
         ItemManager.ROOT_DIR = self.test_dir
 
-        os.makedirs(os.path.join(self.test_dir, "User", "Habits"), exist_ok=True)
-        os.makedirs(os.path.join(self.test_dir, "User", "Commitments"), exist_ok=True)
+        os.makedirs(os.path.join(self.test_dir, "user", "Habits"), exist_ok=True)
+        os.makedirs(os.path.join(self.test_dir, "user", "Commitments"), exist_ok=True)
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
@@ -176,4 +176,5 @@ class TestCommitments(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 

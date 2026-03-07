@@ -27,7 +27,7 @@ Parsing guardrails:
 - Widget command generation should follow the same quoting/property rules used by manual CLI usage.
 
 ## Data and Settings
-- Parsing itself is stateless, but parsed commands mutate `User/*` state.
+- Parsing itself is stateless, but parsed commands mutate `user/*` state.
 - Property conventions must remain compatible with item schemas and settings YAML.
 
 ## Validation
@@ -38,3 +38,4 @@ Parsing guardrails:
 ## Related Docs
 - `docs/reference/cli_commands.md`
 - `docs/dev/chs_scripting.md`
+

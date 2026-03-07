@@ -35,7 +35,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Cockpit** - A drag-and-drop canvas powered by `utilities/dashboard/views/cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `docs/guides/cockpit.md` for panel details and troubleshooting.
   - The Matrix panel loads presets from `presets/matrix/` (YAML). It ships with curated defaults there (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category), and you can drop new preset files into that folder.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
-- **Editor** - A full-featured code editor for managing Chronos scripts (`.chs`), YAML settings, and Markdown notes (`User/` directory).
+- **Editor** - A full-featured code editor for managing Chronos scripts (`.chs`), YAML settings, and Markdown notes (`user/` directory).
   - **Features**: Syntax Highlighting, Shell Integration (`Run > Run File`), Settings (Theme/Tab Size), and Sidebar File Management.
   - **Shell Integration**: Can execute system commands (like `python`) directly from the integrated Terminal.
 
@@ -83,7 +83,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Sticky Notes** - A colorful board backed by actual Chronos notes with `sticky:true`. Capture quick thoughts, pick a color, pin favorites, edit inline, and spawn reminders without opening the CLI.
 - **Timer** - Start/pause/resume/stop, select profiles, show bound item state.
 - **Sleep Settings** - Persistent sleep-anchor manager for day templates (mode presets, segments, day toggles, conflict checks, apply to selected/all/new templates).
-- **Settings** - Lists `User/Settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
+- **Settings** - Lists `user/Settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
 - **Clock, Status, Debug Console** - Utility widgets for quick reference and event logging. Clock now includes a Manage panel for listing alarms/reminders and creating reminders from task/milestone/goal/project dates.
 - **System Admin** - System maintenance and cleanup tools with safety confirmations.
   - **Quick Actions**: Purge logs, schedules, cache, and temp files with one click
@@ -118,7 +118,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Chore Setup Wizard** (`utilities/dashboard/wizards/chore_setup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
 - **Status Mapping Wizard** (`utilities/dashboard/wizards/status_mapping/index.js`) - Bulk status-tagging workflow for items/templates.
 - **Flow**: Status Map -> Scope -> Preview.
-- **Status Map**: Loads dimensions/values from `User/Settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
+- **Status Map**: Loads dimensions/values from `user/Settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
 - **Scope**: Filter by type/name/category/tag, limit to items missing status tags, and choose merge vs replace behavior.
 - **Preview**: Shows coverage stats plus before/after `status_requirements` samples before writing.
 - **Apply/Undo**: Writes via dashboard item APIs, optionally mirrors values to legacy top-level status keys, and supports one-session undo of the last batch.
@@ -195,7 +195,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 
 ## Notes & Best Practices
 
-- **Profile path:** `User/Profile/profile.yml` is the canonical location for nickname/preferences (used across CLI and dashboard).
+- **Profile path:** `user/Profile/profile.yml` is the canonical location for nickname/preferences (used across CLI and dashboard).
 - **CORS/security:** The server is permissive for localhost development only. Do not expose it publicly without adding auth and HTTPS.
 - **Response format:** Prefer JSON for machine parsing; YAML responses are used when human readability helps (e.g., `/health`, `/api/today`).
 - **State sharing:** The dashboard shares variables, templates, and item store with the CLI; running actions in the UI is equivalent to issuing CLI commands.
@@ -282,6 +282,7 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 
 

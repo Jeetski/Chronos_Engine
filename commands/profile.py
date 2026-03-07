@@ -2,7 +2,7 @@ import os
 import yaml
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PROFILE_PATH = os.path.join(ROOT_DIR, 'User', 'Profile', 'profile.yml')
+PROFILE_PATH = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
 
 
 def _load_profile() -> dict:
@@ -150,7 +150,7 @@ Usage: profile show
        profile set-line <1|2|3> <text...>
 
 Description:
-  Views or updates profile details stored in User/Profile/profile.yml. Supports a welcome block with line1/line2/line3.
+  Views or updates profile details stored in user/Profile/profile.yml. Supports a welcome block with line1/line2/line3.
   Variables like @nickname expand in the welcome lines.
 
 Examples:
@@ -159,3 +159,4 @@ Examples:
   profile set line2:"🚀 Welcome, @nickname" line3:"🌌 Navigate your reality"
   profile set-line 2 🚀 Welcome, @nickname
 """
+

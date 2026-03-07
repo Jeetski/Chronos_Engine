@@ -24,7 +24,7 @@ class TestScheduleModifications(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.root = self.temp_dir.name
-        self.user_dir = os.path.join(self.root, "User")
+        self.user_dir = os.path.join(self.root, "user")
         os.makedirs(os.path.join(self.user_dir, "Schedules"), exist_ok=True)
         os.makedirs(os.path.join(self.user_dir, "Days"), exist_ok=True)
         os.makedirs(os.path.join(self.user_dir, "Tasks"), exist_ok=True)
@@ -193,6 +193,7 @@ class TestScheduleModifications(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 
 
 

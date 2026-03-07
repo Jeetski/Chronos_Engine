@@ -65,8 +65,8 @@ Related:
 - Completed entries reinserted as informational markers after planning.
 
 8. Output + observability
-- Persist active schedule to `User/Schedules/schedule_YYYY-MM-DD.yml`.
-- Emit decision logs to `User/Logs/kairos_decision_log_*`.
+- Persist active schedule to `user/Schedules/schedule_YYYY-MM-DD.yml`.
+- Emit decision logs to `user/Logs/kairos_decision_log_*`.
 
 ## `today reschedule` Semantics
 
@@ -95,21 +95,22 @@ Kairos reschedule behavior is intentionally "live-day aware":
 - `commands/today.py`
 - `modules/scheduler/kairos.py`
 - `modules/scheduler/weekly_generator.py`
-- `User/Settings/scheduling_priorities.yml`
-- `User/Settings/status_settings.yml`
-- `User/Settings/buffer_settings.yml`
-- `User/Settings/timer_settings.yml`
-- `User/Settings/timer_profiles.yml`
-- `User/Settings/quick_wins_settings.yml`
-- `User/Data/chronos_core.db`
-- `User/Data/chronos_behavior.db`
+- `user/Settings/scheduling_priorities.yml`
+- `user/Settings/status_settings.yml`
+- `user/Settings/buffer_settings.yml`
+- `user/Settings/timer_settings.yml`
+- `user/Settings/timer_profiles.yml`
+- `user/Settings/quick_wins_settings.yml`
+- `user/Data/chronos_core.db`
+- `user/Data/chronos_behavior.db`
 
 ## Debug Baseline
 
 1. Run: `today kairos ...`
 2. Inspect:
-- `User/Logs/kairos_decision_log_latest.md`
-- `User/Logs/kairos_decision_log_latest.yml`
+- `user/Logs/kairos_decision_log_latest.md`
+- `user/Logs/kairos_decision_log_latest.yml`
 3. Adjust status/template/anchors/settings.
 4. Apply with `today reschedule`.
+
 

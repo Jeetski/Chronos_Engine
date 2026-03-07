@@ -40,7 +40,7 @@ def _normalize_recurrence(value):
 
 
 def _load_defaults(item_type):
-    settings_dir = os.path.join(ROOT_DIR, "User", "Settings")
+    settings_dir = os.path.join(ROOT_DIR, "user", "Settings")
     variants = [
         f"{item_type}_defaults.yml",
         f"{item_type}_Defaults.yml",
@@ -168,3 +168,4 @@ Examples:
   alarm from task "Ship v1" use:deadline time:09:00
   alarm from milestone "Finalize docs" use:due_date date:2025-01-14 time:10:00 message:"Docs due"
 """
+

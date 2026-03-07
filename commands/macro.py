@@ -3,7 +3,7 @@ import os
 import yaml
 from modules.console import ROOT_DIR
 
-MACROS_CONF = os.path.join(ROOT_DIR, "User", "Scripts", "Macros", "macros.yml")
+MACROS_CONF = os.path.join(ROOT_DIR, "user", "Scripts", "Macros", "macros.yml")
 
 def run(args, properties):
     """
@@ -78,5 +78,6 @@ Usage:
   macro disable
 
 Description:
-  Manages the macro system (User/Scripts/Macros/macros.yml).
+  Manages the macro system (user/Scripts/Macros/macros.yml).
 """
+

@@ -47,7 +47,7 @@ def handle_list(sort_by, properties):
 
     # Load priority settings for sorting if sorting by priority
     priority_map = {}
-    settings_dir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "User", "Settings")
+    settings_dir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")), "user", "Settings")
     priority_settings_path = os.path.join(settings_dir, "Priority_Settings.yml")
     if os.path.exists(priority_settings_path):
         with open(priority_settings_path, 'r') as f:

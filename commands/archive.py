@@ -7,7 +7,7 @@ from modules.item_manager import get_item_path
 
 def run(args, properties):
     """
-    Archives an item by moving it to User/Archive/<Type>/.
+    Archives an item by moving it to user/Archive/<Type>/.
     Adds an 'archived_at' timestamp to the item.
     """
     if len(args) < 2:
@@ -24,8 +24,8 @@ def run(args, properties):
         return
 
     # Prepare archive path
-    # src_path is something like User/tasks/mytask.yml
-    # We want User/Archive/tasks/mytask.yml
+    # src_path is something like user/tasks/mytask.yml
+    # We want user/Archive/tasks/mytask.yml
     
     # robust way: get relative path from User directory
     # assumption: get_item_path returns abs path. modules.item_manager.USER_DIR is the base.
@@ -79,8 +79,9 @@ Usage:
   archive <type> <name>
 
 Description:
-  Moves an item to the 'User/Archive' directory for safekeeping.
+  Moves an item to the 'user/Archive' directory for safekeeping.
   Adds an 'archived_at' timestamp to the item.
   
   Equivalent to 'delete' without flags (soft delete).
 """
+

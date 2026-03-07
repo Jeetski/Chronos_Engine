@@ -186,13 +186,13 @@ export function mount(el, context) {
 
     // Quick Actions
     el.querySelector('#btn-clear-logs').addEventListener('click', () => {
-        if (confirm("⚠️ Are you sure you want to delete all log files?\n\nThis will permanently remove all history of system events and debugging information from the User/Logs directory.\n\nThis action cannot be undone.")) {
+        if (confirm("⚠️ Are you sure you want to delete all log files?\n\nThis will permanently remove all history of system events and debugging information from the user/Logs directory.\n\nThis action cannot be undone.")) {
             runCommand("clear logs force");
         }
     });
 
     el.querySelector('#btn-clear-schedules').addEventListener('click', () => {
-        if (confirm("⚠️ Are you sure you want to delete all generated schedules?\n\nThis will remove all daily schedule YAML files from the User/Schedules directory. You will lose all historical schedule records.\n\nThis action cannot be undone.")) {
+        if (confirm("⚠️ Are you sure you want to delete all generated schedules?\n\nThis will remove all daily schedule YAML files from the user/Schedules directory. You will lose all historical schedule records.\n\nThis action cannot be undone.")) {
             runCommand("clear schedules force");
         }
     });
@@ -229,7 +229,7 @@ export function mount(el, context) {
     });
 
     el.querySelector('#btn-clear-archives').addEventListener('click', () => {
-        if (confirm("⚠️ Delete ALL archived items and schedules?\n\nThis will permanently remove everything in User/Archive.\n\nThis action cannot be undone.\n\nContinue?")) {
+        if (confirm("⚠️ Delete ALL archived items and schedules?\n\nThis will permanently remove everything in user/Archive.\n\nThis action cannot be undone.\n\nContinue?")) {
             runCommand("clear archives force");
         }
     });
@@ -238,3 +238,4 @@ export function mount(el, context) {
         dispose() { }
     };
 }
+

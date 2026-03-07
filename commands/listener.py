@@ -5,7 +5,7 @@ import subprocess
 
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PID_DIR = os.path.join(ROOT_DIR, "User", "Temp")
+PID_DIR = os.path.join(ROOT_DIR, "user", "Temp")
 PID_PATH = os.path.join(PID_DIR, "listener.pid")
 LISTENER_PATH = os.path.join(ROOT_DIR, "modules", "listener", "listener.py")
 
@@ -152,4 +152,5 @@ Usage:
   listener stop
   listener status
 """
+
 

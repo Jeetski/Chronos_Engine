@@ -14,7 +14,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-USER_DIR = os.path.join(ROOT_DIR, "User")
+USER_DIR = os.path.join(ROOT_DIR, "user")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
 PRESET_DIR = os.path.join(ROOT_DIR, "presets", "matrix")
 LEGACY_PRESET_DIR = os.path.join(ROOT_DIR, "matrix", "presets")
@@ -1439,4 +1439,5 @@ def parse_dimension_sequence(raw: str, fallback: List[str]) -> List[str]:
         if value:
             cleaned.append(value)
     return cleaned or list(fallback)
+
 
