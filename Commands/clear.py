@@ -2,7 +2,7 @@
 import os
 import shutil
 import glob
-from Modules import console
+from modules import console
 
 def run(args, properties):
     """

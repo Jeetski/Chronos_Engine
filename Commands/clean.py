@@ -3,7 +3,7 @@ import os
 import time
 import glob
 import shutil
-from Modules.item_manager import USER_DIR
+from modules.item_manager import USER_DIR
 
 BACKUPS_DIR = os.path.join(USER_DIR, "Backups")
 ARCHIVE_DIR = os.path.join(USER_DIR, "Archive")

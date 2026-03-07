@@ -1,4 +1,4 @@
-from Modules import variables as Variables
+from modules import variables as Variables
 
 
 def run(args, properties):

@@ -1,5 +1,5 @@
 import sys
-from Modules.item_manager import dispatch_command
+from modules.item_manager import dispatch_command
 
 try:
     from Utilities.tracking import is_trackable, mark_missed
@@ -50,13 +50,13 @@ def run(args, properties):
         mark_missed(item_type, item_name, outcome=outcome)
         # Evaluate commitments after a miss (e.g., never rules)
         try:
-            from Modules.commitment import main as CommitmentModule  # type: ignore
+            from modules.commitment import main as CommitmentModule  # type: ignore
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
         # Evaluate milestones as well (in case misses affect progress)
         try:
-            from Modules.milestone import main as MilestoneModule  # type: ignore
+            from modules.milestone import main as MilestoneModule  # type: ignore
             MilestoneModule.evaluate_and_update_milestones()
         except Exception:
             pass

@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, mock_open
-from Modules import filter_manager as FilterManager
+from modules import filter_manager as FilterManager
 
 class TestFilterManager(unittest.TestCase):
     

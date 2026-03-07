@@ -1,6 +1,6 @@
-from Modules.console import run_command, parse_input, _is_property_token, _coerce_value
-from Modules.item_manager import list_all_items
-from Modules import variables as _V
+from modules.console import run_command, parse_input, _is_property_token, _coerce_value
+from modules.item_manager import list_all_items
+from modules import variables as _V
 import re
 
 

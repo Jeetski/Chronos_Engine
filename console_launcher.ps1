@@ -10,5 +10,5 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $env:PYTHONIOENCODING = "utf-8"
 
 # Run the Python script in launcher mode (full interactive startup), passing along all arguments
-python Modules/console.py prompt_toolkit:true startup_banner:true startup_sync:true startup_sound:true $args
+python modules/console.py prompt_toolkit:true startup_banner:true startup_sync:true startup_sound:true $args
 

@@ -13,9 +13,9 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 COMMANDS_DIR = ROOT / "Commands"
 SERVER_FILE = ROOT / "Utilities" / "Dashboard" / "server.py"
-CLI_DOC = ROOT / "Docs" / "Reference" / "CLI_Commands.md"
-API_DOC = ROOT / "Docs" / "Reference" / "Dashboard_API.md"
-DOCS_DIR = ROOT / "Docs"
+CLI_DOC = ROOT / "docs" / "reference" / "cli_commands.md"
+API_DOC = ROOT / "docs" / "reference" / "dashboard_api.md"
+DOCS_DIR = ROOT / "docs"
 
 
 def slugify_heading(text: str) -> str:
@@ -152,7 +152,7 @@ def main() -> int:
     missing_commands = sorted(code_commands - doc_commands)
     stale_commands = sorted(doc_commands - code_commands)
     if missing_commands:
-        errors.append("Commands present in code but missing in Docs/reference/cli_commands.md:")
+        errors.append("Commands present in code but missing in docs/reference/cli_commands.md:")
         errors.extend(f"  - {c}" for c in missing_commands)
     if stale_commands:
         errors.append("Commands documented but missing in Commands/:")
@@ -167,7 +167,7 @@ def main() -> int:
         ep for ep in documented_endpoints if not endpoint_exists_for_doc_pattern(ep, implemented_endpoints)
     )
     if missing_endpoints:
-        errors.append("Endpoints present in server.py but missing in Docs/reference/dashboard_api.md:")
+        errors.append("Endpoints present in server.py but missing in docs/reference/dashboard_api.md:")
         errors.extend(f"  - {e}" for e in missing_endpoints)
     if stale_endpoints:
         errors.append("Endpoints documented but missing in server.py:")
@@ -175,7 +175,7 @@ def main() -> int:
 
     link_errors = validate_links()
     if link_errors:
-        errors.append("Broken markdown links/anchors in Docs/:")
+        errors.append("Broken markdown links/anchors in docs/:")
         errors.extend(f"  - {e}" for e in sorted(link_errors))
 
     if errors:

@@ -4,8 +4,8 @@
   "enabled_by": ["env:ADUC_EXTERNAL_CONTEXT_FILE"],
   "static_files": [
     "docs/chronos.md",
-    "Docs/index.md",
-    "Docs/agents/agents.md"
+    "docs/index.md",
+    "docs/agents/agents.md"
   ],
   "dynamic_blocks": [
     "system_context_from:env:ADUC_EXTERNAL_CONTEXT_FILE",

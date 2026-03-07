@@ -1,7 +1,7 @@
 import unittest
 
 from Commands import sequence as SequenceCommand
-from Modules.sequence import registry as seq_registry
+from modules.sequence import registry as seq_registry
 
 
 class TestSequenceTargets(unittest.TestCase):

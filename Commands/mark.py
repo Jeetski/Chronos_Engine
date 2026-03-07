@@ -2,10 +2,10 @@
 import os
 import yaml
 from datetime import datetime
-from Modules.item_manager import get_item_path, read_item_data, write_item_data
-from Modules.scheduler import schedule_path_for_date, build_block_key
+from modules.item_manager import get_item_path, read_item_data, write_item_data
+from modules.scheduler import schedule_path_for_date, build_block_key
 from Commands.today import load_completion_payload
-from Modules import quality_utils
+from modules import quality_utils
 from Utilities.completion_effects import run_completion_effects
 
 

@@ -2,7 +2,7 @@
 import os
 import yaml
 import zipfile
-from Modules.item_manager import read_item_data, write_item_data
+from modules.item_manager import read_item_data, write_item_data
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
-from Modules.scheduler import display_schedule
-from Modules.planner import build_preview_for_date
+from modules.scheduler import display_schedule
+from modules.planner import build_preview_for_date
 from Commands.next import WEEKDAYS
 
 

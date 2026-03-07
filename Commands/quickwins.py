@@ -3,8 +3,8 @@ import os
 import yaml
 import json
 
-from Modules.item_manager import list_all_items_any
-from Modules.scheduler import (
+from modules.item_manager import list_all_items_any
+from modules.scheduler import (
     schedule_path_for_date,
     get_flattened_schedule,
     build_block_key,

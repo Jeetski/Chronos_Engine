@@ -1,5 +1,5 @@
 from datetime import datetime
-from Modules.scheduler import schedule_path_for_date, stretch_item_in_file
+from modules.scheduler import schedule_path_for_date, stretch_item_in_file
 
 def run(args, properties):
     if len(args) < 2 or '--help' in args or '-h' in args:

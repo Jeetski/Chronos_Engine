@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 try:
-    from Modules.console import log, error, Color
+    from modules.console import log, error, Color
 except Exception:
     # Keep this command import-safe so `help aduc` works even if Console symbols move.
     class _FallbackColor:

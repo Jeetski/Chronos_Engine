@@ -1,4 +1,4 @@
-from Modules import sound_fx as SoundFX
+from modules import sound_fx as SoundFX
 
 
 def _to_bool_token(token):

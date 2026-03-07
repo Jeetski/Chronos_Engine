@@ -1,6 +1,6 @@
 import sys
-from Modules.item_manager import list_all_items
-from Modules.console import run_command, parse_input
+from modules.item_manager import list_all_items
+from modules.console import run_command, parse_input
 
 def _depluralize(word):
     """A simple de-pluralizer for English words."""

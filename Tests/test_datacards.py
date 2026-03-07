@@ -11,7 +11,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from Modules import data_card_manager as DataCardManager
+from modules import data_card_manager as DataCardManager
 
 class TestDataCards(unittest.TestCase):
     def setUp(self):
@@ -47,7 +47,7 @@ class TestDataCards(unittest.TestCase):
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]["name"], "Gandalf")
         
-    @patch('Modules.item_manager.read_item_data')
+    @patch('modules.item_manager.read_item_data')
     def test_import_from_item(self, mock_read):
         # Mock item data return
         mock_read.return_value = {"name": "SecretPlan", "content": "World Domination", "type": "note"}

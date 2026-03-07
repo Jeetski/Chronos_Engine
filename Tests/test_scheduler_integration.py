@@ -7,15 +7,15 @@ import tempfile
 import yaml
 from datetime import datetime
 
-# Ensure Modules/Commands can be imported
+# Ensure modules/Commands can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Import the actual logic we want to test
 from Commands import today as Today
-from Modules.scheduler import v1 as Scheduler
-from Modules import item_manager as ItemManager
+from modules.scheduler import v1 as Scheduler
+from modules import item_manager as ItemManager
 from unittest.mock import MagicMock
-from Modules import item_manager as ItemManager
+from modules import item_manager as ItemManager
 from unittest.mock import MagicMock
 
 class TestSchedulerIntegration(unittest.TestCase):

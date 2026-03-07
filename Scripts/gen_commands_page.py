@@ -20,7 +20,7 @@ def list_commands():
 def get_help_for(cmd_name):
     try:
         proc = subprocess.Popen(
-            [sys.executable, os.path.join(ROOT, 'Modules', 'console.py'), 'help ' + cmd_name],
+            [sys.executable, os.path.join(ROOT, 'modules', 'console.py'), 'help ' + cmd_name],
             cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8'
         )
         out, err = proc.communicate(timeout=20)

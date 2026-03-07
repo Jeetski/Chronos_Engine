@@ -1,6 +1,6 @@
 import sys
-from Modules.item_manager import read_item_data
-from Modules import variables as Variables
+from modules.item_manager import read_item_data
+from modules import variables as Variables
 
 # --- Command Definition ---
 def run(args, properties):

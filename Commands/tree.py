@@ -1,8 +1,8 @@
 
 import os
 import yaml
-from Modules.item_manager import read_item_data, get_item_path
-from Modules.item_manager import USER_DIR
+from modules.item_manager import read_item_data, get_item_path
+from modules.item_manager import USER_DIR
 
 def run(args, properties):
     """

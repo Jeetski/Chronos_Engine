@@ -1,5 +1,5 @@
 import sys
-from Modules.item_manager import read_item_data, write_item_data, get_item_path
+from modules.item_manager import read_item_data, write_item_data, get_item_path
 import os
 
 # --- Command Definition ---

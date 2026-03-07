@@ -1,8 +1,8 @@
 import yaml
 import os
 from datetime import datetime
-from Modules.scheduler import status_current_path, status_history_path_for_date
-from Modules import status_utils
+from modules.scheduler import status_current_path, status_history_path_for_date
+from modules import status_utils
 
 def run(args, properties):
     status_file_path = status_current_path()

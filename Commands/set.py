@@ -1,6 +1,6 @@
 import sys
-from Modules.item_manager import read_item_data, write_item_data
-from Modules import variables as Variables
+from modules.item_manager import read_item_data, write_item_data
+from modules import variables as Variables
 
 # --- Global Variables for Scripting ---
 # This dictionary stores variables set by the 'set var' command.
@@ -112,7 +112,7 @@ def run(args, properties):
             _apply_goal_template(item_name)
             # Evaluate milestones immediately (best-effort)
             try:
-                from Modules.milestone import main as MilestoneModule  # type: ignore
+                from modules.milestone import main as MilestoneModule  # type: ignore
                 MilestoneModule.evaluate_and_update_milestones()
             except Exception:
                 pass

@@ -1,5 +1,5 @@
 import sys
-from Modules.console import load_module
+from modules.console import load_module
 
 def run(args, properties):
     if len(args) < 2:

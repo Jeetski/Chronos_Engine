@@ -1,4 +1,4 @@
-from Modules.scheduler import resolve_variant
+from modules.scheduler import resolve_variant
 
 print("Imported resolve_variant.")
 

@@ -32,7 +32,7 @@ def run(args, properties):
         return
 
     try:
-        from Modules.achievement import evaluator as Evaluator
+        from modules.achievement import evaluator as Evaluator
     except Exception as e:
         print(f"Error: could not load achievements evaluator: {e}")
         return

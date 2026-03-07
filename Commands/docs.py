@@ -1,15 +1,15 @@
 
 import os
 import subprocess
-from Modules.console import ROOT_DIR
+from modules.console import ROOT_DIR
 
-DOCS_DIR = os.path.join(ROOT_DIR, "Docs")
+DOCS_DIR = os.path.join(ROOT_DIR, "docs")
 
 def run(args, properties):
     """
     Handles the 'docs' command.
-    docs -> opens Docs/ folder
-    docs <topic> -> opens Docs/<topic>.md
+    docs -> opens docs/ folder
+    docs <topic> -> opens docs/<topic>.md
     """
     target = args[0] if args else None
     

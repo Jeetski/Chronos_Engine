@@ -1,5 +1,5 @@
-from Modules.console import run_command, parse_input
-from Modules import variables as _V
+from modules.console import run_command, parse_input
+from modules import variables as _V
 
 
 def _parse_count(args):

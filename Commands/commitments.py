@@ -1,5 +1,5 @@
 import os
-from Modules.item_manager import get_user_dir
+from modules.item_manager import get_user_dir
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -49,7 +49,7 @@ def run(args, properties):
     if sub == 'check':
         try:
             # Evaluate via module logic
-            from Modules.commitment import main as CommitmentModule  # type: ignore
+            from modules.commitment import main as CommitmentModule  # type: ignore
             CommitmentModule.evaluate_and_trigger()
             print("Commitments evaluated.")
         except Exception as e:

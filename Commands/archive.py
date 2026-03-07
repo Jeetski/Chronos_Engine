@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 import yaml
-from Modules.item_manager import get_item_path
+from modules.item_manager import get_item_path
 
 def run(args, properties):
     """
@@ -28,8 +28,8 @@ def run(args, properties):
     # We want User/Archive/tasks/mytask.yml
     
     # robust way: get relative path from User directory
-    # assumption: get_item_path returns abs path. Modules.item_manager.USER_DIR is the base.
-    from Modules.item_manager import USER_DIR
+    # assumption: get_item_path returns abs path. modules.item_manager.USER_DIR is the base.
+    from modules.item_manager import USER_DIR
     
     # safeguard against weird paths
     if not src_path.startswith(os.path.abspath(USER_DIR)):

@@ -4,24 +4,24 @@
   "enabled_by": ["env:ADUC_EXTERNAL_CONTEXT_FILE"],
   "static_files": [
     "docs/chronos.md",
-    "Docs/index.md"
+    "docs/index.md"
   ],
   "dynamic_blocks": [
     "system_context_from:env:ADUC_EXTERNAL_CONTEXT_FILE",
     "chronos_docs_update_note"
   ],
   "chronos_docs_watch": [
-    "Docs/index.md",
-    "Docs/readme.md",
-    "Docs/dev/architecture.md",
-    "Docs/reference/cli_commands.md",
-    "Docs/dev/chs_scripting.md",
-    "Docs/guides/conditions_cookbook.md",
-    "Docs/guides/common_workflows.md",
-    "Docs/guides/dashboard.md",
-    "Docs/guides/cockpit.md",
-    "Docs/agents/agents.md",
-    "Docs/guides/settings.md",
-    "Docs/dev/sequence.md"
+    "docs/index.md",
+    "docs/readme.md",
+    "docs/dev/architecture.md",
+    "docs/reference/cli_commands.md",
+    "docs/dev/chs_scripting.md",
+    "docs/guides/conditions_cookbook.md",
+    "docs/guides/common_workflows.md",
+    "docs/guides/dashboard.md",
+    "docs/guides/cockpit.md",
+    "docs/agents/agents.md",
+    "docs/guides/settings.md",
+    "docs/dev/sequence.md"
   ]
 }

@@ -404,8 +404,8 @@ def _infer_type_from_dir(dir_name: str) -> str:
 
 def _load_command_aliases():
     aliases = {}
-    # Core aliases in Modules/console.py
-    console_path = os.path.join(ROOT_DIR, "Modules", "console.py")
+    # Core aliases in modules/console.py
+    console_path = os.path.join(ROOT_DIR, "modules", "console.py")
     try:
         tree = ast.parse(open(console_path, "r", encoding="utf-8").read(), filename=console_path)
         for node in tree.body:

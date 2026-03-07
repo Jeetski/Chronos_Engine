@@ -1,5 +1,5 @@
 import sys
-from Modules.item_manager import dispatch_command
+from modules.item_manager import dispatch_command
 
 
 def run(args, properties):

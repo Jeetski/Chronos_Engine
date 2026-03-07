@@ -1,7 +1,7 @@
 
 import os
 import yaml
-from Modules.console import ROOT_DIR
+from modules.console import ROOT_DIR
 
 ALIASES_PATH = os.path.join(ROOT_DIR, 'User', 'Settings', 'aliases.yml')
 

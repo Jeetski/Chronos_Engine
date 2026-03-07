@@ -2,9 +2,9 @@ import os
 import yaml
 from datetime import datetime
 
-from Modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
+from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
 from Commands.today import load_completion_payload
-from Modules import quality_utils
+from modules import quality_utils
 try:
     from Utilities import points as Points
 except Exception:

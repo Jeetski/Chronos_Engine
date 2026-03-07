@@ -1,5 +1,5 @@
 import sys
-from Modules.item_manager import list_all_items
+from modules.item_manager import list_all_items
 
 # --- Command Definition ---
 def run(args, properties):

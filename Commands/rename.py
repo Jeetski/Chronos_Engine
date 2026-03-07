@@ -1,6 +1,6 @@
 import sys
 import os
-from Modules.item_manager import get_item_path, read_item_data, write_item_data, delete_item
+from modules.item_manager import get_item_path, read_item_data, write_item_data, delete_item
 
 # --- Command Definition ---
 def run(args, properties):

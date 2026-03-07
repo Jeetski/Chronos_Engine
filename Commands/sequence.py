@@ -2,19 +2,19 @@ import os
 from datetime import datetime
 from typing import List, Optional
 
-from Modules.sequence import (
+from modules.sequence import (
     ensure_data_home,
     load_registry,
     update_database_entry,
     describe_registry,
     DEFAULT_DATABASES,
 )
-from Modules.sequence.matrix_builder import build_matrix_cache
-from Modules.sequence.core_builder import build_core_db
-from Modules.sequence.behavior_builder import build_behavior_db
-from Modules.sequence.journal_builder import build_journal_db
-from Modules.sequence.events_builder import build_events_db
-from Modules.sequence.trends_builder import build_trends_report
+from modules.sequence.matrix_builder import build_matrix_cache
+from modules.sequence.core_builder import build_core_db
+from modules.sequence.behavior_builder import build_behavior_db
+from modules.sequence.journal_builder import build_journal_db
+from modules.sequence.events_builder import build_events_db
+from modules.sequence.trends_builder import build_trends_report
 
 SYNC_HANDLERS = {
     "matrix": build_matrix_cache,

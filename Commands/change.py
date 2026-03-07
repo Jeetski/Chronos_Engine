@@ -1,6 +1,6 @@
 import sys
 from datetime import datetime
-from Modules.scheduler import change_item_time_in_file, schedule_path_for_date
+from modules.scheduler import change_item_time_in_file, schedule_path_for_date
 
 def run(args, properties):
     """

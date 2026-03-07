@@ -2,7 +2,7 @@ import unittest
 import os
 import shutil
 import tempfile
-from Modules import item_manager as ItemManager
+from modules import item_manager as ItemManager
 
 class TestItemManager(unittest.TestCase):
     def setUp(self):

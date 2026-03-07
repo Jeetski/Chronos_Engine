@@ -22,7 +22,7 @@ import yaml
 import math
 from datetime import datetime, timedelta
 import re
-from Modules.scheduler import (
+from modules.scheduler import (
     get_day_template_path, read_template, format_time, is_ancestor,
     get_flattened_schedule, remove_item_from_schedule, update_parent_times,
     ROOT_DIR, USER_DIR, MODULES_DIR,
@@ -34,7 +34,7 @@ from Modules.scheduler import (
 )
 
 from Utilities.duration_parser import parse_duration_string
-from Modules.item_manager import read_item_data
+from modules.item_manager import read_item_data
 
 # =============================================================================
 # CONFIGURATION LOADING
@@ -1531,7 +1531,7 @@ def run(args, properties):
         tail_args = args[kairos_index + 1:] if (args and kairos_index >= 0) else []
         kairos_context, parse_warnings = _parse_kairos_context(tail_args)
         try:
-            from Modules.scheduler import kairosScheduler, WeeklyGenerator, save_weekly_skeleton
+            from modules.scheduler import kairosScheduler, WeeklyGenerator, save_weekly_skeleton
             is_week_mode = bool(kairos_context.pop("_mode_week", False))
             weekly_days = int(kairos_context.pop("_days", 7) or 7)
             if is_week_mode:
@@ -1694,7 +1694,7 @@ def run(args, properties):
             item_type = properties.get("type", "task")
             force = bool(_to_bool(properties.get("force"), False))
             override_anchor = bool(_to_bool(properties.get("override_anchor"), False))
-            from Modules.scheduler import inject_item_in_file
+            from modules.scheduler import inject_item_in_file
             inject_item_in_file(
                 schedule_path,
                 item_name,
@@ -2034,7 +2034,7 @@ def run(args, properties):
             id_to_slug = {}
             try:
                 import sqlite3
-                from Modules.item_manager import get_user_dir
+                from modules.item_manager import get_user_dir
 
                 db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
                 ids = sorted({
@@ -2291,7 +2291,7 @@ def run(args, properties):
             relation_edges = []
             try:
                 import sqlite3
-                from Modules.item_manager import get_user_dir
+                from modules.item_manager import get_user_dir
 
                 db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
                 if os.path.exists(db_path):
@@ -2350,7 +2350,7 @@ def run(args, properties):
                 try:
                     import sqlite3
                     import json
-                    from Modules.item_manager import get_user_dir
+                    from modules.item_manager import get_user_dir
 
                     db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
                     if os.path.exists(db_path):
@@ -2611,7 +2611,7 @@ def run(args, properties):
         if reschedule_requested or not os.path.exists(schedule_path):
             # Fresh generation path: ask Kairos to build schedule now.
             try:
-                from Modules.scheduler import kairosScheduler
+                from modules.scheduler import kairosScheduler
                 kairos_context, parse_warnings = _parse_active_kairos_context(args)
                 _apply_kairos_property_overrides(kairos_context, properties, parse_warnings)
                 manual_modifications = load_manual_modifications(manual_mod_path)
@@ -2777,7 +2777,7 @@ def run(args, properties):
         time_str = args[3]
         item_type = properties.get("type", "task")
          
-        from Modules.scheduler import inject_item_in_file
+        from modules.scheduler import inject_item_in_file
         inject_item_in_file(schedule_path, item_name, time_str, item_type)
         reschedule_requested = True
 
@@ -2843,13 +2843,13 @@ def run(args, properties):
 
         # Evaluate commitments and trigger actions before final resolution
         try:
-            from Modules.commitment import main as CommitmentModule  # type: ignore
+            from modules.commitment import main as CommitmentModule  # type: ignore
             CommitmentModule.evaluate_and_trigger()
         except Exception as e:
             print(f"Warning: Could not evaluate commitments: {e}")
         # Evaluate milestones as well so progress reflects new state today
         try:
-            from Modules.milestone import main as MilestoneModule  # type: ignore
+            from modules.milestone import main as MilestoneModule  # type: ignore
             MilestoneModule.evaluate_and_update_milestones()
         except Exception:
             pass

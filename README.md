@@ -22,16 +22,16 @@ Quickstart
 - **Agent-Ready**: Explicit "Pilot Directives" and "Mental Models" for AI agents to interact with the system.
 
 ## Documentation
-- [**Quickstart**](Docs/readme.md): How to get set up.
-- [**Architecture**](Docs/dev/architecture.md): Deep dive into the Internal Loop, Scheduler, and Listener.
-- [**CLI Reference**](Docs/reference/cli_commands.md): Complete list of all commands.
-- [**Scripting Guide**](Docs/dev/chs_scripting.md): Learn the CHS syntax.
-- [**Agent Guide**](Docs/agents/agents.md): How Nia (the AI) sees the world.
-- Settings Guide: `Docs/guides/settings.md`
-- Scripting: `Docs/dev/chs_scripting.md`, `Docs/guides/conditions_cookbook.md`
-- Cockpit Panels: `Docs/guides/cockpit.md`
-- Sequence Mirrors: `Docs/dev/sequence.md`
-- Agent Guides: `Docs/agents/agents.md`, `Docs/agents/skills/index.md`
+- [**Quickstart**](docs/readme.md): How to get set up.
+- [**Architecture**](docs/dev/architecture.md): Deep dive into the Internal Loop, Scheduler, and Listener.
+- [**CLI Reference**](docs/reference/cli_commands.md): Complete list of all commands.
+- [**Scripting Guide**](docs/dev/chs_scripting.md): Learn the CHS syntax.
+- [**Agent Guide**](docs/agents/agents.md): How Nia (the AI) sees the world.
+- Settings Guide: `docs/guides/settings.md`
+- Scripting: `docs/dev/chs_scripting.md`, `docs/guides/conditions_cookbook.md`
+- Cockpit Panels: `docs/guides/cockpit.md`
+- Sequence Mirrors: `docs/dev/sequence.md`
+- Agent Guides: `docs/agents/agents.md`, `docs/agents/skills/index.md`
 
 License
-- See `Docs/legal/license.md`. Commercial terms in `Docs/legal/commercial_license.md`.
+- See `docs/legal/license.md`. Commercial terms in `docs/legal/commercial_license.md`.

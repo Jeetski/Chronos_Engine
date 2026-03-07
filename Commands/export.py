@@ -8,7 +8,7 @@ import time
 
 # This is a bit of a hack, but it's the cleanest way to access the run_command function
 # without creating circular dependencies.
-from Modules.console import run_command, parse_input
+from modules.console import run_command, parse_input
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "User")

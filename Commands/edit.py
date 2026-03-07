@@ -1,5 +1,5 @@
 import sys
-from Modules.item_manager import get_editor_command, open_item_in_editor
+from modules.item_manager import get_editor_command, open_item_in_editor
 
 # --- Command Definition ---
 def run(args, properties):

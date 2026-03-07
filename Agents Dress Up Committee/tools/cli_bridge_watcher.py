@@ -114,7 +114,7 @@ def write_json_atomic(p: Path, data) -> None:
 
 def chronos_docs_targets() -> dict:
     """Return label -> path for key Chronos docs to monitor."""
-    base = BASE_DIR.parent / "Docs"
+    base = BASE_DIR.parent / "docs"
     targets = [
         "INDEX.md",
         "README.md",
@@ -131,7 +131,7 @@ def chronos_docs_targets() -> dict:
     ]
     out = {}
     for rel in targets:
-        out[f"Docs/{rel}"] = base / rel
+        out[f"docs/{rel}"] = base / rel
     return out
 
 
@@ -521,7 +521,7 @@ def build_prompt(
         chronos_proto = read_text(fdocs / "chronos.md").strip()
         if chronos_proto:
             parts.append("[Chronos Protocols]\n" + chronos_proto)
-        chronos_index = read_text(BASE_DIR.parent / "Docs" / "INDEX.md").strip()
+        chronos_index = read_text(BASE_DIR.parent / "docs" / "INDEX.md").strip()
         if chronos_index:
             parts.append("[Chronos Docs Index]\n" + chronos_index)
 

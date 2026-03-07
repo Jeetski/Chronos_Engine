@@ -1,6 +1,6 @@
-from Modules.filter_manager import FilterManager
-from Modules.item_manager import get_filtered_items
-from Modules.console import run_command
+from modules.filter_manager import FilterManager
+from modules.item_manager import get_filtered_items
+from modules.console import run_command
 
 
 ALLOWED = {

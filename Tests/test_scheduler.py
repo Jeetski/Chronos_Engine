@@ -11,7 +11,7 @@ class TestSchedulerSmoke(unittest.TestCase):
     def test_import_scheduler(self):
         """Simple smoke test to ensure Scheduler imports without crashing."""
         try:
-            from Modules.scheduler import v1 as Scheduler
+            from modules.scheduler import v1 as Scheduler
             self.assertTrue(True)
         except Exception as e:
             self.fail(f"Failed to import Scheduler: {e}")

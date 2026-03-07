@@ -4,8 +4,8 @@ import shutil
 import tempfile
 from datetime import datetime
 
-from Modules import item_manager as ItemManager
-from Modules.commitment import main as CommitmentModule
+from modules import item_manager as ItemManager
+from modules.commitment import main as CommitmentModule
 
 
 class TestCommitments(unittest.TestCase):

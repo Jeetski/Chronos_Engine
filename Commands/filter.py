@@ -12,7 +12,7 @@ Example: filter type:all
 
 # Commands/filter.py
 
-from Modules.filter_manager import FilterManager
+from modules.filter_manager import FilterManager
 
 def run(args, properties):
     """

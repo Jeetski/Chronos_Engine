@@ -1,6 +1,6 @@
-from Modules.console import run_command, parse_input
-from Modules import variables as _V
-import Modules.conditions as Conditions
+from modules.console import run_command, parse_input
+from modules import variables as _V
+import modules.conditions as Conditions
 
 
 def _split_max(tokens):

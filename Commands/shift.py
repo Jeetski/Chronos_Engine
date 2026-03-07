@@ -3,7 +3,7 @@ import os
 import re
 import yaml
 
-from Modules.scheduler import schedule_path_for_date, change_item_time_in_file
+from modules.scheduler import schedule_path_for_date, change_item_time_in_file
 
 
 def _parse_minutes(raw):

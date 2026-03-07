@@ -16,5 +16,5 @@ elif command -v python >/dev/null 2>&1; then
   PYTHON_EXE="python"
 fi
 
-"$PYTHON_EXE" Modules/console.py dashboard "$@"
+"$PYTHON_EXE" modules/console.py dashboard "$@"
 

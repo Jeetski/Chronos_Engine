@@ -10,8 +10,8 @@ from contextlib import contextmanager, redirect_stdout
 from unittest.mock import patch
 
 from Commands import today as Today
-from Modules.scheduler.kairos import KairosScheduler
-from Modules.scheduler.weekly_generator import WeeklyGenerator
+from modules.scheduler.kairos import KairosScheduler
+from modules.scheduler.weekly_generator import WeeklyGenerator
 
 
 @contextmanager
@@ -38,8 +38,8 @@ class TestKairosEngine(unittest.TestCase):
     def test_pre_schedule_hooks_enabled_runs_commitment_and_milestone(self):
         scheduler = KairosScheduler(user_context={"evaluate_hooks": True})
         called = {"commitment": 0, "milestone": 0}
-        commitment_main = types.ModuleType("Modules.commitment.main")
-        milestone_main = types.ModuleType("Modules.milestone.main")
+        commitment_main = types.ModuleType("modules.commitment.main")
+        milestone_main = types.ModuleType("modules.milestone.main")
 
         def _commitment():
             called["commitment"] += 1
@@ -49,18 +49,18 @@ class TestKairosEngine(unittest.TestCase):
 
         commitment_main.evaluate_and_trigger = _commitment
         milestone_main.evaluate_and_update_milestones = _milestone
-        commitment_pkg = types.ModuleType("Modules.commitment")
-        milestone_pkg = types.ModuleType("Modules.milestone")
+        commitment_pkg = types.ModuleType("modules.commitment")
+        milestone_pkg = types.ModuleType("modules.milestone")
         commitment_pkg.main = commitment_main
         milestone_pkg.main = milestone_main
 
         with patch.dict(
             sys.modules,
             {
-                "Modules.commitment": commitment_pkg,
-                "Modules.commitment.main": commitment_main,
-                "Modules.milestone": milestone_pkg,
-                "Modules.milestone.main": milestone_main,
+                "modules.commitment": commitment_pkg,
+                "modules.commitment.main": commitment_main,
+                "modules.milestone": milestone_pkg,
+                "modules.milestone.main": milestone_main,
             },
         ):
             scheduler._run_pre_schedule_hooks()
@@ -536,7 +536,7 @@ class TestKairosCommandParsing(unittest.TestCase):
                 return {"date": "2026-02-21", "blocks": [], "stats": {}}
 
         with _today_user_dir() as td:
-            with patch("Modules.scheduler.kairosScheduler", FakeKairos):
+            with patch("modules.scheduler.kairosScheduler", FakeKairos):
                 with redirect_stdout(io.StringIO()):
                     Today.run(
                         [
@@ -589,7 +589,7 @@ class TestKairosCommandParsing(unittest.TestCase):
                 return {"date": "2026-02-21", "blocks": [], "stats": {}}
 
         with _today_user_dir() as td:
-            with patch("Modules.scheduler.kairosScheduler", FakeKairos):
+            with patch("modules.scheduler.kairosScheduler", FakeKairos):
                 with redirect_stdout(io.StringIO()):
                     Today.run(
                         ["reschedule"],
@@ -637,7 +637,7 @@ class TestKairosCommandParsing(unittest.TestCase):
                 return {"date": "2026-02-21", "blocks": [], "stats": {}}
 
         with _today_user_dir() as td:
-            with patch("Modules.scheduler.kairosScheduler", FakeKairos):
+            with patch("modules.scheduler.kairosScheduler", FakeKairos):
                 with redirect_stdout(io.StringIO()):
                     Today.run(
                         ["reschedule"],
@@ -677,8 +677,8 @@ class TestWeeklyGenerator(unittest.TestCase):
             def generate_schedule(self, _):
                 return dict(fake_schedule)
 
-        with patch("Modules.scheduler.weekly_generator.KairosScheduler", FakeKairos), patch(
-            "Modules.scheduler.weekly_generator.list_all_items",
+        with patch("modules.scheduler.weekly_generator.KairosScheduler", FakeKairos), patch(
+            "modules.scheduler.weekly_generator.list_all_items",
             return_value=[
                 {
                     "name": "Fitness 3x Weekly",
@@ -687,7 +687,7 @@ class TestWeeklyGenerator(unittest.TestCase):
                 }
             ],
         ), patch(
-            "Modules.scheduler.weekly_generator.get_commitment_status",
+            "modules.scheduler.weekly_generator.get_commitment_status",
             return_value={
                 "kind": "frequency",
                 "times": 3,

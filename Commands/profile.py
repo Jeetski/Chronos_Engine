@@ -35,7 +35,7 @@ def _ensure_welcome_block(p: dict) -> dict:
 
 def _expand(val: str) -> str:
     try:
-        from Modules import variables as _V
+        from modules import variables as _V
         return _V.expand_token(str(val))
     except Exception:
         return str(val)
@@ -84,7 +84,7 @@ def run(args, properties):
             prof['nickname'] = str(properties.get('nickname'))
             changed = True
             try:
-                from Modules import variables as _V
+                from modules import variables as _V
                 _V.set_var('nickname', prof['nickname'])
             except Exception:
                 pass

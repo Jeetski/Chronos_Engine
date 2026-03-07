@@ -1,7 +1,7 @@
 
 import os
 import yaml
-from Modules.item_manager import USER_DIR, ROOT_DIR
+from modules.item_manager import USER_DIR, ROOT_DIR
 
 def run(args, properties):
     """
@@ -41,7 +41,7 @@ def run(args, properties):
     search_root = USER_DIR
     if target_type:
         # Try to resolve folder for type
-        from Modules.item_manager import get_item_dir
+        from modules.item_manager import get_item_dir
         # This handles pluralization logic
         search_root = get_item_dir(target_type)
         if not os.path.exists(search_root):

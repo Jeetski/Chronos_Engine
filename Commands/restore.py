@@ -3,7 +3,7 @@ import os
 import zipfile
 import glob
 import shutil
-from Modules.item_manager import USER_DIR, ROOT_DIR
+from modules.item_manager import USER_DIR, ROOT_DIR
 from Commands import backup as Backup
 
 BACKUPS_DIR = Backup.BACKUPS_DIR

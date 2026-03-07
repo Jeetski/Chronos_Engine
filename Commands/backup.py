@@ -3,7 +3,7 @@ import os
 import zipfile
 import time
 import glob
-from Modules.item_manager import USER_DIR, ROOT_DIR
+from modules.item_manager import USER_DIR, ROOT_DIR
 
 BACKUPS_DIR = os.path.join(USER_DIR, "Backups")
 

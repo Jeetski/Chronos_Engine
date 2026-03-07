@@ -12,6 +12,6 @@ set "PYTHON_EXE=python"
 if exist ".venv\Scripts\python.exe" set "PYTHON_EXE=.venv\Scripts\python.exe"
 
 REM Run the dashboard command through the console
-%PYTHON_EXE% Modules/console.py dashboard
+%PYTHON_EXE% modules/console.py dashboard
 
 exit /b

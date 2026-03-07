@@ -1,4 +1,4 @@
-from Modules.timer import main as Timer
+from modules.timer import main as Timer
 
 
 def run(args, properties):

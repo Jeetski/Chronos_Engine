@@ -5,7 +5,7 @@ import subprocess
 import time
 import sys
 from datetime import datetime
-from Modules.scheduler import status_current_path
+from modules.scheduler import status_current_path
 
 try:
     import yaml

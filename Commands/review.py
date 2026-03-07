@@ -1,8 +1,8 @@
 ﻿import os
 import yaml
 from datetime import datetime, timedelta, date
-from Modules.item_manager import get_user_dir, get_item_dir, list_all_items
-from Modules.scheduler import schedule_path_for_date
+from modules.item_manager import get_user_dir, get_item_dir, list_all_items
+from modules.scheduler import schedule_path_for_date
 
 
 def run(args, properties):
@@ -66,7 +66,7 @@ def run(args, properties):
 
 def _emit_review_achievement_events(mode: str):
     try:
-        from Modules.achievement import evaluator as AchievementEvaluator  # type: ignore
+        from modules.achievement import evaluator as AchievementEvaluator  # type: ignore
         AchievementEvaluator.emit_event('review_created', {"mode": mode})
         AchievementEvaluator.evaluate_sync()
     except Exception:

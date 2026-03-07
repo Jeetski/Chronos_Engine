@@ -48,10 +48,10 @@ Keep avatar tags to the familiar's allowed set in `meta.json.emotions`.
 
 Chronos mode recommendation:
 - Keep `docs/chronos.md` lightweight (execution contract + routing).
-- Route operational behavior to `Docs/agents/skills/index.md` and relevant `SKILL.md` files instead of duplicating large command manuals per familiar.
+- Route operational behavior to `docs/agents/skills/index.md` and relevant `SKILL.md` files instead of duplicating large command manuals per familiar.
 - For "what is Chronos / how do I start" routing, point explicitly to:
-  - `Docs/agents/skills/chronos_orientation/skill.md`
-  - `Docs/agents/skills/agent_basics/skill.md`
+  - `docs/agents/skills/chronos_orientation/skill.md`
+  - `docs/agents/skills/agent_basics/skill.md`
 
 Markdown output contract
 

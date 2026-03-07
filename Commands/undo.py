@@ -5,8 +5,8 @@ import time
 from datetime import datetime
 import glob
 import yaml
-from Modules.item_manager import USER_DIR, get_item_dir
-from Modules.scheduler import schedule_path_for_date
+from modules.item_manager import USER_DIR, get_item_dir
+from modules.scheduler import schedule_path_for_date
 
 ARCHIVE_DIR = os.path.join(USER_DIR, "Archive")
 

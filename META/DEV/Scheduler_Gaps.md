@@ -31,7 +31,7 @@ This document supersedes the 2026-01-25 snapshot and reflects current Kairos beh
 
 1. Import naming collision cleanup
 - Status: Open.
-- Scope: Clarify/finalize canonical usage between top-level `Scheduler.py` legacy naming and `Modules/Scheduler/*` package imports.
+- Scope: Clarify/finalize canonical usage between top-level `Scheduler.py` legacy naming and `modules/Scheduler/*` package imports.
 
 2. Manual verification artifacts for infra tasks
 - Status: Open.

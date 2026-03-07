@@ -1,8 +1,8 @@
 import os
 from datetime import datetime, timedelta
 
-from Modules.scheduler import display_schedule, schedule_path_for_date
-from Modules.planner import build_preview_for_date
+from modules.scheduler import display_schedule, schedule_path_for_date
+from modules.planner import build_preview_for_date
 
 
 def run(args, properties):

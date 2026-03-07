@@ -9,7 +9,7 @@ if ROOT_DIR not in os.sys.path:
     os.sys.path.insert(0, ROOT_DIR)
 
 import Commands.start as cmd_start
-from Modules.timer import main as timer_main
+from modules.timer import main as timer_main
 
 
 class TestTimerBreakBufferBehavior(unittest.TestCase):

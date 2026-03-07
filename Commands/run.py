@@ -1,6 +1,6 @@
 
 import os
-from Modules.console import execute_script, ROOT_DIR
+from modules.console import execute_script, ROOT_DIR
 
 def run(args, properties):
     """

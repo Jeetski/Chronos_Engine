@@ -2,10 +2,10 @@ import os
 import math
 from datetime import datetime, timedelta
 
-from Modules.console import invoke_command
-from Modules.scheduler import USER_DIR, get_flattened_schedule, schedule_path_for_date
+from modules.console import invoke_command
+from modules.scheduler import USER_DIR, get_flattened_schedule, schedule_path_for_date
 from Utilities.duration_parser import parse_duration_string
-from Modules.timer import main as Timer
+from modules.timer import main as Timer
 
 
 def run(args, properties):

@@ -1,7 +1,7 @@
 # In Commands/track.py
 
 import sys
-from Modules.item_manager import dispatch_command
+from modules.item_manager import dispatch_command
 try:
     from Utilities.tracking import is_trackable, show_tracking
 except Exception:

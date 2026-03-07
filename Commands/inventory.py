@@ -1,4 +1,4 @@
-from Modules.item_manager import (
+from modules.item_manager import (
     list_all_items,
     read_item_data,
     write_item_data,
