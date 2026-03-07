@@ -131,8 +131,23 @@ Previews a future schedule beyond tomorrow.
 **Usage:** `next day|<weekday>|<ordinal> [of] <month>`
 
 ### `track`
-Logs time spent on an activity.
-**Usage:** `track <task_name> <duration>`
+Displays tracking data for a specific item.
+**Usage:** `track <item_type> <item_name>`
+**Examples:**
+- `track task "Deep Work"`
+- `track routine "Morning Routine"`
+
+### `quickwins`
+Lists small, high-leverage candidates from missed blocks and due/overdue work.
+**Usage:** `quickwins [minutes:N] [days:N] [limit:N] [missed:true|false] [overdue:true|false] [due:true|false] [date:YYYY-MM-DD] [format:json]`
+**Examples:**
+- `quickwins`
+- `quickwins minutes:20 limit:8`
+- `quickwins date:2026-03-06 missed:true overdue:true due:false`
+- `quickwins format:json limit:5`
+**Notes:**
+- Reads defaults from `User/Settings/quick_wins_settings.yml`.
+- Good companion with `today inject "<name>" at HH:MM`.
 
 ### `timer`
 Manages the countdown timer.
@@ -141,6 +156,9 @@ Manages the countdown timer.
 - `timer pause | resume | stop | status`
 - `timer confirm yes|no`
 - `timer profiles list | view <name> | save <name> [k:v ...] | delete <name>`
+**Notes:**
+- In schedule mode (`start day` / `start today`), Chronos treats buffer and break blocks as timer breaks, not completable work items.
+- These blocks do not trigger completion prompts, completion logs, or completion-based point awards.
 
 ### `start`
 Rebuilds today's schedule and starts a timer sequence of the remaining blocks.
@@ -202,6 +220,38 @@ Shifts an item's start time by a positive or negative number of minutes.
 ### `trim`
 Reduces the duration of an item in the current day's schedule.
 **Usage:** `trim <item_name> <amount_in_minutes>`
+
+### `stretch`
+Increases the duration of an item in the current day's schedule.
+**Usage:** `stretch <item_name> <amount_in_minutes>`
+**Examples:**
+- `stretch "Deep Work" 15`
+- `stretch "Admin Block" 10`
+
+### `split`
+Splits a schedule block into N equal parts.
+**Usage:** `split <item_name> [count:<n>]`
+**Examples:**
+- `split "Deep Work"`
+- `split "Deep Work" count:3`
+
+### `merge`
+Merges two schedule blocks into one.
+**Usage:** `merge <item_name> with <other_item_name>`
+**Examples:**
+- `merge "Email Triage" with "Slack Cleanup"`
+- `merge "Deep Work (Part 1)" with "Deep Work (Part 2)"`
+
+### `anchor`
+Anchors an item so reschedules do not move or trim it.
+**Usage:** `anchor <item_name> [scope:today|item]`
+**Examples:**
+- `anchor "Deep Work"`
+- `anchor "Deep Work" scope:today`
+- `anchor "Morning Routine" scope:item type:routine`
+**Notes:**
+- `scope:today` anchors in today's generated schedule.
+- `scope:item` writes `reschedule: never` to the source item.
 
 ### `cut`
 Removes an item from the current day's schedule.
@@ -314,6 +364,11 @@ Manages the data mirroring and trends system.
 - `sequence sync`: Run the builders to update mirrors.
 - `sequence trends`: Generate the trends report.
 
+### `template`
+Template helper commands (save/list/load oriented workflows).
+**Usage:** `template save day [name:<name>] [weekday:<Weekday>] [overwrite:true|false]`
+**Notes:** See `help template` for the full subcommand surface.
+
 ### `tree`
 Visualizes item hierarchy or directory structure.
 **Usage:**
@@ -362,7 +417,7 @@ Removes temporary files.
 
 ### `clear`
 Performs system maintenance by clearing logs, databases, registries, and other system data.
-**Usage:** `clear <target> [--force]`
+**Usage:** `clear <target> [force]` or `clear <target> force:true`
 
 **Targets:**
 - `logs` - Delete all log files from `User/Logs`
@@ -385,7 +440,7 @@ clear archives                # Delete all archives
 ```
 
 **Safety:**
-- Without `--force` flag, prompts for confirmation
+- Without `force`, prompts for confirmation
 - `clear all` requires typing "DELETE EVERYTHING" for safety
 - Individual database deletion allows surgical fixes without full cache reset
 - Registry clearing forces reload from YAML sources on next access
@@ -420,9 +475,44 @@ Clears the terminal screen.
 Manages inventory items.
 **Usage:** `inventory list`, `inventory add <name>`, `inventory remove <name>`
 
+### `listener`
+Controls the background listener service.
+**Usage:** `listener start|stop|status`
+
 ### `settings`
 Quick access to open settings files.
 **Usage:** `settings <name>` (e.g., `settings theme`)
+
+### `register`
+Builds command/item/settings/property registries used by autosuggest/tooling.
+**Usage:**
+- `register commands`
+- `register items`
+- `register settings`
+- `register properties`
+- `register all`
+- `register full`
+**Examples:**
+- `register all`
+- `register properties`
+- `register full`
+**Notes:**
+- `register settings` is fast.
+- `register properties` performs a deeper scan and can take longer.
+
+### `sound`
+Configures CLI sound effects and global sound enable/disable.
+**Usage:**
+- `sound`
+- `sound <startup|done|error|exit> [on|off]`
+- `sound <on|off>`
+- `sound all <on|off>`
+**Examples:**
+- `sound`
+- `sound off`
+- `sound startup on`
+- `sound done off`
+- `sound all on`
 
 ### `theme`
 Lists, shows, or sets console themes and colors.

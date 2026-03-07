@@ -151,7 +151,7 @@ def _block_to_plan(block, now_dt=None):
     return {
         "name": name,
         "minutes": remaining_minutes,
-        "is_buffer": bool(block.get("is_buffer")),
+        "is_buffer": _is_break_or_buffer_block(block),
         "schedule_type": block.get("type"),
         "start": start_label,
         "end": end_label,
@@ -160,8 +160,22 @@ def _block_to_plan(block, now_dt=None):
     }
 
 
+def _is_break_or_buffer_block(block):
+    if not isinstance(block, dict):
+        return False
+    if bool(block.get("is_buffer")) or bool(block.get("is_break")):
+        return True
+    subtype = str(block.get("subtype") or "").strip().lower()
+    if subtype in {"buffer", "break"}:
+        return True
+    schedule_type = str(block.get("type") or block.get("schedule_type") or "").strip().lower()
+    if schedule_type in {"buffer", "break"}:
+        return True
+    return False
+
+
 def _should_include_block(block):
-    if block.get("is_buffer"):
+    if _is_break_or_buffer_block(block):
         return True
     children = block.get("children") or []
     if not children:
@@ -169,7 +183,7 @@ def _should_include_block(block):
     for child in children:
         if not isinstance(child, dict):
             continue
-        if child.get("is_buffer"):
+        if _is_break_or_buffer_block(child):
             continue
         if child.get("is_parallel_item"):
             continue

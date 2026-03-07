@@ -46,6 +46,13 @@ User message follows after the system prompt. Responses should include an avatar
 
 Keep avatar tags to the familiar's allowed set in `meta.json.emotions`.
 
+Chronos mode recommendation:
+- Keep `docs/chronos.md` lightweight (execution contract + routing).
+- Route operational behavior to `Docs/Agents/Skills/INDEX.md` and relevant `SKILL.md` files instead of duplicating large command manuals per familiar.
+- For "what is Chronos / how do I start" routing, point explicitly to:
+  - `Docs/Agents/Skills/Chronos-Orientation/SKILL.md`
+  - `Docs/Agents/Skills/Agent-Basics/SKILL.md`
+
 Markdown output contract
 
 - Replies SHOULD be formatted in Markdown (headings, bullet lists, code fences, emphasis) so UIs can render rich text.

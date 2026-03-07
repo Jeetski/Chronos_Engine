@@ -1877,7 +1877,9 @@ def run(args, properties):
             if not isinstance(props, dict) or not props:
                 return
             p = dict(props)
-            # Normalize key aliases.
+            # Normalize dashboard/property aliases to a single key-space so
+            # HTTP payload variants (`repair_trim` vs `repair-trim`) map
+            # predictably into Kairos runtime context.
             norm = {str(k).strip().lower().replace("_", "-"): v for k, v in p.items()}
 
             def _read(*keys):
@@ -2627,6 +2629,8 @@ def run(args, properties):
                         mode = str(mod.get("mode") or ("hard" if mod.get("start_time") else "soft")).strip().lower()
                         if mode not in ("hard", "soft"):
                             mode = "hard" if mod.get("start_time") else "soft"
+                        # Convert legacy manual-modification records into the
+                        # normalized injection contract Kairos expects.
                         out.append(
                             {
                                 "name": name,
@@ -2644,6 +2648,8 @@ def run(args, properties):
                 if manual_injections:
                     kairos_context["manual_injections"] = manual_injections
                 if reschedule_requested:
+                    # `today reschedule` should prioritize remaining-day repair
+                    # instead of rebuilding from midnight.
                     kairos_context["start_from_now"] = True
                 scheduler = KairosScheduler(user_context=kairos_context)
                 result = scheduler.generate_schedule(today_date) or {}

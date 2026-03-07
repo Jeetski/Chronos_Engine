@@ -1,109 +1,171 @@
-# Chronos Scheduling Algorithm (Deep Dive)
+# Chronos Scheduling Algorithm Deep Dive (Kairos)
 
-This document is a detailed, code-aligned walkthrough of the `today` command pipeline (`Commands/Today.py`).
+Last verified: 2026-03-07  
+Code alignment target: `Modules/Scheduler/Kairos.py` and `Commands/Today.py`
 
-## Core Philosophy
-- **Constraint-Based**: Fits items into a 24-hour container.
-- **Importance-Driven**: Higher-importance items survive conflicts; lower-importance items are shifted, trimmed, or cut.
-- **Dynamic**: Adapts to user status, variants, and live signals.
+## 1. Command Routing (`Commands/Today.py`)
 
-## 1. Smart Template Selection
-The engine selects a day template (`User/Days/*.yml`) based on:
-1.  **Eligibility**
-    - If `days: [...]` is present, the template is only eligible on those days.
-    - If `status_requirements` exists and `days` is missing, the template is eligible any day.
-    - If both are missing, the filename must match the weekday (e.g., `Monday.yml`).
-2.  **Scoring**
-    - Status alignment score is computed from status ranks.
-    - Bonuses: +5 for day-specific filenames, +10 for positive status match.
-3.  **Selection**
-    - Highest score wins; explicit `forced_template` can override.
+Kairos-relevant modes:
 
-## 2. Build the Initial Schedule
-The template is expanded into a full schedule tree:
-- **Inline items**: If an item file is missing, the template node becomes the item.
-- **Variants**: If `variants` exist, the first matching `status_requirements` variant replaces the item properties (including children).
-- **Start/end times**:
-  - `ideal_start_time` sets the initial start; otherwise the schedule flows forward.
-  - `ideal_end_time` can override computed end time and logs a conflict if exceeded.
-- **Parallel items**: `duration: parallel` marks items as parallel and zero-duration containers.
+1. `today kairos ...`
+- Shadow diagnostics and explicit option testing.
 
-Manual edits (trim/cut/change) stored in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` are applied here and persist across reruns (not auto-cleared).
+2. `today` / `today reschedule`
+- Active Kairos scheduling path.
+- Persists active schedule to `schedule_YYYY-MM-DD.yml`.
 
-## 3. Importance Calculation (Subtractive Model)
-Every item starts at 100. Each factor subtracts a weighted penalty.
+`today legacy ...` exists for compatibility but is outside this deep dive.
 
-Key inputs:
-- `Scheduling_Priorities.yml` (factor ranks)
-- `Priority_Settings.yml` (priority rank values)
-- `Category_Settings.yml` (category rank values)
-- `Status_Settings.yml` + `User/Profile/Current_Status.yml`
-- `map_of_happiness.yml`
+## 2. Runtime Initialization (`KairosScheduler._load_runtime`)
 
-Deadline vs due date:
-- `deadline` is scored with a higher weight than `due_date`.
-- If both exist, only the deadline is scored to avoid double counting.
+Kairos loads and normalizes:
+- Status model and current status values.
+- Happiness map and scheduling priority weights.
+- Buffer/timer/quick-wins settings.
+- Trend reliability map from behavior mirror.
+- Completion entries for target date.
+- Recent misses for missed-promotion logic.
 
-## 4. Rescheduling Missed Items (today reschedule only)
-Missed items are re-queued if:
-- They ended before now.
-- They are not completed or skipped.
-- They do not set `reschedule_policy: manual`.
+Important runtime options include:
+- `force_template`
+- `status_overrides`
+- `prioritize`
+- `status_match_threshold`
+- `custom_property`
+- `use_buffers`
+- `use_timer_breaks`
+- `use_timer_sprints`
+- `timer_profile`
+- `ignore_trends`
+- `start_from_now`
+- repair controls (`repair_trim`, `repair_cut`, thresholds)
 
-Re-queued items are moved after "now" and get a +20 importance boost.
-The reschedule threshold is controlled by `rescheduling.importance_threshold` (default 30).
+## 3. Template Selection and Window Extraction
 
-## 5. Triggered Injections
-Items with `auto_inject: true` and matching `status_requirements` are injected at the top of the schedule.
-Injected items respect variants and are chained in insertion order.
+`_resolve_windows` picks planning scaffold:
+- Forced template if provided.
+- Otherwise strict day template selection (eligibility + place + status, then eligibility + place).
 
-## 6. Capacity Check
-Total scheduled duration is checked against 24 hours (1,440 minutes).
-If over, a capacity conflict is logged and sent into the conflict loop.
+Then recursively collects:
+- `window: true` nodes as dynamic placement containers.
+- `timeblock` nodes and referenced timeblock templates.
 
-## 7. Conflict Resolution Loop
-The loop repeats until conflicts stop improving:
+## 4. Candidate Gather (`gather_candidates`)
 
-### 7a. Prioritized Shifting
-- Shifts the less important item to start after the more important one.
-- Anchors (`reschedule: false|never`) and non-flexible items do not shift.
+Source: `User/Data/chronos_core.db` table `items`.
 
-### 7b. Trimming
-- Trims the less important item down to a 5-minute minimum.
-- Anchors and non-trimmable timeblocks are skipped.
+Loaded rows include:
+- executable families (`task`, `habit`, `subroutine`, `microroutine`)
+- commitment rows for context telemetry (later excluded from execution)
 
-### 7c. Cutting
-- Cuts the least important item unless it is `essential` or an anchor.
-- Cutting only runs when `conflict_resolution.allow_cutting` is true.
+Each row keeps rich payload fields for downstream filter/score decisions.
 
-Conflicts are overlap-based; ideal-end-time conflicts are only recorded during initial build.
+## 5. Candidate Filter (`filter_candidates`)
 
-## 8. Work Windows (Flexible Scheduling)
-Work windows are template nodes with `window: true` in the main sequence.
-Each window:
-- Defines a time range (`start`/`end`) and filter rules.
-- Pulls in unscheduled items (no start_time) that match the filters.
-- Places items into the first available gap inside the window.
+Hard gates before scoring:
+- drop already completed/skipped rows for target day
+- drop observer-only/non-executable/container rows
+- reject place mismatches and invalid durations
+- enforce status requirement match threshold
 
-## 9. Buffer Insertion
-Buffers are inserted after resolution via `User/Settings/Buffer_Settings.yml`:
-- Template buffers for routines/subroutines/microroutines.
-- Dynamic buffers every N minutes when enabled.
+Output is the executable, normalized candidate set.
 
-## 10. Display Modes
-- `today` shows only in-progress and upcoming items (parents kept if any child is relevant).
-- `today reschedule` shows the reconstructed plan plus re-queued items.
+## 6. Scoring (`score_candidates`)
 
-## Work Windows vs. Time Blocks
+Kairos uses additive weighted scoring.
 
-| Feature | Time Block (Fixed Item) | Work Window (Dynamic Container) |
-| :--- | :--- | :--- |
-| **Definition** | A specific activity scheduled at a fixed time. | A reserved period for a *category* of work. |
-| **Example** | `Meeting at 10:00 (60m)` | `Deep Work 09:00-12:00` |
-| **Content** | Static (defined in template). | Dynamic (filled from the backlog based on filters). |
-| **Flexibility** | Rigid. Forces other items to move. | Flexible. Adapts to what tasks are available. |
-| **Use Case** | Appointments, routines, deadlines. | Focus time, "office hours", creative blocks. |
+Score sources:
+- priority
+- category
+- environment/place compatibility
+- due/deadline urgency
+- happiness mapping
+- status alignment
+- trend reliability
+- optional custom-property boost
+- optional missed-promotion boost
 
-Summary:
-- Use **time blocks** for fixed, non-negotiable activities.
-- Use **work windows** to reserve space for a *type* of work without specifying the exact item.
+Each candidate stores:
+- `kairos_score`
+- `_score_reasons` (human-readable reason trace)
+
+## 7. Timeline Construction (`construct_schedule`)
+
+Placement order is intentional:
+
+1. Anchors
+- Place fixed/anchored blocks first.
+- Unresolved anchor overlap invalidates run (`invalid_reason: anchor_conflicts`).
+
+2. Manual injections
+- Apply soft/hard injections from modification logs.
+
+3. Auto injections
+- Place `auto_inject: true` items in earliest feasible segments.
+
+4. Window placement
+- Fill each window with highest-ranked compatible candidates.
+
+5. Template timeblocks
+- Integrate category/free/buffer timeblock semantics.
+
+6. Gap fill
+- Fill leftover segments with quick-win items when enabled.
+
+7. Synthetic timeblocks
+- Insert dynamic/template buffers and timer-profile breaks when configured.
+
+## 8. Repair and Dependency Passes
+
+### 8.1 Overlap Repair (`_repair_timeline_shift`)
+- Shift-first strategy.
+- Optional trim fallback (`repair_trim`) with minimum duration bound.
+- Optional cut fallback (`repair_cut`) with threshold controls.
+- Emits structured repair events.
+
+### 8.2 Dependency Propagation (`_propagate_dependency_shifts`)
+- Enforces `depends_on` ordering after overlap repair.
+- Cascades adjustments through dependency chains.
+- Reports unresolved dependency violations.
+
+## 9. Completion Marker Rehydration
+
+After placement and repair, completion entries are reinserted as informational schedule markers so the day view reflects completed history without distorting planning math.
+
+## 10. Active Output Adaptation (`Commands/Today.py`)
+
+Kairos block output is adapted into the schedule schema consumed by existing dashboard and CLI flows:
+- normalized `start_time` / `end_time`
+- duration/status fields
+- hierarchy/window compatibility shape
+
+## 11. Decision Logs (`KairosScheduler.explain_decisions`)
+
+Each run emits:
+- Markdown explainability summary
+- YAML payload with `phase_notes` and final blocks
+
+Paths:
+- `User/Logs/kairos_decision_log_<timestamp>.md`
+- `User/Logs/kairos_decision_log_<timestamp>.yml`
+- `User/Logs/kairos_decision_log_latest.md`
+- `User/Logs/kairos_decision_log_latest.yml`
+
+## 12. Weekly Skeleton (`Modules/Scheduler/WeeklyGenerator.py`)
+
+`today kairos week [days:N]`:
+- runs Kairos generation per day in horizon
+- summarizes validity/template/window/anchor outcomes
+- does not overwrite active day schedule
+
+## 13. Practical Debug Flow
+
+1. Run shadow generation: `today kairos ...`
+2. Inspect latest decision logs.
+3. If invalid:
+- resolve anchor/time conflicts first
+4. If underfilled:
+- inspect window filters, status thresholds, candidate eligibility
+5. If over-cut/over-trim:
+- tune repair settings, priorities, and anchor/essential properties
+6. Re-run active path: `today reschedule`

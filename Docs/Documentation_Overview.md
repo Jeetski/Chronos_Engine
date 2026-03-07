@@ -4,7 +4,7 @@
 
 **Chronos Engine** is a comprehensive, YAML-first life management system with a modular architecture built for humans and AI agents. It combines a powerful CLI, a local dashboard, background services (Listener & Timer), and sophisticated scheduling algorithms to help users live intentionally through status-aware, template-driven daily planning.
 
-**Current Status**: Alpha v0.2 (Jan 2026)
+**Current Status**: Alpha v0.2 (active through 2026-03 changelog updates)
 
 ---
 
@@ -55,7 +55,7 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 **The Killer Feature**: Templates and items include `status_requirements` that match against your current state (energy, focus, mood, stress).
 
 **How it works**:
-- `User/Settings/Status_Settings.yml` defines status dimensions
+- `User/Settings/status_settings.yml` defines status dimensions (legacy `Status_Settings.yml` still supported)
 - Templates are scored based on alignment with current status
 - The best-fit template is automatically selected for today
 - Items matching your status get importance boosts
@@ -311,7 +311,7 @@ bulk set priority:high dry:false
 `new`, `create`, `append`, `set`, `get`, `remove`, `copy`, `rename`, `move`, `delete`, `edit`, `view`, `list`, `find`, `count`
 
 ### Scheduling
-`today`, `tomorrow`, `this`, `next`, `change`, `trim`, `cut`, `mark`, `did`, `complete`, `timer`, `start`, `status`
+`today`, `tomorrow`, `this`, `next`, `change`, `shift`, `trim`, `stretch`, `split`, `merge`, `anchor`, `cut`, `mark`, `did`, `complete`, `timer`, `start`, `status`, `quickwins`
 
 ### Items
 Universal verbs work for: tasks, notes, projects, routines, subroutines, microroutines, goals, milestones, habits, commitments, rewards, achievements, alarms, reminders, appointments
@@ -320,10 +320,10 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 `if`, `repeat`, `for`, `while`, `run`, `alias`, `macro`, `vars`, `unset`
 
 ### Advanced
-`filter`, `bulk`, `sequence`, `dashboard`, `commitments`, `redeem`, `points`, `review`, `tree`
+`filter`, `bulk`, `sequence`, `dashboard`, `template`, `commitments`, `redeem`, `points`, `review`, `tree`, `register`
 
 ### Utilities
-`backup`, `restore`, `export`, `import`, `diff`, `undo`, `clean`, `clear`, `search`, `docs`, `inventory`, `settings`, `theme`, `profile`, `aduc`
+`backup`, `restore`, `export`, `import`, `diff`, `undo`, `clean`, `clear`, `search`, `docs`, `inventory`, `settings`, `theme`, `profile`, `aduc`, `listener`, `sound`
 
 ---
 
@@ -390,18 +390,18 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 
 **Toolbox**: Universal item verbs, scheduling commands, rewards/achievements, goals/milestones
 
-### For Developers (agents.dev.md)
+### For Developers (Skills + Dev Docs)
 **Extension Scenarios**:
-1. New item type → Clone module template
-2. New widget → Add endpoints + mount function
-3. Automation → Use commitments + triggers
-4. CLI enhancement → Add command wrapper
+1. New item type -> use `Docs/Dev/Architecture.md` + `Modules/ItemManager.py` patterns
+2. New widget/view/panel/popup -> use `Docs/Dev/Extensibility.md`
+3. Scheduling behavior -> use Kairos docs in `Docs/Scheduling/*`
+4. Agent-facing workflows -> add/update `Docs/Agents/Skills/*`
 
 **Conventions**:
-- Keep modules idempotent
-- Use lowercase type names
+- Keep commands thin and move reusable logic into modules/utilities
+- Keep behavior deterministic/idempotent where possible
 - Guard against missing files/YAML
-- Update docs when adding features
+- Update references + skills whenever command/API behavior changes
 
 ---
 
@@ -507,11 +507,11 @@ dashboard
 ### Development
 - Architecture, CHS Scripting, Macros, Sequence
 - DataCards, Extensibility, Autosuggest
-- Agents Developer Guide
+- Agent routing + skills (`Docs/Agents/agents.md`, `Docs/Agents/Skills/INDEX.md`)
 
 ### Scheduling
 - Algorithm Overview (importance scoring, conflict resolution)
-- TimeBlocks (buffer, category, free blocks)
+- Kairos Elements Reference (windows, timeblocks, buffers, anchors, quick wins, gaps)
 
 ### Reference
 - CLI Commands (400+ lines, complete command reference)

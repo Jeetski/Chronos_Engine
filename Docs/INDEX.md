@@ -23,11 +23,11 @@ This index points to the main documentation entry points in this repo and what e
 ## Scheduling
 - Scheduling Overview: `Docs/Scheduling/Scheduling_Algorithm_Overview.md` - pipeline summary and rules.
 - Scheduling Deep Dive: `Docs/Scheduling/Scheduling_Algorithm_Deep_Dive.md` - code-aligned details.
-- Time Blocks: `Docs/Scheduling/TimeBlocks.md` - timeblock types and anchors.
+- Kairos Elements Reference: `Docs/Scheduling/Kairos_Elements_Reference.md` - glossary of windows, timeblocks, buffers, anchors, injections, and dependencies.
 
 ## Agents
 - Agent Guide: `Docs/Agents/agents.md` - operator behavior and pilot directives.
-- Agent Dev Guide: `Docs/Agents/agents.dev.md` - extension guidance for commands/modules.
+- Agent Skills Index: `Docs/Agents/Skills/INDEX.md` - task-oriented workflows for agents.
 - ADUC (Familiars): `Docs/Agents/ADUC.md` - local familiars UI and pilot integration.
 
 ## Development
@@ -38,12 +38,12 @@ This index points to the main documentation entry points in this repo and what e
 - Macros (BEFORE/AFTER): `Docs/Dev/Macros.md` - command hooks and macro config.
 - CHS Scripting: `Docs/Dev/CHS_Scripting.md` - scripting language reference.
 - Autosuggest: `Docs/Dev/Autosuggest.md` - CLI and dashboard autosuggest/autocomplete design.
-
-## Designs
-- Cockpit Matrix Panel: `Docs/Designs/cockpit_matrix_panel.md` - design notes for the matrix panel.
+- Documentation Audit (2026-03-06): `Docs/Dev/Documentation_Audit_2026-03-06.md` - freshness findings, resolved drift, and hardening plan.
 
 ## Reference
+- Features Index: `Docs/Features/INDEX.md` - master map for domain, console, and dashboard feature indexes.
 - CLI Commands: `Docs/Reference/CLI_Commands.md` - full command reference.
+- Dashboard API: `Docs/Reference/Dashboard_API.md` - canonical local dashboard route catalog.
 - Item Properties: `Docs/Reference/Item_Properties.md` - standard item fields used by Chronos.
 - Admin Tools: `Docs/Features/Admin_Tools.md` - system cleanup and cache management.
 - Achievements Progression: `Docs/Features/Achievements_Progression_System.md` - evaluator flow, XP/level fields, popup delivery, and reset commands.

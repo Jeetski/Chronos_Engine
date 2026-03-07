@@ -8,7 +8,6 @@ Links
 - Marketplace Terms: Legal/MARKETPLACE_TERMS.md
 - Trademark Policy: Legal/TRADEMARK_POLICY.md
 - Agent Guide: Agents/agents.md
-- Agent Dev Guide: Agents/agents.dev.md
 - Common Workflows: Guides/common_workflows.md
 - Day Builder: Guides/DayBuilder.md
 - Routine Builder: Guides/RoutineBuilder.md
@@ -17,6 +16,10 @@ Links
 - Cockpit Panels: Guides/Cockpit.md
 - Canvas: Guides/Canvas.md
 - Sequence Mirrors: Dev/Sequence.md
+- Dashboard API Reference: Reference/Dashboard_API.md
+- Features Index: Features/INDEX.md
+- Kairos Elements Reference: Scheduling/Kairos_Elements_Reference.md
+- Docs Freshness Audit (2026-03-06): Dev/Documentation_Audit_2026-03-06.md
 
 Scripting & Automation Docs
 - CHS Scripting Guide: Dev/CHS_Scripting.md
@@ -26,7 +29,7 @@ Scripting & Automation Docs
 ## Structure
 - Guides/ — user-facing how-tos (Dashboard, Dock/Gadgets, Settings, Workflows, Conditions, Cockpit).
 - Dev/ — engine and API docs (Architecture, CHS Scripting, Macros, Sequence mirrors).
-- Agents/ — agent persona and developer guides.
+- Agents/ — agent routing contract and skill library.
 - Designs/ — design notes/specs (may be aspirational; check Guides for current state).
 - Legal/ — licenses, trademarks, marketplace terms.
 
@@ -40,12 +43,12 @@ Scripting & Automation Docs
   - Create `.venv` and install requirements.
 3) Guided onboarding
 - Run `onboarding_wizard.bat` (CLI) or from the dashboard Wizards menu choose **Chronos Onboarding Wizard** to customize nickname, categories, statuses, and clone the sample templates/items.
-3) Launch CLI
+4) Launch CLI
 - Run `console_launcher.bat` (or `python Modules/Console.py`).
 - Type `help` to see available commands.
-4) Start Background Listener
+5) Start Background Listener
 - Run `listener_launcher.bat` to enable alarms, reminders, and timer ticks.
-5) Dashboard
+6) Dashboard
 - Option A: double-click `dashboard_launcher.bat`.
 - Option B: from the Console, run: `dashboard` (alias `dash`).
   - Both start the server and open the dashboard automatically.
@@ -79,7 +82,7 @@ Items and hierarchy
 - Items live as single YAML files. Many items can nest other items (the "fractal" structure).
 
 Status-aware scheduling
-- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `User/Settings/Status_Settings.yml`, scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
+- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `User/Settings/status_settings.yml` (legacy `Status_Settings.yml` still supported), scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
 - `today reschedule` rebuilds the day with those signals, boosts blocks whose tags match the current state, and automatically re-queues missed-but-important blocks (with a summary of what moved) instead of leaving them stuck in the past.
 - Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, marking, and `did` entries all update the plan.
 
@@ -107,7 +110,9 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `commitments check` — evaluate commitment rules (frequency/never) against target items and fire triggers (scripts, rewards, achievements).
 - `redeem reward "<name>" [reason:...]` — apply reward cost/cooldown and perform its target action.
 - `today`, `today reschedule`, `trim`, `change`, `cut`, `mark <item>:<status>` — modify today’s schedule.
+- `stretch`, `split`, `merge`, `anchor` — schedule editing helpers for duration/structure/anchoring.
 - `did "<block>" [start_time:HH:MM] [end_time:HH:MM] [status:completed|skipped|partial]` — log actuals so completions, dashboards, and reschedules stay aligned.
+- `quickwins [minutes:N] [days:N] ...` — surface small due/overdue/missed items for fast wins.
 - `mark ...:completed` and `complete <type> <name>` now share the same post-completion side effects (commitments/triggers, milestones, points). Use one completion path per block to avoid duplicate point awards.
 - `tomorrow [days:n]`, `this <weekday>`, `next <weekday>` — preview upcoming agendas using the same scheduler that powers `today`, handy for planning travel weeks or weekends.
 - `status [k:v ...]` — view or set energy/focus/mood/stress values that influence scheduling.
@@ -118,6 +123,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - Listener & reminders: `listener start|stop`, `dismiss|snooze|skip <alarm>`.
 - Templates & variables: `template ...`, `filter ...`, `variables` via dashboard or CLI helper commands.
 - Bulk executor: `bulk <command>` - run supported commands across the active filter (dry-run by default; use `dry:false` to execute).
+- Registry & sound tooling: `register ...`, `sound ...`.
 
 Variables
 - The console seeds `@nickname` from `User/Profile/profile.yml`. Use in scripts/messages.
@@ -137,6 +143,7 @@ UI
 - Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Sleep Settings, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 
 Selected endpoints (JSON unless noted)
+- Canonical endpoint catalog: `Docs/Reference/Dashboard_API.md`.
 - Health: `GET /health`.
 - Today API: `GET /api/today`, `POST /api/today/reschedule`.
 - CLI Bridge: `POST /api/cli` (`{ command, args: [], properties: {} }`).

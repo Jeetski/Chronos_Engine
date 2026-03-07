@@ -2,6 +2,8 @@
 
 Chronos includes a lightweight local dashboard that complements the CLI and Listener. It provides visual planning, quick editing, and one-click actions powered by the same APIs used by automation agents.
 
+Canonical API route list: see [Dashboard API Reference](../Reference/Dashboard_API.md).
+
 ---
 
 ## Running the Dashboard

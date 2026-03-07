@@ -1,21 +1,86 @@
 # Achievements Progression System
 
-This document summarizes the current achievements + progression behavior in Chronos.
+Achievements tracks unlockable milestones and ties each unlock to both points and profile XP/level progression.
 
 ## Overview
-- Achievements are item files under `User/Achievements/` (one YAML per achievement).
-- Awarding achievements grants both:
-  - points (Rewards wallet)
-  - XP (profile progression)
-- Progression is stored in `User/Profile/profile.yml`.
 
-## Core Modules
-- Evaluator: `Modules/Achievement/evaluator.py`
-- Command: `Commands/achievements.py`
-- Settings: `User/Settings/achievements_settings.yml`
-- Defaults: `User/Settings/Achievement_Defaults.yml`
+Core model:
+- Achievement definitions are YAML items under `User/Achievements/`.
+- Unlocks update achievement state and progression state.
+- Progression state is persisted in `User/Profile/profile.yml`.
 
-## Progression Fields in Profile
+Award results:
+- points are granted to the points ledger
+- XP is granted to progression fields
+- dashboard popup/feed receives unlock events
+
+## CLI
+
+Primary command group:
+- `achievements sync`
+- `achievements award <achievement_id_or_name>`
+- `achievements event <event_name> [key:value ...]`
+- `achievements reset`
+- `achievements reset-progress`
+
+Related command:
+- `points reset [keep_ledger:true|false]`
+
+Examples:
+```bash
+achievements sync
+achievements event task_completed type:task name:"Deep Work"
+achievements award "First 10 Completions"
+achievements reset-progress
+```
+
+Reset semantics:
+- `achievements reset` clears awarded state and progression fields.
+- `achievements reset-progress` clears only progression fields/feed in profile.
+- `points reset` affects wallet/ledger and is adjacent but separate from achievement definitions.
+
+## Dashboard
+
+Primary UI surfaces:
+- Achievements widget
+- AchievementUnlocked popup
+- Dev/Data Ops controls
+
+Widget behavior:
+- Reads achievement items and progression profile fields.
+- Displays progression ring using current XP/level values.
+- Allows achievement state updates via API.
+
+Popup behavior:
+- Consumes `achievement_award_feed`.
+- Shows unlock details and level-up context.
+- Can deep-link/open the Achievements widget for follow-up.
+
+Dev/Data Ops actions typically include:
+- Reset Achievements
+- Reset XP/Level
+- Reset Points
+
+Backing API endpoints:
+- `GET /api/achievements`
+- `POST /api/achievement/update`
+- `GET /api/points`
+
+Example update payload:
+```json
+{
+  "name": "First 10 Completions",
+  "status": "awarded"
+}
+```
+
+## Data Model and Settings
+
+Key settings and defaults:
+- `User/Settings/achievements_settings.yml`
+- `User/Settings/Achievement_Defaults.yml`
+
+Progression fields in `User/Profile/profile.yml`:
 - `xp_total`
 - `level`
 - `xp_into_level`
@@ -23,52 +88,39 @@ This document summarizes the current achievements + progression behavior in Chro
 - `last_achievement_award`
 - `achievement_award_feed`
 
-`achievement_award_feed` is a rolling queue used by dashboard popup delivery to avoid missing unlock events.
+The `achievement_award_feed` field acts as a rolling unlock queue for dashboard delivery.
 
-## Level Curve
-- Configured via `achievements_settings.yml`:
-  - `leveling.max_level`
-  - `leveling.base_xp_to_level_2`
-  - `leveling.growth`
-- Curve is exponential per level step.
-- Level is capped by `max_level`.
+## Evaluation and Triggering
 
-## Award Flow
-1. Event/sync/command calls evaluator.
-2. Evaluator confirms achievement is not already awarded.
-3. Evaluator writes awarded state into achievement item.
-4. Evaluator grants points via `Utilities.points.add_points`.
-5. Evaluator recalculates XP/level and writes profile progression.
-6. Evaluator appends event snapshot into `achievement_award_feed`.
+Primary evaluator path:
+- `Modules/Achievement/evaluator.py`
 
-## Trigger Modes
-- `event` trigger:
-  - matched via event name + optional `when` filters.
-- `sync` trigger:
-  - rule-based checks for streak/milestone/deadline style achievements.
+Award pipeline:
+1. Trigger source invokes evaluator (`sync`, `event`, or direct award command).
+2. Evaluator checks that the achievement is not already awarded.
+3. Evaluator writes awarded metadata on the achievement item.
+4. Evaluator grants points.
+5. Evaluator recalculates progression fields.
+6. Evaluator appends an unlock snapshot to feed.
 
-## Dashboard UI
-- Achievements widget ring uses profile progression values.
-- `AchievementUnlocked` popup:
-  - reads award feed from profile
-  - displays unlock details and progression ring
-  - opens Achievements widget CTA
-  - confetti effect
-  - dedicated Level Up state when levels increase
+Trigger modes:
+- `event`: event name plus optional `when` filters
+- `sync`: rule/evaluator scans for criteria satisfaction
 
-## Reset Commands
-- `achievements reset`
-  - resets all achievements to pending/unawarded
-  - clears awarded metadata
-  - resets achievement progression fields/feed
-- `achievements reset-progress`
-  - resets only achievement progression fields/feed in profile
-- `points reset [keep_ledger:true|false]`
-  - resets points balance (ledger reset by default)
+## Troubleshooting
 
-## Dashboard Dev Actions
-Dev > Data Ops includes:
-- `Reset Achievements`
-- `Reset XP/Level`
-- `Reset Points`
+If unlock popups are missing:
+1. Verify achievement item state is `awarded`.
+2. Verify profile has `last_achievement_award` and feed entries.
+3. Refresh dashboard and re-check `GET /api/achievements`.
 
+If XP/level looks incorrect:
+1. Inspect `User/Profile/profile.yml` progression fields.
+2. Run `achievements sync`.
+3. If still inconsistent in test environments, use `achievements reset-progress` and re-run sync.
+
+## Related Docs
+
+- `Docs/Reference/CLI_Commands.md` (`achievements`, `points`)
+- `Docs/Reference/Dashboard_API.md` (`/api/achievements`, `/api/achievement/update`, `/api/points`)
+- `Docs/Guides/Dashboard.md` (Achievements widget behavior)

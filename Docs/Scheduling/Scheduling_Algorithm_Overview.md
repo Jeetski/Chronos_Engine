@@ -1,130 +1,114 @@
-# Chronos Scheduling Algorithm Overview
+# Chronos Scheduling Algorithm Overview (Kairos)
 
-## Overview
+Last verified: 2026-03-07  
+Primary code: `Commands/Today.py`, `Modules/Scheduler/Kairos.py`, `Modules/Scheduler/WeeklyGenerator.py`
 
-The `today` command (`Commands/Today.py`) builds and resolves a daily schedule from templates and live data. The high-level flow is:
-1. Select the best day template
-2. Build an "impossible ideal" schedule
-3. Apply manual edits (trim/cut/change)
-4. Score importance
-5. Promote missed items (reschedule only)
-6. Inject status-triggered items
-7. Capacity check + conflict resolution loop
-8. Fill work windows (flexible items)
-9. Insert buffers
-10. Save and display
+## Scope
 
-Kairos note:
-- Kairos is the active scheduling engine for `today` / `today reschedule`.
-- Legacy scheduling remains available via `today legacy ...`.
+This document describes the active Chronos scheduler: **Kairos**.
 
----
+- Active production path: `today`, `today reschedule`
+- Diagnostics/preview path: `today kairos ...`, `today kairos week ...`
+- Legacy mode exists only as compatibility fallback and is intentionally out of scope here.
 
-## Template Selection
+Related:
+- `Docs/Scheduling/Kairos_Elements_Reference.md` (definitions of windows, timeblocks, buffers, anchors, injections, dependencies)
 
-Templates are loaded from `User/Days/` and scored by status alignment:
-- Templates with `days: [...]` are eligible only on those days.
-- Templates with `status_requirements` and no `days` are eligible any day.
-- Templates with neither must match the weekday filename (e.g., `Monday.yml`).
-- The best score wins; a forced template can override selection.
+## Active Execution Paths
 
-Kairos selection order (current behavior):
-1. Day-eligible + place match + status-requirements match (strict)
-2. Day-eligible + place match only
-3. Legacy score-only fallback (if no strict/place-only candidate)
+1. `today`
+- Runs Kairos with current context and shows today’s schedule.
 
-This prevents obvious mismatches such as selecting travel-day templates while current status place is at-home.
+2. `today reschedule`
+- Rebuilds today from current time and current state.
+- Carries manual edits/injections into the rerun context.
 
----
+3. `today kairos ...`
+- Shadow/diagnostic generation using explicit runtime options.
 
-## Initial Schedule Build
+4. `today kairos week [days:N]`
+- Rolling horizon skeleton generation via `WeeklyGenerator`.
 
-The engine lays out the template tree into a full schedule:
-- Resolves inline items if no external item file exists.
-- Applies status variants before scheduling.
-- Honors `ideal_start_time` / `ideal_end_time` when present.
-- Records conflicts if a duration exceeds an ideal end time.
+## Kairos Pipeline
 
-Manual modifications:
-- Stored in `User/Schedules/manual_modifications_YYYY-MM-DD.yml`.
-- Applied during schedule build.
-- Persisted across reruns (not auto-cleared), so changes remain idempotent for repeated `today reschedule`.
+1. Runtime load
+- Status context (`status_settings.yml` + current status)
+- Scheduling priorities and per-run overrides
+- Buffer/timer/quick-wins settings
+- Trend reliability from behavior mirror
+- Completion logs and recent misses
 
----
+2. Template and window resolution
+- Forced template wins if supplied.
+- Otherwise strict selection (day eligibility + place + status, then day + place).
+- Collects `window` nodes and template `timeblock` nodes.
 
-## Importance Calculation (Subtractive Model)
+3. Candidate gather + hard filter
+- Pull executable rows from `chronos_core.db`.
+- Remove completed/skipped rows, non-executables, place/status mismatches, pathological durations.
 
-```
-Base Score: 100
-For each factor: subtract penalty
-Final Score: 0-100 (higher = more important)
-```
+4. Additive scoring
+- Weighted contributions from priority/category/environment/due/deadline/happiness/status/trends/custom property.
+- Optional missed-work promotion.
 
-Factors and weights are defined in `User/Settings/Scheduling_Priorities.yml`.
+5. Timeline construction
+- Anchors first (fail-fast on unresolved anchor conflicts).
+- Manual injections, auto-injections, window placement.
+- Template timeblocks and quick-win gap fill.
+- Synthetic buffers/breaks insertion if enabled.
 
-| Order | Factor | Weight | Description |
-|-------|--------|--------|-------------|
-| 1 | Environment | 7 | Can you do it? (place, tools) |
-| 2 | Category | 6 | Life priorities |
-| 3 | Happiness | 5 | Map of Happiness alignment |
-| 4 | Due Date | 4 | Due date urgency (skipped if deadline exists) |
-| 5 | Deadline | 5 | Hard deadline urgency |
-| 6 | Status Alignment | 3 | Energy/focus match |
-| 7 | Priority Property | 2 | Item importance |
-| 8 | Template Membership | 1 | Structure bonus |
+6. Repair + dependency enforcement
+- Shift-first overlap repair with optional trim/cut fallback.
+- `depends_on` propagation to keep prerequisite ordering.
 
-Notes
-- If an item has both `deadline` and `due_date`, only the deadline is scored.
-- Status alignment pulls rank values from `<Status>_Settings.yml` when available.
+7. Completion marker rehydration
+- Completed entries reinserted as informational markers after planning.
 
----
+8. Output + observability
+- Persist active schedule to `User/Schedules/schedule_YYYY-MM-DD.yml`.
+- Emit decision logs to `User/Logs/kairos_decision_log_*`.
 
-## Rescheduling (today reschedule)
+## `today reschedule` Semantics
 
-When `today reschedule` runs:
-- Missed leaf items (ended before now, not completed/skipped) are re-queued.
-- Items with `reschedule_policy: manual` are ignored.
-- Re-queued items get a +20 importance boost.
-- The reschedule threshold is set by `rescheduling.importance_threshold` (default 30).
+Kairos reschedule behavior is intentionally "live-day aware":
+- Uses remaining-day capacity (`start_from_now=true`).
+- Promotes recent misses when configured.
+- Applies manual modifications and injection records.
+- Writes auto-cut outcomes as skipped completion entries for consistency.
 
----
+## Runtime Controls (Chronos syntax)
 
-## Conflict Resolution Loop
+- `template:<name|path>`
+- `status:key=value,key=value`
+- `prioritize:key=value,key=value`
+- `custom_property:<property_name>`
+- `buffers:true|false`
+- `breaks:timer|none`
+- `sprints:true|false`
+- `timer_profile:<profile_name>`
+- `quickwins:N`
+- `ignore-trends` or `ignore-trends:true|false`
+- `days:N` (weekly mode)
 
-The loop repeats until conflicts stop improving:
-- **3c Prioritized Shifting**: shift the less important, non-anchor item after the more important one.
-- **3d Trimming**: trim less important, trimmable items down to a 5-minute minimum.
-- **3e Cutting**: remove least important items unless they are `essential` or anchors.
-  - Cutting only runs when `conflict_resolution.allow_cutting` is true.
+## Key Files
 
-Conflicts are only overlaps between non-ancestor items (ideal end-time conflicts are reported earlier).
+- `Commands/Today.py`
+- `Modules/Scheduler/Kairos.py`
+- `Modules/Scheduler/WeeklyGenerator.py`
+- `User/Settings/scheduling_priorities.yml`
+- `User/Settings/status_settings.yml`
+- `User/Settings/buffer_settings.yml`
+- `User/Settings/timer_settings.yml`
+- `User/Settings/timer_profiles.yml`
+- `User/Settings/quick_wins_settings.yml`
+- `User/Data/chronos_core.db`
+- `User/Data/chronos_behavior.db`
 
----
+## Debug Baseline
 
-## Work Windows (Flexible Scheduling)
-
-Templates can define window nodes (`window: true`) inside the day sequence.
-Windows pull in unscheduled items (no start_time) that match the window filters and fit the time range.
-
----
-
-## Buffer Insertion
-
-Buffers are inserted after resolution using `User/Settings/Buffer_Settings.yml`:
-- Template buffers for routines/subroutines/microroutines.
-- Optional dynamic buffers every N minutes.
-
----
-
-## Configuration Files
-
-| File | Purpose |
-|------|---------|
-| `scheduling_defaults.yml` | Shipped defaults |
-| `scheduling_settings.yml` | User overrides |
-| `Scheduling_Priorities.yml` | Factor weights |
-| `Category_Settings.yml` | Category ranks |
-| `Priority_Settings.yml` | Priority ranks |
-| `Status_Settings.yml` | Status types + ranks |
-| `map_of_happiness.yml` | Happiness needs |
-| `Buffer_Settings.yml` | Buffer rules |
+1. Run: `today kairos ...`
+2. Inspect:
+- `User/Logs/kairos_decision_log_latest.md`
+- `User/Logs/kairos_decision_log_latest.yml`
+3. Adjust status/template/anchors/settings.
+4. Apply with `today reschedule`.

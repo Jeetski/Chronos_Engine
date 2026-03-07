@@ -18,13 +18,20 @@ Items are the atoms of Chronos. They are stored as YAML files in the `User/` dir
 - **Defaults**: Each item type has a `_defaults.yml` (e.g., `task_defaults.yml`) that defines its initial state.
 
 ### 3. The Scheduler
-- **Core Logic**: `Commands/Today.py` implements the full scheduling pipeline (template selection, initial build, importance scoring, and conflict resolution). I agree, "Today" is a great name for the command that builds your day.
-- **Helper Library**: `Modules/Scheduler.py` provides shared utilities (I/O, formatting, manual modification persistence) used by the command.
-- **Algorithm**:
-    - **Phase 1: Expansion**: Recursively reads templates and all child items.
-    - **Phase 2: Ideal Layout**: Places items at their preferred times.
-    - **Phase 3: Conflict Resolution**: A sophisticated constraint solver loop (Phase 3f) that resolves overlaps by shifting, trimming, or cutting based on importance.
-    - **Manual Modifications**: Persists user overrides (trim/cut/change) in `User/Schedules/manual_modifications_YYYY-MM-DD.yml`.
+- **Command Router**: `Commands/Today.py` dispatches three modes:
+  - active Kairos (`today`, `today reschedule`)
+  - explicit Kairos tooling (`today kairos ...`)
+  - legacy fallback (`today legacy ...`)
+- **Kairos Engine**: `Modules/Scheduler/Kairos.py` is the active daily scheduler.
+  - Loads runtime context (status, settings, trends, completion logs)
+  - Selects template/windows with strict place+status compatibility
+  - Gathers/filter/scores executable backlog from `chronos_core.db`
+  - Constructs timeline (anchors, injections, windows, gaps, synthetic buffers/breaks)
+  - Runs overlap repair + dependency shift passes
+  - Emits decision logs in `User/Logs/kairos_decision_log_*`
+- **Weekly Planner**: `Modules/Scheduler/WeeklyGenerator.py` powers `today kairos week`.
+- **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `Commands/Today.py` so existing dashboard/API/manual-modification flows continue to work.
+- **Manual Modifications**: Persisted in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
 
 ### 4. Conditions Engine (`Modules/Conditions.py`)
 A recursive descent parser that evaluates logic strings in scripts and triggers.

@@ -126,7 +126,6 @@ def chronos_docs_targets() -> dict:
         "Guides/Dashboard.md",
         "Guides/Cockpit.md",
         "Agents/agents.md",
-        "Agents/agents.dev.md",
         "Guides/Settings.md",
         "Dev/Sequence.md",
     ]

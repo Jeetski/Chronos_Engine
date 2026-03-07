@@ -1052,8 +1052,22 @@ def _extract_minutes(block):
     return 0
 
 
+def _is_break_or_buffer_block(block):
+    if not isinstance(block, dict):
+        return False
+    if bool(block.get("is_buffer")) or bool(block.get("is_break")):
+        return True
+    subtype = str(block.get("subtype") or "").strip().lower()
+    if subtype in {"buffer", "break"}:
+        return True
+    schedule_type = str(block.get("type") or block.get("schedule_type") or "").strip().lower()
+    if schedule_type in {"buffer", "break"}:
+        return True
+    return False
+
+
 def _should_include_schedule_block(block):
-    if bool(block.get("is_buffer")):
+    if _is_break_or_buffer_block(block):
         return True
     children = block.get("children") or []
     if not children:
@@ -1061,7 +1075,7 @@ def _should_include_schedule_block(block):
     for child in children:
         if not isinstance(child, dict):
             continue
-        if child.get("is_buffer"):
+        if _is_break_or_buffer_block(child):
             continue
         if child.get("is_parallel_item"):
             continue
@@ -1096,7 +1110,7 @@ def _build_schedule_plan_for_date(date_key: str):
             continue
         if not _should_include_schedule_block(block):
             continue
-        is_buffer = bool(block.get("is_buffer"))
+        is_buffer = _is_break_or_buffer_block(block)
         minutes = _extract_minutes(block)
         if minutes <= 0:
             continue

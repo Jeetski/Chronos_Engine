@@ -1568,6 +1568,9 @@ class KairosScheduler:
             spec_type = raw_type or "*"
             item_type = raw_type or "task"
             status_norm = "completed" if status in {"completed", "done"} else status
+            # Store completion specs by "<type>|<name>" so filtering can
+            # suppress completed work even when candidate rows are partially
+            # typed or legacy logs only include names.
             spec_key = f"{spec_type}|{name_norm}"
             completed_specs.setdefault(spec_key, []).append(
                 {
@@ -2091,6 +2094,10 @@ class KairosScheduler:
                             "from_item": f"{curr_block.get('type')}:{curr_block.get('name')}",
                         }
                     )
+                    # Consume the just-inserted template buffer from this gap so
+                    # subsequent insertions (for example timer breaks) don't overlap.
+                    gap_cursor += bmin
+                    remaining_gap -= bmin
                     minutes_since_last_buffer = 0
 
             # Timer-profile break hook.
@@ -2242,6 +2249,8 @@ class KairosScheduler:
                         anchor_idx = i
 
                 if move_idx is None:
+                    # Both blocks are locked (anchors/essential/hard injection),
+                    # so repair records the conflict but does not mutate.
                     unresolved.append(
                         {
                             "reason": "both_locked",
@@ -2298,6 +2307,8 @@ class KairosScheduler:
                         )
                         i += 1
                         continue
+                    # Trim fallback: shrink movable block to the nearest
+                    # available post-anchor span, bounded by min duration.
                     occupied = [row for idx, row in enumerate(rows) if idx != move_idx]
                     trim_start = max(day_floor, int(move_s))
                     avail = self._available_span_from(
@@ -2664,6 +2675,9 @@ class KairosScheduler:
 
             if req_mode == "soft":
                 if target is None:
+                    # Soft injections can target ideas not currently present in
+                    # the ranked pool. Create a temporary runtime stub so the
+                    # request still participates in this run.
                     target = self._build_manual_injection_stub(req_name, req_type)
                     deduped.append(target)
                     soft_created.append(target)
@@ -2747,6 +2761,8 @@ class KairosScheduler:
                         int(schedule["stats"].get("scheduled_items", 0)) - len(removed),
                     )
                     for _, _, b in removed:
+                        # Keep a displacement trail for explainability and allow
+                        # those items to be reconsidered as unscheduled output.
                         rid = self._item_id(b)
                         used.discard(rid)
                         manual_injection_events["hard"]["displaced"].append(

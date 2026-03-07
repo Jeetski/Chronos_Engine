@@ -1,10 +1,12 @@
 import io
 import os
+import shutil
 import sys
 import tempfile
 import types
 import unittest
-from contextlib import redirect_stdout
+import uuid
+from contextlib import contextmanager, redirect_stdout
 from unittest.mock import patch
 
 from Commands import Today
@@ -12,9 +14,29 @@ from Modules.Scheduler.Kairos import KairosScheduler
 from Modules.Scheduler.WeeklyGenerator import WeeklyGenerator
 
 
+@contextmanager
+def _today_user_dir():
+    """
+    Provide a workspace-local temporary USER_DIR for Today command tests.
+
+    We avoid tempfile.TemporaryDirectory() here because this environment can
+    return permission errors on nested mkdir/chmod cleanup.
+    """
+    old_user_dir = Today.USER_DIR
+    root = os.path.join(os.getcwd(), ".tmp_test_today_user")
+    td = os.path.join(root, f"run_{uuid.uuid4().hex}")
+    os.makedirs(os.path.join(td, "Schedules"), exist_ok=True)
+    try:
+        Today.USER_DIR = td
+        yield td
+    finally:
+        Today.USER_DIR = old_user_dir
+        shutil.rmtree(td, ignore_errors=True)
+
+
 class TestKairosEngine(unittest.TestCase):
     def test_pre_schedule_hooks_enabled_runs_commitment_and_milestone(self):
-        scheduler = KairosScheduler()
+        scheduler = KairosScheduler(user_context={"evaluate_hooks": True})
         called = {"commitment": 0, "milestone": 0}
         commitment_main = types.ModuleType("Modules.Commitment.main")
         milestone_main = types.ModuleType("Modules.Milestone.main")
@@ -305,7 +327,26 @@ class TestKairosEngine(unittest.TestCase):
             }
         )
         scheduler.runtime = {}
-        windows = scheduler._resolve_windows(__import__("datetime").date.today())
+        forced_template = {
+            "path": "forced://test",
+            "score": "forced",
+            "template": {
+                "type": "day",
+                "name": "Test Day",
+                "sequence": [
+                    {
+                        "name": "Deep Work",
+                        "window": True,
+                        "start": "09:00",
+                        "end": "11:00",
+                        "filters": {},
+                    }
+                ],
+            },
+        }
+        with patch.object(KairosScheduler, "_resolve_forced_template", return_value=forced_template):
+            scheduler.user_context["force_template"] = "Test Day"
+            windows = scheduler._resolve_windows(__import__("datetime").date.today())
         self.assertTrue(windows)
         filt = windows[0].get("filter") if isinstance(windows[0], dict) else {}
         self.assertEqual((filt or {}).get("energy_mode"), "high")
@@ -494,10 +535,7 @@ class TestKairosCommandParsing(unittest.TestCase):
             def generate_schedule(self, _):
                 return {"date": "2026-02-21", "blocks": [], "stats": {}}
 
-        old_user_dir = Today.USER_DIR
-        with tempfile.TemporaryDirectory() as td:
-            Today.USER_DIR = td
-            os.makedirs(os.path.join(td, "Schedules"), exist_ok=True)
+        with _today_user_dir() as td:
             with patch("Modules.Scheduler.KairosScheduler", FakeKairos):
                 with redirect_stdout(io.StringIO()):
                     Today.run(
@@ -521,7 +559,6 @@ class TestKairosCommandParsing(unittest.TestCase):
                         ],
                         {},
                     )
-        Today.USER_DIR = old_user_dir
         ctx = captured.get("ctx", {})
         self.assertEqual(ctx.get("force_template"), "Saturday")
         self.assertEqual(ctx.get("status_overrides", {}).get("energy"), "high")
@@ -551,10 +588,7 @@ class TestKairosCommandParsing(unittest.TestCase):
             def generate_schedule(self, _):
                 return {"date": "2026-02-21", "blocks": [], "stats": {}}
 
-        old_user_dir = Today.USER_DIR
-        with tempfile.TemporaryDirectory() as td:
-            Today.USER_DIR = td
-            os.makedirs(os.path.join(td, "Schedules"), exist_ok=True)
+        with _today_user_dir() as td:
             with patch("Modules.Scheduler.KairosScheduler", FakeKairos):
                 with redirect_stdout(io.StringIO()):
                     Today.run(
@@ -574,7 +608,6 @@ class TestKairosCommandParsing(unittest.TestCase):
                             "window_filter_value": "high,deep",
                         },
                     )
-        Today.USER_DIR = old_user_dir
         ctx = captured.get("ctx", {})
         self.assertIn("start_from_now", ctx)
         self.assertFalse(ctx.get("use_buffers"))
@@ -603,10 +636,7 @@ class TestKairosCommandParsing(unittest.TestCase):
             def generate_schedule(self, _):
                 return {"date": "2026-02-21", "blocks": [], "stats": {}}
 
-        old_user_dir = Today.USER_DIR
-        with tempfile.TemporaryDirectory() as td:
-            Today.USER_DIR = td
-            os.makedirs(os.path.join(td, "Schedules"), exist_ok=True)
+        with _today_user_dir() as td:
             with patch("Modules.Scheduler.KairosScheduler", FakeKairos):
                 with redirect_stdout(io.StringIO()):
                     Today.run(
@@ -618,7 +648,6 @@ class TestKairosCommandParsing(unittest.TestCase):
                             ]
                         },
                     )
-        Today.USER_DIR = old_user_dir
         ctx = captured.get("ctx", {})
         wfo = ctx.get("window_filter_overrides") or []
         self.assertEqual(len(wfo), 2)

@@ -20,3 +20,23 @@
 [2026-02-22 13:04:06] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\notes\test.yml
 [2026-02-26 16:10:08] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\tasks\api_smoke_20260226_161005_task_b.yml
 [2026-02-26 16:10:08] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\tasks\api_smoke_20260226_161005_task_b.yml
+[2026-03-03 18:06:52] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\goals\release_chronos_engine_alpha_v0.3.yml
+[2026-03-03 18:06:52] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\goals\release_chronos_engine_alpha_v0.3.yml
+[2026-03-03 18:09:51] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:09:51] File not found: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:09:51] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_new.yml
+[2026-03-03 18:09:51] File not found: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_new.yml
+[2026-03-03 18:09:51] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:09:51] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] File not found: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_new.yml
+[2026-03-03 18:10:07] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_new.yml
+[2026-03-03 18:10:07] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] File not found: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_old.yml
+[2026-03-03 18:10:07] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_new.yml
+[2026-03-03 18:10:07] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\projects\tmp_rename_project_new.yml
+[2026-03-03 18:11:03] Attempting to delete: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\goals\release_chronos_engine_beta_v1_0.yml
+[2026-03-03 18:11:03] Successfully deleted: C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\User\goals\release_chronos_engine_beta_v1_0.yml
