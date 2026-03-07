@@ -47,7 +47,7 @@ class TestRegistries(unittest.TestCase):
         self.assertEqual(reg["wizards"][0]["label"], "Magic Wizard")
 
     def test_themes_registry(self):
-        # Create a dummy theme in user/Themes
+        # Create a dummy theme in user/themes
         themes_dir = os.path.join(registry_builder.USER_DIR, "Themes")
         os.makedirs(themes_dir, exist_ok=True)
         

@@ -5,7 +5,7 @@ The Canvas view is a realtime, board-style workspace inside the Dashboard. It is
 ## What the Canvas is
 
 - Infinite board with nodes, connections, ink strokes, and media.
-- Boards are stored as YAML items under `user/Canvas_Boards/`.
+- Boards are stored as YAML items under `user/canvas_boards/`.
 - The Dashboard uses `/api/item` and `/api/items?type=canvas_board` to load/save.
 
 ## Data model (stored in YAML)
