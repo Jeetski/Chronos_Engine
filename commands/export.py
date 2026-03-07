@@ -48,7 +48,7 @@ def run(args, properties):
     filename = args[0]
     command_to_execute = args[1:]
 
-    # Ensure the user/Exports directory exists
+    # Ensure the user/exports directory exists
     if not os.path.exists(EXPORTS_DIR):
         os.makedirs(EXPORTS_DIR)
 
@@ -93,8 +93,8 @@ Usage:
   export <filename> <command> [args...]
 
 Description:
-  export all: Zips the entire user/ directory into user/Exports/[filename].zip.
-  export filename: Executes a command and saves its table output to YAML in user/Exports/.
+  export all: Zips the entire user/ directory into user/exports/[filename].zip.
+  export filename: Executes a command and saves its table output to YAML in user/exports/.
 
 Example:
   export all chronos_backup.zip

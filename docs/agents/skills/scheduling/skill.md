@@ -23,8 +23,8 @@ Operate Chronos scheduling end-to-end using Kairos only: build plans, repair con
 - Manual modifications: `user/Schedules/manual_modifications_YYYY-MM-DD.yml`
 - Completion logs: `user/Schedules/completions/YYYY-MM-DD.yml`
 - Decision logs:
-  - `user/Logs/kairos_decision_log_latest.md`
-  - `user/Logs/kairos_decision_log_latest.yml`
+  - `user/logs/kairos_decision_log_latest.md`
+  - `user/logs/kairos_decision_log_latest.yml`
 
 ## Kairos Mental Model
 Kairos is a constrained optimizer with deterministic phases:

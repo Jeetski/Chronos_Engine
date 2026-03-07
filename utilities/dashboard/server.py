@@ -839,7 +839,7 @@ def _ensure_default_playlist(library=None):
     tracks = [{"file": track["file"]} for track in lib]
     data = {
         "name": "All Tracks",
-        "description": "Auto playlist of every MP3 in user/Media/MP3.",
+        "description": "Auto playlist of every MP3 in user/media/MP3.",
         "tracks": tracks,
     }
     _write_playlist(DEFAULT_PLAYLIST_SLUG, data)

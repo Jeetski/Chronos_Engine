@@ -164,7 +164,7 @@
   - `listener stop`
   - `listener status`
 - Listener lifecycle now uses a PID file for tracking:
-  - `user/Temp/listener.pid`
+  - `user/temp/listener.pid`
 - Updated dashboard server listener endpoint to use CLI bridge instead of direct process spawning:
   - `POST /api/listener/start` now calls `run_console_command("listener", ["start"])`.
 - Verified in-session:
@@ -537,7 +537,7 @@
     3. legacy score-only fallback
 - Added Kairos template-match diagnostics in phase notes (`template_match`) to show strict/place-only/fallback selection behavior.
 - Prevented stale archived YAML from polluting Kairos candidate DB:
-  - `modules/sequence/core_builder.py` now skips `user/Archive` and `user/Backups` when building `chronos_core.db`.
+  - `modules/sequence/core_builder.py` now skips `user/archive` and `user/Backups` when building `chronos_core.db`.
 - Added a broad Kairos example content pack across week/day/routine/subroutine/microroutine/task/timeblock templates to expand usable coverage and scheduler stress-testing.
 
 ### Kairos Scheduler Activation

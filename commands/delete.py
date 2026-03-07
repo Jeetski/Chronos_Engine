@@ -46,7 +46,7 @@ def get_help_message():
 Usage: delete [-f|--force] <item_type> <item_name>
 Description: 
   Deletes an item of the specified type.
-  - By default, moves the item to 'user/Archive' (soft delete).
+  - By default, moves the item to 'user/archive' (soft delete).
   - Use -f or --force (or force:true) to permanently delete.
 Example: 
   delete note MyOldNote          # Archives it

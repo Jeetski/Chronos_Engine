@@ -146,10 +146,10 @@ Each run emits:
 - YAML payload with `phase_notes` and final blocks
 
 Paths:
-- `user/Logs/kairos_decision_log_<timestamp>.md`
-- `user/Logs/kairos_decision_log_<timestamp>.yml`
-- `user/Logs/kairos_decision_log_latest.md`
-- `user/Logs/kairos_decision_log_latest.yml`
+- `user/logs/kairos_decision_log_<timestamp>.md`
+- `user/logs/kairos_decision_log_<timestamp>.yml`
+- `user/logs/kairos_decision_log_latest.md`
+- `user/logs/kairos_decision_log_latest.yml`
 
 ## 12. Weekly Skeleton (`modules/scheduler/weekly_generator.py`)
 

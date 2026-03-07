@@ -66,7 +66,7 @@ Related:
 
 8. Output + observability
 - Persist active schedule to `user/Schedules/schedule_YYYY-MM-DD.yml`.
-- Emit decision logs to `user/Logs/kairos_decision_log_*`.
+- Emit decision logs to `user/logs/kairos_decision_log_*`.
 
 ## `today reschedule` Semantics
 
@@ -108,8 +108,8 @@ Kairos reschedule behavior is intentionally "live-day aware":
 
 1. Run: `today kairos ...`
 2. Inspect:
-- `user/Logs/kairos_decision_log_latest.md`
-- `user/Logs/kairos_decision_log_latest.yml`
+- `user/logs/kairos_decision_log_latest.md`
+- `user/logs/kairos_decision_log_latest.yml`
 3. Adjust status/template/anchors/settings.
 4. Apply with `today reschedule`.
 

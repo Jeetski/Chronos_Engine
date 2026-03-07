@@ -15,7 +15,7 @@ delete note "SearchTarget"
 # Verify deleted tag in archive
 # We can't easily grep inside a CHS script without a command, but we can check if file exists
 # and use 'search' to find the 'deleted: true' string in it!
-if exists file:"user/Archive/notes/SearchTarget.yml" then
+if exists file:"user/archive/notes/SearchTarget.yml" then
     echo "Archived file exists. Checking for tag..."
     # Hacky verify using our new search command on the archive dir? 
     # Search command skips deleted... wait, search command skips nothing in my impl (except Backups)

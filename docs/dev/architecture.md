@@ -28,7 +28,7 @@ Items are the atoms of Chronos. They are stored as YAML files in the `user/` dir
   - Gathers/filter/scores executable backlog from `chronos_core.db`
   - Constructs timeline (anchors, injections, windows, gaps, synthetic buffers/breaks)
   - Runs overlap repair + dependency shift passes
-  - Emits decision logs in `user/Logs/kairos_decision_log_*`
+  - Emits decision logs in `user/logs/kairos_decision_log_*`
 - **Weekly Planner**: `modules/scheduler/weekly_generator.py` powers `today kairos week`.
 - **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `commands/today.py` so existing dashboard/API/manual-modification flows continue to work.
 - **Manual Modifications**: Persisted in `user/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
@@ -66,7 +66,7 @@ The Dashboard is a hybrid Desktop/Web application.
 ### Backend (`utilities/dashboard/server.py`)
 A `ThreadingHTTPServer` that acts as the bridge between the browser and the file system.
 - **API**: Provides JSON endpoints (`/api/profile`, `/api/cockpit/matrix`, `/api/media/mp3`) to read/write system state.
-- **Streaming**: Streams MP3s from `user/Media` for the music player.
+- **Streaming**: Streams MP3s from `user/media` for the music player.
 - **Bundler**: The `dashboard` CLI command pre-bundles static settings into `generated/settings_bundle.js` for fast startup.
 
 ### Frontend (`utilities/dashboard/app.js`)

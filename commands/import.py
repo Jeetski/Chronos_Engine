@@ -18,10 +18,10 @@ def run(args, properties):
     
     # Check if the file exists
     if not os.path.exists(file_path_arg):
-        # If not, try to find it in the user/Exports directory
+        # If not, try to find it in the user/exports directory
         file_path = os.path.join(ROOT_DIR, "user", "Exports", file_path_arg)
         if not os.path.exists(file_path):
-            print(f"Error: File not found at '{file_path_arg}' or in 'user/Exports/'.")
+            print(f"Error: File not found at '{file_path_arg}' or in 'user/exports/'.")
             return
     else:
         file_path = file_path_arg
@@ -112,7 +112,7 @@ Description:
   - If <file_path> is a YAML list, imports items (skips if already exist).
 
 Example:
-  import user/Exports/my_tasks.yml
-  import user/Exports/chronos_backup.zip overwrite:true
+  import user/exports/my_tasks.yml
+  import user/exports/chronos_backup.zip overwrite:true
 """
 

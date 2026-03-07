@@ -339,7 +339,7 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 ### Backend
 - `ThreadingHTTPServer` (Python)
 - JSON/YAML endpoints
-- Streams MP3s from `user/Media`
+- Streams MP3s from `user/media`
 - Settings bundler for fast startup
 
 ### Cockpit Panels

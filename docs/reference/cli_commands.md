@@ -378,7 +378,7 @@ Visualizes item hierarchy or directory structure.
 ## Utilities
 
 ### `archive`
-Moves an item to `user/Archive`.
+Moves an item to `user/archive`.
 **Usage:** `archive <type> <name>`
 
 ### `backup`
@@ -420,7 +420,7 @@ Performs system maintenance by clearing logs, databases, registries, and other s
 **Usage:** `clear <target> [force]` or `clear <target> force:true`
 
 **Targets:**
-- `logs` - Delete all log files from `user/Logs`
+- `logs` - Delete all log files from `user/logs`
 - `schedules` - Delete generated schedule files from `user/Schedules`
 - `cache` - Delete all database mirrors (all `.db` files in `user/Data`)
 - `db:<name>` - Delete a specific database (e.g., `clear db:chronos_core`)
