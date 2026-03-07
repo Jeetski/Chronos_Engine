@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'clock-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Clock/clock.css';
+    link.href = './widgets/Clock/clock.css';
     document.head.appendChild(link);
   }
   // Load digital font for the readout so it doesn't depend on local installs.

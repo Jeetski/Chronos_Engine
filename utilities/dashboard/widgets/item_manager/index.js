@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'item-manager-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/ItemManager/item-manager.css';
+    link.href = './widgets/ItemManager/item-manager.css';
     document.head.appendChild(link);
   }
 

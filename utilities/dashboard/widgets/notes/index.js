@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'notes-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Notes/notes.css';
+    link.href = './widgets/Notes/notes.css';
     document.head.appendChild(link);
   }
 

@@ -1319,7 +1319,7 @@ export function mount(el) {
         const link = document.createElement('link');
         link.id = 'editor-css';
         link.rel = 'stylesheet';
-        link.href = './Views/Editor/editor.css';
+        link.href = './views/Editor/editor.css';
         document.head.appendChild(link);
     }
 

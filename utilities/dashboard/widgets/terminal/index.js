@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'terminal-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Terminal/terminal.css';
+    link.href = './widgets/Terminal/terminal.css';
     document.head.appendChild(link);
   }
 

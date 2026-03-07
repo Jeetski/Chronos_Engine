@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'debug-console-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/DebugConsole/debug-console.css';
+    link.href = './widgets/DebugConsole/debug-console.css';
     document.head.appendChild(link);
   }
 

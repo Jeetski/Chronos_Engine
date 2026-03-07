@@ -397,7 +397,7 @@ ready(async () => {
     const { persist = true } = opts;
     const theme = resolveTheme(themeId);
     if (!theme || !themeStylesheet) return theme;
-    const desiredHref = `./Themes/${theme.file}`;
+    const desiredHref = `./themes/${theme.file}`;
     if (themeStylesheet.getAttribute('href') !== desiredHref) {
       themeStylesheet.setAttribute('href', desiredHref);
     }
@@ -1479,7 +1479,7 @@ ready(async () => {
     // Build panel loaders dynamically from registry
     const panelLoaders = (panels || [])
       .filter(p => p.enabled !== false)
-      .map(p => () => import(new URL(`./Panels/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
+      .map(p => () => import(new URL(`./panels/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
         .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} panel`, err)));
 
     // Build popup loaders dynamically from registry (priority first, then module name)
@@ -1506,7 +1506,7 @@ ready(async () => {
         if (pa !== pb) return pb - pa;
         return ma.localeCompare(mb);
       })
-      .map(p => () => import(new URL(`./Popups/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
+      .map(p => () => import(new URL(`./popups/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
         .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} popup`, err)));
 
     // Load panels and popups
@@ -1772,7 +1772,7 @@ ready(async () => {
     if (!moduleName) return;
     try {
       window.__chronosForcePopupQueue = true;
-      await import(new URL(`./Popups/${moduleName}/index.js?v=${Date.now()}&manual=1`, import.meta.url));
+      await import(new URL(`./popups/${moduleName}/index.js?v=${Date.now()}&manual=1`, import.meta.url));
       closeMenus();
     } catch (err) {
       console.error('[Chronos][app] Popup launch failed', moduleName, err);

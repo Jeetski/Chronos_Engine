@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'timer-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Timer/timer.css';
+    link.href = './widgets/Timer/timer.css';
     link.addEventListener('load', () => {
       try { window.requestAnimationFrame(() => window.requestAnimationFrame(() => ensureTimerFitsContent())); } catch { }
     });

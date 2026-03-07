@@ -23,10 +23,10 @@ export function mount(el) {
   el.innerHTML = tpl;
 
   // Inject CSS
-  if (!el.querySelector('link[href="./Widgets/Status/status.css"]')) {
+  if (!el.querySelector('link[href="./widgets/Status/status.css"]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = './Widgets/Status/status.css';
+    link.href = './widgets/Status/status.css';
     el.appendChild(link);
   }
 

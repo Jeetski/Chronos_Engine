@@ -7,7 +7,7 @@ export function mount(el, context) {
         const link = document.createElement('link');
         link.id = 'scheduler-css';
         link.rel = 'stylesheet';
-        link.href = './Widgets/Today/scheduler.css';
+        link.href = './widgets/Today/scheduler.css';
         document.head.appendChild(link);
     }
 

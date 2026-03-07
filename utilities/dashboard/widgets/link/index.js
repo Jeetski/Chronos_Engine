@@ -39,7 +39,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'link-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Link/link.css';
+    link.href = './widgets/Link/link.css';
     document.head.appendChild(link);
   }
 

@@ -518,7 +518,7 @@ class CanvasView {
     this.context = context;
     container.id = 'view-canvas';
     container.innerHTML = `
-      <link rel="stylesheet" href="./Views/Canvas/canvas.css">
+      <link rel="stylesheet" href="./views/Canvas/canvas.css">
       <div id="canvas-interface">
         <aside id="canvas-sidebar">
           <div class="sidebar-header">

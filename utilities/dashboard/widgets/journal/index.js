@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'journal-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Journal/journal.css';
+    link.href = './widgets/Journal/journal.css';
     document.head.appendChild(link);
   }
 

@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'achievements-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Achievements/achievements.css';
+    link.href = './widgets/Achievements/achievements.css';
     document.head.appendChild(link);
   }
 

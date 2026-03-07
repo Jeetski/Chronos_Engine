@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'rewards-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Rewards/rewards.css';
+    link.href = './widgets/Rewards/rewards.css';
     document.head.appendChild(link);
   }
 

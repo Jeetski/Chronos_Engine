@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'commitments-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Commitments/commitments.css';
+    link.href = './widgets/Commitments/commitments.css';
     document.head.appendChild(link);
   }
 

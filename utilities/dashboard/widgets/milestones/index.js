@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'milestones-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Milestones/milestones.css';
+    link.href = './widgets/Milestones/milestones.css';
     document.head.appendChild(link);
   }
 

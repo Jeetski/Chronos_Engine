@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'variables-css';
     link.rel = 'stylesheet';
-    link.href = './Widgets/Variables/variables.css';
+    link.href = './widgets/Variables/variables.css';
     document.head.appendChild(link);
   }
 

@@ -1417,7 +1417,7 @@ const PANEL_IMPORTS = [
 
 async function loadPanels(manager) {
   const tasks = PANEL_IMPORTS.map(async (name) => {
-    const url = new URL(`../../Panels/${name}/index.js`, import.meta.url);
+    const url = new URL(`../../panels/${name}/index.js`, import.meta.url);
     try {
       const mod = await import(url);
       if (mod && typeof mod.register === 'function') {

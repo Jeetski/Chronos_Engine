@@ -397,12 +397,36 @@ function removeWidgetMinimizeButtons(el) {
   } catch { }
 }
 
+function toModuleName(name) {
+  return String(name || '')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .toLowerCase();
+}
+
+async function importWithNameFallback(basePath, name, withBust = false) {
+  const raw = String(name || '').trim();
+  const slug = toModuleName(raw);
+  const candidates = Array.from(new Set([raw, slug])).filter(Boolean);
+  let lastError = null;
+  for (const moduleName of candidates) {
+    try {
+      const suffix = withBust ? `?v=${Date.now()}` : '';
+      const modUrl = new URL(`${basePath}/${moduleName}/index.js${suffix}`, import.meta.url);
+      return await import(modUrl);
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError || new Error(`Module not found for '${name}'`);
+}
+
 export async function mountWidget(el, name) {
   const id = el.id || '(anon)';
   console.log(`[Chronos][runtime] Mounting widget '${name}' into #${id}`);
   try {
-    const modUrl = new URL(`../Widgets/${name}/index.js`, import.meta.url);
-    const mod = await import(modUrl);
+    const mod = await importWithNameFallback('../widgets', name, false);
     if (mod && typeof mod.mount === 'function') {
       const api = mod.mount(el, context) || {};
       el.__widget = { name, api };
@@ -438,8 +462,7 @@ export async function mountView(el, name) {
   console.log(`[Chronos][runtime] Mounting view '${name}' into #${id}`);
   try {
     try { el.innerHTML = ''; } catch { }
-    const modUrl = new URL(`../Views/${name}/index.js`, import.meta.url);
-    const mod = await import(modUrl);
+    const mod = await importWithNameFallback('../views', name, false);
     if (mod && typeof mod.mount === 'function') {
       const api = mod.mount(el, context) || {};
       el.__view = { name, api };
@@ -462,8 +485,7 @@ export async function mountView(el, name) {
 export async function launchWizard(name, options = {}) {
   console.log(`[Chronos][runtime] Launching wizard '${name}'`);
   try {
-    const modUrl = new URL(`../Wizards/${name}/index.js?v=${Date.now()}`, import.meta.url);
-    const mod = await import(modUrl);
+    const mod = await importWithNameFallback('../wizards', name, true);
     if (mod && typeof mod.launch === 'function') {
       return await mod.launch({ ...context }, options);
     }
@@ -479,8 +501,7 @@ export async function mountGadget(el, name, options = {}) {
   const id = el.id || '(anon)';
   console.log(`[Chronos][runtime] Mounting gadget '${name}' into #${id}`);
   try {
-    const modUrl = new URL(`../Gadgets/${name}/index.js?v=${Date.now()}`, import.meta.url);
-    const mod = await import(modUrl);
+    const mod = await importWithNameFallback('../gadgets', name, true);
     if (mod && typeof mod.mount === 'function') {
       const api = mod.mount(el, { ...context, ...(options || {}) }) || {};
       el.__gadget = { name, api };
