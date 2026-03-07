@@ -629,7 +629,7 @@ def _load_profile_and_seed_vars():
             Variables.set_var('nickname', 'Pilot')
         except Exception:
             pass
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')) or {}
         if isinstance(prof, dict):
             nick = prof.get('nickname') or (isinstance(prof.get('profile'), dict) and prof['profile'].get('nickname'))
             if isinstance(nick, str) and nick:
@@ -653,7 +653,7 @@ def _load_welcome_lines():
         "🌌 You are the navigator of your reality.",
     ]
     try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')) or {}
         block = None
         if isinstance(prof, dict):
             block = prof.get('welcome') or prof.get('welcome_message')
@@ -686,7 +686,7 @@ def _load_exit_lines():
         "🌌 Returning you to baseline reality...",
     ]
     try:
-        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')) or {}
+        prof = _safe_load_yaml(os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')) or {}
         block = None
         if isinstance(prof, dict):
             block = prof.get('exit_message') or prof.get('goodbye_message')

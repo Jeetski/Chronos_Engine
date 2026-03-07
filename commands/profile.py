@@ -2,7 +2,7 @@ import os
 import yaml
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PROFILE_PATH = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
+PROFILE_PATH = os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')
 
 
 def _load_profile() -> dict:

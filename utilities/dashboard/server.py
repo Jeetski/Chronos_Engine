@@ -223,7 +223,7 @@ def _expand_text(text):
 def _vars_seed_defaults():
     try:
         # Seed nickname from profile.yml
-        prof_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
+        prof_path = os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')
         if os.path.exists(prof_path):
             try:
                 with open(prof_path, 'r', encoding='utf-8') as f:
@@ -1043,7 +1043,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/profile":
             # Return profile as JSON map (nickname/theme/etc.)
             try:
-                prof_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
+                prof_path = os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')
                 data = {}
                 if os.path.exists(prof_path):
                     with open(prof_path, 'r', encoding='utf-8') as f:
@@ -1099,7 +1099,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/preferences":
             try:
-                pref_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences_settings.yml')
+                pref_path = os.path.join(ROOT_DIR, 'user', 'profile', 'preferences_settings.yml')
                 data = {}
                 if os.path.exists(pref_path):
                     with open(pref_path, 'r', encoding='utf-8') as f:
@@ -2449,7 +2449,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/profile":
             try:
-                profile_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
+                profile_path = os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')
                 profile_data = {}
                 nickname = None
                 title = None
@@ -2485,9 +2485,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     # preferences: support preferences.yml/.yaml and preferences_settings.yml
                     try:
                         pref_candidates = [
-                            os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences.yml'),
-                            os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences.yaml'),
-                            os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences_settings.yml'),
+                            os.path.join(ROOT_DIR, 'user', 'profile', 'preferences.yml'),
+                            os.path.join(ROOT_DIR, 'user', 'profile', 'preferences.yaml'),
+                            os.path.join(ROOT_DIR, 'user', 'profile', 'preferences_settings.yml'),
                         ]
                         for pp in pref_candidates:
                             if os.path.exists(pp) and os.path.isfile(pp):
@@ -2525,7 +2525,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/profile/avatar":
             try:
-                profile_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
+                profile_path = os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')
                 avatar_rel = None
                 if os.path.exists(profile_path):
                     with open(profile_path, 'r', encoding='utf-8') as f:
@@ -4893,7 +4893,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
-                prof_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml')
+                prof_path = os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml')
                 # Load existing to preserve other fields (e.g., avatar)
                 data = {}
                 if os.path.exists(prof_path):
@@ -4958,7 +4958,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not raw:
                     self._write_json(400, {"ok": False, "error": "Empty avatar payload"}); return
 
-                prof_dir = os.path.join(ROOT_DIR, 'user', 'Profile')
+                prof_dir = os.path.join(ROOT_DIR, 'user', 'profile')
                 prof_path = os.path.join(prof_dir, 'profile.yml')
                 avatar_path = os.path.join(prof_dir, 'avatar.png')
                 os.makedirs(prof_dir, exist_ok=True)
@@ -4987,7 +4987,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
-                pref_path = os.path.join(ROOT_DIR, 'user', 'Profile', 'preferences_settings.yml')
+                pref_path = os.path.join(ROOT_DIR, 'user', 'profile', 'preferences_settings.yml')
                 existing = {}
                 if os.path.exists(pref_path):
                     with open(pref_path, 'r', encoding='utf-8') as f:

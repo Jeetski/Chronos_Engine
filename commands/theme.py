@@ -61,12 +61,12 @@ def _read_themes() -> Dict[str, Dict[str, str]]:
 
 
 def _read_profile() -> Dict[str, Any]:
-    prof = _load_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml'))
+    prof = _load_yaml(os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml'))
     return prof if isinstance(prof, dict) else {}
 
 
 def _write_profile(prof: Dict[str, Any]) -> bool:
-    return _save_yaml(os.path.join(ROOT_DIR, 'user', 'Profile', 'profile.yml'), prof)
+    return _save_yaml(os.path.join(ROOT_DIR, 'user', 'profile', 'profile.yml'), prof)
 
 
 def _resolve_profile_theme(prof: Dict[str, Any], themes: Dict[str, Dict[str, str]]) -> Tuple[str, str, str]:
