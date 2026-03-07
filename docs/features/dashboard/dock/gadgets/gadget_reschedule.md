@@ -10,7 +10,7 @@ It is intended for fast corrective replanning during the day.
 - Command reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `utilities/Dashboard/Gadgets/Reschedule/`
+- Runtime source: `utilities/dashboard/Gadgets/Reschedule/`
 - Dock behavior: single-tap action from the gadgets strip.
 - API endpoints used by this gadget:
   - `/api/cli`
@@ -35,4 +35,5 @@ It is intended for fast corrective replanning during the day.
 - `docs/scheduling/scheduling_algorithm_overview.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 

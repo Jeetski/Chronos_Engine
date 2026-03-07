@@ -24,7 +24,7 @@ if ROOT_DIR not in sys.path:
 COMMANDS_DIR = os.path.abspath(os.path.join(ROOT_DIR, "commands"))
 if COMMANDS_DIR not in sys.path:
     sys.path.insert(0, COMMANDS_DIR)
-DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "utilities", "Dashboard"))
+DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "utilities", "dashboard"))
 
 from modules.logger import Logger
 
@@ -5675,6 +5675,7 @@ if __name__ == "__main__":
         port = 7357
     serve(host=host, port=port)
         
+
 
 
 

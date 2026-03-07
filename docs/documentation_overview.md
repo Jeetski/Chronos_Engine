@@ -35,7 +35,7 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 | **ItemManager** | `modules/item_manager.py` | Generic CRUD operations for all item types |
 | **Scheduler** | `commands/today.py` + `modules/scheduler.py` | Daily agenda builder with conflict resolution |
 | **Listener** | `modules/listener/` | Background service for alarms, reminders, timer |
-| **Dashboard** | `utilities/Dashboard/` | Local HTTP server + vanilla JS SPA |
+| **Dashboard** | `utilities/dashboard/` | Local HTTP server + vanilla JS SPA |
 | **Sequence** | `modules/sequence/` | SQLite mirrors + analytics (`trends.md`) |
 | **User Data** | `User/` | All YAML items, settings, templates, logs |
 
@@ -215,13 +215,13 @@ SQLite mirrors for fast analytics:
 **Auto-Discovery System**:
 - All dashboard components are plug-and-play (drop folder → auto-discovered)
 - No configuration files or code editing required
-- **Wizards**: `utilities/Dashboard/Wizards/<Name>/`
-- **Themes**: `utilities/Dashboard/Themes/<name>.css`
-- **Widgets**: `utilities/Dashboard/Widgets/<Name>/`
-- **Views**: `utilities/Dashboard/Views/<Name>/`
-- **Panels**: `utilities/Dashboard/Panels/<Name>/`
-- **Popups**: `utilities/Dashboard/Popups/<Name>/`
-- **Gadgets**: `utilities/Dashboard/Gadgets/<Name>/`
+- **Wizards**: `utilities/dashboard/Wizards/<Name>/`
+- **Themes**: `utilities/dashboard/Themes/<name>.css`
+- **Widgets**: `utilities/dashboard/Widgets/<Name>/`
+- **Views**: `utilities/dashboard/Views/<Name>/`
+- **Panels**: `utilities/dashboard/Panels/<Name>/`
+- **Popups**: `utilities/dashboard/Popups/<Name>/`
+- **Gadgets**: `utilities/dashboard/Gadgets/<Name>/`
 
 **APIs**:
 - `GET /api/registry?name=wizards|themes|widgets|views|panels|popups|gadgets`
@@ -635,5 +635,6 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+
 
 

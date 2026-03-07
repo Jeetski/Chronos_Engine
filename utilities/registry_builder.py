@@ -661,7 +661,7 @@ def write_property_registry(path: str = None) -> str:
 def build_wizards_registry():
     """Auto-discover wizards by scanning Dashboard/Wizards directory."""
     wizards = []
-    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard")
+    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
     wizards_dir = os.path.join(dashboard_dir, "Wizards")
     
     if not os.path.exists(wizards_dir):
@@ -712,7 +712,7 @@ def build_themes_registry():
     themes = []
     
     # 1. Core Themes
-    core_themes_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard", "Themes")
+    core_themes_dir = os.path.join(ROOT_DIR, "utilities", "dashboard", "Themes")
     # 2. User Themes
     user_themes_dir = os.path.join(USER_DIR, "Themes")
     
@@ -786,7 +786,7 @@ def write_themes_registry(path: str = None) -> str:
 def build_widgets_registry():
     """Auto-discover widgets by scanning Dashboard/Widgets directory."""
     widgets = []
-    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard")
+    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
     widgets_dir = os.path.join(dashboard_dir, "Widgets")
     
     if not os.path.exists(widgets_dir):
@@ -838,7 +838,7 @@ def build_widgets_registry():
 def build_views_registry():
     """Auto-discover views by scanning Dashboard/Views directory."""
     views = []
-    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard")
+    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
     views_dir = os.path.join(dashboard_dir, "Views")
     
     if not os.path.exists(views_dir):
@@ -889,7 +889,7 @@ def build_views_registry():
 def build_panels_registry():
     """Auto-discover panels by scanning Dashboard/Panels directory."""
     panels = []
-    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard")
+    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
     panels_dir = os.path.join(dashboard_dir, "Panels")
     
     if not os.path.exists(panels_dir):
@@ -936,7 +936,7 @@ def build_panels_registry():
 def build_popups_registry():
     """Auto-discover popups by scanning Dashboard/Popups directory."""
     popups = []
-    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard")
+    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
     popups_dir = os.path.join(dashboard_dir, "Popups")
     
     if not os.path.exists(popups_dir):
@@ -982,7 +982,7 @@ def build_popups_registry():
 def build_gadgets_registry():
     """Auto-discover gadgets by scanning Dashboard/Gadgets directory."""
     gadgets = []
-    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard")
+    dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
     gadgets_dir = os.path.join(dashboard_dir, "Gadgets")
 
     if not os.path.exists(gadgets_dir):
@@ -1024,5 +1024,6 @@ def build_gadgets_registry():
         "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "gadgets": gadgets,
     }
+
 
 

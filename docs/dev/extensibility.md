@@ -22,7 +22,7 @@ The extensibility system is powered by `utilities/registry_builder.py`, which sc
 
 Interactive flows that guide users through step-by-step processes (e.g., goal creation, onboarding).
 
-**Location:** `utilities/Dashboard/Wizards/<Name>/`
+**Location:** `utilities/dashboard/Wizards/<Name>/`
 
 **Required Files:**
 - `index.js` - Main wizard module with step definitions
@@ -65,7 +65,7 @@ GET /api/registry?name=wizards
 
 CSS files that define the visual appearance of the dashboard.
 
-**Location:** `utilities/Dashboard/Themes/<name>.css`
+**Location:** `utilities/dashboard/Themes/<name>.css`
 
 **How it Works:**
 - Registry builder scans for `.css` files in the Themes directory
@@ -106,7 +106,7 @@ GET /api/registry?name=themes
 
 Full-screen layouts that provide different perspectives on your data (e.g., Calendar, Cockpit, Editor).
 
-**Location:** `utilities/Dashboard/Views/<Name>/`
+**Location:** `utilities/dashboard/Views/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(container, context)` function
@@ -157,7 +157,7 @@ GET /api/registry?name=views
 
 Modular UI components that can be toggled on/off in the dashboard (e.g., Today, Timer, Notes).
 
-**Location:** `utilities/Dashboard/Widgets/<Name>/`
+**Location:** `utilities/dashboard/Widgets/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(element, context)` function
@@ -208,7 +208,7 @@ GET /api/registry?name=widgets
 
 Drag-and-drop components for the Cockpit view (e.g., Schedule, Matrix, Status Strip).
 
-**Location:** `utilities/Dashboard/Panels/<Name>/`
+**Location:** `utilities/dashboard/Panels/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `register(manager)` function
@@ -257,7 +257,7 @@ GET /api/registry?name=panels
 
 Notification overlays that appear automatically on dashboard load (e.g., Welcome, StatusNudge).
 
-**Location:** `utilities/Dashboard/Popups/<Name>/`
+**Location:** `utilities/dashboard/Popups/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(element)` function
@@ -308,7 +308,7 @@ GET /api/registry?name=popups
 
 Dock gadgets are compact action modules mounted into the bottom Dashboard dock.
 
-**Location:** `utilities/Dashboard/Gadgets/<Name>/`
+**Location:** `utilities/dashboard/Gadgets/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(element, context)` function
@@ -370,10 +370,10 @@ GET /api/registry?name=gadgets
 
 ```bash
 # 1. Create widget folder
-mkdir "utilities/Dashboard/Widgets/HelloWorld"
+mkdir "utilities/dashboard/Widgets/HelloWorld"
 
 # 2. Create index.js
-cat > "utilities/Dashboard/Widgets/HelloWorld/index.js" <<EOF
+cat > "utilities/dashboard/Widgets/HelloWorld/index.js" <<EOF
 export function mount(el, context) {
   el.innerHTML = \`
     <div class="widget-glass">
@@ -386,7 +386,7 @@ export function mount(el, context) {
 EOF
 
 # 3. (Optional) Add metadata
-cat > "utilities/Dashboard/Widgets/HelloWorld/widget.yml" <<EOF
+cat > "utilities/dashboard/Widgets/HelloWorld/widget.yml" <<EOF
 label: "My Hello World Widget"
 EOF
 
@@ -526,5 +526,6 @@ Each builder:
 3. Optionally merges in custom metadata from `.yml` files
 4. Returns sorted registry data
 
-**Server Integration:** `utilities/Dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+**Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 

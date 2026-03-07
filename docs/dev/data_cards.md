@@ -10,14 +10,14 @@ The Data Cards system is a generic collection management feature designed to han
 - **Rules Engine**: Parses `rules.yml` to determine the schema of a card (fields, types, options).
 - **Card Serialization**: Reads/Writes individual cards as YAML files in `cards/` subdirectory.
 
-### 2. API Layer (`utilities/Dashboard/server.py`)
+### 2. API Layer (`utilities/dashboard/server.py`)
 - `GET /api/datacards/series`: List all available series.
 - `GET /api/datacards/series/<name>`: Get rules and metadata for a series.
 - `GET /api/datacards/series/<name>/cards`: Get all cards in a series.
 - `POST /api/datacards/series/<name>/cards`: Create or update a card.
 - `POST /api/datacards/import`: Import generic items (e.g., from CSV or other sources) into a series.
 
-### 3. Frontend (`utilities/Dashboard/Panels/DataCards/`)
+### 3. Frontend (`utilities/dashboard/Panels/DataCards/`)
 - **Cockpit Panel**: Data Cards are implemented as a **Cockpit Panel**, allowing users to spawn multiple instances (e.g., one for "NPCs", one for "Locations") on the same canvas.
 - **Deck Mode UI**:
   - **Sequential Navigation**: View one card at a time with "Next" and "Previous" controls, similar to a physical index card deck.
@@ -51,4 +51,5 @@ schema:
 ## Extensibility
 - **Dynamic Registries**: The system uses `utilities/registry_builder.py` to allow drop-in usage of new Wizards and Themes.
 - **Visualization**: (Future) Potential for scatter plots or network graphs based on `rules.yml` data types.
+
 
