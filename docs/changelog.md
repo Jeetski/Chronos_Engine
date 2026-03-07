@@ -247,7 +247,7 @@
 ## 2026-02-25
 
 ### Dashboard - Nia Assistant Widget (ADUC-Backed)
-- Added a new floating widget: `Nia AI Assistant` (`utilities/dashboard/Widgets/NiaAssistant/`).
+- Added a new floating widget: `Nia AI Assistant` (`utilities/dashboard/widgets/NiaAssistant/`).
 - Nia is available as a floating bottom-right orb and as a standard dashboard widget entry.
 - Widget now communicates through dashboard ADUC proxy APIs (no direct browser-to-ADUC coupling).
 - Added live waiting indicator while replies are pending:
@@ -548,7 +548,7 @@
 - Preserved archive-before-overwrite behavior when regenerating today schedule.
 
 ### Dashboard - Scheduler Widget Kairos Quick Toggles
-- Updated `utilities/dashboard/Widgets/Today/index.js` reschedule action to call `/api/cli` with `today reschedule` plus Kairos properties.
+- Updated `utilities/dashboard/widgets/Today/index.js` reschedule action to call `/api/cli` with `today reschedule` plus Kairos properties.
 - Added persistent quick toggles in Scheduler widget:
   - `buffers`
   - `breaks` (timer/none)
@@ -560,11 +560,11 @@
 - Added `custom_property:<property_name>` Kairos context support and custom-property scoring weight (`prioritize:custom_property=<n>`).
 - Scheduler widget Custom Property field now accepts any property key (free text) and forwards it to Kairos during reschedule.
 - Controls are stored in localStorage under `chronos_sched_controls` and applied on each Generate/Reschedule click.
-- Added toggle-chip styling in `utilities/dashboard/Widgets/Today/scheduler.css`.
+- Added toggle-chip styling in `utilities/dashboard/widgets/Today/scheduler.css`.
 
 ### Tests
 - Ran Kairos test suite: `python -m pytest tests/test_kairos.py -q` (6 passed).
-- Verified widget script syntax: `node --check utilities/dashboard/Widgets/Today/index.js`.
+- Verified widget script syntax: `node --check utilities/dashboard/widgets/Today/index.js`.
 
 ### Versioning
 - Standardized visible release labeling to `Alpha v0.2` across docs, console title/banner, and dashboard startup subtitle.
@@ -590,7 +590,7 @@
 ### Sleep System Refactor
 - Removed legacy `sleep_settings.yml` flow from Life Setup wizard behavior.
 - Deleted obsolete file: `User/Settings/sleep_settings.yml`.
-- Added new persistent widget: `utilities/dashboard/Widgets/SleepSettings/`
+- Added new persistent widget: `utilities/dashboard/widgets/SleepSettings/`
   - Manages sleep anchors directly in day templates.
   - Supports mono/bi/poly presets, segment editing, day toggles, overlap checks, and apply-to selected/all/new templates.
 - Added new guided wizard (renamed): `Sleep Hygiene`
@@ -653,6 +653,7 @@
   - `User/Days/weekday_builder_example.yml` -> `at_school`
   - `User/Days/weekday_example.yml` -> `at_home`
 - Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

@@ -10,7 +10,7 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - Command reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/Widgets/Trends/`
+- Runtime source: `utilities/dashboard/widgets/Trends/`
 - Primary role: focused operational UI for this feature domain.
 - API endpoints used by this widget:
   - `/api/trends/metrics`
@@ -34,5 +34,6 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 

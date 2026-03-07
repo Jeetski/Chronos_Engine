@@ -157,7 +157,7 @@ GET /api/registry?name=views
 
 Modular UI components that can be toggled on/off in the dashboard (e.g., Today, Timer, Notes).
 
-**Location:** `utilities/dashboard/Widgets/<Name>/`
+**Location:** `utilities/dashboard/widgets/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(element, context)` function
@@ -370,10 +370,10 @@ GET /api/registry?name=gadgets
 
 ```bash
 # 1. Create widget folder
-mkdir "utilities/dashboard/Widgets/HelloWorld"
+mkdir "utilities/dashboard/widgets/HelloWorld"
 
 # 2. Create index.js
-cat > "utilities/dashboard/Widgets/HelloWorld/index.js" <<EOF
+cat > "utilities/dashboard/widgets/HelloWorld/index.js" <<EOF
 export function mount(el, context) {
   el.innerHTML = \`
     <div class="widget-glass">
@@ -386,7 +386,7 @@ export function mount(el, context) {
 EOF
 
 # 3. (Optional) Add metadata
-cat > "utilities/dashboard/Widgets/HelloWorld/widget.yml" <<EOF
+cat > "utilities/dashboard/widgets/HelloWorld/widget.yml" <<EOF
 label: "My Hello World Widget"
 EOF
 
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 

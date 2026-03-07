@@ -216,7 +216,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 
 | Component | Directory | Required Export | Optional Metadata |
 |-----------|-----------|-----------------|-------------------|
-| Widget | `utilities/dashboard/Widgets/<Name>/` | `mount(el, context)` | `widget.yml` |
+| Widget | `utilities/dashboard/widgets/<Name>/` | `mount(el, context)` | `widget.yml` |
 | View | `utilities/dashboard/views/<Name>/` | `mount(container, context)` | `view.yml` |
 | Panel | `utilities/dashboard/panels/<Name>/` | `register(manager)` | `panel.yml` |
 | Popup | `utilities/dashboard/popups/<Name>/` | `mount(el)` | `popup.yml` |
@@ -228,10 +228,10 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 
 ```bash
 # 1. Create widget folder
-mkdir "utilities/dashboard/Widgets/HelloWorld"
+mkdir "utilities/dashboard/widgets/HelloWorld"
 
 # 2. Create index.js
-cat > "utilities/dashboard/Widgets/HelloWorld/index.js" <<EOF
+cat > "utilities/dashboard/widgets/HelloWorld/index.js" <<EOF
 export function mount(el, context) {
   el.innerHTML = \`
     <div class="widget-glass">
@@ -244,7 +244,7 @@ export function mount(el, context) {
 EOF
 
 # 3. (Optional) Create metadata file
-cat > "utilities/dashboard/Widgets/HelloWorld/widget.yml" <<EOF
+cat > "utilities/dashboard/widgets/HelloWorld/widget.yml" <<EOF
 label: "My Hello World Widget"
 EOF
 
@@ -282,6 +282,7 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 
 

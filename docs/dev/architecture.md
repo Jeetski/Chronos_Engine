@@ -134,7 +134,7 @@ A generic Vanilla JS Single Page Application (SPA).
   2. Reuse `ItemManager` for common behaviors (`new`, `append`, `delete`).
 
 - Add a widget, view, panel, popup, or gadget
-  1. Create folder in `utilities/dashboard/Widgets/<Name>/` (or Views/Panels/Popups/Gadgets)
+  1. Create folder in `utilities/dashboard/widgets/<Name>/` (or Views/Panels/Popups/Gadgets)
   2. Create `index.js` with appropriate export function (`mount()` for widgets/views/popups/gadgets, `register()` for panels)
   3. (Optional) Add metadata YAML file for custom labels or post-release badges
   4. Refresh dashboard - component auto-discovered and added to menu
@@ -152,6 +152,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
+
 
 
 

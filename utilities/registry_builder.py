@@ -787,7 +787,7 @@ def build_widgets_registry():
     """Auto-discover widgets by scanning Dashboard/Widgets directory."""
     widgets = []
     dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
-    widgets_dir = os.path.join(dashboard_dir, "Widgets")
+    widgets_dir = os.path.join(dashboard_dir, "widgets")
     
     if not os.path.exists(widgets_dir):
         return {
