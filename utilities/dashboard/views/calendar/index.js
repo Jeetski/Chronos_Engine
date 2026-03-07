@@ -292,7 +292,7 @@ function injectDayListStyles() {
   document.head.appendChild(style);
 }
 
-import { Inspector } from './Inspector.js';
+import { Inspector } from './inspector.js';
 
 export function mount(el, context) {
   try { el.style.position = 'relative'; } catch { }

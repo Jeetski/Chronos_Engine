@@ -322,7 +322,7 @@
 - Calendar Inspector `Deadlines & Due Dates` sections now default to collapsed in both:
   - Month view
   - Day view
-- File: `utilities/dashboard/views/calendar/Inspector.js`
+- File: `utilities/dashboard/views/calendar/inspector.js`
 
 ### Dashboard - Startup Popup Buttons
 - Added new startup popup action button:
