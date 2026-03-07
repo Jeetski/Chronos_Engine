@@ -428,8 +428,8 @@
   - short nights and below-target counts
   - rolling 7d/30d averages
 - Added `sleep: true` to active sleep habits:
-  - `user/Habits/sleep.yml`
-  - `user/Habits/bedtime.yml`
+  - `user/habits/sleep.yml`
+  - `user/habits/bedtime.yml`
 
 ### Dashboard - Terminal Theme and Behavior
 - Terminal widget now uses active **console theme** palette (not dashboard theme) via:
