@@ -9,7 +9,7 @@ Routine/subroutine/microroutine template editor with nested structure control.
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/Views/RoutineBuilder/`
+- Runtime source: `utilities/dashboard/views/RoutineBuilder/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/cli`
@@ -42,5 +42,6 @@ Routine/subroutine/microroutine template editor with nested structure control.
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 

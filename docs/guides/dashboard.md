@@ -32,7 +32,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Routine Builder** - Template-composition editor for `routine`, `subroutine`, and `microroutine` templates with drag/drop schedulables (routines, subroutines, microroutines/habit stacks, habits/chores, tasks, windows, buffers, breaks), hierarchy editing, validation, and template lifecycle controls. See `docs/guides/routine_builder.md`.
 - **Project Manager** - Project planning view with state filtering, milestone linkage, and editable project metadata (`description`, `state`, `stage`, `priority`, `target date`). `Open Milestones` opens the Milestones widget pre-filtered to the selected project.
 - **Goal Planner** - Goal-focused planning view aligned with Project Manager behavior. Shows goals only in the goal list (not milestone rows), supports editable goal metadata (`description`, `state`, `stage`, `priority`, `target date`), and opens Milestones pre-filtered to the selected goal.
-- **Cockpit** - A drag-and-drop canvas powered by `utilities/dashboard/Views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `docs/guides/cockpit.md` for panel details and troubleshooting.
+- **Cockpit** - A drag-and-drop canvas powered by `utilities/dashboard/views/Cockpit/`. The grid pans/zooms (drag empty space, Ctrl + scroll, or use the floating controls), remembers layout in `chronos_cockpit_panels_v1`, and spawns panels from the dropdown. Shipping panels include **Schedule**, **Matrix**, **Matrix Visuals**, **Status Strip**, **Commitments Snapshot**, **Map of Happiness**, **Lists**, **Deadlines**, and **Data Cards (Deck Mode)**. See `docs/guides/cockpit.md` for panel details and troubleshooting.
   - The Matrix panel loads presets from `presets/matrix/` (YAML). It ships with curated defaults there (Status x Type, Task Priority vs Status, Duration by Tag, Points by Category), and you can drop new preset files into that folder.
   - Filter dropdowns auto-populate with your actual item types, template types, and YAML properties, making it easier to build conditions without memorizing field names.
 - **Editor** - A full-featured code editor for managing Chronos scripts (`.chs`), YAML settings, and Markdown notes (`User/` directory).
@@ -217,7 +217,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 | Component | Directory | Required Export | Optional Metadata |
 |-----------|-----------|-----------------|-------------------|
 | Widget | `utilities/dashboard/Widgets/<Name>/` | `mount(el, context)` | `widget.yml` |
-| View | `utilities/dashboard/Views/<Name>/` | `mount(container, context)` | `view.yml` |
+| View | `utilities/dashboard/views/<Name>/` | `mount(container, context)` | `view.yml` |
 | Panel | `utilities/dashboard/panels/<Name>/` | `register(manager)` | `panel.yml` |
 | Popup | `utilities/dashboard/popups/<Name>/` | `mount(el)` | `popup.yml` |
 | Gadget | `utilities/dashboard/gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
@@ -282,6 +282,7 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 
 

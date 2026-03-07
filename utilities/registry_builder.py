@@ -839,7 +839,7 @@ def build_views_registry():
     """Auto-discover views by scanning Dashboard/Views directory."""
     views = []
     dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
-    views_dir = os.path.join(dashboard_dir, "Views")
+    views_dir = os.path.join(dashboard_dir, "views")
     
     if not os.path.exists(views_dir):
         return {

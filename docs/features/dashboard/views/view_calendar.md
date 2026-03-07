@@ -9,7 +9,7 @@ Time-grid and date-oriented planning surface for agenda inspection and day-level
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/Views/Calendar/`
+- Runtime source: `utilities/dashboard/views/Calendar/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/calendar/happiness?mode=`
@@ -46,5 +46,6 @@ Time-grid and date-oriented planning surface for agenda inspection and day-level
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 

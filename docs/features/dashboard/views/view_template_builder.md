@@ -9,7 +9,7 @@ General template construction workspace across multiple schedulable/template typ
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/Views/TemplateBuilder/`
+- Runtime source: `utilities/dashboard/views/TemplateBuilder/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/item`
@@ -41,5 +41,6 @@ General template construction workspace across multiple schedulable/template typ
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 

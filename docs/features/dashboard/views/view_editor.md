@@ -9,7 +9,7 @@ Project file editor for scripts/config/docs with open/save/rename flows.
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `utilities/dashboard/Views/Editor/`
+- Runtime source: `utilities/dashboard/views/Editor/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/editor`
@@ -35,5 +35,6 @@ Project file editor for scripts/config/docs with open/save/rename flows.
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+
 
 

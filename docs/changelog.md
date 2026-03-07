@@ -322,7 +322,7 @@
 - Calendar Inspector `Deadlines & Due Dates` sections now default to collapsed in both:
   - Month view
   - Day view
-- File: `utilities/dashboard/Views/Calendar/Inspector.js`
+- File: `utilities/dashboard/views/Calendar/Inspector.js`
 
 ### Dashboard - Startup Popup Buttons
 - Added new startup popup action button:
@@ -343,7 +343,7 @@
   - horizontal rules
   - links
 - Non-markdown files continue to render as preformatted plain text.
-- File: `utilities/dashboard/Views/docs/index.js`
+- File: `utilities/dashboard/views/docs/index.js`
 
 ### CLI - Prompt Toolkit and Autocomplete Controls
 - Added `User/Settings/console_settings.yml` for console runtime behavior:
@@ -492,7 +492,7 @@
 
 ### Dashboard - New Tracker View
 - Added new view module:
-  - `utilities/dashboard/Views/Tracker/`
+  - `utilities/dashboard/views/Tracker/`
 - Added tracker APIs:
   - `GET /api/tracker/sources`
   - `GET /api/tracker/year?type=habit|commitment&name=<item>&year=<yyyy>`
@@ -653,6 +653,7 @@
   - `User/Days/weekday_builder_example.yml` -> `at_school`
   - `User/Days/weekday_example.yml` -> `at_home`
 - Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

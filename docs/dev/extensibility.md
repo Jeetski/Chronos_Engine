@@ -106,7 +106,7 @@ GET /api/registry?name=themes
 
 Full-screen layouts that provide different perspectives on your data (e.g., Calendar, Cockpit, Editor).
 
-**Location:** `utilities/dashboard/Views/<Name>/`
+**Location:** `utilities/dashboard/views/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(container, context)` function
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 
