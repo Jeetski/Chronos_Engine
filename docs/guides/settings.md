@@ -44,8 +44,8 @@ Defines the dimensions of your human state (Energy, Focus, Mood).
     - Special value: `chronos_editor` routes opens into the dashboard Editor view instead of external apps.
   - `dashboard_browser` (or `browser`): Optional browser command override for `dashboard`.
     - If unset, `dashboard` uses the system default browser.
-- **`user/Profile/preferences_settings.yml`**: Controls Agent/System verbosity and behavior.
-- **`user/Profile/profile.yml`**: The "User Object" (Nickname, preferences).
+- **`user/profile/preferences_settings.yml`**: Controls Agent/System verbosity and behavior.
+- **`user/profile/profile.yml`**: The "User Object" (Nickname, preferences).
 
 ### 5. Economy & Gamification
 - **`points_settings.yml`**: How many points each item type yields.

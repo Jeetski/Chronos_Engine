@@ -126,7 +126,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - Registry & sound tooling: `register ...`, `sound ...`.
 
 Variables
-- The console seeds `@nickname` from `user/Profile/profile.yml`. Use in scripts/messages.
+- The console seeds `@nickname` from `user/profile/profile.yml`. Use in scripts/messages.
 - Set/read variables programmatically via `modules/variables.py` or CLI patterns.
 
 ## Dashboard
@@ -157,10 +157,10 @@ Selected endpoints (JSON unless noted)
 - Settings: `GET /api/settings`, `GET /api/settings?file=Name.yml`, `POST /api/settings?file=Name.yml` (raw YAML preserved after validation).
 
 ## Profile file path
-- Canonical path: `user/Profile/profile.yml`.
+- Canonical path: `user/profile/profile.yml`.
 - Long-form brief & preferences live next to it:
-  - `user/Profile/pilot_brief.md` — free-form priorities, motivations, how you want to use Chronos.
-  - `user/Profile/preferences.md` — interaction preferences for the agent (tone, rituals, etc.).
+  - `user/profile/pilot_brief.md` — free-form priorities, motivations, how you want to use Chronos.
+  - `user/profile/preferences.md` — interaction preferences for the agent (tone, rituals, etc.).
 
 ## Listener target actions
 Alarms and reminders can execute linked actions when they trigger. In the item YAML:

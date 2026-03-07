@@ -435,7 +435,7 @@ Scripts (Automation)
   ```
 
 - Variables
-  - Use `@nickname` (from `user/Profile/profile.yml`) in messages.
+  - Use `@nickname` (from `user/profile/profile.yml`) in messages.
   - Set inside scripts with `set var <name> <value>` or via specific command outputs.
 
 ----------------------------------------

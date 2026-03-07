@@ -13,8 +13,8 @@ Wizards should produce deterministic item/settings outcomes that remain editable
 - Runtime source: `utilities/dashboard/wizards/big5/`
 - Primary intent: guided multi-step workflow with reduced setup friction.
 - API endpoints used by this wizard:
-  - `/api/file/read?path=user/Profile/personality.md`
-  - `/api/file/read?path=user/Profile/profile.yml`
+  - `/api/file/read?path=user/profile/personality.md`
+  - `/api/file/read?path=user/profile/profile.yml`
   - `/api/file/write`
   - `/api/settings`
 

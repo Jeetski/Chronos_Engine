@@ -19,7 +19,7 @@ Running `aduc` from the Chronos CLI (or `ADUC_launcher.bat` from Windows) launch
 It automatically:
 - Sets environment variables pointing to your Chronos User data.
 - Injects the **Chronos Agent Guide** (`docs/agents/agents.md`) into the Familiar's prompt.
-- Injects your **Pilot Brief** (`user/Profile/pilot_brief.md`) and **Preferences**.
+- Injects your **Pilot Brief** (`user/profile/pilot_brief.md`) and **Preferences**.
 
 This turns a generic AI assistant into "Nia" (or your preferred pilot), capable of running CLI commands and managing your schedule via the CLI Bridge.
 

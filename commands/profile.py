@@ -150,7 +150,7 @@ Usage: profile show
        profile set-line <1|2|3> <text...>
 
 Description:
-  Views or updates profile details stored in user/Profile/profile.yml. Supports a welcome block with line1/line2/line3.
+  Views or updates profile details stored in user/profile/profile.yml. Supports a welcome block with line1/line2/line3.
   Variables like @nickname expand in the welcome lines.
 
 Examples:

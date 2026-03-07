@@ -688,7 +688,7 @@ def get_familiar_activities(fam_id):
 def get_user_profile():
     """Return user's nickname and avatar from Chronos profile.yml if in Chronos mode.
     
-    In Chronos mode (ADUC_PROJECT_PATH set), reads user/Profile/profile.yml.
+    In Chronos mode (ADUC_PROJECT_PATH set), reads user/profile/profile.yml.
     Falls back to familiar's profile.json nickname.
     """
     result = {"nickname": "You", "avatar": "/static/avatar-default.svg", "source": "default"}
@@ -696,7 +696,7 @@ def get_user_profile():
     # Check for Chronos mode - ADUC_PROJECT_PATH points to Chronos Engine root
     project_path = os.environ.get("ADUC_PROJECT_PATH", "")
     if project_path:
-        # Try to read user/Profile/profile.yml
+        # Try to read user/profile/profile.yml
         profile_yml = Path(project_path) / "user" / "Profile" / "profile.yml"
         if profile_yml.exists():
             try:
@@ -729,7 +729,7 @@ def get_user_profile():
 
 @app.route("/user-avatar")
 def serve_user_avatar():
-    """Serve user's avatar from Chronos user/Profile/avatar.* if in Chronos mode."""
+    """Serve user's avatar from Chronos user/profile/avatar.* if in Chronos mode."""
     project_path = os.environ.get("ADUC_PROJECT_PATH", "")
     if project_path:
         profile_dir = Path(project_path) / "user" / "Profile"

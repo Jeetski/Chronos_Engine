@@ -84,7 +84,7 @@ Autosuggest switches to the nested command once you reach the pipeline point.
 
 ## Theme Notes (CLI)
 
-The CLI autosuggest uses prompt_toolkit and inherits Chronos theme colors. If the prompt looks like the default black/white, check the theme in `user/Profile/profile.yml` or `user/settings/theme_settings.yml`.
+The CLI autosuggest uses prompt_toolkit and inherits Chronos theme colors. If the prompt looks like the default black/white, check the theme in `user/profile/profile.yml` or `user/settings/theme_settings.yml`.
 
 
 

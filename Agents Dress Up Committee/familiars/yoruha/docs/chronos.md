@@ -27,7 +27,7 @@ Do not preload every skill. Load only what matches the user request.
 - `docs/agents/skills/index.md`
 - `docs/agents/agents.md`
 - `docs/index.md`
-- user context: `user/Profile/*`, `user/Data/trends.md`
+- user context: `user/profile/*`, `user/Data/trends.md`
 
 ## Fast Defaults
 - Agenda request: run `today`.

@@ -21,7 +21,7 @@ def get_help_message():
         "                       Set explicit console colors (overrides theme)\n"
         "Notes:\n"
         "- Themes come from user/settings/console_theme_settings.yml (themes: { name: { background, text } }).\n"
-        "- Current selection is stored in user/Profile/profile.yml under 'theme' or 'console: { theme }'.\n"
+        "- Current selection is stored in user/profile/profile.yml under 'theme' or 'console: { theme }'.\n"
         "- Explicit 'background'/'text' in profile override the theme.\n"
     )
 

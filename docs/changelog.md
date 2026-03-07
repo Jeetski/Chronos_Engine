@@ -200,7 +200,7 @@
 - Updated defaults in `user/settings/Achievement_Defaults.yml` to include awarded/status/title fields.
 
 ### Profile Progression - XP/Level Wiring
-- Achievement awards now update `user/Profile/profile.yml` progression fields:
+- Achievement awards now update `user/profile/profile.yml` progression fields:
   - `xp_total`
   - `level`
   - `xp_into_level`

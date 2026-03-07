@@ -4889,7 +4889,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/profile":
-            # Save nickname and welcome/exit message lines into user/Profile/profile.yml
+            # Save nickname and welcome/exit message lines into user/profile/profile.yml
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
@@ -4940,7 +4940,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/profile/avatar":
-            # Save avatar image and set profile avatar path to user/Profile/avatar.png
+            # Save avatar image and set profile avatar path to user/profile/avatar.png
             try:
                 if not isinstance(payload, dict):
                     self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
@@ -4974,7 +4974,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         data = {}
                 if not isinstance(data, dict):
                     data = {}
-                data['avatar'] = 'user/Profile/avatar.png'
+                data['avatar'] = 'user/profile/avatar.png'
                 with open(prof_path, 'w', encoding='utf-8') as f:
                     yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
@@ -5240,7 +5240,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(400, {"ok": False, "error": "Missing file_path"}); return
 
                 # Basic sanitization
-                if '..' in file_to_open or not file_to_open.startswith('user/Profile/'):
+                if '..' in file_to_open or not file_to_open.startswith('user/profile/'):
                     self._write_json(400, {"ok": False, "error": "Invalid file path"}); return
                 
                 full_path = os.path.join(ROOT_DIR, file_to_open)

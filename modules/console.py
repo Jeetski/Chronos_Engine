@@ -643,7 +643,7 @@ def _load_profile_and_seed_vars():
 
 def _load_welcome_lines():
     """
-    Load welcome lines exclusively from user/Profile/profile.yml.
+    Load welcome lines exclusively from user/profile/profile.yml.
     Supports either 'welcome' or 'welcome_message' block, each with line1/line2/line3.
     Expands @nickname and other variables via Variables.
     """
@@ -677,7 +677,7 @@ def _load_welcome_lines():
 
 def _load_exit_lines():
     """
-    Load exit lines from user/Profile/profile.yml.
+    Load exit lines from user/profile/profile.yml.
     Supports 'exit_message' or 'goodbye_message', each with line1/line2.
     Expands @nickname and other variables.
     """

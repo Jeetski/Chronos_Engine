@@ -7,7 +7,7 @@ Achievements tracks unlockable milestones and ties each unlock to both points an
 Core model:
 - Achievement definitions are YAML items under `user/Achievements/`.
 - Unlocks update achievement state and progression state.
-- Progression state is persisted in `user/Profile/profile.yml`.
+- Progression state is persisted in `user/profile/profile.yml`.
 
 Award results:
 - points are granted to the points ledger
@@ -80,7 +80,7 @@ Key settings and defaults:
 - `user/settings/achievements_settings.yml`
 - `user/settings/Achievement_Defaults.yml`
 
-Progression fields in `user/Profile/profile.yml`:
+Progression fields in `user/profile/profile.yml`:
 - `xp_total`
 - `level`
 - `xp_into_level`
@@ -115,7 +115,7 @@ If unlock popups are missing:
 3. Refresh dashboard and re-check `GET /api/achievements`.
 
 If XP/level looks incorrect:
-1. Inspect `user/Profile/profile.yml` progression fields.
+1. Inspect `user/profile/profile.yml` progression fields.
 2. Run `achievements sync`.
 3. If still inconsistent in test environments, use `achievements reset-progress` and re-run sync.
 

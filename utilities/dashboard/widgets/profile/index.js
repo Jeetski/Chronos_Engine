@@ -263,13 +263,13 @@ export async function mount(elem, context) {
     } catch { }
   }
   if (editPrefsBtn) {
-    editPrefsBtn.addEventListener('click', () => openFileInNotes('user/Profile/preferences.md', 'preferences'));
+    editPrefsBtn.addEventListener('click', () => openFileInNotes('user/profile/preferences.md', 'preferences'));
   }
   if (editPrefsSettingsBtn) {
-    editPrefsSettingsBtn.addEventListener('click', () => openFileInNotes('user/Profile/preferences_settings.yml', 'preferences settings', 'yaml'));
+    editPrefsSettingsBtn.addEventListener('click', () => openFileInNotes('user/profile/preferences_settings.yml', 'preferences settings', 'yaml'));
   }
   if (editPilotBriefBtn) {
-    editPilotBriefBtn.addEventListener('click', () => openFileInNotes('user/Profile/pilot_brief.md', 'pilot brief'));
+    editPilotBriefBtn.addEventListener('click', () => openFileInNotes('user/profile/pilot_brief.md', 'pilot brief'));
   }
 
   // Resizers

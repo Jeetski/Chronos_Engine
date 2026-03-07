@@ -360,10 +360,10 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 - `buffer_settings.yml`, `map_of_happiness.yml`
 
 ### Profile
-- `user/Profile/profile.yml` - Nickname, preferences
-- `user/Profile/pilot_brief.md` - Priorities, motivations
-- `user/Profile/preferences.md` - Agent interaction preferences
-- `user/Profile/personality.yml` - Big 5 psychometric traits
+- `user/profile/profile.yml` - Nickname, preferences
+- `user/profile/pilot_brief.md` - Priorities, motivations
+- `user/profile/preferences.md` - Agent interaction preferences
+- `user/profile/personality.yml` - Big 5 psychometric traits
 
 ### Data Mirrors
 - `user/Data/databases.yml` - Mirror registry

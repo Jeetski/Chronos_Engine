@@ -143,8 +143,8 @@ export function mount(el, context) {
   const NIA_PREFS_PATH = 'Agents Dress Up Committee/familiars/nia/docs/preferences.md';
   const NIA_MEM_PATH = 'Agents Dress Up Committee/familiars/nia/docs/memories.md';
   const NIA_MEMORY_JSON_PATH = 'Agents Dress Up Committee/familiars/nia/memory.json';
-  const PREF_SETTINGS_PATH = 'user/Profile/preferences_settings.yml';
-  const PILOT_BRIEF_PATH = 'user/Profile/pilot_brief.md';
+  const PREF_SETTINGS_PATH = 'user/profile/preferences_settings.yml';
+  const PILOT_BRIEF_PATH = 'user/profile/pilot_brief.md';
 
   function fallbackAvatarDataUrl(label) {
     const txt = encodeURIComponent(String(label || '?').slice(0, 1).toUpperCase() || '?');

@@ -195,7 +195,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 
 ## Notes & Best Practices
 
-- **Profile path:** `user/Profile/profile.yml` is the canonical location for nickname/preferences (used across CLI and dashboard).
+- **Profile path:** `user/profile/profile.yml` is the canonical location for nickname/preferences (used across CLI and dashboard).
 - **CORS/security:** The server is permissive for localhost development only. Do not expose it publicly without adding auth and HTTPS.
 - **Response format:** Prefer JSON for machine parsing; YAML responses are used when human readability helps (e.g., `/health`, `/api/today`).
 - **State sharing:** The dashboard shares variables, templates, and item store with the CLI; running actions in the UI is equivalent to issuing CLI commands.
