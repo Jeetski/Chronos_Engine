@@ -152,7 +152,7 @@ def main() -> int:
     missing_commands = sorted(code_commands - doc_commands)
     stale_commands = sorted(doc_commands - code_commands)
     if missing_commands:
-        errors.append("Commands present in code but missing in Docs/Reference/CLI_Commands.md:")
+        errors.append("Commands present in code but missing in Docs/reference/cli_commands.md:")
         errors.extend(f"  - {c}" for c in missing_commands)
     if stale_commands:
         errors.append("Commands documented but missing in Commands/:")
@@ -167,7 +167,7 @@ def main() -> int:
         ep for ep in documented_endpoints if not endpoint_exists_for_doc_pattern(ep, implemented_endpoints)
     )
     if missing_endpoints:
-        errors.append("Endpoints present in server.py but missing in Docs/Reference/Dashboard_API.md:")
+        errors.append("Endpoints present in server.py but missing in Docs/reference/dashboard_api.md:")
         errors.extend(f"  - {e}" for e in missing_endpoints)
     if stale_endpoints:
         errors.append("Endpoints documented but missing in server.py:")

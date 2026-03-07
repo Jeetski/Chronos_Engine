@@ -63,7 +63,7 @@ Key files
 - `ADUC.html`, `static/ui.js`, `static/styles.css`: minimal UI.
 - `familiars/<name>/`: familiar definitions (meta/state/memory/avatars) and `docs/` for persona files.
 - `docs/index.md`: full documentation index.
-- `docs/README.md`: deep-dive landing page.
+- `docs/readme.md`: deep-dive landing page.
 - `docs/agents/AGENTS.md`: CLI integration guide (prompt merge, file locations, JSON schema).
 
 Settings

@@ -1,0 +1,48 @@
+# Calendar View
+
+## Overview
+Time-grid and date-oriented planning surface for agenda inspection and day-level actions.
+
+## CLI
+- Related command patterns: `today; today reschedule; change; trim; cut; mark; did`.
+- Primary syntax reference: `Docs/reference/cli_commands.md`.
+- Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
+
+## Dashboard
+- Runtime source: `Utilities/Dashboard/Views/Calendar/`
+- View behavior should remain consistent with dashboard API contracts.
+- API endpoints used by this view:
+  - `/api/calendar/happiness?mode=`
+  - `/api/calendar/overlays`
+  - `/api/calendar/overlays/delete`
+  - `/api/cli`
+  - `/api/completions?date=`
+  - `/api/completions?start=`
+  - `/api/day/start`
+  - `/api/file/read?path=`
+  - `/api/goals`
+  - `/api/items`
+  - `/api/settings?file=`
+  - `/api/template/list?type=`
+  - `/api/today`
+  - `/api/today/reschedule`
+
+## Data and Settings
+- Reads/writes through APIs into canonical `User/*` YAML/markdown state.
+- Settings access (if present) should flow through `User/Settings/*.yml` endpoints.
+
+## Operational Workflows
+1. Load view and confirm initial data hydration succeeds.
+2. Perform one read workflow (inspect/select/filter/open).
+3. Perform one write workflow (create/update/rename/delete if supported).
+4. Refresh view and verify persistence and consistency with CLI output.
+
+## Validation
+1. Open `Calendar` view from dashboard navigation.
+2. Exercise at least one endpoint-backed interaction.
+3. Confirm no console/API errors and persisted state is correct.
+
+## Related Docs
+- `Docs/guides/dashboard.md`
+- `Docs/reference/dashboard_api.md`
+- `Docs/reference/cli_commands.md`
