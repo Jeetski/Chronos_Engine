@@ -12,7 +12,7 @@ Primary launch paths:
 Execution flow:
 1. Read line input.
 2. Parse into command/args/properties.
-3. Dispatch to `Commands/<Name>.py`.
+3. Dispatch to `commands/<Name>.py`.
 4. Print result/error and wait for next command.
 
 Operational patterns:
@@ -43,3 +43,4 @@ Failure contract:
 ## Related Docs
 - `docs/reference/cli_commands.md`
 - `docs/features/dashboard/widgets/widget_terminal.md`
+

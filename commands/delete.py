@@ -1,7 +1,7 @@
 import sys
 from modules.item_manager import dispatch_command
 try:
-    from Commands import archive as Archive
+    from commands import archive as Archive
 except ImportError:
     # Fallback if Archive.py isn't loaded yet in some contexts, though typically it should be.
     Archive = None
@@ -52,3 +52,4 @@ Example:
   delete note MyOldNote          # Archives it
   delete note MyOldNote --force  # Deletes it forever
 """
+

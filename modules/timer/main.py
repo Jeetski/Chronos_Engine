@@ -544,7 +544,7 @@ def _record_schedule_completion(block, status: str = "completed"):
     scheduled_start = block.get("start") or block.get("scheduled_start")
     scheduled_end = block.get("end") or block.get("scheduled_end")
     try:
-        from Commands.today import load_completion_payload
+        from commands.today import load_completion_payload
         from modules.scheduler import build_block_key
         schedule_date = str(block.get("date") or datetime.now().strftime("%Y-%m-%d"))
         completion_data, completion_path = load_completion_payload(schedule_date)
@@ -702,7 +702,7 @@ def _stretch_schedule_block(st, minutes: int):
     # Reschedule today so downstream blocks are shifted coherently.
     if schedule_date == today_key:
         try:
-            from Commands import today as TodayCommand
+            from commands import today as TodayCommand
             TodayCommand.run(['reschedule'], {})
         except Exception:
             pass
@@ -1211,3 +1211,4 @@ def sync_schedule_state():
 
     _save_state(st)
     return st
+

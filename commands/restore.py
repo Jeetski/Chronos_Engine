@@ -4,7 +4,7 @@ import zipfile
 import glob
 import shutil
 from modules.item_manager import USER_DIR, ROOT_DIR
-from Commands import backup as Backup
+from commands import backup as Backup
 
 BACKUPS_DIR = Backup.BACKUPS_DIR
 
@@ -89,3 +89,4 @@ Example:
   restore latest force:true
   restore chronos_backup_20250101.zip force:true
 """
+

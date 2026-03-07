@@ -18,7 +18,7 @@ Run the full goal lifecycle in Chronos: define outcomes, decompose into mileston
 ## Source of Truth
 - Goal items: `User/Goals/*.yml`
 - Milestone items: `User/Milestones/*.yml`
-- Goal/milestone command layer: `Commands/` + `modules/goal/` + `modules/milestone/`
+- Goal/milestone command layer: `commands/` + `modules/goal/` + `modules/milestone/`
 - Progress views:
   - CLI: `track goal ...`, `track milestone ...`
   - Dashboard: Goal Planner + Milestones widget/API
@@ -216,3 +216,4 @@ When running this skill, report:
 - `docs/reference/item_properties.md`
 - `docs/guides/dashboard.md`
 - `docs/features/achievements_progression_system.md`
+

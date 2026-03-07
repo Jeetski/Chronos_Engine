@@ -45,7 +45,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 # Define paths for commands and modules directories
-COMMANDS_DIR = os.path.join(ROOT_DIR, "Commands")
+COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
 MODULES_DIR = os.path.join(ROOT_DIR, "modules")
 
 # Ensure both COMMANDS_DIR and MODULES_DIR are in sys.path
@@ -1597,3 +1597,4 @@ if __name__ == "__main__":
                         time.sleep(1)
                     _play_cli_sound("exit", wait=True)
                     break
+

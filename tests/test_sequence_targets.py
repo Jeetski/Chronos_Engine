@@ -1,6 +1,6 @@
 import unittest
 
-from Commands import sequence as SequenceCommand
+from commands import sequence as SequenceCommand
 from modules.sequence import registry as seq_registry
 
 
@@ -19,3 +19,4 @@ class TestSequenceTargets(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

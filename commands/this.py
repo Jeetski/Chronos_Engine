@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from modules.scheduler import display_schedule
 from modules.planner import build_preview_for_date
-from Commands.next import WEEKDAYS
+from commands.next import WEEKDAYS
 
 
 def _resolve_weekday(token):
@@ -54,3 +54,4 @@ Examples:
   this monday
   this friday
 """
+

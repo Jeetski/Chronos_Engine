@@ -1,4 +1,4 @@
-# In Commands/track.py
+# In commands/track.py
 
 import sys
 from modules.item_manager import dispatch_command
@@ -58,3 +58,4 @@ Examples:
   track task "Deep Work"
   track routine "Morning Routine"
 """
+

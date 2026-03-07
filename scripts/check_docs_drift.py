@@ -11,7 +11,7 @@ from urllib.parse import unquote
 
 
 ROOT = Path(__file__).resolve().parents[1]
-COMMANDS_DIR = ROOT / "Commands"
+COMMANDS_DIR = ROOT / "commands"
 SERVER_FILE = ROOT / "Utilities" / "Dashboard" / "server.py"
 CLI_DOC = ROOT / "docs" / "reference" / "cli_commands.md"
 API_DOC = ROOT / "docs" / "reference" / "dashboard_api.md"
@@ -155,7 +155,7 @@ def main() -> int:
         errors.append("Commands present in code but missing in docs/reference/cli_commands.md:")
         errors.extend(f"  - {c}" for c in missing_commands)
     if stale_commands:
-        errors.append("Commands documented but missing in Commands/:")
+        errors.append("Commands documented but missing in commands/:")
         errors.extend(f"  - {c}" for c in stale_commands)
 
     implemented_endpoints = extract_api_endpoints_from_server()
@@ -190,3 +190,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

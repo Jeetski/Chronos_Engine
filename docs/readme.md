@@ -58,14 +58,14 @@ Tips
 
 ## What's Inside
 High level
-- CLI runtime: `modules/console.py` dynamically loads commands (`Commands/*.py`) and item modules (`modules/*/main.py`).
+- CLI runtime: `modules/console.py` dynamically loads commands (`commands/*.py`) and item modules (`modules/*/main.py`).
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `modules/listener/listener.py` runs alarms, reminders, and timer lifecycle.
 - Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
 - Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
-- `Commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
+- `commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
 - `modules/`: engine features (ItemManager, Scheduler, Timer, Conditions, etc.).
 - `Utilities/`: helper libs and Dashboard code.
 - `User/`: your data (items, schedules, settings, logs).
@@ -219,4 +219,5 @@ Recent improvements
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+
 

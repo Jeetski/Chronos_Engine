@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-CMDS_DIR = os.path.join(ROOT, 'Commands')
+CMDS_DIR = os.path.join(ROOT, 'commands')
 SITE_CMDS_HTML = os.path.join(ROOT, '_site', 'pages', 'commands.html')
 
 def list_commands():
@@ -164,3 +164,4 @@ def build_html():
 
 if __name__ == '__main__':
     build_html()
+

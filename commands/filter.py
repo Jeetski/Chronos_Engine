@@ -10,7 +10,7 @@ Example: filter type:all
 
 
 
-# Commands/filter.py
+# commands/filter.py
 
 from modules.filter_manager import FilterManager
 
@@ -35,3 +35,4 @@ def run(args, properties):
     else:
         item_type = command
         FilterManager.set_filter(item_type=item_type, properties=properties)
+

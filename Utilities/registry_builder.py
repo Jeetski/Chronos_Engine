@@ -7,7 +7,7 @@ from datetime import datetime
 import yaml
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-COMMANDS_DIR = os.path.join(ROOT_DIR, "Commands")
+COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
 USER_DIR = os.path.join(ROOT_DIR, "User")
 SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
 REGISTRY_DIR = os.path.join(ROOT_DIR, "registry")
@@ -1024,3 +1024,4 @@ def build_gadgets_registry():
         "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "gadgets": gadgets,
     }
+

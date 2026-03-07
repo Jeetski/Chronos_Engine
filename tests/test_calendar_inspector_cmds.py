@@ -11,11 +11,11 @@ if ROOT_DIR not in os.sys.path:
 
 from modules.scheduler import v1 as Scheduler
 from modules import item_manager as ItemManager
-import Commands.stretch as cmd_stretch
-import Commands.anchor as cmd_anchor
-import Commands.split as cmd_split
-import Commands.merge as cmd_merge
-import Commands.template as cmd_template
+import commands.stretch as cmd_stretch
+import commands.anchor as cmd_anchor
+import commands.split as cmd_split
+import commands.merge as cmd_merge
+import commands.template as cmd_template
 
 
 class TestNewCommands(unittest.TestCase):
@@ -111,5 +111,6 @@ class TestNewCommands(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 
 

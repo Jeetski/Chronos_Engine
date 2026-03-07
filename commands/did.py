@@ -3,7 +3,7 @@ import yaml
 from datetime import datetime
 
 from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
-from Commands.today import load_completion_payload
+from commands.today import load_completion_payload
 from modules import quality_utils
 try:
     from Utilities import points as Points
@@ -185,3 +185,4 @@ Examples:
   did "Workout" status:partial note:"Stopped early"
   did "Planning" start_time:09:00 end_time:09:45 date:2026-03-01
 """
+

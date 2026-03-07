@@ -10,7 +10,7 @@ from modules.scheduler import (
     build_block_key,
     normalize_completion_entries,
 )
-from Commands.today import load_completion_payload
+from commands.today import load_completion_payload
 from Utilities.duration_parser import parse_duration_string
 
 
@@ -388,3 +388,4 @@ Settings file: User/Settings/quick_wins_settings.yml
 Date: quickwins date:YYYY-MM-DD
 Example: quickwins minutes:15 days:3 limit:15
 """
+

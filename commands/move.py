@@ -23,7 +23,7 @@ def run(args, properties):
 
     # Determine target item type and new item name
     target_item_type = source_item_type # Default to same type
-    print(f"DEBUG: Commands/move.py - target_item_type after initial assignment: {target_item_type}")
+    print(f"DEBUG: commands/move.py - target_item_type after initial assignment: {target_item_type}")
     new_item_name = source_item_name # Default to same name
 
     # Check for new item name in args (if not a property)
@@ -35,15 +35,15 @@ def run(args, properties):
         target_item_type = properties["type"].lower()
         if target_item_type.endswith('s'):
             target_item_type = target_item_type[:-1]
-        print(f"DEBUG: Commands/move.py - target_item_type from properties: {target_item_type}")
+        print(f"DEBUG: commands/move.py - target_item_type from properties: {target_item_type}")
         del properties["type"] # Remove from properties to avoid re-applying to item content
 
     if "name" in properties:
         new_item_name = properties["name"]
-        print(f"DEBUG: Commands/move.py - new_item_name from properties: {new_item_name}")
+        print(f"DEBUG: commands/move.py - new_item_name from properties: {new_item_name}")
         del properties["name"] # Remove from properties to avoid re-applying to item content
 
-    print(f"DEBUG: Commands/move.py - target_item_type after property checks: {target_item_type}")
+    print(f"DEBUG: commands/move.py - target_item_type after property checks: {target_item_type}")
 
     # Read source item data
     source_data = read_item_data(source_item_type, source_item_name)
@@ -68,7 +68,7 @@ def run(args, properties):
     # Delete original item
     delete_item(source_item_type, source_item_name)
 
-    print(f"DEBUG: Commands/move.py - target_item_type before final print: {target_item_type}")
+    print(f"DEBUG: commands/move.py - target_item_type before final print: {target_item_type}")
     print(f"✅ Moved {source_item_type} '{source_item_name}' to {target_item_type} '{new_item_name}'.")
 
 def get_help_message():

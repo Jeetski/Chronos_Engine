@@ -158,7 +158,7 @@
 
 ### CLI - Listener Command + Dashboard Integration
 - Added new CLI command module:
-  - `Commands/listener.py`
+  - `commands/listener.py`
 - New command capabilities:
   - `listener start`
   - `listener stop`
@@ -174,7 +174,7 @@
 
 ### Achievements - Event Evaluator Foundation
 - Added evaluator module: `modules/achievement/evaluator.py`.
-- Added command wrapper: `Commands/achievements.py`.
+- Added command wrapper: `commands/achievements.py`.
 - Added settings file: `User/Settings/achievements_settings.yml`.
 - Added event-driven awarding APIs:
   - `emit_event(event_name, payload)`
@@ -356,7 +356,7 @@
   - `autocomplete`
   - `autocomplete on|off|toggle|status`
   - Persists to `console_settings.yml`
-- File added: `Commands/autocomplete.py`
+- File added: `commands/autocomplete.py`
 
 ### CLI - Chronos-Syntax Runtime Options (No `--` switches)
 - Console runtime now accepts command-style key/value runtime options:
@@ -507,7 +507,7 @@
 
 ### CLI - Shift Command + Calendar Wiring
 - Added `shift` command:
-  - `Commands/shift.py`
+  - `commands/shift.py`
   - Usage: `shift <item_name> <minutes> [date:YYYY-MM-DD] [start_time:HH:MM]`
   - Positive minutes shift later; negative minutes shift earlier.
 - Wired Calendar Inspector `Shift +15m` action to call `shift` (including date/start-time targeting for selected block(s)).
@@ -541,7 +541,7 @@
 - Added a broad Kairos example content pack across week/day/routine/subroutine/microroutine/task/timeblock templates to expand usable coverage and scheduler stress-testing.
 
 ### Kairos Scheduler Activation
-- Switched active scheduling path to Kairos for `today` and `today reschedule` in `Commands/today.py`.
+- Switched active scheduling path to Kairos for `today` and `today reschedule` in `commands/today.py`.
 - Legacy scheduler path is still present and can be forced with `today legacy ...`.
 - Added Kairos-to-schedule conversion when writing `User/Schedules/schedule_YYYY-MM-DD.yml` so existing downstream flows keep working.
 - Added Kairos anchor conflict fail-fast messaging in active runs with remediation guidance.
@@ -626,7 +626,7 @@
 
 ### CLI Sounds
 - Added new sound engine module: `modules/sound_fx.py`.
-- Added new command: `Commands/sound.py`.
+- Added new command: `commands/sound.py`.
 - Added alias `sounds -> sound` in `modules/console.py`.
 - Added settings file: `User/Settings/sound_settings.yml`.
 - Wired sound events in CLI (`modules/console.py`):
@@ -653,3 +653,4 @@
   - `User/Days/weekday_builder_example.yml` -> `at_school`
   - `User/Days/weekday_example.yml` -> `at_home`
 - Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+

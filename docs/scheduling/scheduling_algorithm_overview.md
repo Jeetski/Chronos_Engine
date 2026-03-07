@@ -1,7 +1,7 @@
 # Chronos Scheduling Algorithm Overview (Kairos)
 
 Last verified: 2026-03-07  
-Primary code: `Commands/today.py`, `modules/scheduler/kairos.py`, `modules/scheduler/weekly_generator.py`
+Primary code: `commands/today.py`, `modules/scheduler/kairos.py`, `modules/scheduler/weekly_generator.py`
 
 ## Scope
 
@@ -92,7 +92,7 @@ Kairos reschedule behavior is intentionally "live-day aware":
 
 ## Key Files
 
-- `Commands/today.py`
+- `commands/today.py`
 - `modules/scheduler/kairos.py`
 - `modules/scheduler/weekly_generator.py`
 - `User/Settings/scheduling_priorities.yml`
@@ -112,3 +112,4 @@ Kairos reschedule behavior is intentionally "live-day aware":
 - `User/Logs/kairos_decision_log_latest.yml`
 3. Adjust status/template/anchors/settings.
 4. Apply with `today reschedule`.
+

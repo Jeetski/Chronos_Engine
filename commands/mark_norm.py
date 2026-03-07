@@ -4,10 +4,12 @@ import yaml
 from datetime import datetime
 from modules.item_manager import get_item_path, read_item_data, write_item_data
 from modules.scheduler import schedule_path_for_date, build_block_key
-from Commands.today import load_completion_payload
+from commands.today import load_completion_payload
 from modules import quality_utils
-from Utilities.completion_effects import run_completion_effects
-
+try:
+    from Utilities import points as Points
+except Exception:
+    Points = None
 
 def _normalize_time_str(value):
     if not value:
@@ -90,18 +92,11 @@ def run(args, properties):
         print(f"❌ Invalid format: {e}. Use 'mark \"item name\":status'")
         return
 
-    # Per-day completion file under User/Schedules/completions/YYYY-MM-DD.yml.
-    # Supports date override from dashboard flows (e.g., calendar day view).
+    # Per-day completion file under User/Schedules/completions/YYYY-MM-DD.yml
     from datetime import datetime, timedelta
-    target_date = str(properties.get("date") or datetime.now().strftime('%Y-%m-%d')).strip()
-    try:
-        datetime.strptime(target_date, "%Y-%m-%d")
-    except ValueError:
-        print("❌ Invalid date. Use YYYY-MM-DD.")
-        return
-
-    schedule_path = schedule_path_for_date(target_date)
-    completion_data, completion_path = load_completion_payload(target_date)
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    schedule_path = schedule_path_for_date(today_str)
+    completion_data, completion_path = load_completion_payload(today_str)
     entries = completion_data.setdefault("entries", {})
 
     if not os.path.exists(schedule_path):
@@ -114,8 +109,6 @@ def run(args, properties):
     desired_start = _normalize_time_str(properties.get("start_time") or properties.get("scheduled_start"))
     desired_end = _normalize_time_str(properties.get("end_time") or properties.get("scheduled_end"))
     item_in_schedule = find_item_in_nested_schedule(schedule, item_name, desired_start)
-
-    has_item_file = True
 
     if not item_in_schedule:
         # If not found in schedule, it might be a non-scheduled item, try to get its type from its name
@@ -139,13 +132,11 @@ def run(args, properties):
         item_data = read_item_data(item_type, item_name)
 
         if not item_data:
-            # Some schedule rows (e.g. anchor timeblocks) do not map to item files.
-            # Allow per-day completion logging for those schedule-only blocks.
-            has_item_file = False
-            item_data = {}
+            print(f"❌ Could not read data for item '{item_name}' of type '{item_type}'.")
+            return
 
     # Detect repeating via 'frequency' or 'Frequency'
-    is_repeating = has_item_file and (('frequency' in item_data) or ('Frequency' in item_data))
+    is_repeating = ('frequency' in item_data) or ('Frequency' in item_data)
     quality_raw = properties.get("quality")
     quality, err = quality_utils.canonicalize_quality(quality_raw)
     if err:
@@ -179,62 +170,41 @@ def run(args, properties):
 
     status_lower = str(new_status).lower()
     if is_repeating:
-        # This is a repeating item, so update the completion file + history
+        # This is a repeating item, so update the completion file
         _log_completion_entry()
 
-        # Prepare to also update the item's own completion history (for repeating items)
-        def _update_repeating_history():
+        print(f"✅ Marked repeating item '{item_name}' as '{new_status}' for today.")
+        if status_lower == 'completed' and Points:
             try:
-                from datetime import datetime, timedelta
-                today = target_date
-                last_completed = item_data.get('last_completed')
-                if new_status == 'completed':
-                    completion_dates = item_data.get('completion_dates', [])
-                    if today not in completion_dates:
-                        completion_dates.append(today)
-                    item_data['completion_dates'] = completion_dates
-                    item_data['last_completed'] = today
-                    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-                    if last_completed == yesterday:
-                        item_data['current_streak'] = item_data.get('current_streak', 0) + 1
-                    else:
-                        item_data['current_streak'] = 1
-                    if item_data.get('current_streak', 0) > item_data.get('longest_streak', 0):
-                        item_data['longest_streak'] = item_data['current_streak']
-                    write_item_data(item_type, item_name, item_data)
+                minutes = _minutes_between(scheduled_start, scheduled_end)
+                Points.award_on_complete(item_type, item_name, minutes=minutes if isinstance(minutes, int) else None)
             except Exception:
                 pass
-
-        _update_repeating_history()
-
-        print(f"✅ Marked repeating item '{item_name}' as '{new_status}' for today.")
-        minutes = _minutes_between(scheduled_start, scheduled_end)
-        run_completion_effects(
-            item_type,
-            item_name,
-            minutes=minutes,
-            count_as_completion=(status_lower == 'completed'),
-            run_milestones=(status_lower == 'completed'),
-        )
+        # Evaluate commitments after marking to trigger immediate actions
+        try:
+            from modules.commitment import main as CommitmentModule  # type: ignore
+            CommitmentModule.evaluate_and_trigger()
+        except Exception as e:
+            print(f"Warning: Could not evaluate commitments: {e}")
 
     else:
         # This is a non-repeating item, so update the item's own file
-        if has_item_file:
-            item_data['status'] = new_status
-            write_item_data(item_type, item_name, item_data)
+        item_data['status'] = new_status
+        write_item_data(item_type, item_name, item_data)
         _log_completion_entry()
-        if has_item_file:
-            print(f"✅ Marked non-repeating item '{item_name}' as '{new_status}'.")
-        else:
-            print(f"✅ Marked schedule block '{item_name}' as '{new_status}' for {target_date}.")
-        minutes = _minutes_between(scheduled_start, scheduled_end)
-        run_completion_effects(
-            item_type,
-            item_name,
-            minutes=minutes,
-            count_as_completion=(status_lower == 'completed'),
-            run_milestones=(status_lower == 'completed'),
-        )
+        print(f"✅ Marked non-repeating item '{item_name}' as '{new_status}'.")
+        if status_lower == 'completed' and Points:
+            try:
+                minutes = _minutes_between(scheduled_start, scheduled_end)
+                Points.award_on_complete(item_type, item_name, minutes=minutes if isinstance(minutes, int) else None)
+            except Exception:
+                pass
+        # Evaluate commitments after marking to trigger immediate actions
+        try:
+            from modules.commitment import main as CommitmentModule  # type: ignore
+            CommitmentModule.evaluate_and_trigger()
+        except Exception as e:
+            print(f"Warning: Could not evaluate commitments: {e}")
 
 def get_help_message():
     """
@@ -245,3 +215,5 @@ Usage: mark <item_name>:<status>
 Description: Marks an item in the daily schedule with a new status.
 Example: mark "Morning Routine":completed
 """
+
+

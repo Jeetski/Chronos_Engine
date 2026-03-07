@@ -148,7 +148,7 @@ class KairosScheduler:
         stateless and test-friendly.
         """
         try:
-            from Commands import today as T
+            from commands import today as T
             from modules.scheduler import USER_DIR, normalize_completion_entries, read_template, status_current_path
             status_settings = read_template(os.path.join(USER_DIR, "Settings", "Status_Settings.yml")) or {}
             current_status = read_template(status_current_path()) or read_template(os.path.join(USER_DIR, "current_status.yml")) or {}
@@ -3445,3 +3445,4 @@ if __name__ == "__main__":
     for block in schedule.get("blocks", []):
         print(f"[{block.get('start_time', '??:??')}] {block.get('name')} (Score: {block.get('kairos_score', 0)})")
     print("--- End Shadow Run ---")
+

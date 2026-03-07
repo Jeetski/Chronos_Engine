@@ -9,7 +9,7 @@ from modules.scheduler import (
     status_current_path,
 )
 
-from Commands.today import (
+from commands.today import (
     build_initial_schedule,
     calculate_item_importance,
     check_total_duration,
@@ -124,3 +124,4 @@ def build_preview_for_date(target_date, *, save_path=None, show_warnings=True):
         print(f"Preview saved: {save_path}")
 
     return resolved_schedule, remaining_conflicts
+

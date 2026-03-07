@@ -9,7 +9,7 @@ import uuid
 from contextlib import contextmanager, redirect_stdout
 from unittest.mock import patch
 
-from Commands import today as Today
+from commands import today as Today
 from modules.scheduler.kairos import KairosScheduler
 from modules.scheduler.weekly_generator import WeeklyGenerator
 
@@ -708,3 +708,4 @@ class TestWeeklyGenerator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -1,9 +1,9 @@
 # Chronos Scheduling Algorithm Deep Dive (Kairos)
 
 Last verified: 2026-03-07  
-Code alignment target: `modules/scheduler/kairos.py` and `Commands/today.py`
+Code alignment target: `modules/scheduler/kairos.py` and `commands/today.py`
 
-## 1. Command Routing (`Commands/today.py`)
+## 1. Command Routing (`commands/today.py`)
 
 Kairos-relevant modes:
 
@@ -132,7 +132,7 @@ Placement order is intentional:
 
 After placement and repair, completion entries are reinserted as informational schedule markers so the day view reflects completed history without distorting planning math.
 
-## 10. Active Output Adaptation (`Commands/today.py`)
+## 10. Active Output Adaptation (`commands/today.py`)
 
 Kairos block output is adapted into the schedule schema consumed by existing dashboard and CLI flows:
 - normalized `start_time` / `end_time`
@@ -169,3 +169,4 @@ Paths:
 5. If over-cut/over-trim:
 - tune repair settings, priorities, and anchor/essential properties
 6. Re-run active path: `today reschedule`
+

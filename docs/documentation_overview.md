@@ -30,10 +30,10 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 | Component | Location | Purpose |
 |-----------|----------|---------|
 | **Console** | `modules/console.py` | CLI entry point, command dispatch, REPL, scripting |
-| **Commands** | `Commands/*.py` | Thin command implementations (`run(args, properties)`) |
+| **Commands** | `commands/*.py` | Thin command implementations (`run(args, properties)`) |
 | **Modules** | `modules/*/main.py` | Item-specific logic, defaults, event handlers |
 | **ItemManager** | `modules/item_manager.py` | Generic CRUD operations for all item types |
-| **Scheduler** | `Commands/today.py` + `modules/scheduler.py` | Daily agenda builder with conflict resolution |
+| **Scheduler** | `commands/today.py` + `modules/scheduler.py` | Daily agenda builder with conflict resolution |
 | **Listener** | `modules/listener/` | Background service for alarms, reminders, timer |
 | **Dashboard** | `Utilities/Dashboard/` | Local HTTP server + vanilla JS SPA |
 | **Sequence** | `modules/sequence/` | SQLite mirrors + analytics (`trends.md`) |
@@ -229,7 +229,7 @@ SQLite mirrors for fast analytics:
 - Dashboard auto-discovers and lists all extensions
 
 **Adding Components**:
-1. **Command**: Create `Commands/name.py` with `run(args, properties)`
+1. **Command**: Create `commands/name.py` with `run(args, properties)`
 2. **Item Type**: Create `modules/type/main.py` with `handle_command`
 3. **Widget/View/Panel/Popup/Gadget**: Create folder in appropriate directory with `index.js`
 4. **Wizard**: Create folder in `Wizards/` with `index.js`
@@ -430,7 +430,7 @@ clear all                       # Nuclear option (requires typing "DELETE EVERYT
 
 ```
 Chronos Engine/
-├── Commands/           # CLI verbs
+├── commands/           # CLI verbs
 ├── modules/            # Engine features + item types
 │   ├── Console.py
 │   ├── ItemManager.py
@@ -635,3 +635,4 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+

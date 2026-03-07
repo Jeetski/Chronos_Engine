@@ -4,7 +4,7 @@ import re
 
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-COMMANDS_DIR = os.path.join(ROOT_DIR, "Commands")
+COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
 
 
 def _canonical_command_name(command_name: str) -> str:
@@ -92,4 +92,5 @@ def get_help_message():
 Usage: help
 Description: Displays this help message, listing all available commands and their usage.
 """
+
 

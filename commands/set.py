@@ -24,10 +24,10 @@ def run(args, properties):
     if first_arg in {"reminder", "alarm"} and len(args) > 1 and args[1].lower() == "from":
         try:
             if first_arg == "reminder":
-                from Commands import reminder as _reminder
+                from commands import reminder as _reminder
                 _reminder.run(args[1:], properties)
             else:
-                from Commands import alarm as _alarm
+                from commands import alarm as _alarm
                 _alarm.run(args[1:], properties)
         except Exception as e:
             print(f"? Failed to run {first_arg} from: {e}")
@@ -285,3 +285,4 @@ def _apply_project_template(project_name: str):
             _ensure_node(child)
 
     print(f"?.. Applied project template '{project_name}': created {stats['created']} item(s), linked {stats['linked']} existing.")
+

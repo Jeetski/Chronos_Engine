@@ -21,7 +21,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # Ensure project root is importable so 'modules' can be imported
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
-COMMANDS_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Commands"))
+COMMANDS_DIR = os.path.abspath(os.path.join(ROOT_DIR, "commands"))
 if COMMANDS_DIR not in sys.path:
     sys.path.insert(0, COMMANDS_DIR)
 DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Utilities", "Dashboard"))
@@ -5675,4 +5675,5 @@ if __name__ == "__main__":
         port = 7357
     serve(host=host, port=port)
         
+
 

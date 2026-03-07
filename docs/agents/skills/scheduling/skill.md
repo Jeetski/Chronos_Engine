@@ -16,7 +16,7 @@ Operate Chronos scheduling end-to-end using Kairos only: build plans, repair con
 - "Fix anchors/dependencies/conflicts."
 
 ## Source of Truth
-- Scheduler entrypoint: `Commands/today.py`
+- Scheduler entrypoint: `commands/today.py`
 - Scheduler engine: `modules/scheduler/kairos.py`
 - Weekly skeleton: `modules/scheduler/weekly_generator.py`
 - Active schedule output: `User/Schedules/schedule_YYYY-MM-DD.yml`
@@ -238,3 +238,4 @@ Good summary format:
 - `docs/reference/cli_commands.md`
 - `docs/reference/item_properties.md`
 - `docs/agents/agents.md`
+

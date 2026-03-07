@@ -5,7 +5,7 @@ This guide explains how Chronos fits together so you can extend it confidently.
 ## Runtime Overview
 
 - CLI Entrypoint — `modules/console.py`
-  - Adds project paths, sets UTF-8, and loads `Commands/*.py` dynamically.
+  - Adds project paths, sets UTF-8, and loads `commands/*.py` dynamically.
   - Parses interactive input, CLI args, and `.chs` scripts (supports nested `if/elseif/else/end` and loop blocks).
   - Uses `modules/variables.py` for in-memory variables and token expansion (e.g., `@nickname`).
   - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `modules/macro_engine.py` (enabled by `User/Scripts/Macros/macros.yml`). Dashboard calls also pass through these hooks.
@@ -18,7 +18,7 @@ Items are the atoms of Chronos. They are stored as YAML files in the `User/` dir
 - **Defaults**: Each item type has a `_defaults.yml` (e.g., `task_defaults.yml`) that defines its initial state.
 
 ### 3. The Scheduler
-- **Command Router**: `Commands/today.py` dispatches three modes:
+- **Command Router**: `commands/today.py` dispatches three modes:
   - active Kairos (`today`, `today reschedule`)
   - explicit Kairos tooling (`today kairos ...`)
   - legacy fallback (`today legacy ...`)
@@ -30,7 +30,7 @@ Items are the atoms of Chronos. They are stored as YAML files in the `User/` dir
   - Runs overlap repair + dependency shift passes
   - Emits decision logs in `User/Logs/kairos_decision_log_*`
 - **Weekly Planner**: `modules/scheduler/weekly_generator.py` powers `today kairos week`.
-- **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `Commands/today.py` so existing dashboard/API/manual-modification flows continue to work.
+- **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `commands/today.py` so existing dashboard/API/manual-modification flows continue to work.
 - **Manual Modifications**: Persisted in `User/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
 
 ### 4. Conditions Engine (`modules/conditions.py`)
@@ -126,7 +126,7 @@ A generic Vanilla JS Single Page Application (SPA).
 ## Extending Chronos
 
 - Add a command
-  1. Create `Commands/my_command.py` with `run(args, properties)`.
+  1. Create `commands/my_command.py` with `run(args, properties)`.
   2. Add `get_help_message()` to integrate with `help`.
 
 - Add an item module
@@ -152,4 +152,5 @@ A generic Vanilla JS Single Page Application (SPA).
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
+
 
