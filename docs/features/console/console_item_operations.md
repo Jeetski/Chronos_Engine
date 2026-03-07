@@ -19,7 +19,7 @@ copy task "Write outline" "Write outline v2"
 ```
 
 Best practices:
-1. Use defaults files for repeatable fields (`user/Settings/*_defaults.yml`).
+1. Use defaults files for repeatable fields (`user/settings/*_defaults.yml`).
 2. Prefer `set`/`append` over manual file edits for consistent formatting.
 3. Confirm changes with `view` after critical updates.
 
@@ -29,7 +29,7 @@ Best practices:
 
 ## Data and Settings
 - Primary state: `user/<TypePlural>/*.yml`.
-- Defaults: `user/Settings/<type>_defaults.yml`.
+- Defaults: `user/settings/<type>_defaults.yml`.
 
 ## Validation
 1. Create an item with properties.

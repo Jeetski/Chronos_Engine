@@ -615,9 +615,9 @@ export async function mount(el, context) {
   const autoInsert = async () => {
     if (!state.schedule.length) { emit('error', 'Load or build a routine draft first.'); return; }
     pushHistory();
-    const rawBuf = await readFile('user/Settings/Buffer_Settings.yml');
-    const rawTs = await readFile('user/Settings/Timer_Settings.yml');
-    const rawTp = await readFile('user/Settings/Timer_Profiles.yml');
+    const rawBuf = await readFile('user/settings/Buffer_Settings.yml');
+    const rawTs = await readFile('user/settings/Timer_Settings.yml');
+    const rawTp = await readFile('user/settings/Timer_Profiles.yml');
     const b = (yparse(rawBuf) && typeof yparse(rawBuf) === 'object') ? yparse(rawBuf) : {};
     const ts = (yparse(rawTs) && typeof yparse(rawTs) === 'object') ? yparse(rawTs) : {};
     const tp = (yparse(rawTp) && typeof yparse(rawTp) === 'object') ? yparse(rawTp) : {};

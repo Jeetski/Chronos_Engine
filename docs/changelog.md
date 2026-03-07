@@ -46,13 +46,13 @@
   - CLI/dashboard open-in-editor requests can target the in-dashboard Editor view instead of external apps.
   - Server now queues editor-open requests and dashboard app consumes them to open Editor with file context.
 - Updated default editor setting to:
-  - `user/Settings/config.yml` -> `default_editor: chronos_editor`
+  - `user/settings/config.yml` -> `default_editor: chronos_editor`
 
 ### CLI - Dashboard Browser Override
 - `dashboard` command now supports optional browser overrides from:
   - `browser:<cmd>` command property
-  - `dashboard_browser` in `user/Settings/config.yml`
-  - `browser` in `user/Settings/config.yml`
+  - `dashboard_browser` in `user/settings/config.yml`
+  - `browser` in `user/settings/config.yml`
 - When unset, dashboard continues opening in the system default browser.
 
 ## 2026-02-28
@@ -175,7 +175,7 @@
 ### Achievements - Event Evaluator Foundation
 - Added evaluator module: `modules/achievement/evaluator.py`.
 - Added command wrapper: `commands/achievements.py`.
-- Added settings file: `user/Settings/achievements_settings.yml`.
+- Added settings file: `user/settings/achievements_settings.yml`.
 - Added event-driven awarding APIs:
   - `emit_event(event_name, payload)`
   - `award_by_id(...)`, `award_by_name(...)`
@@ -197,7 +197,7 @@
 - Replaced existing achievements with new starter set (one file per achievement under `user/Achievements/`).
 - Set title = name for starter achievements.
 - Standardized starter reward payloads to 10 points + 10 XP per achievement.
-- Updated defaults in `user/Settings/Achievement_Defaults.yml` to include awarded/status/title fields.
+- Updated defaults in `user/settings/Achievement_Defaults.yml` to include awarded/status/title fields.
 
 ### Profile Progression - XP/Level Wiring
 - Achievement awards now update `user/Profile/profile.yml` progression fields:
@@ -346,7 +346,7 @@
 - File: `utilities/dashboard/views/docs/index.js`
 
 ### CLI - Prompt Toolkit and Autocomplete Controls
-- Added `user/Settings/console_settings.yml` for console runtime behavior:
+- Added `user/settings/console_settings.yml` for console runtime behavior:
   - `prompt_toolkit_default`
   - `autocomplete_enabled`
   - `show_startup_banner`
@@ -439,7 +439,7 @@
 
 ### CLI/Theme System - Console Theme Alignment
 - Updated `theme` command to read console theme source:
-  - `user/Settings/console_theme_settings.yml`
+  - `user/settings/console_theme_settings.yml`
   - legacy fallback: `theme_settings.yml`
 - Fixed `theme list` messaging and theme source mismatch.
 - Refactored console style resolution:
@@ -589,7 +589,7 @@
 
 ### Sleep System Refactor
 - Removed legacy `sleep_settings.yml` flow from Life Setup wizard behavior.
-- Deleted obsolete file: `user/Settings/sleep_settings.yml`.
+- Deleted obsolete file: `user/settings/sleep_settings.yml`.
 - Added new persistent widget: `utilities/dashboard/widgets/sleep_settings/`
   - Manages sleep anchors directly in day templates.
   - Supports mono/bi/poly presets, segment editing, day toggles, overlap checks, and apply-to selected/all/new templates.
@@ -628,7 +628,7 @@
 - Added new sound engine module: `modules/sound_fx.py`.
 - Added new command: `commands/sound.py`.
 - Added alias `sounds -> sound` in `modules/console.py`.
-- Added settings file: `user/Settings/sound_settings.yml`.
+- Added settings file: `user/settings/sound_settings.yml`.
 - Wired sound events in CLI (`modules/console.py`):
   - `startup` when CLI starts
   - `done` after `today reschedule`
@@ -652,7 +652,7 @@
   - `user/Days/sick_day_example.yml` -> `at_home`
   - `user/Days/weekday_builder_example.yml` -> `at_school`
   - `user/Days/weekday_example.yml` -> `at_home`
-- Expanded `user/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+- Expanded `user/settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
 
 
 

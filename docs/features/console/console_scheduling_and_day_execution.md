@@ -35,7 +35,7 @@ Kairos rules to preserve:
 ## Data and Settings
 - Schedule output: `user/Schedules/schedule_YYYY-MM-DD.yml`.
 - Manual adjustments: `user/Schedules/manual_modifications_YYYY-MM-DD.yml`.
-- Scheduling settings and priorities live in `user/Settings/*.yml`.
+- Scheduling settings and priorities live in `user/settings/*.yml`.
 
 ## Validation
 1. Build a day with `today reschedule`.

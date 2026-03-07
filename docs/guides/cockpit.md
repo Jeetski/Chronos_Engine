@@ -18,7 +18,7 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 - **Lists** - Ad-hoc `/api/items` queries for pinning "due soon", "blocked", etc.
 - **Deadlines** - Read-only list of deadlines and due dates with filters and range controls.
 - **Commitments** - Snapshot of rules, violations, on-track counts; evaluate via `/api/cli commitments check`.
-- **Map of Happiness** - Reads `user/Settings/map_of_happiness.yml`; shows coverage/satisfaction.
+- **Map of Happiness** - Reads `user/settings/map_of_happiness.yml`; shows coverage/satisfaction.
 - **Status Strip** - Horizontal ticker of status indicators, color-coded by priority.
 
 ## Data Sources

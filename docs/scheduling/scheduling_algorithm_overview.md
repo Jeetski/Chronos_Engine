@@ -95,12 +95,12 @@ Kairos reschedule behavior is intentionally "live-day aware":
 - `commands/today.py`
 - `modules/scheduler/kairos.py`
 - `modules/scheduler/weekly_generator.py`
-- `user/Settings/scheduling_priorities.yml`
-- `user/Settings/status_settings.yml`
-- `user/Settings/buffer_settings.yml`
-- `user/Settings/timer_settings.yml`
-- `user/Settings/timer_profiles.yml`
-- `user/Settings/quick_wins_settings.yml`
+- `user/settings/scheduling_priorities.yml`
+- `user/settings/status_settings.yml`
+- `user/settings/buffer_settings.yml`
+- `user/settings/timer_settings.yml`
+- `user/settings/timer_profiles.yml`
+- `user/settings/quick_wins_settings.yml`
 - `user/Data/chronos_core.db`
 - `user/Data/chronos_behavior.db`
 

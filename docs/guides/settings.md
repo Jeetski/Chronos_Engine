@@ -1,6 +1,6 @@
 # Settings Guide
 
-Chronos settings live under `user/Settings/`. They configure defaults, points, timer, themes, and more.
+Chronos settings live under `user/settings/`. They configure defaults, points, timer, themes, and more.
 
 ## Naming Conventions
 
@@ -18,7 +18,7 @@ Chronos settings live under `user/Settings/`. They configure defaults, points, t
 
 ## Configuration Reference
 
-### 1. Scheduler Defaults (`user/Settings/*_defaults.yml`)
+### 1. Scheduler Defaults (`user/settings/*_defaults.yml`)
 Each item type has a corresponding defaults file. These properties are applied when you run `new <type>`.
 - **Common keys**: `priority`, `category`, `duration`, `cost` (energy/focus).
 - **Files**: `task_defaults.yml`, `goal_defaults.yml`, `routine_defaults.yml`, etc.
@@ -30,7 +30,7 @@ Each item type has a corresponding defaults file. These properties are applied w
 - **`priority_settings.yml`**: Defines values for `high`, `medium`, `low` (e.g., High = 100 points).
 - **`category_settings.yml`**: Defines your life categories (Work, Health, Deep Work) and their base weight.
 
-### 3. Status System (`user/Settings/status_settings.yml`)
+### 3. Status System (`user/settings/status_settings.yml`)
 Defines the dimensions of your human state (Energy, Focus, Mood). 
 - **Sub-files**: `<dimension>_settings.yml` (e.g., `energy_settings.yml`) define the valid levels (Low, Medium, High) and their impact on scheduling.
 - **Impact**: If `Energy` is `Low`, the scheduler penalizes high-energy tasks.

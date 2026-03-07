@@ -100,7 +100,7 @@ Usage:
 
 Description:
   Turns interactive CLI autocomplete suggestions on or off.
-  This updates user/Settings/console_settings.yml.
+  This updates user/settings/console_settings.yml.
   Changes apply to new interactive console sessions.
 """
 

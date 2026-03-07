@@ -10,7 +10,7 @@ Chronos provides context-aware autosuggest in both the CLI and the Dashboard Ter
 
 ## Runtime Controls
 
-- Console defaults live in `user/Settings/console_settings.yml`:
+- Console defaults live in `user/settings/console_settings.yml`:
   - `prompt_toolkit_default: false|true`
   - `autocomplete_enabled: true|false`
 - Toggle suggestions from CLI:
@@ -84,7 +84,7 @@ Autosuggest switches to the nested command once you reach the pipeline point.
 
 ## Theme Notes (CLI)
 
-The CLI autosuggest uses prompt_toolkit and inherits Chronos theme colors. If the prompt looks like the default black/white, check the theme in `user/Profile/profile.yml` or `user/Settings/theme_settings.yml`.
+The CLI autosuggest uses prompt_toolkit and inherits Chronos theme colors. If the prompt looks like the default black/white, check the theme in `user/Profile/profile.yml` or `user/settings/theme_settings.yml`.
 
 
 

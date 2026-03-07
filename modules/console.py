@@ -776,7 +776,7 @@ def _run_startup_core_sync_with_macro_hook():
             pass
 
 def _load_aliases():
-    """Load aliases from user/Settings/aliases.yml"""
+    """Load aliases from user/settings/aliases.yml"""
     path = os.path.join(ROOT_DIR, 'user', 'Settings', 'aliases.yml')
     aliases = {}
     

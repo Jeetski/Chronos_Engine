@@ -83,7 +83,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Sticky Notes** - A colorful board backed by actual Chronos notes with `sticky:true`. Capture quick thoughts, pick a color, pin favorites, edit inline, and spawn reminders without opening the CLI.
 - **Timer** - Start/pause/resume/stop, select profiles, show bound item state.
 - **Sleep Settings** - Persistent sleep-anchor manager for day templates (mode presets, segments, day toggles, conflict checks, apply to selected/all/new templates).
-- **Settings** - Lists `user/Settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
+- **Settings** - Lists `user/settings/*.yml`, loads/validates, saves raw YAML to preserve comments.
 - **Clock, Status, Debug Console** - Utility widgets for quick reference and event logging. Clock now includes a Manage panel for listing alarms/reminders and creating reminders from task/milestone/goal/project dates.
 - **System Admin** - System maintenance and cleanup tools with safety confirmations.
   - **Quick Actions**: Purge logs, schedules, cache, and temp files with one click
@@ -118,7 +118,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
 - **Chore Setup Wizard** (`utilities/dashboard/wizards/chore_setup/index.js`) - Separate flow for activating chores and routine maintenance items (kept outside anchors so they remain flexible).
 - **Status Mapping Wizard** (`utilities/dashboard/wizards/status_mapping/index.js`) - Bulk status-tagging workflow for items/templates.
 - **Flow**: Status Map -> Scope -> Preview.
-- **Status Map**: Loads dimensions/values from `user/Settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
+- **Status Map**: Loads dimensions/values from `user/settings/status_settings.yml` (or `Status_Settings.yml`) and related `<status>_settings.yml` files; supports custom values.
 - **Scope**: Filter by type/name/category/tag, limit to items missing status tags, and choose merge vs replace behavior.
 - **Preview**: Shows coverage stats plus before/after `status_requirements` samples before writing.
 - **Apply/Undo**: Writes via dashboard item APIs, optionally mirrors values to legacy top-level status keys, and supports one-session undo of the last batch.

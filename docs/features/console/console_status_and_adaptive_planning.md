@@ -24,8 +24,8 @@ Operational pattern:
 - Dashboard status updates should remain compatible with CLI key:value updates.
 
 ## Data and Settings
-- Global status taxonomy: `user/Settings/status_settings.yml`.
-- Per-status definitions: `user/Settings/*_settings.yml`.
+- Global status taxonomy: `user/settings/status_settings.yml`.
+- Per-status definitions: `user/settings/*_settings.yml`.
 - Items/templates can declare `status_requirements:` fields.
 
 ## Validation

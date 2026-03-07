@@ -238,7 +238,7 @@ def _vars_seed_defaults():
                     _vars_set('nickname', nick)
             except Exception:
                 pass
-        # Seed from optional user/Settings/vars.yml
+        # Seed from optional user/settings/vars.yml
         vpath = os.path.join(ROOT_DIR, 'user', 'Settings', 'vars.yml')
         if os.path.exists(vpath):
             try:
@@ -1337,7 +1337,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Failed to search docs: {e}"})
             return
         if parsed.path == "/api/theme":
-            # Lookup a theme by name in user/Settings/theme_settings.yml
+            # Lookup a theme by name in user/settings/theme_settings.yml
             try:
                 qs = parse_qs(parsed.query or '')
                 name = (qs.get('name') or [''])[0].strip()
@@ -2559,7 +2559,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
             return
         if parsed.path == "/api/settings":
-            # List or fetch user settings files under user/Settings
+            # List or fetch user settings files under user/settings
             try:
                 qs = parse_qs(parsed.query or '')
                 settings_root = os.path.join(ROOT_DIR, 'user', 'Settings')

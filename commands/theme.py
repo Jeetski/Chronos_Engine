@@ -20,7 +20,7 @@ def get_help_message():
         "  set-colors [background:<name|#hex>] [text:<name|#hex>]\n"
         "                       Set explicit console colors (overrides theme)\n"
         "Notes:\n"
-        "- Themes come from user/Settings/console_theme_settings.yml (themes: { name: { background, text } }).\n"
+        "- Themes come from user/settings/console_theme_settings.yml (themes: { name: { background, text } }).\n"
         "- Current selection is stored in user/Profile/profile.yml under 'theme' or 'console: { theme }'.\n"
         "- Explicit 'background'/'text' in profile override the theme.\n"
     )
@@ -156,7 +156,7 @@ def run(args, properties):
 
     if sub == 'list':
         if not themes:
-            print("No themes found. Ensure user/Settings/console_theme_settings.yml exists.")
+            print("No themes found. Ensure user/settings/console_theme_settings.yml exists.")
             return
         print("Available themes:")
         for name, t in themes.items():

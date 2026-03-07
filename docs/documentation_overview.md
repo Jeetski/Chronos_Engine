@@ -55,7 +55,7 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 **The Killer Feature**: Templates and items include `status_requirements` that match against your current state (energy, focus, mood, stress).
 
 **How it works**:
-- `user/Settings/status_settings.yml` defines status dimensions (legacy `Status_Settings.yml` still supported)
+- `user/settings/status_settings.yml` defines status dimensions (legacy `Status_Settings.yml` still supported)
 - Templates are scored based on alignment with current status
 - The best-fit template is automatically selected for today
 - Items matching your status get importance boosts
@@ -352,7 +352,7 @@ Universal verbs work for: tasks, notes, projects, routines, subroutines, microro
 ## 📊 Configuration Files
 
 ### Core Settings
-- `user/Settings/*_defaults.yml` - Item type defaults
+- `user/settings/*_defaults.yml` - Item type defaults
 - `scheduling_settings.yml`, `scheduling_priorities.yml`
 - `status_settings.yml`, `energy_settings.yml`, etc.
 - `category_settings.yml`, `priority_settings.yml`

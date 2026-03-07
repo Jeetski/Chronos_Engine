@@ -91,7 +91,7 @@ Usage:
 
 Description:
   Creates custom command shortcuts.
-  Aliases are stored in user/Settings/aliases.yml.
+  Aliases are stored in user/settings/aliases.yml.
 
 Example:
   alias gm start today

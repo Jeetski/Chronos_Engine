@@ -26,7 +26,7 @@ Freeform visual planning board with item links, matrix overlays, and collaborati
 
 ## Data and Settings
 - Reads/writes through APIs into canonical `user/*` YAML/markdown state.
-- Settings access (if present) should flow through `user/Settings/*.yml` endpoints.
+- Settings access (if present) should flow through `user/settings/*.yml` endpoints.
 
 ## Operational Workflows
 1. Load view and confirm initial data hydration succeeds.

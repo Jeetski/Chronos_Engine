@@ -107,7 +107,7 @@ Behavior:
 
 Typical controls:
 - Runtime option: `quickwins:N`
-- Settings: `user/Settings/quick_wins_settings.yml`
+- Settings: `user/settings/quick_wins_settings.yml`
 
 Operational intent:
 - Improve day utilization without destabilizing anchor and high-priority structure.

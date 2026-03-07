@@ -77,8 +77,8 @@ Example update payload:
 ## Data Model and Settings
 
 Key settings and defaults:
-- `user/Settings/achievements_settings.yml`
-- `user/Settings/Achievement_Defaults.yml`
+- `user/settings/achievements_settings.yml`
+- `user/settings/Achievement_Defaults.yml`
 
 Progression fields in `user/Profile/profile.yml`:
 - `xp_total`

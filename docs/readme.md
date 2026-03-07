@@ -73,8 +73,8 @@ Folders
 
 Key defaults and conventions
 - Item directories: lowercase, underscored, plural (e.g., `user/notes`, `user/goals`).
-- Default templates: prefer lowercase `<item>_defaults.yml` in `user/Settings/`.
-- Points settings: `user/Settings/points_settings.yml` (backward compatible with `Points.yml`).
+- Default templates: prefer lowercase `<item>_defaults.yml` in `user/settings/`.
+- Points settings: `user/settings/points_settings.yml` (backward compatible with `Points.yml`).
 
 ## Core Concepts
 Items and hierarchy
@@ -82,7 +82,7 @@ Items and hierarchy
 - Items live as single YAML files. Many items can nest other items (the "fractal" structure).
 
 Status-aware scheduling
-- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `user/Settings/status_settings.yml` (legacy `Status_Settings.yml` still supported), scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
+- Templates and items can include `status_requirements` (or legacy keys matching your custom status types). Chronos loads `user/settings/status_settings.yml` (legacy `Status_Settings.yml` still supported), scores every candidate day template, and automatically selects the one that best fits the pilot’s current status.
 - `today reschedule` rebuilds the day with those signals, boosts blocks whose tags match the current state, and automatically re-queues missed-but-important blocks (with a summary of what moved) instead of leaving them stuck in the past.
 - Conflicts are resolved; buffers and dependencies are respected. Trimming, cutting, marking, and `did` entries all update the plan.
 
@@ -101,7 +101,7 @@ Entry points
 
 Common commands (all item types now share the same verbs via `handle_command`)
 - `help` — list commands and usage.
-- `new|create <type> <name> [k:v ...]` — create any item (tasks, commitments, rewards, achievements, goals, milestones, etc.). Defaults merge from `user/Settings/<type>_defaults.yml`.
+- `new|create <type> <name> [k:v ...]` — create any item (tasks, commitments, rewards, achievements, goals, milestones, etc.). Defaults merge from `user/settings/<type>_defaults.yml`.
 - `append <type> <name> "text"` / `set <type> <name> prop:value [...]` / `remove <type> <name> prop` — edit YAML content without leaving the CLI.
 - `list <type> [filters] [then <command> ...]`, `find <type> keyword [filters]`, `count <type> [filters]` – inspect collections; piped commands automatically receive the current type/name.
 - `inventory ...` – manage inventories, inventory items, and tools (list/show/new/add/remove) without remembering every verb.
@@ -118,7 +118,7 @@ Common commands (all item types now share the same verbs via `handle_command`)
 - `status [k:v ...]` — view or set energy/focus/mood/stress values that influence scheduling.
 - `timer start <profile> [bind_type:task bind_name:"Name"]`, `timer pause|resume|stop|cancel` — run focus sessions bound to items if desired.
 - `points balance|history|add|subtract` — inspect or adjust the points ledger.
-- `settings <file_shortcut> key value` - mutate `user/Settings/*.yml` files safely.
+- `settings <file_shortcut> key value` - mutate `user/settings/*.yml` files safely.
 - `sequence <subcommand>` - manage data mirrors (`status`, `sync <targets>`, `trends` to refresh the digest).
 - Listener & reminders: `listener start|stop`, `dismiss|snooze|skip <alarm>`.
 - Templates & variables: `template ...`, `filter ...`, `variables` via dashboard or CLI helper commands.
@@ -212,7 +212,7 @@ Recent improvements
   - widget manages sleep anchor blocks directly in day templates.
 - Cockpit panels (Schedule, Matrix, Matrix Visuals, Lists, Commitments) now respect the shared theme tokens, improving readability across palettes.
 - Virtualenv installer (`install_dependencies.bat`) to isolate dependencies.
-- Settings widget + API for editing `user/Settings/*.yml` from the dashboard.
+- Settings widget + API for editing `user/settings/*.yml` from the dashboard.
 - Points config standardized to `points_settings.yml` (backward compatible).
 - Item defaults resolver supports lowercase `<item>_defaults.yml` first.
 - Listener uses project-relative launcher; reduces hardcoded paths.

@@ -31,7 +31,7 @@ Capture & Organize
   - List just project tasks: `list task project:"Home Gym"`
 
 - Use defaults
-  - Put defaults in `user/Settings/task_defaults.yml` (lowercase preferred):
+  - Put defaults in `user/settings/task_defaults.yml` (lowercase preferred):
     ```yaml
     default_priority: medium
     default_status: pending
@@ -252,7 +252,7 @@ Points & Rewards
   - `points subtract 5 reason:"late start"`
 
 - Configure earning
-  - Edit `user/Settings/points_settings.yml`:
+  - Edit `user/settings/points_settings.yml`:
     ```yaml
     earn:
       task: 10
@@ -446,7 +446,7 @@ Dashboard Essentials
   - Select a block in Day view; use Scheduler to Trim/Change/Cut/Mark (today only); press Reschedule.
 
 - Settings widget
-  - Browse and edit `user/Settings/*.yml` with YAML validation and preserved formatting.
+  - Browse and edit `user/settings/*.yml` with YAML validation and preserved formatting.
 
 - Items/Notes/Timer/Status/Goals/Habits widgets
   - Use for quick ops; for heavy lifts, combine with CLI.

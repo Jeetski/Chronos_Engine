@@ -10,7 +10,7 @@ ITEM_TYPE = "habit"
 
 def get_habit_settings():
     """
-    Loads habit settings from user/Settings/Habit_Settings.yml.
+    Loads habit settings from user/settings/Habit_Settings.yml.
     """
     settings_path = os.path.join(get_user_dir(), "Settings", "Habit_Settings.yml")
     if os.path.exists(settings_path):

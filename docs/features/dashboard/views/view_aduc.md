@@ -18,7 +18,7 @@ Unified familiar interaction surface for ADUC status, startup, and live log visi
 
 ## Data and Settings
 - Reads/writes through APIs into canonical `user/*` YAML/markdown state.
-- Settings access (if present) should flow through `user/Settings/*.yml` endpoints.
+- Settings access (if present) should flow through `user/settings/*.yml` endpoints.
 
 ## Operational Workflows
 1. Load view and confirm initial data hydration succeeds.

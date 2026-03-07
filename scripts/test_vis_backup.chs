@@ -7,7 +7,7 @@ new note "DiffB" content:"Line 1\nLine 2 Modified"
 
 echo "--- Tree Test ---"
 tree note DiffA
-tree dir user/Settings
+tree dir user/settings
 
 echo "--- Diff Test ---"
 diff note DiffA DiffB

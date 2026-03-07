@@ -16,7 +16,7 @@ Wizards should produce deterministic item/settings outcomes that remain editable
   - `/api/item`
 
 ## Data and Settings
-- Wizard outputs should land in canonical `user/*` item files and/or `user/Settings/*.yml`.
+- Wizard outputs should land in canonical `user/*` item files and/or `user/settings/*.yml`.
 - Generated artifacts must remain fully compatible with manual CLI edits after creation.
 
 ## Operational Workflows
