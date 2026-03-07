@@ -78,7 +78,7 @@ Examples:
   if note:"IF Note":priority matches ^h.* then echo HIGH
   if exists note:Journal then echo "journal exists"
   if exists file:README.md then echo HAVE_README
-  if exists dir:user/Notes then echo NOTES_DIR
+  if exists dir:user/notes then echo NOTES_DIR
   if exists env:PATH then echo HAS_PATH
 """
 

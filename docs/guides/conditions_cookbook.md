@@ -25,7 +25,7 @@ Practical `if` patterns for Chronos scripts.
 
 - Filesystem and environment:
   - `if exists file:README.md then echo HAVE_README`
-  - `if exists dir:user/Notes then echo NOTES_DIR_PRESENT`
+  - `if exists dir:user/notes then echo NOTES_DIR_PRESENT`
   - `if exists env:PATH then echo HAS_PATH`
 
 ## Regex Matching

@@ -91,7 +91,7 @@ export function mount(el, context) {
           <div id="notePreview" class="textarea notes-preview" data-expand="text"></div>
         </div>
         <div class="notes-card notes-footer">
-          <span class="hint">Create saves to user/Notes (or provided path). Load can open YAML/Markdown files.</span>
+          <span class="hint">Create saves to user/notes (or provided path). Load can open YAML/Markdown files.</span>
           <div class="notes-actions">
             <button class="btn btn-secondary" id="notesLoad">Load</button>
             <button class="btn" id="notesToSticky">To Sticky</button>
