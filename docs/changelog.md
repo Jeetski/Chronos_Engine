@@ -217,7 +217,7 @@
 
 ### Dashboard - Achievement Unlocked Popup
 - Added popup module:
-  - `utilities/dashboard/Popups/AchievementUnlocked/`
+  - `utilities/dashboard/popups/AchievementUnlocked/`
   - `popup.yml` metadata included (auto-discovered registry)
 - Popup behavior:
   - polls profile award feed
@@ -330,7 +330,7 @@
 - Added startup popup action button:
   - `Set Up Nia AI` (currently inert / no action attached)
 - Kept existing `Tour` button as placeholder.
-- File: `utilities/dashboard/Popups/Startup/index.js`
+- File: `utilities/dashboard/popups/Startup/index.js`
 
 ### Dashboard - Docs View Markdown Rendering
 - Docs view now renders `.md` / `.markdown` files with formatted HTML instead of raw textarea-only output.
@@ -400,11 +400,11 @@
 - Menustrip ordering is now alphabetical, including `Popups`.
 - `Popups` menu now lists discovered popup modules and each row is clickable for manual launch.
 - Manual popup launches now force queue enqueue even when popups are globally disabled.
-- Renamed popup directory from `utilities/dashboard/Pop_Ups/` to `utilities/dashboard/Popups/` and updated loader/registry/docs paths.
+- Renamed popup directory from `utilities/dashboard/Pop_Ups/` to `utilities/dashboard/popups/` and updated loader/registry/docs paths.
 
 ### Dashboard - Popup Reliability and New Sleep Check-In Popup
 - Added new popup module:
-  - `utilities/dashboard/Popups/SleepCheckin/`
+  - `utilities/dashboard/popups/SleepCheckin/`
   - `popup.yml` priority: `850`
 - Startup queue behavior now effectively runs:
   1. `Startup`
@@ -475,7 +475,7 @@
 
 ### Dashboard - Yesterday Check-in Popup + Auto-Miss
 - Added popup module:
-  - `utilities/dashboard/Popups/YesterdayCheckin/`
+  - `utilities/dashboard/popups/YesterdayCheckin/`
 - Added endpoints:
   - `GET /api/yesterday/checkin`
   - `POST /api/yesterday/checkin`
@@ -610,14 +610,14 @@
 ## 2026-02-15
 
 ### Dashboard
-- Added a new startup popup module at `utilities/dashboard/Popups/Startup/`.
+- Added a new startup popup module at `utilities/dashboard/popups/Startup/`.
 - Updated startup experience to feature the new Chronos logo prominently.
 - Startup popup now shows:
   - Large Chronos logo on the left
   - `Chronos Engine` title
   - `Alpha v0.2` subtitle
   - Hyperlink to `https://chronosengine.online`
-- Added popup metadata `priority: 1000` in `utilities/dashboard/Popups/Startup/popup.yml`.
+- Added popup metadata `priority: 1000` in `utilities/dashboard/popups/Startup/popup.yml`.
 - Updated popup loading in `utilities/dashboard/app.js`:
   - Popups are sorted by `priority` (desc), then module name.
   - Popup imports are now sequential (not parallel) so queue order is deterministic.
@@ -653,6 +653,7 @@
   - `User/Days/weekday_builder_example.yml` -> `at_school`
   - `User/Days/weekday_example.yml` -> `at_home`
 - Expanded `User/Settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 

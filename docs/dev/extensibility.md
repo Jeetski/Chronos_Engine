@@ -257,7 +257,7 @@ GET /api/registry?name=panels
 
 Notification overlays that appear automatically on dashboard load (e.g., Welcome, StatusNudge).
 
-**Location:** `utilities/dashboard/Popups/<Name>/`
+**Location:** `utilities/dashboard/popups/<Name>/`
 
 **Required Files:**
 - `index.js` - Must export `mount(element)` function
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 

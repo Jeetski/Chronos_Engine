@@ -937,7 +937,7 @@ def build_popups_registry():
     """Auto-discover popups by scanning Dashboard/Popups directory."""
     popups = []
     dashboard_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
-    popups_dir = os.path.join(dashboard_dir, "Popups")
+    popups_dir = os.path.join(dashboard_dir, "popups")
     
     if not os.path.exists(popups_dir):
         return {

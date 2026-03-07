@@ -220,7 +220,7 @@ SQLite mirrors for fast analytics:
 - **Widgets**: `utilities/dashboard/Widgets/<Name>/`
 - **Views**: `utilities/dashboard/Views/<Name>/`
 - **Panels**: `utilities/dashboard/Panels/<Name>/`
-- **Popups**: `utilities/dashboard/Popups/<Name>/`
+- **Popups**: `utilities/dashboard/popups/<Name>/`
 - **Gadgets**: `utilities/dashboard/gadgets/<Name>/`
 
 **APIs**:
@@ -635,6 +635,7 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+
 
 
 
