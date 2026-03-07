@@ -712,7 +712,7 @@ def build_themes_registry():
     themes = []
     
     # 1. Core Themes
-    core_themes_dir = os.path.join(ROOT_DIR, "utilities", "dashboard", "Themes")
+    core_themes_dir = os.path.join(ROOT_DIR, "utilities", "dashboard", "themes")
     # 2. User Themes
     user_themes_dir = os.path.join(USER_DIR, "Themes")
     

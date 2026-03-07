@@ -65,7 +65,7 @@ GET /api/registry?name=wizards
 
 CSS files that define the visual appearance of the dashboard.
 
-**Location:** `utilities/dashboard/Themes/<name>.css`
+**Location:** `utilities/dashboard/themes/<name>.css`
 
 **How it Works:**
 - Registry builder scans for `.css` files in the Themes directory
@@ -527,6 +527,7 @@ Each builder:
 4. Returns sorted registry data
 
 **Server Integration:** `utilities/dashboard/server.py` dynamically routes `/api/registry?name=<type>` to the appropriate builder function.
+
 
 
 

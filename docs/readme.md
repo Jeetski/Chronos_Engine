@@ -204,7 +204,7 @@ Emojis & encoding
 
 ## Changelog Highlights
 Recent improvements
-- Dashboard themes now live under `utilities/dashboard/Themes/` with a runtime picker (Blue, Amber, Emerald, Rose) so operators can switch palettes without editing CSS; base components (wizards, panels, widgets) read shared CSS variables.
+- Dashboard themes now live under `utilities/dashboard/themes/` with a runtime picker (Blue, Amber, Emerald, Rose) so operators can switch palettes without editing CSS; base components (wizards, panels, widgets) read shared CSS variables.
 - Popups menu includes a `Disable popups` toggle; Appearance contains scale/theme controls with accent-tinted Chronos glyphs for easier selection.
 - Added the **New Year's Resolutions Wizard** and **Self Authoring Suite** (see `utilities/dashboard/Wizards/`) to turn reflections into Chronos items, plus a Resolution Tracker widget and aggregated `/api/items` endpoint so dashboards can surface resolution progress at a glance.
 - Added **Sleep Hygiene** wizard + **Sleep Settings** widget workflow:
@@ -219,6 +219,7 @@ Recent improvements
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+
 
 
 

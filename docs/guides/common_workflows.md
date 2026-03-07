@@ -366,7 +366,7 @@ Dashboard & API
 - Use the CLI Bridge from the dashboard
   - Run commands through the Terminal widget or `/api/cli`.
 - Theme switching
-  - Pick a theme in the dashboard theme picker (see `utilities/dashboard/Themes/`).
+  - Pick a theme in the dashboard theme picker (see `utilities/dashboard/themes/`).
 
 ----------------------------------------
 
@@ -483,6 +483,7 @@ Next Steps
 - Explore `docs/dev/architecture.md` to extend commands and modules.
 - Review `docs/guides/dashboard.md` for APIs and widget ideas.
 - Add your own templates and scripts to shape Chronos to your workflow.
+
 
 
 

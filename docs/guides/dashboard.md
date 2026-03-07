@@ -222,7 +222,7 @@ Chronos Dashboard uses a **plug-and-play architecture**. All components (Widgets
 | Popup | `utilities/dashboard/Popups/<Name>/` | `mount(el)` | `popup.yml` |
 | Gadget | `utilities/dashboard/gadgets/<Name>/` | `mount(el, context)` | `gadget.yml` |
 | Wizard | `utilities/dashboard/Wizards/<Name>/` | (wizard-specific) | `wizard.yml` |
-| Theme | `utilities/dashboard/Themes/<name>.css` | N/A (CSS file) | (in CSS comments) |
+| Theme | `utilities/dashboard/themes/<name>.css` | N/A (CSS file) | (in CSS comments) |
 
 ### Example: Adding a Simple Widget
 
@@ -282,6 +282,7 @@ GET /api/registry?name=themes
 ```
 
 For complete developer documentation on creating components, see the [Extensibility Guide](../Dev/Extensibility.md).
+
 
 
 
