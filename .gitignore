@@ -33,14 +33,6 @@ _site/
 Releases/
 *.zip
 
-# colorprint binary
-Utilities/colorprint/colorprint.exe
-
-# colorprint build outputs
-Utilities/colorprint/bin/
-Utilities/colorprint/obj/
-Utilities/colorprint/*.pdb
-
 # Dashboard generated bundles
 Utilities/Dashboard/generated/*
 
