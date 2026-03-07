@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Utilities", "Utilities", "{DF572EAA-2BC4-7083-A1C9-E138B4BE775E}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utilities", "utilities", "{DF572EAA-2BC4-7083-A1C9-E138B4BE775E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,3 +20,4 @@ Global
 		SolutionGuid = {5474657D-17EE-4594-98EC-48AE36CE8E75}
 	EndGlobalSection
 EndGlobal
+

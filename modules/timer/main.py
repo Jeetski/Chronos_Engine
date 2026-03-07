@@ -15,8 +15,8 @@ except Exception:
 
 from modules.item_manager import get_user_dir, read_item_data, write_item_data
 from modules.scheduler import get_flattened_schedule, schedule_path_for_date, stretch_item_in_file
-from Utilities.duration_parser import parse_duration_string
-from Utilities import points as Points
+from utilities.duration_parser import parse_duration_string
+from utilities import points as Points
 
 
 STATE_DIR = os.path.join(get_user_dir(), 'Timers')
@@ -1211,4 +1211,5 @@ def sync_schedule_state():
 
     _save_state(st)
     return st
+
 

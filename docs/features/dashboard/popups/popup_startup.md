@@ -10,7 +10,7 @@ Popups should be concise, actionable, and dismissible without blocking core work
 - Command reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Popups/Startup/`
+- Runtime source: `utilities/Dashboard/Popups/Startup/`
 - Trigger model: popup appears when its startup/runtime conditions are met.
 - API endpoints used by this popup:
   - `/api/docs/read?path=`
@@ -34,3 +34,4 @@ Popups should be concise, actionable, and dismissible without blocking core work
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+

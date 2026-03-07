@@ -5,7 +5,7 @@ Chronos provides context-aware autosuggest in both the CLI and the Dashboard Ter
 ## Where It Runs
 
 - CLI: `modules/console.py` (prompt_toolkit completer + autosuggest).
-- Dashboard Terminal: `Utilities/Dashboard/Widgets/Terminal/index.js`.
+- Dashboard Terminal: `utilities/Dashboard/Widgets/Terminal/index.js`.
 - Data source: registry JSON files under `registry/`.
 
 ## Runtime Controls
@@ -68,7 +68,7 @@ Example:
 
 The registry builder uses two inputs:
 
-1) Manual overrides in `Utilities/registry_builder.py` (`COMMAND_SYNTAX_OVERRIDES`).
+1) Manual overrides in `utilities/registry_builder.py` (`COMMAND_SYNTAX_OVERRIDES`).
 2) Parsed `Usage:` lines from each command's `get_help_message()` (fallback).
 
 If a command's suggestions look wrong, fix the `Usage:` line or add/adjust an override.
@@ -85,4 +85,5 @@ Autosuggest switches to the nested command once you reach the pipeline point.
 ## Theme Notes (CLI)
 
 The CLI autosuggest uses prompt_toolkit and inherits Chronos theme colors. If the prompt looks like the default black/white, check the theme in `User/Profile/profile.yml` or `User/Settings/theme_settings.yml`.
+
 

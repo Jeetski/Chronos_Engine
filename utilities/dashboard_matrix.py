@@ -25,7 +25,7 @@ COMPLETIONS_DIR = os.path.join(SCHEDULES_DIR, "completions")
 NAME_SEPARATOR = "\x1f"
 
 from modules.item_manager import list_all_items  # type: ignore
-from Utilities.duration_parser import parse_duration_string  # type: ignore
+from utilities.duration_parser import parse_duration_string  # type: ignore
 
 DEFAULT_ITEM_TYPES = [
     "achievement",
@@ -1439,3 +1439,4 @@ def parse_dimension_sequence(raw: str, fallback: List[str]) -> List[str]:
         if value:
             cleaned.append(value)
     return cleaned or list(fallback)
+

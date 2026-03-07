@@ -73,16 +73,16 @@ def _open_dashboard_url(url, browser_cmd=""):
 def run(args, properties):
     """
     Bundles settings into a generated manifest and opens the dashboard HTML.
-    Looks for Utilities/Dashboard/dashboard.html first; falls back to Chronos_Engine_Dashboard.html.
+    Looks for utilities/Dashboard/dashboard.html first; falls back to Chronos_Engine_Dashboard.html.
     """
     try:
         bundle_settings_for_dashboard()
     except Exception as e:
         print(f"Warning: Could not bundle dashboard settings: {e}")
 
-    util_dashboard = os.path.join(ROOT_DIR, "Utilities", "Dashboard", "dashboard.html")
+    util_dashboard = os.path.join(ROOT_DIR, "utilities", "Dashboard", "dashboard.html")
     if not os.path.exists(util_dashboard):
-        print("No dashboard HTML found at 'Utilities/Dashboard/dashboard.html'.")
+        print("No dashboard HTML found at 'utilities/Dashboard/dashboard.html'.")
         return
 
     # Ensure temp dashboard script lives under Temp/ if present at project root
@@ -109,7 +109,7 @@ def run(args, properties):
     env['CHRONOS_DASH_HOST'] = host
     env['CHRONOS_DASH_PORT'] = port
 
-    server_script = os.path.join(ROOT_DIR, 'Utilities', 'Dashboard', 'server.py')
+    server_script = os.path.join(ROOT_DIR, 'utilities', 'Dashboard', 'server.py')
     try:
         # Start detached process
         subprocess.Popen([sys.executable, server_script], cwd=ROOT_DIR, env=env)
@@ -144,14 +144,14 @@ Also pre-bundles User/Settings YAML into generated/settings_bundle.js for the UI
 
 def bundle_settings_for_dashboard():
     """
-    Reads relevant YAMLs from User/Settings and writes Utilities/Dashboard/generated/settings_bundle.js
+    Reads relevant YAMLs from User/Settings and writes utilities/Dashboard/generated/settings_bundle.js
     that sets window.CHRONOS_SETTINGS for the dashboard to use without fetch.
     """
     if yaml is None:
         raise RuntimeError("PyYAML not available")
 
     settings_dir = os.path.join(ROOT_DIR, "User", "Settings")
-    out_dir = os.path.join(ROOT_DIR, "Utilities", "Dashboard", "generated")
+    out_dir = os.path.join(ROOT_DIR, "utilities", "Dashboard", "generated")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "settings_bundle.js")
 
@@ -305,3 +305,4 @@ def bundle_settings_for_dashboard():
         f.write('window.CHRONOS_SETTINGS = ')
         json.dump(bundle, f, ensure_ascii=False)
         f.write(';')
+

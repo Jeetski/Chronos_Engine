@@ -1,5 +1,5 @@
 import os
-from Utilities import points as Points
+from utilities import points as Points
 
 
 def run(args, properties):
@@ -70,4 +70,5 @@ Usage:
   points history [<last_N>]
   points reset [keep_ledger:true|false]
 """
+
 

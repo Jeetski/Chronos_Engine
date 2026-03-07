@@ -54,22 +54,22 @@ The "Long-Term Memory" of Chronos.
   - Monitors time for alarms/reminders, triggers sounds (pygame.mixer), handles timer ticks.
   - Can execute scripts and target actions (e.g., complete task on trigger).
 
-- Dashboard — `Utilities/Dashboard`
+- Dashboard — `utilities/Dashboard`
   - Server (`server.py`) serves assets and JSON/YAML APIs (ThreadingHTTPServer over plain HTTP).
-  - UI is plain ES modules + a small loader (`core/runtime.js`) to mount views (`Calendar`, `TemplateBuilder`, `Cockpit`), widgets (Scheduler/Today widget, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug), and dock gadgets (`Utilities/Dashboard/Gadgets/*`).
+  - UI is plain ES modules + a small loader (`core/runtime.js`) to mount views (`Calendar`, `TemplateBuilder`, `Cockpit`), widgets (Scheduler/Today widget, Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug), and dock gadgets (`utilities/Dashboard/Gadgets/*`).
   - Widgets mount via attributes, e.g., `data-widget="Notes"`, and export `mount(el, context)`. Cockpit panels register via `window.__cockpitPanelRegister` and render inside the drag-and-drop canvas.
 
 ## Dashboard Architecture
 
 The Dashboard is a hybrid Desktop/Web application.
 
-### Backend (`Utilities/Dashboard/server.py`)
+### Backend (`utilities/Dashboard/server.py`)
 A `ThreadingHTTPServer` that acts as the bridge between the browser and the file system.
 - **API**: Provides JSON endpoints (`/api/profile`, `/api/cockpit/matrix`, `/api/media/mp3`) to read/write system state.
 - **Streaming**: Streams MP3s from `User/Media` for the music player.
 - **Bundler**: The `dashboard` CLI command pre-bundles static settings into `generated/settings_bundle.js` for fast startup.
 
-### Frontend (`Utilities/Dashboard/app.js`)
+### Frontend (`utilities/Dashboard/app.js`)
 A generic Vanilla JS Single Page Application (SPA).
 - **Module Loader**: Dynamically imports "Panels" (views) and "Wizards" to keep the initial bundle small.
 - **View System**: Manages a tiling window interface (`view-panes`) where users can open multiple tools side-by-side.
@@ -91,8 +91,8 @@ A generic Vanilla JS Single Page Application (SPA).
     - Settings: `GET /api/settings`, `GET /api/settings?file=Name.yml`, `POST /api/settings?file=Name.yml` (raw YAML preserved).
   - Security: permissive CORS for local dev; do not expose publicly without adding auth and controls.
 
-- UI runtime (`Utilities/Dashboard/app.js` + widgets/views)
-  - Views: Calendar, Template Builder, and the Cockpit canvas (panels under `Utilities/Dashboard/Panels/`).
+- UI runtime (`utilities/Dashboard/app.js` + widgets/views)
+  - Views: Calendar, Template Builder, and the Cockpit canvas (panels under `utilities/Dashboard/Panels/`).
   - Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Settings, Clock, Status, Debug Console.
   - Gadgets + Dock: Bottom dock (`#chronosDock`) populated by gadget registry (`GET /api/registry?name=gadgets`); gadgets mount via `mountGadget()` and can be toggled from the topbar Gadgets menu.
   - Event bus: `mount(el, context)` receives a `context.bus` used by widgets (e.g., emit `vars:changed`, `widget:show`, `calendar:selected`).
@@ -134,15 +134,15 @@ A generic Vanilla JS Single Page Application (SPA).
   2. Reuse `ItemManager` for common behaviors (`new`, `append`, `delete`).
 
 - Add a widget, view, panel, popup, or gadget
-  1. Create folder in `Utilities/Dashboard/Widgets/<Name>/` (or Views/Panels/Popups/Gadgets)
+  1. Create folder in `utilities/Dashboard/Widgets/<Name>/` (or Views/Panels/Popups/Gadgets)
   2. Create `index.js` with appropriate export function (`mount()` for widgets/views/popups/gadgets, `register()` for panels)
   3. (Optional) Add metadata YAML file for custom labels or post-release badges
   4. Refresh dashboard - component auto-discovered and added to menu
   5. Add server endpoints if needed; prefer JSON responses for easy parsing
 
 - Add a Wizard or Theme
-  - Wizards: Create folder in `Utilities/Dashboard/Wizards/<Name>/` with `index.js`
-  - Themes: Drop CSS file into `Utilities/Dashboard/Themes/`
+  - Wizards: Create folder in `utilities/Dashboard/Wizards/<Name>/` with `index.js`
+  - Themes: Drop CSS file into `utilities/Dashboard/Themes/`
   - Component auto-discovered on server restart
   - See `docs/dev/extensibility.md` for the full specification
 
@@ -152,5 +152,6 @@ A generic Vanilla JS Single Page Application (SPA).
 - Prefer JSON over YAML for HTTP responses (clients parse easier); YAML is OK for human-readable responses.
 - Validate inputs on the server; sanitize paths; avoid blocking I/O in handlers.
 - For long-running or external operations, apply timeouts and consider subprocess isolation.
+
 
 

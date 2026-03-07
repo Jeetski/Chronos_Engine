@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from modules.console import invoke_command
 from modules.scheduler import USER_DIR, get_flattened_schedule, schedule_path_for_date
-from Utilities.duration_parser import parse_duration_string
+from utilities.duration_parser import parse_duration_string
 from modules.timer import main as Timer
 
 
@@ -297,3 +297,4 @@ def get_help_message():
 
 Rebuilds today's schedule, extracts sequential blocks (buffers included),
 and launches the timer to run them with completion confirmations."""
+

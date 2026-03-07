@@ -6,7 +6,7 @@ from modules.scheduler import get_flattened_schedule, build_block_key, schedule_
 from commands.today import load_completion_payload
 from modules import quality_utils
 try:
-    from Utilities import points as Points
+    from utilities import points as Points
 except Exception:
     Points = None
 
@@ -185,4 +185,5 @@ Examples:
   did "Workout" status:partial note:"Stopped early"
   did "Planning" start_time:09:00 end_time:09:45 date:2026-03-01
 """
+
 

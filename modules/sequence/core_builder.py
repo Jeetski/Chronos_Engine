@@ -14,7 +14,7 @@ from modules.sequence.registry import (
     load_registry,
 )
 from modules.scheduler import build_block_key, schedule_path_for_date  # type: ignore
-from Utilities.duration_parser import parse_duration_string  # type: ignore
+from utilities.duration_parser import parse_duration_string  # type: ignore
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = get_user_dir()
@@ -919,3 +919,4 @@ def delete_item_from_core_db(item_type: str, name: str) -> None:
         raise
     finally:
         conn.close()
+

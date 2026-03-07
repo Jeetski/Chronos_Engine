@@ -33,7 +33,7 @@ from modules.scheduler import (
     schedule_path_for_date, manual_modifications_path_for_date, status_current_path
 )
 
-from Utilities.duration_parser import parse_duration_string
+from utilities.duration_parser import parse_duration_string
 from modules.item_manager import read_item_data
 
 # =============================================================================
@@ -3144,3 +3144,4 @@ Examples:
   today routines
   today legacy reschedule
 """
+

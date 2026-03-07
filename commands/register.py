@@ -1,6 +1,6 @@
 import os
 
-from Utilities import registry_builder
+from utilities import registry_builder
 
 
 def run(args, properties):
@@ -56,4 +56,5 @@ Description:
   Builds JSON registries used by autosuggest and tooling.
   Outputs files under the registry/ folder.
 """
+
 

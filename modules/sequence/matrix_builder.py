@@ -10,7 +10,7 @@ from modules.sequence.registry import (
     update_database_entry,
     load_registry,
 )
-from Utilities import dashboard_matrix as matrix_utils  # type: ignore
+from utilities import dashboard_matrix as matrix_utils  # type: ignore
 
 DEFAULT_ITEM_TYPES = matrix_utils.DEFAULT_ITEM_TYPES
 BUILTIN_DIMENSION_IDS = set(matrix_utils.BUILTIN_DIMENSION_IDS)
@@ -353,3 +353,4 @@ def build_matrix_cache(registry: Dict[str, Any]) -> None:
 def sync_matrix_cache() -> None:
     registry = load_registry()
     build_matrix_cache(registry)
+

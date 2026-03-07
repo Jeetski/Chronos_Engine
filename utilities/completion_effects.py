@@ -30,7 +30,7 @@ def run_completion_effects(
         return
 
     try:
-        from Utilities import points as Points
+        from utilities import points as Points
         pts = Points.award_on_complete(
             item_type,
             item_name,
@@ -40,3 +40,4 @@ def run_completion_effects(
             print(f"+{pts} points awarded.")
     except Exception:
         pass
+

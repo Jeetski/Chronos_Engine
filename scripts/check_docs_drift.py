@@ -12,7 +12,7 @@ from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMANDS_DIR = ROOT / "commands"
-SERVER_FILE = ROOT / "Utilities" / "Dashboard" / "server.py"
+SERVER_FILE = ROOT / "utilities" / "Dashboard" / "server.py"
 CLI_DOC = ROOT / "docs" / "reference" / "cli_commands.md"
 API_DOC = ROOT / "docs" / "reference" / "dashboard_api.md"
 DOCS_DIR = ROOT / "docs"
@@ -190,4 +190,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 

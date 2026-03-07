@@ -9,7 +9,7 @@ In-app documentation explorer with tree browsing, search, and file reading.
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Views/docs/`
+- Runtime source: `utilities/Dashboard/Views/docs/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/docs/read?path=`
@@ -35,3 +35,4 @@ In-app documentation explorer with tree browsing, search, and file reading.
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+

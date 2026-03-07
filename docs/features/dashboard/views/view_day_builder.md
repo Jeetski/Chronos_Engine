@@ -9,7 +9,7 @@ Structured editor for day templates with scheduling-safe composition and save/ap
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Views/DayBuilder/`
+- Runtime source: `utilities/Dashboard/Views/DayBuilder/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/cli`
@@ -44,3 +44,4 @@ Structured editor for day templates with scheduling-safe composition and save/ap
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+

@@ -202,7 +202,7 @@ def remove_item_from_schedule(schedule, item_to_remove):
                 return True
     return False
 
-from Utilities.duration_parser import parse_duration_string # Import parse_duration_string
+from utilities.duration_parser import parse_duration_string # Import parse_duration_string
 
 def update_parent_times(item):
     """
@@ -993,3 +993,4 @@ def schedule_flexible_items(schedule, windows, status_context, current_date=None
                  print(f"  -> Could not fit '{candidate['name']}' in window.")
                  
     return schedule
+

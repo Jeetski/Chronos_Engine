@@ -23,7 +23,7 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 
 ## Data Sources
 
-- Panels rely on dashboard APIs (`Utilities/Dashboard/server.py`) which in turn use mirrors from `sequence` where possible (`chronos_matrix.db`, `chronos_core.db`, etc.).
+- Panels rely on dashboard APIs (`utilities/Dashboard/server.py`) which in turn use mirrors from `sequence` where possible (`chronos_matrix.db`, `chronos_core.db`, etc.).
 - If data looks stale, run `sequence sync matrix` or `sequence sync` in the CLI, or refresh the browser after a listener-led nightly sync.
 
 ## Common Workflows
@@ -36,9 +36,10 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 
 - Missing panels: clear localStorage key `chronos_cockpit_panels_v1` and reload.
 - Stale data: run `sequence sync matrix` (or `sequence sync`) then hard-refresh.
-- API errors: check console logs in the browser dev tools and `Utilities/Dashboard/server.py` output.
+- API errors: check console logs in the browser dev tools and `utilities/Dashboard/server.py` output.
 
 ## Extending
 
-- Panels live in `Utilities/Dashboard/Panels/<Name>/` and register via `window.__cockpitPanelRegister` in `Utilities/Dashboard/Views/Cockpit/`.
+- Panels live in `utilities/Dashboard/Panels/<Name>/` and register via `window.__cockpitPanelRegister` in `utilities/Dashboard/Views/Cockpit/`.
 - For new panels, expose minimal GET/POST endpoints in `server.py` and reuse matrix/core mirrors when possible.
+

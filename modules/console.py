@@ -199,7 +199,7 @@ def _maybe_refresh_command_registry():
         reg_mtime = os.path.getmtime(reg_path) if os.path.exists(reg_path) else 0
         latest_cmd = _latest_command_mtime()
         if latest_cmd and latest_cmd > reg_mtime:
-            from Utilities import registry_builder
+            from utilities import registry_builder
             registry_builder.write_command_registry()
     except Exception:
         pass
@@ -1597,4 +1597,5 @@ if __name__ == "__main__":
                         time.sleep(1)
                     _play_cli_sound("exit", wait=True)
                     break
+
 

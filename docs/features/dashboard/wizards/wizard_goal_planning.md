@@ -10,7 +10,7 @@ Wizards should produce deterministic item/settings outcomes that remain editable
 - Command syntax reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Wizards/GoalPlanning/`
+- Runtime source: `utilities/Dashboard/Wizards/GoalPlanning/`
 - Primary intent: guided multi-step workflow with reduced setup friction.
 - API endpoints used by this wizard:
   - `/api/goals`
@@ -43,3 +43,4 @@ Wizards should produce deterministic item/settings outcomes that remain editable
 - `docs/reference/dashboard_api.md`
 - `docs/guides/settings.md`
 - `docs/reference/cli_commands.md`
+

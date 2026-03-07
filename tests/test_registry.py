@@ -10,7 +10,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from Utilities import registry_builder
+from utilities import registry_builder
 
 class TestRegistryBuilder(unittest.TestCase):
     def setUp(self):
@@ -81,3 +81,4 @@ class TestRegistryBuilder(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

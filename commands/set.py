@@ -100,7 +100,7 @@ def run(args, properties):
         new_status = str(data.get('status') or '').lower()
         if new_status == 'completed' and prev_status != 'completed' and not data.get('points_awarded'):
             try:
-                from Utilities import points as Points
+                from utilities import points as Points
                 Points.award_on_complete('goal', item_name, minutes=None)
                 data['points_awarded'] = True
             except Exception:
@@ -285,4 +285,5 @@ def _apply_project_template(project_name: str):
             _ensure_node(child)
 
     print(f"?.. Applied project template '{project_name}': created {stats['created']} item(s), linked {stats['linked']} existing.")
+
 

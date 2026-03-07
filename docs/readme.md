@@ -61,13 +61,13 @@ High level
 - CLI runtime: `modules/console.py` dynamically loads commands (`commands/*.py`) and item modules (`modules/*/main.py`).
 - Data model: YAML items under `User/` (tasks, routines, notes, goals, habits, etc.).
 - Listener: `modules/listener/listener.py` runs alarms, reminders, and timer lifecycle.
-- Dashboard: `Utilities/Dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
+- Dashboard: `utilities/Dashboard` server + vanilla JS widgets/views with a bottom action dock powered by gadgets.
 - Data mirrors: the `sequence` CLI builds SQLite mirrors in `User/Data/` (core/items, matrix cache, events, behavior, journal, trends, and the `trends.md` digest) so dashboards and agents can query without reparsing YAML.
 
 Folders
 - `commands/`: verbs (e.g., `today`, `list`, `new`, `edit`, `status`, `points`, `help`).
 - `modules/`: engine features (ItemManager, Scheduler, Timer, Conditions, etc.).
-- `Utilities/`: helper libs and Dashboard code.
+- `utilities/`: helper libs and Dashboard code.
 - `User/`: your data (items, schedules, settings, logs).
 - `User/Inventories`, `User/Inventory_Items`, `User/Tools`: optional gear and capability records that inventories/templates can reference.
 
@@ -131,16 +131,16 @@ Variables
 
 ## Dashboard
 Server
-- Path: `Utilities/Dashboard/server.py` (ThreadingHTTPServer).
+- Path: `utilities/Dashboard/server.py` (ThreadingHTTPServer).
 - Serves assets and provides JSON/YAML endpoints (see Dashboard API guide).
 
 UI
-- `Utilities/Dashboard/` contains auto-discovered views, widgets, panels, popups, and gadgets.
+- `utilities/Dashboard/` contains auto-discovered views, widgets, panels, popups, and gadgets.
 - Views:
 - **Calendar** (year/month/week/day canvas with a Day List tree). Selecting a block in Day view targets Scheduler actions; selecting a date previews that day (today is actionable).
   - **Template Builder** (drag/drop week/day/routine trees plus goal/project/inventory builders with duration badges, nesting inspector, and POST `/api/template` saves).
 - **Cockpit** (drag-and-drop canvas for modular panels). Panels like **Schedule** (live agenda tree), **Matrix** (pivot-style grid for Chronos data), and **Status Strip** (color-coded horizontal strip of your current status indicators) can be arranged into a personal flight deck, with more panels on the way.
-- Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Sleep Settings, Settings, Clock, Status, Debug Console. Each widget lives under `Utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
+- Widgets: Scheduler (Today widget), Item Manager, Variables, Terminal, Habit Tracker, Goal Tracker, Commitments, Rewards, Achievements, Milestones, Notes, Journal, Profile, Review, Timer, Sleep Settings, Settings, Clock, Status, Debug Console. Each widget lives under `utilities/Dashboard/Widgets/<Name>/` with a `mount` function.
 
 Selected endpoints (JSON unless noted)
 - Canonical endpoint catalog: `docs/reference/dashboard_api.md`.
@@ -204,9 +204,9 @@ Emojis & encoding
 
 ## Changelog Highlights
 Recent improvements
-- Dashboard themes now live under `Utilities/Dashboard/Themes/` with a runtime picker (Blue, Amber, Emerald, Rose) so operators can switch palettes without editing CSS; base components (wizards, panels, widgets) read shared CSS variables.
+- Dashboard themes now live under `utilities/Dashboard/Themes/` with a runtime picker (Blue, Amber, Emerald, Rose) so operators can switch palettes without editing CSS; base components (wizards, panels, widgets) read shared CSS variables.
 - Popups menu includes a `Disable popups` toggle; Appearance contains scale/theme controls with accent-tinted Chronos glyphs for easier selection.
-- Added the **New Year's Resolutions Wizard** and **Self Authoring Suite** (see `Utilities/Dashboard/Wizards/`) to turn reflections into Chronos items, plus a Resolution Tracker widget and aggregated `/api/items` endpoint so dashboards can surface resolution progress at a glance.
+- Added the **New Year's Resolutions Wizard** and **Self Authoring Suite** (see `utilities/Dashboard/Wizards/`) to turn reflections into Chronos items, plus a Resolution Tracker widget and aggregated `/api/items` endpoint so dashboards can surface resolution progress at a glance.
 - Added **Sleep Hygiene** wizard + **Sleep Settings** widget workflow:
   - wizard guides pattern/timing + hygiene defaults and can create bedtime routine examples;
   - widget manages sleep anchor blocks directly in day templates.
@@ -219,5 +219,6 @@ Recent improvements
 
 ---
 If you need a guided tour for a specific workflow (projects, habits, reviews), see CHS_Scripting.md and Conditions_Cookbook.md.
+
 
 

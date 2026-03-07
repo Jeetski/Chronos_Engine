@@ -6,7 +6,7 @@ from modules.item_manager import get_item_path, read_item_data, write_item_data
 from modules.scheduler import schedule_path_for_date, build_block_key
 from commands.today import load_completion_payload
 from modules import quality_utils
-from Utilities.completion_effects import run_completion_effects
+from utilities.completion_effects import run_completion_effects
 
 
 def _normalize_time_str(value):
@@ -245,4 +245,5 @@ Usage: mark <item_name>:<status>
 Description: Marks an item in the daily schedule with a new status.
 Example: mark "Morning Routine":completed
 """
+
 

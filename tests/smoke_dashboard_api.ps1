@@ -66,7 +66,7 @@ $serverProc = $null
 
 try {
     Write-Info "Starting dashboard server on port $Port"
-    $serverProc = Start-Process -FilePath "python" -ArgumentList "Utilities/Dashboard/server.py" -WorkingDirectory $root -PassThru -WindowStyle Hidden
+    $serverProc = Start-Process -FilePath "python" -ArgumentList "utilities/Dashboard/server.py" -WorkingDirectory $root -PassThru -WindowStyle Hidden
 
     $healthy = $false
     for ($i = 0; $i -lt 40; $i++) {
@@ -229,3 +229,4 @@ finally {
     }
     if ($null -ne $oldPort) { $env:CHRONOS_DASH_PORT = $oldPort } else { Remove-Item Env:CHRONOS_DASH_PORT -ErrorAction SilentlyContinue }
 }
+

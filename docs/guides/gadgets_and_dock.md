@@ -1,6 +1,6 @@
 # Gadgets & Dock Guide
 
-Chronos Dashboard includes a bottom dock for quick actions. The dock is populated by **gadgets** (small modules discovered from `Utilities/Dashboard/Gadgets/`).
+Chronos Dashboard includes a bottom dock for quick actions. The dock is populated by **gadgets** (small modules discovered from `utilities/Dashboard/Gadgets/`).
 
 This guide covers daily use and developer extension points.
 
@@ -43,7 +43,7 @@ As of March 2026, two gadgets ship by default.
 
 ### 1. Timer Gadget
 
-Location: `Utilities/Dashboard/Gadgets/Timer/`
+Location: `utilities/Dashboard/Gadgets/Timer/`
 
 Behavior:
 - Shows countdown (`MM:SS`) and circular progress ring.
@@ -61,7 +61,7 @@ Behavior:
 
 ### 2. Reschedule Gadget
 
-Location: `Utilities/Dashboard/Gadgets/Reschedule/`
+Location: `utilities/Dashboard/Gadgets/Reschedule/`
 
 Behavior:
 - One-click button to run `today reschedule`.
@@ -76,7 +76,7 @@ Behavior:
 - Server endpoint:
   - `GET /api/registry?name=gadgets`
 - Registry builder scans:
-  - `Utilities/Dashboard/Gadgets/<Name>/`
+  - `utilities/Dashboard/Gadgets/<Name>/`
 - Discovery defaults:
   - `id`: lowercase folder name
   - `label`: folder name split by PascalCase
@@ -101,7 +101,7 @@ order: 10
 ### Required Structure
 
 ```text
-Utilities/Dashboard/Gadgets/
+utilities/Dashboard/Gadgets/
   MyGadget/
     index.js
     gadget.yml   # optional
@@ -166,10 +166,11 @@ export function mount(el, context = {}) {
   - Move pointer to bottom 26-28px of window.
   - Verify at least one gadget is enabled in the **Gadgets** menu.
 - Gadget does not appear:
-  - Confirm folder path is `Utilities/Dashboard/Gadgets/<Name>/`.
+  - Confirm folder path is `utilities/Dashboard/Gadgets/<Name>/`.
   - Confirm `index.js` exports `mount`.
   - Check browser dev tools console for import/mount errors.
 - Registry looks stale:
   - Hard-refresh dashboard (`Ctrl+Shift+R`).
   - Optionally clear registry cache via admin tools (`clear registry:...`) and reload.
+
 

@@ -11,7 +11,7 @@ from modules.scheduler import (
     normalize_completion_entries,
 )
 from commands.today import load_completion_payload
-from Utilities.duration_parser import parse_duration_string
+from utilities.duration_parser import parse_duration_string
 
 
 DONE_STATUSES = {"completed", "done", "skipped", "archived"}
@@ -388,4 +388,5 @@ Settings file: User/Settings/quick_wins_settings.yml
 Date: quickwins date:YYYY-MM-DD
 Example: quickwins minutes:15 days:3 limit:15
 """
+
 

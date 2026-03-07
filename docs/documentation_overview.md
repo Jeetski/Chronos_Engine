@@ -35,7 +35,7 @@ Chronos rejects the traditional "balance" approach that dilutes every day. Inste
 | **ItemManager** | `modules/item_manager.py` | Generic CRUD operations for all item types |
 | **Scheduler** | `commands/today.py` + `modules/scheduler.py` | Daily agenda builder with conflict resolution |
 | **Listener** | `modules/listener/` | Background service for alarms, reminders, timer |
-| **Dashboard** | `Utilities/Dashboard/` | Local HTTP server + vanilla JS SPA |
+| **Dashboard** | `utilities/Dashboard/` | Local HTTP server + vanilla JS SPA |
 | **Sequence** | `modules/sequence/` | SQLite mirrors + analytics (`trends.md`) |
 | **User Data** | `User/` | All YAML items, settings, templates, logs |
 
@@ -186,7 +186,7 @@ SQLite mirrors for fast analytics:
 **Points System**:
 - `points.yml` ledger
 - Earned on completion (tasks, habits, goals, milestones)
-- Tracked via `Utilities/points.py`
+- Tracked via `utilities/points.py`
 
 **Rewards**:
 - Cost + cooldown enforcement
@@ -215,13 +215,13 @@ SQLite mirrors for fast analytics:
 **Auto-Discovery System**:
 - All dashboard components are plug-and-play (drop folder → auto-discovered)
 - No configuration files or code editing required
-- **Wizards**: `Utilities/Dashboard/Wizards/<Name>/`
-- **Themes**: `Utilities/Dashboard/Themes/<name>.css`
-- **Widgets**: `Utilities/Dashboard/Widgets/<Name>/`
-- **Views**: `Utilities/Dashboard/Views/<Name>/`
-- **Panels**: `Utilities/Dashboard/Panels/<Name>/`
-- **Popups**: `Utilities/Dashboard/Popups/<Name>/`
-- **Gadgets**: `Utilities/Dashboard/Gadgets/<Name>/`
+- **Wizards**: `utilities/Dashboard/Wizards/<Name>/`
+- **Themes**: `utilities/Dashboard/Themes/<name>.css`
+- **Widgets**: `utilities/Dashboard/Widgets/<Name>/`
+- **Views**: `utilities/Dashboard/Views/<Name>/`
+- **Panels**: `utilities/Dashboard/Panels/<Name>/`
+- **Popups**: `utilities/Dashboard/Popups/<Name>/`
+- **Gadgets**: `utilities/Dashboard/Gadgets/<Name>/`
 
 **APIs**:
 - `GET /api/registry?name=wizards|themes|widgets|views|panels|popups|gadgets`
@@ -437,7 +437,7 @@ Chronos Engine/
 │   ├── Scheduler.py
 │   ├── Sequence/
 │   └── */main.py
-├── Utilities/
+├── utilities/
 │   ├── Dashboard/
 │   │   ├── server.py
 │   │   ├── Widgets/
@@ -635,4 +635,5 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 ---
 
 **Chronos Engine**: Your life, your templates, your status, your schedule. Live intentionally.
+
 

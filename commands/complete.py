@@ -4,7 +4,7 @@
 import sys
 from modules.item_manager import dispatch_command
 try:
-    from Utilities.tracking import is_trackable, mark_complete
+    from utilities.tracking import is_trackable, mark_complete
 except Exception:
     is_trackable = None
     mark_complete = None
@@ -14,7 +14,7 @@ from datetime import datetime
 from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
 from commands.today import load_completion_payload
 from modules import quality_utils
-from Utilities.completion_effects import run_completion_effects
+from utilities.completion_effects import run_completion_effects
 
 def run(args, properties):
     """
@@ -147,4 +147,5 @@ Examples:
   complete appointment "Dentist" attended:true
   complete appointment "Dentist" no_show:true  (records a session but does NOT count as completion)
 """
+
 

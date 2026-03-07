@@ -9,7 +9,7 @@ Freeform visual planning board with item links, matrix overlays, and collaborati
 - Use CLI for deterministic bulk or scripted operations; use view UI for visual planning/exploration.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Views/Canvas/`
+- Runtime source: `utilities/Dashboard/Views/Canvas/`
 - View behavior should remain consistent with dashboard API contracts.
 - API endpoints used by this view:
   - `/api/cli`
@@ -43,3 +43,4 @@ Freeform visual planning board with item links, matrix overlays, and collaborati
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+

@@ -2,7 +2,7 @@ import sys
 from modules.item_manager import dispatch_command
 
 try:
-    from Utilities.tracking import is_trackable, mark_missed
+    from utilities.tracking import is_trackable, mark_missed
 except Exception:
     is_trackable = None
     mark_missed = None
@@ -74,3 +74,4 @@ Examples:
   miss appointment "Dentist"            (equivalent to no_show)
   miss appointment "Dentist" outcome:no_show
 """
+

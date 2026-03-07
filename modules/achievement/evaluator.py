@@ -229,7 +229,7 @@ def _apply_rewards(
 
     if points > 0:
         try:
-            from Utilities import points as Points
+            from utilities import points as Points
             Points.add_points(points, reason="achievement", source_item=name, tags=["achievement", ach_id])
         except Exception:
             pass
@@ -543,3 +543,4 @@ def reset_progress() -> dict:
             "xp_to_next_level": lvl["xp_to_next_level"],
         },
     }
+

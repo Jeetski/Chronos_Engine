@@ -1,4 +1,4 @@
-﻿import os
+import os
 import yaml
 from datetime import datetime, timedelta, date
 from modules.item_manager import get_user_dir, get_item_dir, list_all_items
@@ -285,7 +285,7 @@ def _summary_tasks(start: datetime, end: datetime):
 
 def _summary_points(start: datetime, end: datetime):
     try:
-        from Utilities import points as Points
+        from utilities import points as Points
         hist = Points.get_history()
         earned = 0
         spent = 0
@@ -451,6 +451,7 @@ def _export_markdown(period_type: str, start: datetime):
     with open(mpath, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
     print(f"Exported markdown -> {mpath}")
+
 
 
 

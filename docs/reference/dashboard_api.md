@@ -1,7 +1,7 @@
 # Dashboard API Reference
 
 Last verified: 2026-03-06  
-Source of truth: `Utilities/Dashboard/server.py` (`do_GET` / `do_POST` route checks)
+Source of truth: `utilities/Dashboard/server.py` (`do_GET` / `do_POST` route checks)
 
 This reference lists currently implemented dashboard endpoints. Chronos Dashboard is local-first and intended for localhost usage.
 
@@ -397,3 +397,4 @@ Shared timer error shape:
   "error": "Timer start error: ..."
 }
 ```
+

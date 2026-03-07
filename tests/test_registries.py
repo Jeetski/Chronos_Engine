@@ -10,7 +10,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from Utilities import registry_builder
+from utilities import registry_builder
 
 class TestRegistries(unittest.TestCase):
     def setUp(self):
@@ -31,8 +31,8 @@ class TestRegistries(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_wizards_registry(self):
-        # Create a dummy wizard under Utilities/Dashboard/Wizards/<WizardName>/wizard.yml
-        wizards_dir = os.path.join(registry_builder.ROOT_DIR, "Utilities", "Dashboard", "Wizards", "MagicWizard")
+        # Create a dummy wizard under utilities/Dashboard/Wizards/<WizardName>/wizard.yml
+        wizards_dir = os.path.join(registry_builder.ROOT_DIR, "utilities", "Dashboard", "Wizards", "MagicWizard")
         os.makedirs(wizards_dir, exist_ok=True)
 
         with open(os.path.join(wizards_dir, "wizard.yml"), "w", encoding="utf-8") as f:
@@ -69,3 +69,4 @@ class TestRegistries(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

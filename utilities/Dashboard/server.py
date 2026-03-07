@@ -24,11 +24,11 @@ if ROOT_DIR not in sys.path:
 COMMANDS_DIR = os.path.abspath(os.path.join(ROOT_DIR, "commands"))
 if COMMANDS_DIR not in sys.path:
     sys.path.insert(0, COMMANDS_DIR)
-DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "Utilities", "Dashboard"))
+DASHBOARD_DIR = os.path.abspath(os.path.join(ROOT_DIR, "utilities", "Dashboard"))
 
 from modules.logger import Logger
 
-from Utilities.dashboard_matrix import (
+from utilities.dashboard_matrix import (
     compute_matrix,
     get_metadata as matrix_metadata,
     parse_filters as parse_matrix_filters,
@@ -957,7 +957,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 
                 if name in ("wizards", "themes", "widgets", "views", "panels", "popups", "gadgets"):
                     # Dynamic build
-                    from Utilities import registry_builder
+                    from utilities import registry_builder
                     data = {}
                     if name == "wizards":
                         data = registry_builder.build_wizards_registry()
@@ -1638,7 +1638,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/points":
             try:
-                from Utilities import points as Points
+                from utilities import points as Points
                 qs = parse_qs(parsed.query or '')
                 limit_raw = (qs.get('limit') or [''])[0].strip()
                 last = None
@@ -2886,7 +2886,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 import calendar
                 from modules.scheduler import get_flattened_schedule, build_block_key as scheduler_build_block_key
                 from modules.item_manager import read_item_data
-                from Utilities.happiness_assoc import infer_happiness_values
+                from utilities.happiness_assoc import infer_happiness_values
 
                 def to_hm(val):
                     if not val:
@@ -4667,7 +4667,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             status = 200 if ok else 500
             body = {"ok": ok, "stdout": out, "stderr": err}
             try:
-                from Utilities import points as Points
+                from utilities import points as Points
                 body["balance"] = Points.get_balance()
             except Exception:
                 pass
@@ -5675,5 +5675,6 @@ if __name__ == "__main__":
         port = 7357
     serve(host=host, port=port)
         
+
 
 

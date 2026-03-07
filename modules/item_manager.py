@@ -150,12 +150,12 @@ def write_item_data(item_type, name, data):
     path = get_item_path(item_type, name)
     ensure_dir(os.path.dirname(path))
     try:
-        from Utilities.resolution_assoc import apply_resolution_associations
+        from utilities.resolution_assoc import apply_resolution_associations
         data = apply_resolution_associations(item_type, data)
     except Exception:
         pass
     try:
-        from Utilities.happiness_assoc import apply_happiness_associations
+        from utilities.happiness_assoc import apply_happiness_associations
         data = apply_happiness_associations(item_type, data)
     except Exception:
         pass
@@ -442,3 +442,4 @@ def open_item_in_editor(item_type, name, editor_command):
         print(f"❌ Editor '{editor_command}' not found. Please ensure it's in your PATH.")
     except Exception as e:
         Logger.error(f"An error occurred while opening the editor: {e}")
+

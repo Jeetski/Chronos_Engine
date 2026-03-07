@@ -7,7 +7,7 @@ from modules.scheduler import schedule_path_for_date, build_block_key
 from commands.today import load_completion_payload
 from modules import quality_utils
 try:
-    from Utilities import points as Points
+    from utilities import points as Points
 except Exception:
     Points = None
 
@@ -215,5 +215,6 @@ Usage: mark <item_name>:<status>
 Description: Marks an item in the daily schedule with a new status.
 Example: mark "Morning Routine":completed
 """
+
 
 

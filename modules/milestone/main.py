@@ -69,7 +69,7 @@ def evaluate_and_update_milestones():
             changed = True
             _fire_triggers(m)
             try:
-                from Utilities import points as Points
+                from utilities import points as Points
                 if not m.get('points_awarded'):
                     Points.award_on_complete('milestone', name, minutes=None)
                     m['points_awarded'] = True
@@ -245,3 +245,4 @@ def _create_item(item_type: str, name: str, properties: dict):
         generic_handle_new(item_type, name, properties or {})
     except Exception:
         pass
+

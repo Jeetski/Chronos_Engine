@@ -10,7 +10,7 @@ Panels are modular cockpit components and should remain composable in multi-pane
 - Syntax reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Panels/MatrixVisuals/`
+- Runtime source: `utilities/Dashboard/Panels/MatrixVisuals/`
 - Mount contract: panel registration and lifecycle through cockpit panel manager.
 - API endpoints used by this panel:
   - (No direct endpoint strings detected in source.)
@@ -35,3 +35,4 @@ Panels are modular cockpit components and should remain composable in multi-pane
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+

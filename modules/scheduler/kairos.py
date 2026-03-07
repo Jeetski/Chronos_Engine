@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from Utilities.duration_parser import parse_duration_string  # type: ignore
+from utilities.duration_parser import parse_duration_string  # type: ignore
 
 # Item types Kairos can place into a concrete daily timeline.
 # Containers (`week`/`day`/`routine`) are intentionally excluded.
@@ -3445,4 +3445,5 @@ if __name__ == "__main__":
     for block in schedule.get("blocks", []):
         print(f"[{block.get('start_time', '??:??')}] {block.get('name')} (Score: {block.get('kairos_score', 0)})")
     print("--- End Shadow Run ---")
+
 

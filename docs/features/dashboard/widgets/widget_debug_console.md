@@ -10,7 +10,7 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - Command reference: `docs/reference/cli_commands.md`.
 
 ## Dashboard
-- Runtime source: `Utilities/Dashboard/Widgets/DebugConsole/`
+- Runtime source: `utilities/Dashboard/Widgets/DebugConsole/`
 - Primary role: focused operational UI for this feature domain.
 - API endpoints used by this widget:
   - `/api/logs?limit=20`
@@ -34,3 +34,4 @@ Widgets should keep UI actions aligned with canonical CLI/API behavior and avoid
 - `docs/guides/dashboard.md`
 - `docs/reference/dashboard_api.md`
 - `docs/reference/cli_commands.md`
+

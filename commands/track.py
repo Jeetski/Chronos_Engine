@@ -3,7 +3,7 @@
 import sys
 from modules.item_manager import dispatch_command
 try:
-    from Utilities.tracking import is_trackable, show_tracking
+    from utilities.tracking import is_trackable, show_tracking
 except Exception:
     is_trackable = None
     show_tracking = None
@@ -58,4 +58,5 @@ Examples:
   track task "Deep Work"
   track routine "Morning Routine"
 """
+
 

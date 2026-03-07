@@ -86,7 +86,7 @@ def _redeem_reward(name: str, props: dict):
         return
 
     # Points check and deduction
-    from Utilities import points as Points
+    from utilities import points as Points
     if points_cost > 0:
         if not Points.ensure_balance(points_cost):
             print(f"❌ Not enough points. Need {points_cost}.")
@@ -130,3 +130,4 @@ def _redeem_reward(name: str, props: dict):
     reward['redemptions'] = red_count + 1
     write_item_data('reward', name, reward)
     print(f"🎉 Redeemed reward '{name}'.")
+
