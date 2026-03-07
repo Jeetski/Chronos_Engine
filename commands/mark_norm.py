@@ -92,7 +92,7 @@ def run(args, properties):
         print(f"❌ Invalid format: {e}. Use 'mark \"item name\":status'")
         return
 
-    # Per-day completion file under user/Schedules/completions/YYYY-MM-DD.yml
+    # Per-day completion file under user/schedules/completions/YYYY-MM-DD.yml
     from datetime import datetime, timedelta
     today_str = datetime.now().strftime('%Y-%m-%d')
     schedule_path = schedule_path_for_date(today_str)

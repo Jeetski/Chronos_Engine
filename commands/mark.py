@@ -90,7 +90,7 @@ def run(args, properties):
         print(f"❌ Invalid format: {e}. Use 'mark \"item name\":status'")
         return
 
-    # Per-day completion file under user/Schedules/completions/YYYY-MM-DD.yml.
+    # Per-day completion file under user/schedules/completions/YYYY-MM-DD.yml.
     # Supports date override from dashboard flows (e.g., calendar day view).
     from datetime import datetime, timedelta
     target_date = str(properties.get("date") or datetime.now().strftime('%Y-%m-%d')).strip()

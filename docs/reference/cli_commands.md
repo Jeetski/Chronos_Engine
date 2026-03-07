@@ -421,7 +421,7 @@ Performs system maintenance by clearing logs, databases, registries, and other s
 
 **Targets:**
 - `logs` - Delete all log files from `user/logs`
-- `schedules` - Delete generated schedule files from `user/Schedules`
+- `schedules` - Delete generated schedule files from `user/schedules`
 - `cache` - Delete all database mirrors (all `.db` files in `user/Data`)
 - `db:<name>` - Delete a specific database (e.g., `clear db:chronos_core`)
 - `registry:<name>` - Clear a specific registry cache (e.g., `clear registry:wizards`)

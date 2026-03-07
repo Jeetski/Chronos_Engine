@@ -65,7 +65,7 @@ Related:
 - Completed entries reinserted as informational markers after planning.
 
 8. Output + observability
-- Persist active schedule to `user/Schedules/schedule_YYYY-MM-DD.yml`.
+- Persist active schedule to `user/schedules/schedule_YYYY-MM-DD.yml`.
 - Emit decision logs to `user/logs/kairos_decision_log_*`.
 
 ## `today reschedule` Semantics

@@ -52,7 +52,7 @@ Template persistence uses:
 ## Loading Generated Schedules
 
 - `Load Today` loads current-day generated schedule.
-- `Load Date Schedule` loads `user/Schedules/schedule_YYYY-MM-DD.yml`.
+- `Load Date Schedule` loads `user/schedules/schedule_YYYY-MM-DD.yml`.
 
 If a current-day file lookup fails, Day Builder can fall back to `GET /api/today`.
 

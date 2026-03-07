@@ -31,7 +31,7 @@ Items are the atoms of Chronos. They are stored as YAML files in the `user/` dir
   - Emits decision logs in `user/logs/kairos_decision_log_*`
 - **Weekly Planner**: `modules/scheduler/weekly_generator.py` powers `today kairos week`.
 - **Compatibility Layer**: Active Kairos output is adapted into legacy schedule row shape in `commands/today.py` so existing dashboard/API/manual-modification flows continue to work.
-- **Manual Modifications**: Persisted in `user/Schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
+- **Manual Modifications**: Persisted in `user/schedules/manual_modifications_YYYY-MM-DD.yml` and translated into Kairos context (notably manual `inject` actions).
 
 ### 4. Conditions Engine (`modules/conditions.py`)
 A recursive descent parser that evaluates logic strings in scripts and triggers.

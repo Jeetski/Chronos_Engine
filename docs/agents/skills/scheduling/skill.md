@@ -19,9 +19,9 @@ Operate Chronos scheduling end-to-end using Kairos only: build plans, repair con
 - Scheduler entrypoint: `commands/today.py`
 - Scheduler engine: `modules/scheduler/kairos.py`
 - Weekly skeleton: `modules/scheduler/weekly_generator.py`
-- Active schedule output: `user/Schedules/schedule_YYYY-MM-DD.yml`
-- Manual modifications: `user/Schedules/manual_modifications_YYYY-MM-DD.yml`
-- Completion logs: `user/Schedules/completions/YYYY-MM-DD.yml`
+- Active schedule output: `user/schedules/schedule_YYYY-MM-DD.yml`
+- Manual modifications: `user/schedules/manual_modifications_YYYY-MM-DD.yml`
+- Completion logs: `user/schedules/completions/YYYY-MM-DD.yml`
 - Decision logs:
   - `user/logs/kairos_decision_log_latest.md`
   - `user/logs/kairos_decision_log_latest.yml`

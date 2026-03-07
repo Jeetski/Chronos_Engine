@@ -79,7 +79,7 @@
 ### Schedule Loading + Apply Flow
 - Added generated schedule loading:
   - `Load Today`
-  - `Load Date Schedule` (from `user/Schedules/schedule_YYYY-MM-DD.yml` via `/api/file/read`)
+  - `Load Date Schedule` (from `user/schedules/schedule_YYYY-MM-DD.yml` via `/api/file/read`)
   - fallback to `/api/today` for current-day load
 - Added `Apply Draft To Today`:
   - validates draft
@@ -528,7 +528,7 @@
 ### Kairos - Status/Template Parity and Stability Fixes
 - Fixed `today reschedule` crash caused by manual modification application returning `None` in active Kairos path.
   - `modules/scheduler/v1.py`: `apply_manual_modifications(...)` now returns the schedule.
-- Fixed stale manual modification warning spam by cleaning `user/Schedules/manual_modifications_2026-02-21.yml`.
+- Fixed stale manual modification warning spam by cleaning `user/schedules/manual_modifications_2026-02-21.yml`.
 - Hardened Kairos day-template selection to better match legacy status behavior:
   - Added strict template pre-filtering in `modules/scheduler/kairos.py`.
   - Selection now prioritizes:
@@ -543,7 +543,7 @@
 ### Kairos Scheduler Activation
 - Switched active scheduling path to Kairos for `today` and `today reschedule` in `commands/today.py`.
 - Legacy scheduler path is still present and can be forced with `today legacy ...`.
-- Added Kairos-to-schedule conversion when writing `user/Schedules/schedule_YYYY-MM-DD.yml` so existing downstream flows keep working.
+- Added Kairos-to-schedule conversion when writing `user/schedules/schedule_YYYY-MM-DD.yml` so existing downstream flows keep working.
 - Added Kairos anchor conflict fail-fast messaging in active runs with remediation guidance.
 - Preserved archive-before-overwrite behavior when regenerating today schedule.
 

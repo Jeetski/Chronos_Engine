@@ -192,7 +192,7 @@ export function mount(el, context) {
     });
 
     el.querySelector('#btn-clear-schedules').addEventListener('click', () => {
-        if (confirm("⚠️ Are you sure you want to delete all generated schedules?\n\nThis will remove all daily schedule YAML files from the user/Schedules directory. You will lose all historical schedule records.\n\nThis action cannot be undone.")) {
+        if (confirm("⚠️ Are you sure you want to delete all generated schedules?\n\nThis will remove all daily schedule YAML files from the user/schedules directory. You will lose all historical schedule records.\n\nThis action cannot be undone.")) {
             runCommand("clear schedules force");
         }
     });

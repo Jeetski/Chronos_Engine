@@ -86,7 +86,7 @@ Example API payload:
 
 Common paths impacted by Admin Tools:
 - `user/logs/`
-- `user/Schedules/`
+- `user/schedules/`
 - `user/archive/`
 - `user/Data/*.db`
 - `user/.cache/`

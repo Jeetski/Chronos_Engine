@@ -610,7 +610,7 @@ export async function mount(el, context) {
 
   const loadScheduleForDate = async (key) => {
     const k = String(key || '').trim(); if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) { emit('error', 'Use YYYY-MM-DD.'); return; }
-    const txt = await readFile(`user/Schedules/schedule_${k}.yml`);
+    const txt = await readFile(`user/schedules/schedule_${k}.yml`);
     if (txt) {
       const y = yparse(txt);
       if (y) {

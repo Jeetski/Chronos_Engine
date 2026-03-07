@@ -33,8 +33,8 @@ Kairos rules to preserve:
 - Most schedule mutations are command-backed, even when initiated through UI controls.
 
 ## Data and Settings
-- Schedule output: `user/Schedules/schedule_YYYY-MM-DD.yml`.
-- Manual adjustments: `user/Schedules/manual_modifications_YYYY-MM-DD.yml`.
+- Schedule output: `user/schedules/schedule_YYYY-MM-DD.yml`.
+- Manual adjustments: `user/schedules/manual_modifications_YYYY-MM-DD.yml`.
 - Scheduling settings and priorities live in `user/settings/*.yml`.
 
 ## Validation
