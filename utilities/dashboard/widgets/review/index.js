@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'review-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Review/review.css';
+    link.href = new URL('./review.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -202,3 +202,4 @@ export function mount(el, context) {
   // Seed defaults
   setThis();
 }
+

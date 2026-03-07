@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'achievements-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Achievements/achievements.css';
+    link.href = new URL('./achievements.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -442,3 +442,4 @@ export function mount(el) {
     refresh: () => refresh()
   };
 }
+

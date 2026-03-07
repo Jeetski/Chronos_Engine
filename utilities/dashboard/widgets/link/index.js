@@ -39,7 +39,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'link-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Link/link.css';
+    link.href = new URL('./link.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -351,3 +351,4 @@ export function mount(el) {
 
   return { unmount: disconnect };
 }
+

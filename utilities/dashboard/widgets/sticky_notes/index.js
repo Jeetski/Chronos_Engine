@@ -293,7 +293,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'sticky-notes-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/StickyNotes/sticky-notes.css';
+    link.href = new URL('./sticky-notes.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -888,3 +888,4 @@ export function mount(el, context) {
     refresh: fetchNotes,
   };
 }
+

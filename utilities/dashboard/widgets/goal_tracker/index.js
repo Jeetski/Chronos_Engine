@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'goal-tracker-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/GoalTracker/goal-tracker.css';
+    link.href = new URL('./goal-tracker.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -150,3 +150,4 @@ export function mount(el) {
 
   loadGoals();
 }
+

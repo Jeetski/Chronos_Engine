@@ -138,14 +138,14 @@ export async function mount(elem, context) {
     const link = document.createElement('link');
     link.id = 'profile-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Profile/profile.css';
+    link.href = new URL('./profile.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
   el = elem;
   elem.className = 'widget profile-widget';
 
-  const resp = await fetch('./widgets/Profile/template.html');
+  const resp = await fetch(new URL('./template.html', import.meta.url));
   el.innerHTML = await resp.text();
   // Widen default width to accommodate two panels
   try { if (!el.style.width) el.style.width = '900px'; } catch { }

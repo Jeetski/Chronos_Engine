@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'journal-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Journal/journal.css';
+    link.href = new URL('./journal.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -473,3 +473,4 @@ export function mount(el, context) {
     context?.bus?.on('vars:changed', () => updatePreview());
   } catch { }
 }
+

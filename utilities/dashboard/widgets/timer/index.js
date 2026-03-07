@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'timer-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Timer/timer.css';
+    link.href = new URL('./timer.css', import.meta.url).toString();
     link.addEventListener('load', () => {
       try { window.requestAnimationFrame(() => window.requestAnimationFrame(() => ensureTimerFitsContent())); } catch { }
     });
@@ -448,3 +448,4 @@ export function mount(el, context) {
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(MIN_TIMER_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(MIN_TIMER_WIDTH, e.clientX - sr.left) + 'px'; el.style.height = Math.max(MIN_TIMER_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
 }
+

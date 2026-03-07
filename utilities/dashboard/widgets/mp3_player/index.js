@@ -296,7 +296,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'mp3player-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/MP3Player/mp3player.css';
+    link.href = new URL('./mp3player.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 

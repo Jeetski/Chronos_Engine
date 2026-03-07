@@ -4,7 +4,7 @@ export async function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'resolution-tracker-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/ResolutionTracker/resolution-tracker.css';
+    link.href = new URL('./resolution-tracker.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -501,3 +501,4 @@ export async function mount(el, context) {
     }
   };
 }
+

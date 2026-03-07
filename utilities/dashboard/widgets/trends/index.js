@@ -4,7 +4,7 @@ export function mount(el) {
         const link = document.createElement('link');
         link.id = 'trends-css';
         link.rel = 'stylesheet';
-        link.href = './widgets/Trends/trends.css';
+        link.href = new URL('./trends.css', import.meta.url).toString();
         document.head.appendChild(link);
     }
 
@@ -190,3 +190,4 @@ export function mount(el) {
 export function unmount(el) {
     el.innerHTML = '';
 }
+

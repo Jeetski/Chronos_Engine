@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'habit-tracker-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/HabitTracker/habit-tracker.css';
+    link.href = new URL('./habit-tracker.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -144,3 +144,4 @@ export function mount(el, context) {
     unmount() { /* TODO: remove listeners if needed */ }
   };
 }
+

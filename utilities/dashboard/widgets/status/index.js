@@ -23,10 +23,11 @@ export function mount(el) {
   el.innerHTML = tpl;
 
   // Inject CSS
-  if (!el.querySelector('link[href="./widgets/Status/status.css"]')) {
+  if (!el.querySelector('link#status-css')) {
     const link = document.createElement('link');
+    link.id = 'status-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Status/status.css';
+    link.href = new URL('./status.css', import.meta.url).toString();
     el.appendChild(link);
   }
 
@@ -455,3 +456,4 @@ export function mount(el) {
   console.log('[Chronos][Status] Widget ready');
   return {};
 }
+

@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'settings-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Settings/settings.css';
+    link.href = new URL('./settings.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -447,3 +447,4 @@ export function mount(el) {
   listFiles();
   return {};
 }
+

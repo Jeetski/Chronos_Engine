@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'rewards-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Rewards/rewards.css';
+    link.href = new URL('./rewards.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -341,3 +341,4 @@ export function mount(el, context) {
     refresh: () => refreshAll()
   };
 }
+

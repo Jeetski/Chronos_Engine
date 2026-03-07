@@ -4,7 +4,7 @@ export function mount(el) {
     const link = document.createElement('link');
     link.id = 'commitments-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Commitments/commitments.css';
+    link.href = new URL('./commitments.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -381,3 +381,4 @@ export function mount(el) {
 
   return { refresh: () => refresh() };
 }
+

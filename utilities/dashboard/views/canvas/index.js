@@ -518,7 +518,7 @@ class CanvasView {
     this.context = context;
     container.id = 'view-canvas';
     container.innerHTML = `
-      <link rel="stylesheet" href="./views/Canvas/canvas.css">
+      <link rel="stylesheet" href="${new URL('./canvas.css', import.meta.url).toString()}">
       <div id="canvas-interface">
         <aside id="canvas-sidebar">
           <div class="sidebar-header">
@@ -3630,3 +3630,4 @@ export function mount(el, context) {
   view.mount(el, context);
   return view;
 }
+

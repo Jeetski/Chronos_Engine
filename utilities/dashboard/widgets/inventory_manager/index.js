@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'inventory-manager-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/InventoryManager/inventory-manager.css';
+    link.href = new URL('./inventory-manager.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -456,3 +456,4 @@ export function mount(el, context) {
   loadPlaces();
   loadInventories(false);
 }
+

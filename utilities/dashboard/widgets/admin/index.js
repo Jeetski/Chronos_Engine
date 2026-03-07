@@ -5,7 +5,7 @@ export function mount(el, context) {
         const link = document.createElement('link');
         link.id = 'admin-css';
         link.rel = 'stylesheet';
-        link.href = './widgets/Admin/admin.css';
+        link.href = new URL('./admin.css', import.meta.url).toString();
         document.head.appendChild(link);
     }
 

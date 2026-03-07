@@ -7,7 +7,7 @@ export function mount(el, context) {
         const link = document.createElement('link');
         link.id = 'scheduler-css';
         link.rel = 'stylesheet';
-        link.href = './widgets/Today/scheduler.css';
+        link.href = new URL('./scheduler.css', import.meta.url).toString();
         document.head.appendChild(link);
     }
 
@@ -1094,3 +1094,4 @@ export function mount(el, context) {
   console.log('[Chronos][Today] Widget ready');
   return {};
 }
+

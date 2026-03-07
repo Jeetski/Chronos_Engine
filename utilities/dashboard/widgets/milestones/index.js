@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'milestones-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/Milestones/milestones.css';
+    link.href = new URL('./milestones.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -476,3 +476,4 @@ export function mount(el, context) {
     unmount: () => { try { bus?.off?.('milestones:filter', onExternalFilter); } catch { } }
   };
 }
+

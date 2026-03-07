@@ -70,7 +70,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'cockpit-minimap-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/CockpitMinimap/cockpit-minimap.css';
+    link.href = new URL('./cockpit-minimap.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
@@ -306,3 +306,4 @@ export function mount(el, context) {
     refresh: tick,
   };
 }
+

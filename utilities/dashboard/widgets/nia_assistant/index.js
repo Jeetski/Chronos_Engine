@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'nia-assistant-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/NiaAssistant/nia-assistant.css';
+    link.href = new URL('./nia-assistant.css', import.meta.url).toString();
     document.head.appendChild(link);
   }
 
