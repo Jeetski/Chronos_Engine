@@ -5,7 +5,7 @@ Achievements tracks unlockable milestones and ties each unlock to both points an
 ## Overview
 
 Core model:
-- Achievement definitions are YAML items under `user/Achievements/`.
+- Achievement definitions are YAML items under `user/achievements/`.
 - Unlocks update achievement state and progression state.
 - Progression state is persisted in `user/profile/profile.yml`.
 
@@ -124,4 +124,5 @@ If XP/level looks incorrect:
 - `docs/reference/cli_commands.md` (`achievements`, `points`)
 - `docs/reference/dashboard_api.md` (`/api/achievements`, `/api/achievement/update`, `/api/points`)
 - `docs/guides/dashboard.md` (Achievements widget behavior)
+
 

@@ -194,7 +194,7 @@
   - resolutions creation
 
 ### Achievements - Starter Catalog and Defaults
-- Replaced existing achievements with new starter set (one file per achievement under `user/Achievements/`).
+- Replaced existing achievements with new starter set (one file per achievement under `user/achievements/`).
 - Set title = name for starter achievements.
 - Standardized starter reward payloads to 10 points + 10 XP per achievement.
 - Updated defaults in `user/settings/Achievement_Defaults.yml` to include awarded/status/title fields.
@@ -653,6 +653,7 @@
   - `user/Days/weekday_builder_example.yml` -> `at_school`
   - `user/Days/weekday_example.yml` -> `at_home`
 - Expanded `user/settings/place_settings.yml` to include additional place options and ranking updates (including `At School` and `Travel`).
+
 
 
 
