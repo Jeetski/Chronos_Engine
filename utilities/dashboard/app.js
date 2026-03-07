@@ -2095,7 +2095,22 @@ ready(async () => {
     const formatLabel = (popup) => {
       const raw = String(popup?.label || popup?.module || popup?.id || '').trim();
       if (!raw) return 'Unknown';
-      return raw.replace(/([a-z])([A-Z])/g, '$1 $2');
+      const spaced = raw
+        .replace(/[_-]+/g, ' ')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return spaced
+        .split(' ')
+        .map((w) => {
+          const lw = String(w || '').toLowerCase();
+          if (!lw) return '';
+          if (['ai', 'api', 'cli', 'aduc', 'mp3', 'ui', 'ux'].includes(lw)) return lw.toUpperCase();
+          if (lw === 'nia') return 'Nia';
+          if (lw === 'big5') return 'Big 5';
+          return lw.charAt(0).toUpperCase() + lw.slice(1);
+        })
+        .join(' ');
     };
     const normalize = (value) => String(value || '').trim().toLowerCase();
 

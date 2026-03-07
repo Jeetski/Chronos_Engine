@@ -180,6 +180,46 @@ def _ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
 
 
+def _humanize_component_label(name: str) -> str:
+    """Convert module/folder names into menu-friendly labels."""
+    raw = str(name or "").strip()
+    if not raw:
+        return ""
+    s = re.sub(r"[_\-]+", " ", raw)
+    s = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+
+    acronyms = {"ai", "api", "cli", "aduc", "mp3", "ui", "ux"}
+    words = []
+    for token in s.split(" "):
+        t = token.strip()
+        if not t:
+            continue
+        low = t.lower()
+        if low in acronyms:
+            words.append(low.upper())
+            continue
+        if low == "nia":
+            words.append("Nia")
+            continue
+        if low == "big5":
+            words.extend(["Big", "5"])
+            continue
+        m = re.fullmatch(r"([a-z]+)(\d+)", low)
+        if m:
+            head, num = m.group(1), m.group(2)
+            if head == "big":
+                words.extend(["Big", num])
+            else:
+                words.append(head.capitalize() + num)
+            continue
+        if low.isdigit():
+            words.append(low)
+            continue
+        words.append(low.capitalize())
+    return " ".join(words)
+
+
 def _write_json(path: str, data: dict) -> None:
     _ensure_dir(os.path.dirname(path))
     with open(path, "w", encoding="utf-8") as fh:
@@ -678,9 +718,7 @@ def build_wizards_registry():
             continue
             
         wizard_name = entry.name
-        # Generate readable label from PascalCase
-        import re
-        label = re.sub(r'(?<!^)(?=[A-Z])', ' ', wizard_name)
+        label = _humanize_component_label(wizard_name)
         
         wizard_def = {
             "id": wizard_name.lower(),
@@ -855,9 +893,7 @@ def build_views_registry():
             continue
             
         view_name = entry.name
-        # Generate readable label from PascalCase
-        import re
-        label = re.sub(r'(?<!^)(?=[A-Z])', ' ', view_name)
+        label = _humanize_component_label(view_name)
         
         view_def = {
             "name": view_name,
@@ -955,6 +991,7 @@ def build_popups_registry():
         popup_name = entry.name
         popup_def = {
             "id": popup_name.lower(),
+            "label": _humanize_component_label(popup_name),
             "module": popup_name,
             "enabled": True
         }
