@@ -21,7 +21,7 @@ class TestDataCards(unittest.TestCase):
         
         # Override module paths
         DataCardManager.USER_DIR = self.test_dir
-        DataCardManager.DATA_CARDS_DIR = os.path.join(self.test_dir, "Data_Cards")
+        DataCardManager.DATA_CARDS_DIR = os.path.join(self.test_dir, "data_cards")
 
     def tearDown(self):
         # Restore module paths

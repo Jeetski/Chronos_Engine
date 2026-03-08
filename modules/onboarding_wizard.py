@@ -49,8 +49,8 @@ class OnboardingWizard:
     def __init__(self) -> None:
         self.root = ROOT_DIR
         self.user_dir = self.root / "user"
-        self.settings_dir = self.user_dir / "Settings"
-        self.profile_path = self.user_dir / "Profile" / "profile.yml"
+        self.settings_dir = self.user_dir / "settings"
+        self.profile_path = self.user_dir / "profile" / "profile.yml"
         self.current_status_path = Path(status_current_path())
         self.nickname = "Pilot"
         self.changes: list[str] = []
@@ -87,10 +87,10 @@ class OnboardingWizard:
         # Examples were added to the repo, so this mostly verifies presence and
         # nudges the user if files are missing.
         expected = [
-            self.user_dir / "Days" / "weekday_example.yml",
-            self.user_dir / "Routines" / "morning_routine_example.yml",
-            self.user_dir / "Habits" / "creative_practice_example.yml",
-            self.user_dir / "Goals" / "learn_guitar_example.yml",
+            self.user_dir / "days" / "weekday_example.yml",
+            self.user_dir / "routines" / "morning_routine_example.yml",
+            self.user_dir / "habits" / "creative_practice_example.yml",
+            self.user_dir / "goals" / "learn_guitar_example.yml",
         ]
         missing = [str(path.relative_to(self.root)) for path in expected if not path.exists()]
         if missing:
@@ -291,8 +291,8 @@ class OnboardingWizard:
             return
         new_name = prompt("New day template name", "My Weekday Flow")
         filename = f"{slugify(new_name) or 'my-weekday'}.yml"
-        src = self.user_dir / "Days" / "weekday_example.yml"
-        dest = self.user_dir / "Days" / filename
+        src = self.user_dir / "days" / "weekday_example.yml"
+        dest = self.user_dir / "days" / filename
         data = self.load_yaml(src, {})
         data["name"] = new_name
         self.save_yaml(dest, data)
@@ -302,11 +302,11 @@ class OnboardingWizard:
     def step_example_items(self):
         print("Next, let’s clone the example routines and items you care about.")
         example_map = [
-            ("routine", "Morning Routine (Example)", self.user_dir / "Routines" / "morning_routine_example.yml"),
-            ("routine", "Evening Routine (Example)", self.user_dir / "Routines" / "evening_routine_example.yml"),
-            ("routine", "Bedtime Routine (Example)", self.user_dir / "Routines" / "bedtime_routine_example.yml"),
-            ("habit", "Creative Practice (Example)", self.user_dir / "Habits" / "creative_practice_example.yml"),
-            ("habit", "Morning Check-In (Example)", self.user_dir / "Habits" / "morning_check_in_example.yml"),
+            ("routine", "Morning Routine (Example)", self.user_dir / "routines" / "morning_routine_example.yml"),
+            ("routine", "Evening Routine (Example)", self.user_dir / "routines" / "evening_routine_example.yml"),
+            ("routine", "Bedtime Routine (Example)", self.user_dir / "routines" / "bedtime_routine_example.yml"),
+            ("habit", "Creative Practice (Example)", self.user_dir / "habits" / "creative_practice_example.yml"),
+            ("habit", "Morning Check-In (Example)", self.user_dir / "habits" / "morning_check_in_example.yml"),
         ]
         for item_type, display_name, src in example_map:
             if not src.exists():
@@ -323,7 +323,7 @@ class OnboardingWizard:
         print()
 
     def step_goal(self):
-        src = self.user_dir / "Goals" / "learn_guitar_example.yml"
+        src = self.user_dir / "goals" / "learn_guitar_example.yml"
         if not src.exists():
             print("Goal example not found; skipping goal setup.\n")
             return
@@ -339,7 +339,7 @@ class OnboardingWizard:
         print()
 
     def step_commitment(self):
-        src = self.user_dir / "Commitments" / "practice_rhythm_commitment_example.yml"
+        src = self.user_dir / "commitments" / "practice_rhythm_commitment_example.yml"
         if not src.exists():
             print("Commitment example missing; skipping.\n")
             return
@@ -371,7 +371,7 @@ class OnboardingWizard:
         data["earn"] = earn
         self.save_yaml(settings_path, data)
         self.changes.append("Updated points earn settings")
-        reward_src = self.user_dir / "Rewards" / "game_break_reward_example.yml"
+        reward_src = self.user_dir / "rewards" / "game_break_reward_example.yml"
         if reward_src.exists() and prompt_yes_no("Clone the example reward?", True):
             new_name = prompt("Reward name", "Creative Break")
             filename = f"{slugify(new_name)}.yml"
@@ -380,7 +380,7 @@ class OnboardingWizard:
             data["name"] = new_name
             self.save_yaml(dest, data)
             self.changes.append(f"Created reward '{new_name}'")
-        achievement_src = self.user_dir / "Achievements" / "practice_streak_achievement_example.yml"
+        achievement_src = self.user_dir / "achievements" / "practice_streak_achievement_example.yml"
         if achievement_src.exists() and prompt_yes_no("Clone the example achievement?", True):
             new_name = prompt("Achievement name", "Momentum Spark")
             filename = f"{slugify(new_name)}.yml"
@@ -392,7 +392,7 @@ class OnboardingWizard:
         print()
 
     def step_preferences(self):
-        prefs_path = self.user_dir / "Profile" / "preferences_settings.yml"
+        prefs_path = self.user_dir / "profile" / "preferences_settings.yml"
         data = self.load_yaml(prefs_path, {})
         print("Chronos pairs nicely with agents. Customize their tone and initiative.")
         for key, value in list(data.items()):

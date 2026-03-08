@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-AUTOMATION_STATE_PATH = os.path.join(ROOT_DIR, "user", "Data", "sequence_automation.yml")
+AUTOMATION_STATE_PATH = os.path.join(ROOT_DIR, "user", "data", "sequence_automation.yml")
 
 try:
     import yaml

@@ -27,7 +27,7 @@ def _warn(msg, enabled):
 
 def load_settings(show_warnings=True):
     """Load all scheduling-related settings used by today/tomorrow/next previews."""
-    settings_dir = os.path.join(USER_DIR, "Settings")
+    settings_dir = os.path.join(USER_DIR, "settings")
 
     def read(name):
         path = os.path.join(settings_dir, name)
@@ -36,15 +36,15 @@ def load_settings(show_warnings=True):
             return None
         return read_template(path)
 
-    scheduling_priorities = read("Scheduling_Priorities.yml")
-    priority_settings = read("Priority_Settings.yml")
-    category_settings = read("Category_Settings.yml")
-    status_settings = read("Status_Settings.yml")
-    buffer_settings = read("Buffer_Settings.yml")
+    scheduling_priorities = read("scheduling_priorities.yml")
+    priority_settings = read("priority_settings.yml")
+    category_settings = read("category_settings.yml")
+    status_settings = read("status_settings.yml")
+    buffer_settings = read("buffer_settings.yml")
 
     current_status_path = status_current_path()
     if not os.path.exists(current_status_path):
-        _warn("Warning: Profile/Current_Status.yml not found. Status alignment may be inaccurate.", show_warnings)
+        _warn("Warning: profile/current_status.yml not found. Status alignment may be inaccurate.", show_warnings)
         current_status = {"current_status": {}}
     else:
         current_status = read_template(current_status_path) or {"current_status": {}}

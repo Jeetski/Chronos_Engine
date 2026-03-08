@@ -13,7 +13,7 @@ except Exception:
 
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "sound_settings.yml")
+SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "sound_settings.yml")
 ASSETS_DIR = os.path.join(ROOT_DIR, "assets")
 
 DEFAULT_SETTINGS = {

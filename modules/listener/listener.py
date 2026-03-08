@@ -20,7 +20,7 @@ from modules.timer import main as Timer
 from modules.sequence.automation import maybe_queue_midnight_sync
 
 # --- Constants ---
-LISTENER_LOG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'Logs', 'listener.log'))
+LISTENER_LOG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'logs', 'listener.log'))
 
 def log_message(message):
     """

@@ -6,7 +6,7 @@ except Exception:
     yaml = None
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "console_settings.yml")
+SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "console_settings.yml")
 
 
 def _to_bool(value):

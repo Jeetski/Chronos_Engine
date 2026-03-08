@@ -94,7 +94,7 @@ def _load_today_schedule():
 
 
 def _load_timer_settings():
-    settings_path = os.path.join(USER_DIR, "Settings", "Timer_Settings.yml")
+    settings_path = os.path.join(USER_DIR, "settings", "timer_settings.yml")
     try:
         import yaml  # type: ignore
     except Exception:

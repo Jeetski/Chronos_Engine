@@ -120,7 +120,7 @@ def get_target_description(target):
 
 def clear_all_logs(user_dir):
     """Clears all log files."""
-    log_dir = os.path.join(user_dir, "Logs")
+    log_dir = os.path.join(user_dir, "logs")
     count = 0
     
     if os.path.exists(log_dir):
@@ -133,14 +133,14 @@ def clear_all_logs(user_dir):
                 print(f"Failed to delete {os.path.basename(f)}: {e}")
         print(f"  Cleared {count} log files.")
     else:
-        print("  No Logs directory found.")
+        print("  No logs directory found.")
     
     return count
 
 
 def clear_all_schedules(user_dir):
     """Clears generated schedule files."""
-    sched_dir = os.path.join(user_dir, "Schedules")
+    sched_dir = os.path.join(user_dir, "schedules")
     count = 0
     
     if os.path.exists(sched_dir):
@@ -154,7 +154,7 @@ def clear_all_schedules(user_dir):
         print(f"  Cleared {count} schedule files.")
         
         # Also clear schedule archives
-        archive_dir = os.path.join(user_dir, "Archive", "Schedules")
+        archive_dir = os.path.join(user_dir, "archive", "schedules")
         if os.path.exists(archive_dir):
             try:
                 shutil.rmtree(archive_dir)
@@ -168,7 +168,7 @@ def clear_all_schedules(user_dir):
 
 def clear_all_databases(user_dir):
     """Clears all database mirrors."""
-    data_dir = os.path.join(user_dir, "Data")
+    data_dir = os.path.join(user_dir, "data")
     count = 0
     
     if os.path.exists(data_dir):
@@ -186,7 +186,7 @@ def clear_all_databases(user_dir):
 
 def clear_specific_database(user_dir, db_name):
     """Clears a specific database file."""
-    data_dir = os.path.join(user_dir, "Data")
+    data_dir = os.path.join(user_dir, "data")
     
     # Ensure .db extension
     if not db_name.endswith('.db'):
@@ -257,7 +257,7 @@ def clear_temp_files(user_dir):
 
 def clear_archives(user_dir):
     """Clears archived items and schedules."""
-    archive_dir = os.path.join(user_dir, "Archive")
+    archive_dir = os.path.join(user_dir, "archive")
     count = 0
     
     if os.path.exists(archive_dir):
@@ -269,13 +269,13 @@ def clear_archives(user_dir):
             shutil.rmtree(archive_dir)
             os.makedirs(archive_dir)
             # Recreate subdirectories
-            os.makedirs(os.path.join(archive_dir, "Schedules"), exist_ok=True)
+            os.makedirs(os.path.join(archive_dir, "schedules"), exist_ok=True)
             print(f"  Cleared {count} archived items.")
         except Exception as e:
             print(f"Failed to clear archives: {e}")
             return 0
     else:
-        print("  No Archive directory found.")
+        print("  No archive directory found.")
     
     return count
 

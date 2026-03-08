@@ -5,7 +5,7 @@ import time
 import glob
 from modules.item_manager import USER_DIR, ROOT_DIR
 
-BACKUPS_DIR = os.path.join(USER_DIR, "Backups")
+BACKUPS_DIR = os.path.join(USER_DIR, "backups")
 
 def run(args, properties):
     """
@@ -46,8 +46,8 @@ def create_backup(args, properties):
             # We want the zip to contain 'user/...' so we walk USER_DIR but use ROOT_DIR for relpath
             for folder, _dirs, files in os.walk(USER_DIR):
                 for fname in files:
-                    # Skip the Backups folder itself to avoid recursion or huge files
-                    if "Backups" in folder:
+                    # Skip the backups folder itself to avoid recursion or huge files
+                    if "backups" in folder.lower():
                         continue
                         
                     abs_path = os.path.join(folder, fname)
@@ -71,7 +71,7 @@ def list_backups():
         print("No backups found.")
         return
         
-    print("Available Backups:")
+    print("Available backups:")
     for f in files:
         size_mb = os.path.getsize(f) / (1024 * 1024)
         mtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(f)))

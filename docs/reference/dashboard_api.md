@@ -159,6 +159,14 @@ This reference lists currently implemented dashboard endpoints. Chronos Dashboar
 - `/api/aduc/settings`
 - `/api/aduc/cli/memory/clear`
 
+## TRICK (Tiny Remote Interface Control Kit)
+
+### GET
+- `/api/trick/registry`
+
+### POST
+- `/api/trick`
+
 ## Link / Collaboration
 
 ### GET
@@ -395,6 +403,33 @@ Shared timer error shape:
 {
   "ok": false,
   "error": "Timer start error: ..."
+}
+```
+
+### `POST /api/trick`
+
+Supported commands: `OPEN`, `CLOSE`, `LIST`, `GET`, `SET`, `CLICK`, `WAIT`.
+
+Request:
+```json
+{
+  "command": "CLICK",
+  "target": "widget.timer.start_button",
+  "actor": "nia"
+}
+```
+
+Success response:
+```json
+{
+  "ok": true,
+  "command": "CLICK",
+  "target": "widget.timer.start_button",
+  "result": {
+    "status": {
+      "status": "running"
+    }
+  }
 }
 ```
 

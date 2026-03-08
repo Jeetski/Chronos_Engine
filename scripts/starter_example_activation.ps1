@@ -2,14 +2,14 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $userRoot = Join-Path $repoRoot "user"
-$examplesRoot = Join-Path $userRoot "Examples"
+$examplesRoot = Join-Path $userRoot "examples"
 
 New-Item -ItemType Directory -Path $examplesRoot -Force | Out-Null
 
 $exampleFiles = Get-ChildItem -Path $userRoot -Recurse -File -Filter "*_example.yml" |
   Where-Object {
     $_.FullName -notlike "$examplesRoot*" -and
-    $_.FullName -notlike (Join-Path $userRoot "Archive*")
+    $_.FullName -notlike (Join-Path $userRoot "archive*")
   }
 
 $mirrored = 0

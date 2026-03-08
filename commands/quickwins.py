@@ -15,7 +15,7 @@ from utilities.duration_parser import parse_duration_string
 
 
 DONE_STATUSES = {"completed", "done", "skipped", "archived"}
-SETTINGS_FILE = os.path.join("user", "Settings", "quick_wins_settings.yml")
+SETTINGS_FILE = os.path.join("user", "settings", "quick_wins_settings.yml")
 
 
 def _load_settings():

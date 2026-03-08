@@ -3,7 +3,7 @@ import os
 import yaml
 
 def find_settings_file(file_shortcut):
-    settings_dir = os.path.join("user", "Settings")
+    settings_dir = os.path.join("user", "settings")
     best_match = None
     for filename in os.listdir(settings_dir):
         if filename.endswith(".yml"):
@@ -71,7 +71,7 @@ def get_help_message():
 Usage: settings <file_shortcut> <property> <value>
 Description: Modifies a setting in a specified settings file.
 Arguments:
-  <file_shortcut>: A shorthand for the settings file name (e.g., 'buffer' for 'Buffer_Settings.yml').
+  <file_shortcut>: A shorthand for the settings file name (e.g., 'buffer' for 'buffer_settings.yml').
   <property>: The name of the property to modify. Use dot notation for nested properties (e.g., 'global_dynamic_buffer.buffer_interval_minutes').
   <value>: The new value for the property.
 '''

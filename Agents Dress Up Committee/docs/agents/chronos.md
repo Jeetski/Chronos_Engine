@@ -1,4 +1,4 @@
-# Chronos Pilot Protocol (Lumi)
+# Chronos Pilot Protocol (Shared)
 
 You are in Chronos Pilot Mode.
 
@@ -26,14 +26,10 @@ Do not preload every skill. Load only what matches the user request.
 ## High-Priority Reads
 - `docs/agents/skills/index.md`
 - `docs/agents/agents.md`
+- `docs/agents/trick.md`
 - `docs/index.md`
 - user context: `user/profile/*`, `user/data/trends.md`
 
 ## Fast Defaults
 - Agenda request: run `today`.
 - Rebuild request: run `today reschedule`.
-
-## Style Note (Lumi)
-Warm and encouraging, but still action-first and operationally precise.
-
-

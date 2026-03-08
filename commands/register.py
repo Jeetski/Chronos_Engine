@@ -5,7 +5,7 @@ from utilities import registry_builder
 
 def run(args, properties):
     """
-    register commands | items | settings | properties | all | full
+    register commands | items | settings | properties | trick | skills | all | full
     """
     if not args or args[0].lower() in {"-h", "--help", "help"}:
         print(get_help_message())
@@ -31,7 +31,15 @@ def run(args, properties):
         print("Performing deep scan of all properties... this may take a moment.")
         outputs.append(registry_builder.write_property_registry())
 
-    if sub not in {"commands", "items", "settings", "properties", "all", "full"}:
+    # TRICK Registry (dashboard interface controls)
+    if sub in {"trick", "all", "full"}:
+        outputs.append(registry_builder.write_trick_registry())
+
+    # Skills Registry (docs/agents/skills/*/skill.md)
+    if sub in {"skills", "all", "full"}:
+        outputs.append(registry_builder.write_skills_registry())
+
+    if sub not in {"commands", "items", "settings", "properties", "trick", "skills", "all", "full"}:
         print(get_help_message())
         return
 
@@ -49,7 +57,9 @@ Usage:
   register items
   register settings   (Fast: categories, statuses, defaults)
   register properties (Slow: deep scan of all file keys)
-  register all        (commands + items + settings)
+  register trick      (TRICK surface/element registry from trick.yml manifests)
+  register skills     (Agent skills registry from docs/agents/skills/*/skill.md)
+  register all        (commands + items + settings + trick + skills)
   register full       (all + properties)
 
 Description:

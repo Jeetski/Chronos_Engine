@@ -7,7 +7,7 @@ from datetime import datetime
 # Paths
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-DATA_CARDS_DIR = os.path.join(USER_DIR, "Data_Cards")
+DATA_CARDS_DIR = os.path.join(USER_DIR, "data_cards")
 
 def _ensure_dir():
     if not os.path.exists(DATA_CARDS_DIR):

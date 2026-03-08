@@ -19,7 +19,7 @@ from utilities.duration_parser import parse_duration_string  # type: ignore
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = get_user_dir()
 SCHEDULE_PATH = schedule_path_for_date(datetime.now())
-COMPLETIONS_DIR = os.path.join(USER_DIR, "Schedules", "completions")
+COMPLETIONS_DIR = os.path.join(USER_DIR, "schedules", "completions")
 
 SKIP_DIRS = {
     "archive",

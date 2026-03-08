@@ -29,6 +29,7 @@ This index points to the main documentation entry points in this repo and what e
 - Agent Guide: `docs/agents/agents.md` - operator behavior and pilot directives.
 - Agent Skills Index: `docs/agents/skills/index.md` - task-oriented workflows for agents.
 - ADUC (Familiars): `docs/agents/aduc.md` - local familiars UI and pilot integration.
+- TRICK Protocol: `docs/agents/trick.md` - Tiny Remote Interface Control Kit DSL for dashboard UI control.
 
 ## Development
 - Architecture: `docs/dev/architecture.md` - runtime modules and data flow.

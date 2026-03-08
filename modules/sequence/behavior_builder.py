@@ -8,7 +8,7 @@ from modules.sequence.core_builder import build_core_db
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-DATA_DIR = os.path.join(USER_DIR, "Data")
+DATA_DIR = os.path.join(USER_DIR, "data")
 CORE_DB_PATH = os.path.join(DATA_DIR, "chronos_core.db")
 BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
 

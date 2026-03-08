@@ -15,12 +15,12 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 USER_DIR = os.path.join(ROOT_DIR, "user")
-SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
+SETTINGS_DIR = os.path.join(USER_DIR, "settings")
 PRESET_DIR = os.path.join(ROOT_DIR, "presets", "matrix")
 LEGACY_PRESET_DIR = os.path.join(ROOT_DIR, "matrix", "presets")
-DATA_DIR = os.path.join(USER_DIR, "Data")
+DATA_DIR = os.path.join(USER_DIR, "data")
 MATRIX_DB_PATH = os.path.join(DATA_DIR, "chronos_matrix.db")
-SCHEDULES_DIR = os.path.join(USER_DIR, "Schedules")
+SCHEDULES_DIR = os.path.join(USER_DIR, "schedules")
 COMPLETIONS_DIR = os.path.join(SCHEDULES_DIR, "completions")
 NAME_SEPARATOR = "\x1f"
 
@@ -70,7 +70,7 @@ def _normalize_preset_dict(raw: Dict[str, Any]) -> Dict[str, Any] | None:
 
 
 def _load_status_keys() -> List[str]:
-    path = os.path.join(SETTINGS_DIR, "Status_Settings.yml")
+    path = os.path.join(SETTINGS_DIR, "status_settings.yml")
     if not os.path.exists(path):
         return []
     try:

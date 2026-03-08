@@ -79,7 +79,7 @@ def get_item_dir(item_type):
     if item_type.lower() == 'person':
         dir_name = 'people'
     elif item_type.lower() == 'canvas_board':
-        dir_name = 'Canvas_Boards'
+        dir_name = 'canvas_boards'
     else:
         words = item_type.lower().split('_')
         words[-1] = _pluralize(words[-1])

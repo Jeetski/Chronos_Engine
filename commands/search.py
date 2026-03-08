@@ -52,9 +52,10 @@ def run(args, properties):
     
     # Walk directory
     for root, dirs, files in os.walk(search_root):
-        # Skip Backups and Archive to avoid noise?
-        # User might want to search archive. But definitely skip Backups (zips) and .git
-        if "Backups" in root or ".git" in root or "__pycache__" in root:
+        # Skip backups and archive to avoid noise?
+        # User might want to search archive. But definitely skip backups (zips) and .git
+        root_l = root.lower()
+        if "backups" in root_l or ".git" in root_l or "__pycache__" in root_l:
             continue
             
         for file in files:
@@ -98,7 +99,7 @@ Usage:
 
 Description:
   Searches for a text string within all text files in the User directory.
-  Ignores Backups.
+  Ignores backups.
   
 Example:
   search "urgent meeting"

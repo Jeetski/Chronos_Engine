@@ -20,6 +20,7 @@ ADUC
 
 Agents
 - CLI integration guide: `agents/AGENTS.md`
+- TRICK protocol: `../../docs/agents/trick.md`
 - Init brief: `agents/INIT.md`
 - Committee mode: `agents/committee.md`, `agents/dynamics.md`
 - Affection system: `agents/affection_system.md`

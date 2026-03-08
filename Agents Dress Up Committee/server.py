@@ -16,6 +16,8 @@ import re
 import uuid
 import random
 import tempfile
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -156,6 +158,8 @@ POSE_TAG_RE = re.compile(r"<(?:pose|avatar):\s*([^>]+)>", re.IGNORECASE)
 
 # Prompt suggestion tag parser: "<prompt: your suggestion>"
 PROMPT_TAG_RE = re.compile(r"<prompt:\s*([^>]+)>", re.IGNORECASE)
+# TRICK control parser: "<trick: OPEN widget.timer>"
+TRICK_TAG_RE = re.compile(r"<trick:\s*([^>]+)>", re.IGNORECASE)
 
 
 # ---- Conversation JSON helpers ---------------------------------------------
@@ -170,6 +174,46 @@ def conv_save(doc):
     """Save the conversation JSON atomically."""
     doc["updated_at"] = datetime.now(timezone.utc).isoformat()
     atomic_write_json(CONV_PATH, doc)
+
+
+def dashboard_base_url() -> str:
+    host = os.environ.get("CHRONOS_DASH_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    port_raw = str(os.environ.get("CHRONOS_DASH_PORT", "7357")).strip() or "7357"
+    try:
+        port = int(port_raw)
+    except Exception:
+        port = 7357
+    return f"http://{host}:{port}"
+
+
+def dashboard_trick_request(payload: dict, timeout_sec: float = 8.0) -> tuple[int, dict]:
+    url = f"{dashboard_base_url()}/api/trick"
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        url=url,
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+            status = int(getattr(resp, "status", 200) or 200)
+            raw = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(raw) if raw else {}
+            if not isinstance(data, dict):
+                data = {"ok": False, "error": "Invalid dashboard response"}
+            return status, data
+    except urllib.error.HTTPError as e:
+        try:
+            raw = e.read().decode("utf-8", errors="replace")
+            data = json.loads(raw) if raw else {}
+            if not isinstance(data, dict):
+                data = {"ok": False, "error": f"Dashboard HTTP {e.code}"}
+        except Exception:
+            data = {"ok": False, "error": f"Dashboard HTTP {e.code}"}
+        return int(e.code), data
+    except Exception as e:
+        return 502, {"ok": False, "error": f"Dashboard unavailable: {e}"}
 
 
 # ---- Familiar state helpers -------------------------------------------------
@@ -641,7 +685,14 @@ def conv_find_reply(familiar: str, turn_id: str):
         t for t in doc.get("turns", [])
         if t.get("role") == "cli" and t.get("familiar") == familiar and t.get("in_reply_to") == turn_id
     ]
-    return turns[-1] if turns else None
+    if turns:
+        return turns[-1]
+    # Fallback: if familiar drifted in watcher output, still return the reply by turn id.
+    fallback = [
+        t for t in doc.get("turns", [])
+        if t.get("role") == "cli" and t.get("in_reply_to") == turn_id
+    ]
+    return fallback[-1] if fallback else None
 
 
 def cli_active(threshold_seconds: int = 20):
@@ -1338,6 +1389,11 @@ def chat():
     invite_fam = data.get("invite_familiar")
     if isinstance(invite_fam, str) and invite_fam.strip():
         extras["invite_familiar"] = invite_fam.strip()
+    selected_skills = data.get("selected_skills")
+    if isinstance(selected_skills, list):
+        clean_skills = [str(s).strip() for s in selected_skills if str(s).strip()]
+        if clean_skills:
+            extras["selected_skills"] = clean_skills
     turn_id = conv_append_user_with(fam_id, text=message, extras=extras)
     return jsonify({"turn_id": turn_id})
 
@@ -1363,6 +1419,28 @@ def greet():
     }
     turn_id = conv_append_user_with(fam_id, text="", extras=extras)
     return jsonify({"turn_id": turn_id})
+
+
+@app.route("/chronos/trick", methods=["POST"])
+def chronos_trick():
+    """Execute a TRICK command against the Chronos dashboard API."""
+    data = request.get_json(force=True, silent=True) or {}
+    cmd = str(data.get("input", "")).strip()
+    if not cmd:
+        return jsonify({"ok": False, "error": "Missing TRICK command input"}), 400
+
+    payload = {
+        "input": cmd,
+        "actor": str(data.get("actor", "aduc")).strip() or "aduc",
+    }
+    if "wait_timeout_ms" in data:
+        try:
+            payload["wait_timeout_ms"] = int(data.get("wait_timeout_ms"))
+        except Exception:
+            pass
+
+    status, proxied = dashboard_trick_request(payload)
+    return jsonify(proxied), status
 
 
 @app.route("/cli/status", methods=["GET"])
@@ -1408,12 +1486,17 @@ def cli_status():
     bg_val = (bg_m.group(1).strip() if bg_m else None)
     # Extract prompt suggestions
     prompt_suggestions = [p.strip() for p in PROMPT_TAG_RE.findall(text) if p.strip()]
+    # Extract TRICK directives
+    trick_directives = [t.strip() for t in TRICK_TAG_RE.findall(text) if t.strip()]
 
     # Strip tags from display text
     display = STATE_TAG_RE.sub("", text)
     display = BACKGROUND_TAG_RE.sub("", display)
     display = POSE_TAG_RE.sub("", display)
-    display = PROMPT_TAG_RE.sub("", display).strip()
+    display = PROMPT_TAG_RE.sub("", display)
+    display = TRICK_TAG_RE.sub("", display).strip()
+    if not display and text:
+        display = "..."
 
     # Return keys
     result = {
@@ -1421,9 +1504,12 @@ def cli_status():
         "reply": display,
         "emotion": state_val,
         "state": state_val,
+        "reply_familiar": str(reply.get("familiar") or ""),
     }
     if prompt_suggestions:
         result["prompts"] = prompt_suggestions
+    if trick_directives:
+        result["trick"] = trick_directives
     if committee_mode:
         result["committee"] = True
         result["raw_reply"] = text

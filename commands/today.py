@@ -45,8 +45,8 @@ def load_scheduling_config():
     Loads scheduling configuration with defaults and user overrides.
     Returns merged config dict.
     """
-    defaults_path = os.path.join(USER_DIR, "Settings", "scheduling_defaults.yml")
-    settings_path = os.path.join(USER_DIR, "Settings", "scheduling_settings.yml")
+    defaults_path = os.path.join(USER_DIR, "settings", "scheduling_defaults.yml")
+    settings_path = os.path.join(USER_DIR, "settings", "scheduling_settings.yml")
     
     defaults = read_template(defaults_path) or {}
     settings = read_template(settings_path) or {}
@@ -70,7 +70,7 @@ def load_happiness_map():
     Loads map_of_happiness.yml if it exists.
     Returns dict with 'map' list and 'keys' set, or None if not configured.
     """
-    map_path = os.path.join(USER_DIR, "Settings", "map_of_happiness.yml")
+    map_path = os.path.join(USER_DIR, "settings", "map_of_happiness.yml")
     data = read_template(map_path)
     if not data or not isinstance(data.get("map"), list):
         return None
@@ -175,7 +175,7 @@ def _load_status_level_values(status_name):
     Loads the optional <Status>_Settings.yml file and returns { level -> numeric value }.
     """
     filename = f"{status_name.replace(' ', '_')}_Settings.yml"
-    path = os.path.join(USER_DIR, "Settings", filename)
+    path = os.path.join(USER_DIR, "settings", filename)
     data = read_template(path)
     if not isinstance(data, dict):
         return {}
@@ -438,7 +438,7 @@ def select_template_for_day(day_of_week, status_context):
     
     # Check for forced template
     if template_config.get("mode") == "explicit" and template_config.get("forced_template"):
-        forced_path = os.path.join(USER_DIR, "Days", template_config["forced_template"])
+        forced_path = os.path.join(USER_DIR, "days", template_config["forced_template"])
         if os.path.exists(forced_path):
             template = read_template(forced_path)
             if template:
@@ -509,7 +509,7 @@ def load_completion_payload(date_str):
     Loads (and if necessary migrates) the per-day completion data.
     Returns (data_dict, file_path).
     """
-    completions_dir = os.path.join(USER_DIR, "Schedules", "completions")
+    completions_dir = os.path.join(USER_DIR, "schedules", "completions")
     os.makedirs(completions_dir, exist_ok=True)
     per_day_path = os.path.join(completions_dir, f"{date_str}.yml")
 
@@ -1524,7 +1524,7 @@ def run(args, properties):
 
         today_date = datetime.now().date()
         today_str = today_date.strftime("%Y-%m-%d")
-        shadow_path = os.path.join(USER_DIR, "Schedules", f"schedule_{today_str}_kairos_shadow.yml")
+        shadow_path = os.path.join(USER_DIR, "schedules", f"schedule_{today_str}_kairos_shadow.yml")
         # Only parse tokens *after* the `kairos` marker so base command args
         # (e.g. `today`) do not leak into Kairos context.
         kairos_index = next((idx for idx, value in enumerate(args_lower) if value == "kairos"), -1)
@@ -1539,7 +1539,7 @@ def run(args, properties):
                 # schedule) so users can inspect load distribution first.
                 weekly = WeeklyGenerator(user_context=kairos_context)
                 payload = weekly.generate_skeleton(days=weekly_days, start_date=today_date)
-                weekly_path = os.path.join(USER_DIR, "Schedules", f"schedule_{today_str}_kairos_weekly_skeleton.yml")
+                weekly_path = os.path.join(USER_DIR, "schedules", f"schedule_{today_str}_kairos_weekly_skeleton.yml")
                 save_weekly_skeleton(weekly_path, payload)
                 rows = payload.get("skeleton", []) if isinstance(payload, dict) else []
                 if not isinstance(rows, list):
@@ -2036,7 +2036,7 @@ def run(args, properties):
                 import sqlite3
                 from modules.item_manager import get_user_dir
 
-                db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+                db_path = os.path.join(get_user_dir(), "data", "chronos_core.db")
                 ids = sorted({
                     int(b.get("id"))
                     for b in blocks
@@ -2293,7 +2293,7 @@ def run(args, properties):
                 import sqlite3
                 from modules.item_manager import get_user_dir
 
-                db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+                db_path = os.path.join(get_user_dir(), "data", "chronos_core.db")
                 if os.path.exists(db_path):
                     conn = sqlite3.connect(db_path)
                     cur = conn.cursor()
@@ -2352,7 +2352,7 @@ def run(args, properties):
                     import json
                     from modules.item_manager import get_user_dir
 
-                    db_path = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+                    db_path = os.path.join(get_user_dir(), "data", "chronos_core.db")
                     if os.path.exists(db_path):
                         conn = sqlite3.connect(db_path)
                         cur = conn.cursor()
@@ -2707,7 +2707,7 @@ def run(args, properties):
 
                 if os.path.exists(schedule_path):
                     try:
-                        archive_dir = os.path.join(USER_DIR, "Archive", "Schedules")
+                        archive_dir = os.path.join(USER_DIR, "archive", "schedules")
                         os.makedirs(archive_dir, exist_ok=True)
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         archive_path = os.path.join(archive_dir, f"schedule_{today_str}_{timestamp}.yml")
@@ -2787,12 +2787,12 @@ def run(args, properties):
         day_of_week = datetime.now().strftime("%A")
 
         # Load settings files
-        scheduling_priorities_path = os.path.join(USER_DIR, "Settings", "Scheduling_Priorities.yml")
-        priority_settings_path = os.path.join(USER_DIR, "Settings", "Priority_Settings.yml")
-        category_settings_path = os.path.join(USER_DIR, "Settings", "Category_Settings.yml")
-        status_settings_path = os.path.join(USER_DIR, "Settings", "Status_Settings.yml")
+        scheduling_priorities_path = os.path.join(USER_DIR, "settings", "scheduling_priorities.yml")
+        priority_settings_path = os.path.join(USER_DIR, "settings", "priority_settings.yml")
+        category_settings_path = os.path.join(USER_DIR, "settings", "category_settings.yml")
+        status_settings_path = os.path.join(USER_DIR, "settings", "status_settings.yml")
         current_user_status_path = status_current_path()
-        buffer_settings_path = os.path.join(USER_DIR, "Settings", "Buffer_Settings.yml")
+        buffer_settings_path = os.path.join(USER_DIR, "settings", "buffer_settings.yml")
         
         scheduling_priorities = read_template(scheduling_priorities_path) or {}
         priority_settings = read_template(priority_settings_path) or {}
@@ -2807,15 +2807,15 @@ def run(args, properties):
         scheduling_config = load_scheduling_config()
 
         if not scheduling_priorities:
-            print("Warning: Scheduling_Priorities.yml not found. Importance calculation may be inaccurate.")
+            print("Warning: scheduling_priorities.yml not found. Importance calculation may be inaccurate.")
         if not priority_settings:
-            print("Warning: Priority_Settings.yml not found. Importance calculation may be inaccurate.")
+            print("Warning: priority_settings.yml not found. Importance calculation may be inaccurate.")
         if not category_settings:
-            print("Warning: Category_Settings.yml not found. Importance calculation may be inaccurate.")
+            print("Warning: category_settings.yml not found. Importance calculation may be inaccurate.")
         if not status_settings:
-            print("Warning: Status_Settings.yml not found. Status-based importance calculation may be inaccurate.")
+            print("Warning: status_settings.yml not found. Status-based importance calculation may be inaccurate.")
         if not current_user_status:
-            print("Warning: Profile/Current_Status.yml not found. Status-based importance calculation may be inaccurate.")
+            print("Warning: profile/current_status.yml not found. Status-based importance calculation may be inaccurate.")
 
         # 2-3. Select the best template for the day
         template_info = select_template_for_day(day_of_week, status_context)
@@ -2949,7 +2949,7 @@ def run(args, properties):
         # Archive previous schedule before saving new one
         if os.path.exists(schedule_path):
             try:
-                archive_dir = os.path.join(USER_DIR, "Archive", "Schedules")
+                archive_dir = os.path.join(USER_DIR, "archive", "schedules")
                 os.makedirs(archive_dir, exist_ok=True)
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 archive_path = os.path.join(archive_dir, f"schedule_{today_str}_{timestamp}.yml")
@@ -2965,7 +2965,7 @@ def run(args, properties):
         print(f"✅ Resolved schedule saved to: {schedule_path}")
 
         # Write conflict log to file
-        log_dir = os.path.join(USER_DIR, "Logs")
+        log_dir = os.path.join(USER_DIR, "logs")
         os.makedirs(log_dir, exist_ok=True)
         log_filename = datetime.now().strftime("conflict_log_%Y%m%d_%H%M%S.yml")
         log_path = os.path.join(log_dir, log_filename)

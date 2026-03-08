@@ -40,7 +40,7 @@ def _normalize_recurrence(value):
 
 
 def _load_defaults(item_type):
-    settings_dir = os.path.join(ROOT_DIR, "user", "Settings")
+    settings_dir = os.path.join(ROOT_DIR, "user", "settings")
     variants = [
         f"{item_type}_defaults.yml",
         f"{item_type}_Defaults.yml",

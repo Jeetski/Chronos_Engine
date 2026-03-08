@@ -10,9 +10,9 @@ ITEM_TYPE = "habit"
 
 def get_habit_settings():
     """
-    Loads habit settings from user/settings/Habit_Settings.yml.
+    Loads habit settings from user/settings/habit_settings.yml.
     """
-    settings_path = os.path.join(get_user_dir(), "Settings", "Habit_Settings.yml")
+    settings_path = os.path.join(get_user_dir(), "settings", "habit_settings.yml")
     if os.path.exists(settings_path):
         with open(settings_path, 'r') as f:
             return yaml.safe_load(f)

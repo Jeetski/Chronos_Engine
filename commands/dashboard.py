@@ -18,7 +18,7 @@ def _read_dashboard_browser_setting():
     """Optional browser override from user/settings config."""
     if yaml is None:
         return ""
-    settings_dir = os.path.join(ROOT_DIR, "user", "Settings")
+    settings_dir = os.path.join(ROOT_DIR, "user", "settings")
     for fname in ("config.yml", "Config.yml"):
         path = os.path.join(settings_dir, fname)
         if not os.path.exists(path):
@@ -79,6 +79,16 @@ def run(args, properties):
         bundle_settings_for_dashboard()
     except Exception as e:
         print(f"Warning: Could not bundle dashboard settings: {e}")
+    try:
+        from utilities import registry_builder
+        registry_builder.write_trick_registry()
+    except Exception as e:
+        print(f"Warning: Could not build TRICK registry: {e}")
+    try:
+        from utilities import registry_builder
+        registry_builder.write_skills_registry()
+    except Exception as e:
+        print(f"Warning: Could not build skills registry: {e}")
 
     util_dashboard = os.path.join(ROOT_DIR, "utilities", "dashboard", "dashboard.html")
     if not os.path.exists(util_dashboard):
@@ -150,7 +160,7 @@ def bundle_settings_for_dashboard():
     if yaml is None:
         raise RuntimeError("PyYAML not available")
 
-    settings_dir = os.path.join(ROOT_DIR, "user", "Settings")
+    settings_dir = os.path.join(ROOT_DIR, "user", "settings")
     out_dir = os.path.join(ROOT_DIR, "utilities", "dashboard", "generated")
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, "settings_bundle.js")
@@ -166,14 +176,14 @@ def bundle_settings_for_dashboard():
                         return {}
         return {}
 
-    pr = read_yaml_first('priority_settings.yml', 'Priority_Settings.yml')
-    cat = read_yaml_first('category_settings.yml', 'Category_Settings.yml')
+    pr = read_yaml_first('priority_settings.yml', 'priority_settings.yml')
+    cat = read_yaml_first('category_settings.yml', 'category_settings.yml')
     views_cfg = read_yaml_first('dashboard_views.yml', 'Dashboard_Views.yml')
     widgets_cfg = read_yaml_first('dashboard_widgets.yml', 'Dashboard_Widgets.yml')
     note_defaults = read_yaml_first('note_defaults.yml', 'Note_Defaults.yml')
     appointment_defaults = read_yaml_first('appointment_defaults.yml', 'Appointment_Defaults.yml')
     alarm_defaults = read_yaml_first('alarm_defaults.yml', 'Alarm_Defaults.yml')
-    status_cfg = read_yaml_first('status_settings.yml', 'Status_Settings.yml')
+    status_cfg = read_yaml_first('status_settings.yml', 'status_settings.yml')
     profile_cfg = read_yaml_first('profile.yml', 'Profile.yml') # Read profile.yml
 
     # Status option files (attempt common variants)

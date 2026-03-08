@@ -329,7 +329,7 @@ async function persistData(scores) {
     yamlSnapshot += `answers:\n`;
     for (let id in ANSWERS) yamlSnapshot += `  ${id}: ${ANSWERS[id]}\n`;
 
-    await saveFile(`user/profile/Big5/results_${dateStr}.yml`, yamlSnapshot);
+    await saveFile(`user/profile/big_5/results_${dateStr}.yml`, yamlSnapshot);
 
     // 2. Save Source of Truth (personality.yml)
     await saveFile(`user/profile/personality.yml`, yamlSnapshot);

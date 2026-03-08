@@ -2,6 +2,7 @@ import ast
 import json
 import re
 import os
+import hashlib
 from datetime import datetime
 
 import yaml
@@ -9,7 +10,7 @@ import yaml
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
 USER_DIR = os.path.join(ROOT_DIR, "user")
-SETTINGS_DIR = os.path.join(USER_DIR, "Settings")
+SETTINGS_DIR = os.path.join(USER_DIR, "settings")
 REGISTRY_DIR = os.path.join(ROOT_DIR, "registry")
 
 SKIP_ITEM_DIRS = {
@@ -155,7 +156,13 @@ COMMAND_SYNTAX_OVERRIDES = {
         {"slots": ["kw:sync", "choice*:matrix|core|events|behavior|journal|memory|trends|trends_digest|all"], "allow_properties": False},
         {"slots": ["kw:trends"], "allow_properties": False},
     ],
-    "register": [{"slots": ["choice:commands|items|properties|all"], "allow_properties": False}],
+    "register": [{"slots": ["choice:commands|items|settings|properties|trick|skills|all|full"], "allow_properties": False}],
+    "trick": [
+        {"slots": ["choice:list|show|actions|where|refresh"], "allow_properties": True},
+    ],
+    "skills": [
+        {"slots": ["choice:list|show|where|refresh"], "allow_properties": True},
+    ],
     "filter": [
         {"slots": ["kw:all"], "allow_properties": False},
         {"slots": ["kw:off"], "allow_properties": False},
@@ -226,12 +233,28 @@ def _write_json(path: str, data: dict) -> None:
         json.dump(data, fh, indent=2, ensure_ascii=True)
 
 
+def _read_json(path: str):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
 def _read_yaml(path: str):
     try:
         with open(path, "r", encoding="utf-8") as fh:
             return yaml.safe_load(fh) or {}
     except Exception:
         return {}
+
+
+def _read_text(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+            return fh.read()
+    except Exception:
+        return ""
 
 
 def _extract_help_text(path: str):
@@ -597,7 +620,7 @@ def build_settings_registry():
 
     # Timer profiles
     timer_profiles = []
-    timer_data = _read_yaml(os.path.join(SETTINGS_DIR, "Timer_Profiles.yml"))
+    timer_data = _read_yaml(os.path.join(SETTINGS_DIR, "timer_profiles.yml"))
     if isinstance(timer_data, dict):
         timer_profiles = sorted(str(k) for k in timer_data.keys())
 
@@ -1061,6 +1084,201 @@ def build_gadgets_registry():
         "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "gadgets": gadgets,
     }
+
+
+def _read_markdown_heading_summary(path: str) -> tuple[str, str]:
+    text = _read_text(path).strip()
+    if not text:
+        return "", ""
+    heading = ""
+    summary = ""
+    for line in text.splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        if not heading and s.startswith("#"):
+            heading = re.sub(r"^#+\s*", "", s).strip()
+            continue
+        if s.startswith("#"):
+            continue
+        summary = s
+        break
+    return heading, summary
+
+
+def build_skills_registry():
+    """Auto-discover agent skills from docs/agents/skills/*/skill.md."""
+    skills = []
+    skills_dir = os.path.join(ROOT_DIR, "docs", "agents", "skills")
+    if not os.path.isdir(skills_dir):
+        return {
+            "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "skills": [],
+        }
+
+    for entry in os.scandir(skills_dir):
+        if not entry.is_dir() or entry.name.startswith((".", "_")):
+            continue
+        skill_id = str(entry.name).strip().lower()
+        if skill_id in {"templates", "template"}:
+            # Keep both if present, but preserve deterministic ordering below.
+            pass
+        skill_path = os.path.join(entry.path, "skill.md")
+        if not os.path.isfile(skill_path):
+            continue
+        heading, summary = _read_markdown_heading_summary(skill_path)
+        label = heading or _humanize_component_label(skill_id)
+        skills.append({
+            "id": skill_id,
+            "label": label,
+            "summary": summary,
+            "path": os.path.relpath(skill_path, ROOT_DIR).replace("\\", "/"),
+        })
+
+    skills.sort(key=lambda s: str(s.get("label") or s.get("id") or "").lower())
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "skills": skills,
+    }
+
+
+def _iter_trick_manifest_paths():
+    dash_dir = os.path.join(ROOT_DIR, "utilities", "dashboard")
+    roots = ("widgets", "views", "panels", "popups", "gadgets", "wizards")
+    paths = []
+    for root_name in roots:
+        root = os.path.join(dash_dir, root_name)
+        if not os.path.isdir(root):
+            continue
+        for entry in os.scandir(root):
+            if not entry.is_dir() or entry.name.startswith((".", "_")):
+                continue
+            p = os.path.join(entry.path, "trick.yml")
+            if os.path.exists(p):
+                paths.append(p)
+    return sorted(paths, key=lambda x: x.lower())
+
+
+def _trick_registry_input_hash(manifest_paths):
+    hasher = hashlib.sha256()
+    hasher.update(b"trick_registry_v1\n")
+    for p in manifest_paths:
+        rel = os.path.relpath(p, ROOT_DIR).replace("\\", "/")
+        hasher.update(rel.encode("utf-8", errors="replace"))
+        hasher.update(b"\n")
+        try:
+            with open(p, "rb") as fh:
+                hasher.update(fh.read())
+        except Exception:
+            pass
+        hasher.update(b"\n")
+    return hasher.hexdigest()
+
+
+def build_trick_registry(force: bool = False):
+    """
+    Build TRICK registry from dashboard component trick.yml manifests.
+
+    Caches by input hash in registry/trick_registry.meta.json to avoid
+    unnecessary rebuilds when manifests are unchanged.
+    """
+    reg_path = os.path.join(REGISTRY_DIR, "trick_registry.json")
+    meta_path = os.path.join(REGISTRY_DIR, "trick_registry.meta.json")
+
+    manifests = _iter_trick_manifest_paths()
+    input_hash = _trick_registry_input_hash(manifests)
+
+    if not force and os.path.exists(reg_path) and os.path.exists(meta_path):
+        meta = _read_json(meta_path) or {}
+        if str(meta.get("input_hash") or "") == input_hash:
+            cached = _read_json(reg_path) or {}
+            if isinstance(cached, dict) and cached:
+                return cached
+
+    surfaces = []
+    elements_index = {}
+
+    for path in manifests:
+        data = _read_yaml(path)
+        if not isinstance(data, dict):
+            continue
+        stype = str(data.get("type") or "").strip().lower()
+        sname = str(data.get("name") or "").strip().lower()
+        if stype not in {"widget", "view", "panel", "popup", "gadget", "wizard"}:
+            continue
+        if not sname:
+            continue
+        surface_id = f"{stype}.{sname}"
+        module = str(data.get("module") or sname).strip()
+        label = str(data.get("label") or _humanize_component_label(sname)).strip()
+        root_id = str(data.get("root") or surface_id).strip().lower()
+
+        rows = data.get("elements") if isinstance(data.get("elements"), list) else []
+        norm_rows = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            elem_name = str(row.get("name") or row.get("id") or "").strip().lower()
+            if not elem_name:
+                continue
+            full_id = f"{surface_id}.{elem_name}"
+            kind = str(row.get("kind") or "unknown").strip().lower() or "unknown"
+            actions = row.get("actions") if isinstance(row.get("actions"), list) else []
+            actions = [str(a).strip().lower() for a in actions if str(a).strip()]
+            value_type = str(row.get("value_type") or "").strip().lower() or None
+            desc = str(row.get("description") or "").strip() or None
+            element_def = {
+                "id": full_id,
+                "name": elem_name,
+                "kind": kind,
+                "actions": actions,
+                "value_type": value_type,
+                "description": desc,
+                "source": os.path.relpath(path, ROOT_DIR).replace("\\", "/"),
+            }
+            norm_rows.append(element_def)
+            elements_index[full_id] = element_def
+
+        surfaces.append({
+            "id": surface_id,
+            "type": stype,
+            "name": sname,
+            "label": label,
+            "module": module,
+            "root": root_id,
+            "elements": norm_rows,
+            "source": os.path.relpath(path, ROOT_DIR).replace("\\", "/"),
+        })
+
+    surfaces.sort(key=lambda s: s.get("id", ""))
+    out = {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "input_hash": input_hash,
+        "surfaces": surfaces,
+        "elements": elements_index,
+    }
+    _write_json(reg_path, out)
+    _write_json(meta_path, {
+        "input_hash": input_hash,
+        "generated_at": out["generated_at"],
+        "manifest_count": len(manifests),
+    })
+    return out
+
+
+def write_trick_registry(path: str = None) -> str:
+    if path is None:
+        path = os.path.join(REGISTRY_DIR, "trick_registry.json")
+    data = build_trick_registry(force=False)
+    _write_json(path, data)
+    return path
+
+
+def write_skills_registry(path: str = None) -> str:
+    if path is None:
+        path = os.path.join(REGISTRY_DIR, "skills_registry.json")
+    _write_json(path, build_skills_registry())
+    return path
 
 
 

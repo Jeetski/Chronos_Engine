@@ -41,6 +41,7 @@ Direct chat (backend `/chat`)
 CLI bridge (watcher)
 - Familiar docs are injected when new or changed; otherwise a cache marker is used.
 - Chronos mode adds Chronos protocols and optional external context.
+- Chronos mode also injects `docs/agents/trick.md` as the dashboard UI control contract.
 - Cycle state and policy summaries are added to enforce focus/break behavior.
 
 See also: `docs/agents/AGENTS.md` for the external agent contract.

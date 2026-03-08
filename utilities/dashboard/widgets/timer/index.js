@@ -16,64 +16,65 @@ export function mount(el, context) {
     el.dataset.autoheight = 'off';
     el.dataset.minWidth = '420';
     el.dataset.minHeight = '380';
+    el.dataset.uiId = 'widget.timer';
   } catch { }
 
   const tpl = `
-  <div class="header" id="twHeader">
-      <div class="title">Timer</div>
+  <div class="header" id="twHeader" data-ui-id="widget.timer.header">
+      <div class="title" data-ui-id="widget.timer.title">Timer</div>
       <div class="controls">
-        <button class="icon-btn" id="twMin" title="Minimize">_</button>
-        <button class="icon-btn" id="twClose" title="Close">x</button>
+        <button class="icon-btn" id="twMin" title="Minimize" data-ui-id="widget.timer.minimize_button">_</button>
+        <button class="icon-btn" id="twClose" title="Close" data-ui-id="widget.timer.close_button">x</button>
       </div>
     </div>
     <div class="content timer-content">
-      <div id="twPanel" class="timer-panel">
+      <div id="twPanel" class="timer-panel" data-ui-id="widget.timer.panel">
         <div class="row timer-meta-row">
-          <div id="twPhase" class="hint timer-phase">Phase: -</div>
-          <div id="twCycle" class="hint">Cycle: 0</div>
-          <div id="twStatus" class="hint">Status: idle</div>
+          <div id="twPhase" class="hint timer-phase" data-ui-id="widget.timer.phase_text">Phase: -</div>
+          <div id="twCycle" class="hint" data-ui-id="widget.timer.cycle_text">Cycle: 0</div>
+          <div id="twStatus" class="hint" data-ui-id="widget.timer.status_text">Status: idle</div>
         </div>
         <div class="timer-ring-wrap" aria-hidden="true">
           <svg class="timer-ring" viewBox="0 0 120 120" role="presentation">
             <circle class="timer-ring-bg" cx="60" cy="60" r="52"></circle>
-            <circle class="timer-ring-progress" id="twRingProgress" cx="60" cy="60" r="52"></circle>
+            <circle class="timer-ring-progress" id="twRingProgress" cx="60" cy="60" r="52" data-ui-id="widget.timer.ring_progress"></circle>
           </svg>
           <div class="timer-ring-center">
-            <div class="timer-clock" id="twClock">00:00</div>
-            <div class="timer-progress-label" id="twProgressLabel">0% elapsed</div>
+            <div class="timer-clock" id="twClock" data-ui-id="widget.timer.clock_text">00:00</div>
+            <div class="timer-progress-label" id="twProgressLabel" data-ui-id="widget.timer.progress_text">0% elapsed</div>
           </div>
         </div>
-        <div id="twBlockMeta" class="hint"></div>
-        <div id="twQueueMeta" class="hint"></div>
+        <div id="twBlockMeta" class="hint" data-ui-id="widget.timer.block_text"></div>
+        <div id="twQueueMeta" class="hint" data-ui-id="widget.timer.queue_text"></div>
       </div>
-      <div id="twBanner" style="display:block; border:1px solid rgba(122,162,247,0.4); background:linear-gradient(135deg, rgba(42,92,255,0.15) 0%, rgba(42,92,255,0.08) 100%); border-radius:12px; padding:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);">
-        <div id="twBannerText" style="font-weight:600; margin-bottom:8px;">Completed the current block?</div>
+      <div id="twBanner" data-ui-id="widget.timer.confirmation_banner" style="display:block; border:1px solid rgba(122,162,247,0.4); background:linear-gradient(135deg, rgba(42,92,255,0.15) 0%, rgba(42,92,255,0.08) 100%); border-radius:12px; padding:12px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);">
+        <div id="twBannerText" data-ui-id="widget.timer.confirmation_text" style="font-weight:600; margin-bottom:8px;">Completed the current block?</div>
         <div class="row" style="gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary" id="twBannerYes">Yes</button>
-          <button class="btn" id="twBannerSkipToday">Skip Today</button>
-          <button class="btn" id="twBannerSkip">Later</button>
-          <button class="btn btn-secondary" id="twBannerRestart">Start Over</button>
-          <button class="btn" id="twBannerStretch">Stretch</button>
+          <button class="btn btn-primary" id="twBannerYes" data-ui-id="widget.timer.confirm_yes_button">Yes</button>
+          <button class="btn" id="twBannerSkipToday" data-ui-id="widget.timer.confirm_skip_today_button">Skip Today</button>
+          <button class="btn" id="twBannerSkip" data-ui-id="widget.timer.confirm_later_button">Later</button>
+          <button class="btn btn-secondary" id="twBannerRestart" data-ui-id="widget.timer.confirm_start_over_button">Start Over</button>
+          <button class="btn" id="twBannerStretch" data-ui-id="widget.timer.confirm_stretch_button">Stretch</button>
         </div>
       </div>
       <div class="row" style="gap:8px; align-items:center;">
-        <select id="twProfile" class="input" style="max-width:200px;"></select>
-        <input id="twCycles" class="input" type="number" min="1" placeholder="cycles" style="max-width:90px;" />
+        <select id="twProfile" class="input" style="max-width:200px;" data-ui-id="widget.timer.profile_select"></select>
+        <input id="twCycles" class="input" type="number" min="1" placeholder="cycles" style="max-width:90px;" data-ui-id="widget.timer.cycles_input" />
         <label class="hint" style="display:flex; gap:6px; align-items:center;">
-          <input id="twAuto" type="checkbox" checked /> Auto-advance
+          <input id="twAuto" type="checkbox" checked data-ui-id="widget.timer.auto_advance_checkbox" /> Auto-advance
         </label>
       </div>
       <div class="row" style="gap:8px;">
-        <input id="twBindType" class="input" placeholder="bind type (optional)" style="max-width:160px;" />
-        <input id="twBindName" class="input" placeholder="bind name (optional)" />
+        <input id="twBindType" class="input" placeholder="bind type (optional)" style="max-width:160px;" data-ui-id="widget.timer.bind_type_input" />
+        <input id="twBindName" class="input" placeholder="bind name (optional)" data-ui-id="widget.timer.bind_name_input" />
       </div>
       <div class="row" style="gap:8px; align-items:center;">
-        <button class="btn btn-primary" id="twStart">Start</button>
-        <button class="btn" id="twStartDay">Start Day</button>
-        <button class="btn" id="twPause">Pause</button>
-        <button class="btn btn-secondary" id="twCancel">Cancel</button>
+        <button class="btn btn-primary" id="twStart" data-ui-id="widget.timer.start_button">Start</button>
+        <button class="btn" id="twStartDay" data-ui-id="widget.timer.start_day_button">Start Day</button>
+        <button class="btn" id="twPause" data-ui-id="widget.timer.pause_resume_button">Pause</button>
+        <button class="btn btn-secondary" id="twCancel" data-ui-id="widget.timer.cancel_button">Cancel</button>
         <div class="spacer"></div>
-        <button class="btn" id="twRefresh">Refresh</button>
+        <button class="btn" id="twRefresh" data-ui-id="widget.timer.refresh_button">Refresh</button>
       </div>
     </div>
     <div class="resizer e"></div>

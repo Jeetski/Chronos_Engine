@@ -3,7 +3,7 @@ import os
 import yaml
 from modules.console import ROOT_DIR
 
-ALIASES_PATH = os.path.join(ROOT_DIR, 'user', 'Settings', 'aliases.yml')
+ALIASES_PATH = os.path.join(ROOT_DIR, 'user', 'settings', 'aliases.yml')
 
 def run(args, properties):
     """

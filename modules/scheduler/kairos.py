@@ -150,15 +150,15 @@ class KairosScheduler:
         try:
             from commands import today as T
             from modules.scheduler import USER_DIR, normalize_completion_entries, read_template, status_current_path
-            status_settings = read_template(os.path.join(USER_DIR, "Settings", "Status_Settings.yml")) or {}
+            status_settings = read_template(os.path.join(USER_DIR, "settings", "status_settings.yml")) or {}
             current_status = read_template(status_current_path()) or read_template(os.path.join(USER_DIR, "current_status.yml")) or {}
             status_context = T.build_status_context(status_settings, current_status)
             happiness_map = T.load_happiness_map()
-            sched_priorities = read_template(os.path.join(USER_DIR, "Settings", "Scheduling_Priorities.yml")) or {}
-            buffer_settings = read_template(os.path.join(USER_DIR, "Settings", "buffer_settings.yml")) or {}
-            quick_wins_settings = read_template(os.path.join(USER_DIR, "Settings", "quick_wins_settings.yml")) or {}
-            timer_settings = read_template(os.path.join(USER_DIR, "Settings", "Timer_Settings.yml")) or {}
-            timer_profiles = read_template(os.path.join(USER_DIR, "Settings", "Timer_Profiles.yml")) or {}
+            sched_priorities = read_template(os.path.join(USER_DIR, "settings", "scheduling_priorities.yml")) or {}
+            buffer_settings = read_template(os.path.join(USER_DIR, "settings", "buffer_settings.yml")) or {}
+            quick_wins_settings = read_template(os.path.join(USER_DIR, "settings", "quick_wins_settings.yml")) or {}
+            timer_settings = read_template(os.path.join(USER_DIR, "settings", "timer_settings.yml")) or {}
+            timer_profiles = read_template(os.path.join(USER_DIR, "settings", "timer_profiles.yml")) or {}
             status_match_threshold = self.user_context.get("status_match_threshold")
             options = {
                 "force_template": self.user_context.get("force_template"),
@@ -208,7 +208,7 @@ class KairosScheduler:
                     missed_promo_boost = float(self.user_context.get("missed_promotion_boost"))
                 except Exception:
                     pass
-            completion_path = os.path.join(USER_DIR, "Schedules", "completions", f"{target.isoformat()}.yml")
+            completion_path = os.path.join(USER_DIR, "schedules", "completions", f"{target.isoformat()}.yml")
             completion_payload = read_template(completion_path) or {}
             completion_entries = normalize_completion_entries(completion_payload)
             completed_names, completed_blocks, completed_specs, completion_notes = self._build_completed_markers(completion_entries)
@@ -268,7 +268,7 @@ class KairosScheduler:
         days = [target_date, target_date - timedelta(days=1)]
         for d in days:
             day_str = d.isoformat()
-            path = os.path.join(USER_DIR, "Schedules", "completions", f"{day_str}.yml")
+            path = os.path.join(USER_DIR, "schedules", "completions", f"{day_str}.yml")
             file_note = {"date": day_str, "path": path, "exists": os.path.exists(path), "entries": 0}
             if not os.path.exists(path):
                 notes["files"].append(file_note)
@@ -338,7 +338,7 @@ class KairosScheduler:
         notes: Dict[str, Any] = {"enabled": True, "entries": 0, "source_db": None}
         try:
             from modules.item_manager import get_user_dir
-            db = os.path.join(get_user_dir(), "Data", "chronos_behavior.db")
+            db = os.path.join(get_user_dir(), "data", "chronos_behavior.db")
             notes["source_db"] = db
             if not os.path.exists(db):
                 notes["enabled"] = False
@@ -470,7 +470,7 @@ class KairosScheduler:
         candidates: List[str] = []
         if os.path.exists(token):
             candidates.append(token)
-        days_dir = os.path.join(USER_DIR, "Days")
+        days_dir = os.path.join(USER_DIR, "days")
         if os.path.isdir(days_dir):
             maybe = os.path.join(days_dir, token)
             if os.path.exists(maybe):
@@ -847,7 +847,7 @@ class KairosScheduler:
         out: List[Dict[str, Any]] = []
         try:
             from modules.item_manager import get_user_dir
-            db = os.path.join(get_user_dir(), "Data", "chronos_core.db")
+            db = os.path.join(get_user_dir(), "data", "chronos_core.db")
             if not os.path.exists(db):
                 self.phase_notes["gather"] = {"error": f"missing:{db}", "total": 0}
                 return out
@@ -3229,7 +3229,7 @@ class KairosScheduler:
             user_dir = get_user_dir()
         except Exception:
             user_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "user"))
-        logs_dir = os.path.join(user_dir, "Logs")
+        logs_dir = os.path.join(user_dir, "logs")
         os.makedirs(logs_dir, exist_ok=True)
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         run_date = self.last_target_date.isoformat() if self.last_target_date else "unknown"

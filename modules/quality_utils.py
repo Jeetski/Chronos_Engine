@@ -7,7 +7,7 @@ except Exception:
     yaml = None
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-USER_SETTINGS_DIR = os.path.join(ROOT_DIR, "user", "Settings")
+USER_SETTINGS_DIR = os.path.join(ROOT_DIR, "user", "settings")
 
 
 def _slugify(value: str) -> str:

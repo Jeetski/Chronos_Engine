@@ -50,11 +50,11 @@ def _save_yaml(path: str, data: Any) -> bool:
 
 def _read_themes() -> Dict[str, Dict[str, str]]:
     # Console themes live here.
-    cfg = _load_yaml(os.path.join(ROOT_DIR, 'user', 'Settings', 'console_theme_settings.yml'))
+    cfg = _load_yaml(os.path.join(ROOT_DIR, 'user', 'settings', 'console_theme_settings.yml'))
     if isinstance(cfg, dict) and isinstance(cfg.get('themes'), dict):
         return cfg['themes']  # type: ignore
     # Backward-compatible fallback.
-    legacy = _load_yaml(os.path.join(ROOT_DIR, 'user', 'Settings', 'theme_settings.yml'))
+    legacy = _load_yaml(os.path.join(ROOT_DIR, 'user', 'settings', 'theme_settings.yml'))
     if isinstance(legacy, dict) and isinstance(legacy.get('themes'), dict):
         return legacy['themes']  # type: ignore
     return {}

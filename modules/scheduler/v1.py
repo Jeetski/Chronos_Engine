@@ -19,17 +19,17 @@ def _normalize_date_str(date_value=None):
 
 def schedule_path_for_date(date_value=None):
     date_str = _normalize_date_str(date_value)
-    return os.path.join(USER_DIR, "Schedules", f"schedule_{date_str}.yml")
+    return os.path.join(USER_DIR, "schedules", f"schedule_{date_str}.yml")
 
 def manual_modifications_path_for_date(date_value=None):
     date_str = _normalize_date_str(date_value)
-    return os.path.join(USER_DIR, "Schedules", f"manual_modifications_{date_str}.yml")
+    return os.path.join(USER_DIR, "schedules", f"manual_modifications_{date_str}.yml")
 
 def status_current_path():
     candidates = [
         os.path.join(USER_DIR, "current_status.yml"),
-        os.path.join(USER_DIR, "Profile", "Current_Status.yml"),
-        os.path.join(USER_DIR, "Profile", "current_status.yml"),
+        os.path.join(USER_DIR, "profile", "current_status.yml"),
+        os.path.join(USER_DIR, "profile", "current_status.yml"),
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -39,8 +39,8 @@ def status_current_path():
 def status_history_path_for_date(date_value=None):
     date_str = _normalize_date_str(date_value)
     candidates = [
-        os.path.join(USER_DIR, "Logs", f"status_{date_str}.yml"),
-        os.path.join(USER_DIR, "Profile", "Status", f"status_{date_str}.yml"),
+        os.path.join(USER_DIR, "logs", f"status_{date_str}.yml"),
+        os.path.join(USER_DIR, "profile", "Status", f"status_{date_str}.yml"),
     ]
     for path in candidates:
         if os.path.exists(path):
@@ -64,7 +64,7 @@ def get_day_template_path(day_of_week):
     """
     Gets the path to the day template for the given day of the week.
     """
-    return os.path.join(USER_DIR, "Days", f"{day_of_week}.yml")
+    return os.path.join(USER_DIR, "days", f"{day_of_week}.yml")
 
 def list_day_template_paths(day_of_week):
     """
@@ -72,7 +72,7 @@ def list_day_template_paths(day_of_week):
     Templates self-describe their eligibility via 'days' property.
     If no 'days' property, the template is eligible for any day.
     """
-    days_dir = os.path.join(USER_DIR, "Days")
+    days_dir = os.path.join(USER_DIR, "days")
     if not os.path.isdir(days_dir):
         return []
 
@@ -88,7 +88,7 @@ def list_all_day_templates():
     """
     Returns all template files from user/days/ without any filtering.
     """
-    days_dir = os.path.join(USER_DIR, "Days")
+    days_dir = os.path.join(USER_DIR, "days")
     if not os.path.isdir(days_dir):
         return []
     

@@ -830,6 +830,81 @@ ready(async () => {
     window.setInterval(() => { void consumeEditorOpenRequest(); }, 1500);
   } catch { }
 
+  function _trickWidgetCandidates(req) {
+    const out = [];
+    const add = (v) => {
+      const s = String(v || '').trim();
+      if (!s) return;
+      if (!out.some(x => x.toLowerCase() === s.toLowerCase())) out.push(s);
+    };
+    add(req?.module);
+    add(req?.label);
+    add(req?.name);
+    const surface = String(req?.surface || '').trim().toLowerCase();
+    const parts = surface.split('.');
+    if (parts.length >= 2) add(parts[1]);
+    const toPascal = (v) => String(v || '')
+      .trim()
+      .split(/[\s_-]+/)
+      .filter(Boolean)
+      .map(tok => tok.charAt(0).toUpperCase() + tok.slice(1).toLowerCase())
+      .join('');
+    const seed = [...out];
+    for (const v of seed) add(toPascal(v));
+    return out;
+  }
+
+  function _findWidgetByTrick(req) {
+    const candidates = _trickWidgetCandidates(req).map(v => v.toLowerCase());
+    if (!candidates.length) return null;
+    const widgets = Array.from(document.querySelectorAll('[data-widget]'));
+    for (const el of widgets) {
+      const name = String(el.getAttribute('data-widget') || '').trim().toLowerCase();
+      const label = String(el.getAttribute('data-label') || '').trim().toLowerCase();
+      if (candidates.includes(name) || candidates.includes(label)) return el;
+    }
+    return null;
+  }
+
+  function applyTrickOpenRequest(req) {
+    if (!req || String(req.type || '').toLowerCase() !== 'widget') return false;
+    const action = String(req.action || 'open').trim().toLowerCase();
+    const el = _findWidgetByTrick(req);
+    if (!el) return false;
+    if (action === 'close') {
+      el.style.display = 'none';
+      return true;
+    }
+    el.style.display = '';
+    try { window.ChronosFocusWidget?.(el); } catch { }
+    return true;
+  }
+
+  let trickOpenPollBusy = false;
+  let trickOpenSeenId = 0;
+  async function consumeTrickOpenRequest() {
+    if (trickOpenPollBusy) return;
+    trickOpenPollBusy = true;
+    try {
+      const r = await fetch(apiBase() + `/api/trick/open-request?since=${encodeURIComponent(String(trickOpenSeenId || 0))}`);
+      if (!r.ok) return;
+      const j = await r.json().catch(() => ({}));
+      const req = j?.request;
+      if (!req) return;
+      const applied = applyTrickOpenRequest(req);
+      const rid = Number(req?.id || 0);
+      if (Number.isFinite(rid) && rid > 0) trickOpenSeenId = rid;
+      if (!applied) return;
+    } catch { }
+    finally {
+      trickOpenPollBusy = false;
+    }
+  }
+  try {
+    window.setTimeout(() => { void consumeTrickOpenRequest(); }, 600);
+    window.setInterval(() => { void consumeTrickOpenRequest(); }, 1000);
+  } catch { }
+
   // Simple topbar menus
   function closeMenus() { document.querySelectorAll('#topbar .dropdown').forEach(d => d.classList.remove('open')); }
   function positionDropdownInViewport(dropdown) {

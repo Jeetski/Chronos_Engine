@@ -19,7 +19,7 @@ def run(args, properties):
     # Check if the file exists
     if not os.path.exists(file_path_arg):
         # If not, try to find it in the user/exports directory
-        file_path = os.path.join(ROOT_DIR, "user", "Exports", file_path_arg)
+        file_path = os.path.join(ROOT_DIR, "user", "exports", file_path_arg)
         if not os.path.exists(file_path):
             print(f"Error: File not found at '{file_path_arg}' or in 'user/exports/'.")
             return

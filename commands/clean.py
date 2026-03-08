@@ -5,8 +5,8 @@ import glob
 import shutil
 from modules.item_manager import USER_DIR
 
-BACKUPS_DIR = os.path.join(USER_DIR, "Backups")
-ARCHIVE_DIR = os.path.join(USER_DIR, "Archive")
+BACKUPS_DIR = os.path.join(USER_DIR, "backups")
+ARCHIVE_DIR = os.path.join(USER_DIR, "archive")
 
 def run(args, properties):
     """
@@ -43,7 +43,7 @@ def clean_backups(properties):
     files.sort(key=os.path.getmtime, reverse=True)
     
     if len(files) <= keep_count:
-        print(f"Backups count ({len(files)}) is within limit ({keep_count}). No action needed.")
+        print(f"backups count ({len(files)}) is within limit ({keep_count}). No action needed.")
         return
         
     to_delete = files[keep_count:]

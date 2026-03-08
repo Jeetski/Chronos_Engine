@@ -23,8 +23,8 @@ STATE_DIR = os.path.join(get_user_dir(), 'Timers')
 STATE_FILE = os.path.join(STATE_DIR, 'state.yml')
 SESSIONS_DIR = os.path.join(STATE_DIR, 'sessions')
 PLAN_FILE = os.path.join(STATE_DIR, 'start_day_plan.yml')
-PROFILES_FILE = os.path.join(get_user_dir(), 'Settings', 'Timer_Profiles.yml')
-SETTINGS_FILE = os.path.join(get_user_dir(), 'Settings', 'Timer_Settings.yml')
+PROFILES_FILE = os.path.join(get_user_dir(), 'settings', 'timer_profiles.yml')
+SETTINGS_FILE = os.path.join(get_user_dir(), 'settings', 'timer_settings.yml')
 ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
 
 def _resolve_timer_sound_path(sound_value: str | None):
@@ -450,7 +450,7 @@ def _log_to_bound_item(st, seconds: int):
 def _phase_sound_name(phase: str) -> str | None:
     # Order of precedence:
     # 1) Profile-specific sounds (stashed in current state profile.sounds)
-    # 2) Global Timer_Settings.yml sounds
+    # 2) Global timer_settings.yml sounds
     # 3) Alarm/Reminder defaults as fallback
     try:
         # Profile override via current state
@@ -472,7 +472,7 @@ def _phase_sound_name(phase: str) -> str | None:
                     return sn
 
         # Fallback: Alarm/Reminder defaults
-        settings_dir = os.path.join(get_user_dir(), 'Settings')
+        settings_dir = os.path.join(get_user_dir(), 'settings')
         p = os.path.join(settings_dir, 'Alarm_Defaults.yml') if phase == 'focus_end' else os.path.join(settings_dir, 'Reminder_Defaults.yml')
         if os.path.exists(p):
             with open(p, 'r') as f:

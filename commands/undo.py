@@ -8,13 +8,13 @@ import yaml
 from modules.item_manager import USER_DIR, get_item_dir
 from modules.scheduler import schedule_path_for_date
 
-ARCHIVE_DIR = os.path.join(USER_DIR, "Archive")
+ARCHIVE_DIR = os.path.join(USER_DIR, "archive")
 
 def run(args, properties):
     """
     Handles the 'undo' command.
     undo delete [type] -> restores the most recently archived item (of that type, or global).
-    undo reschedule -> restores the most recent schedule from Archive/Schedules/.
+    undo reschedule -> restores the most recent schedule from archive/schedules/.
     """
     if not args:
         print(get_help_message())
@@ -48,7 +48,7 @@ def handle_undo_delete(args):
     # recursive glob if no type, or specific glob if type
     files = glob.glob(search_pattern, recursive=True)
     if not files:
-        print("Nothing to undo (Archive is empty).")
+        print("Nothing to undo (archive is empty).")
         return
 
     # Sort by modification time, newest first
@@ -56,7 +56,7 @@ def handle_undo_delete(args):
     latest_file = files[0]
     
     # Restore it
-    # rel_path relative to Archive -> user/archive/tasks/foo.yml -> tasks/foo.yml
+    # rel_path relative to archive -> user/archive/tasks/foo.yml -> tasks/foo.yml
     rel_path = os.path.relpath(latest_file, ARCHIVE_DIR)
     dest_path = os.path.join(USER_DIR, rel_path)
     
@@ -87,9 +87,9 @@ def handle_undo_delete(args):
 
 def handle_undo_reschedule():
     """
-    Restores the latest schedule from user/archive/Schedules/
+    Restores the latest schedule from user/archive/schedules/
     """
-    schedules_dir = os.path.join(ARCHIVE_DIR, "Schedules")
+    schedules_dir = os.path.join(ARCHIVE_DIR, "schedules")
     if not os.path.exists(schedules_dir):
         print("No archived schedules found.")
         return

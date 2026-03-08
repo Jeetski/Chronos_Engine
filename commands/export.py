@@ -12,7 +12,7 @@ from modules.console import run_command, parse_input
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-EXPORTS_DIR = os.path.join(USER_DIR, "Exports")
+EXPORTS_DIR = os.path.join(USER_DIR, "exports")
 
 def run(args, properties):
     """

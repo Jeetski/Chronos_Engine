@@ -126,6 +126,7 @@ function stripControlTags(text) {
   s = s.replace(/<\s*avatar\s*:[^>]*>/gi, '');
   s = s.replace(/<\s*emotion\s*:[^>]*>/gi, '');
   s = s.replace(/<\s*location\s*:[^>]*>/gi, '');
+  s = s.replace(/<\s*trick\s*:[^>]*>/gi, '');
   return s.trim();
 }
 
@@ -693,6 +694,7 @@ async function sendInvite(guestId) {
         if (s.status === 'responded' && token === POLL_TOKEN && famAtSend === document.getElementById('familiar').value) {
           done = true;
           finishPending();
+          const trickFailures = await executeTrickDirectives(s, hostId);
           try {
             if (s.raw_reply) {
               const prompts = normalizePromptSuggestions(s.prompts || extractPromptTags(s.raw_reply) || extractPromptTags(s.reply));
@@ -732,6 +734,9 @@ async function sendInvite(guestId) {
           } catch (err) {
             console.error('Invite response handling failed:', err);
             appendBubble('Invite received. (Render error)', 'bot', hostName, hostAvatar);
+          }
+          if (trickFailures.length) {
+            appendBubble(`TRICK error: ${trickFailures[0]}`, 'bot', hostName, hostAvatar);
           }
           COMMITTEE_PENDING.delete(guestId);
           addGuest(guestId);
@@ -956,6 +961,52 @@ function extractPromptTags(rawText) {
   return matches.map(tag => tag.replace(/<\s*prompt\s*:\s*/i, '').replace(/\s*>$/, '').trim()).filter(Boolean);
 }
 
+function extractTrickTags(rawText) {
+  if (!rawText) return [];
+  const matches = String(rawText).match(/<\s*trick\s*:\s*([^>]+)\s*>/gi) || [];
+  return matches
+    .map(tag => tag.replace(/<\s*trick\s*:\s*/i, '').replace(/\s*>$/, '').trim())
+    .filter(Boolean);
+}
+
+async function executeTrickDirectives(statusPayload, actor) {
+  const fromStatus = Array.isArray(statusPayload?.trick) ? statusPayload.trick : [];
+  const fallback = [
+    ...extractTrickTags(statusPayload?.raw_reply || ''),
+    ...extractTrickTags(statusPayload?.reply || ''),
+  ];
+  const all = [...fromStatus, ...fallback]
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  if (!all.length) return [];
+
+  const unique = [];
+  const seen = new Set();
+  for (const cmd of all) {
+    const key = cmd.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(cmd);
+  }
+
+  const failures = [];
+  for (const cmd of unique) {
+    try {
+      const res = await getJSON('/chronos/trick', {
+        method: 'POST',
+        body: JSON.stringify({ input: cmd, actor: actor || CURRENT_FAM || 'aduc' }),
+      });
+      if (!res?.ok) {
+        failures.push(String(res?.error || `command failed: ${cmd}`));
+      }
+    } catch (err) {
+      failures.push(String(err?.message || err || `command failed: ${cmd}`));
+    }
+  }
+  return failures;
+}
+
 function attachPromptSuggestions(bubble, prompts) {
   const items = normalizePromptSuggestions(prompts);
   if (!bubble || !items.length) return;
@@ -1023,14 +1074,14 @@ function parseCommitteeReply(rawText) {
   const out = [];
   let activeSpeaker = '';
   for (const line of lines) {
-    if (/^<\s*(emotion|state|hearts|location|background|pose|avatar|prompt)\s*:/i.test(line)) {
+    if (/^<\s*(emotion|state|hearts|location|background|pose|avatar|prompt|trick)\s*:/i.test(line)) {
       continue;
     }
     const tagMatch = line.match(/<\s*avatar\s*:\s*([^>]+)\s*>/i);
     const avatarTag = tagMatch ? tagMatch[1].trim() : '';
     const cleaned = line
       .replace(/<\s*avatar\s*:[^>]+>/i, '')
-      .replace(/<\s*(emotion|state|hearts|location|background|pose|prompt)\s*:[^>]+>/gi, '')
+      .replace(/<\s*(emotion|state|hearts|location|background|pose|prompt|trick)\s*:[^>]+>/gi, '')
       .trim();
     const bracketMatch = cleaned.match(/^\[([^\]]+)\]\s*:\s*(.*)$/);
     let speaker = '';
@@ -1184,6 +1235,7 @@ async function sendMessage() {
         if (s.status === 'responded' && token === POLL_TOKEN && famAtSend === document.getElementById('familiar').value) {
           done = true;
           finishPending();
+          const trickFailures = await executeTrickDirectives(s, fam);
           try {
             if (committeeMode && s.raw_reply) {
               const prompts = normalizePromptSuggestions(s.prompts || extractPromptTags(s.raw_reply) || extractPromptTags(s.reply));
@@ -1226,6 +1278,9 @@ async function sendMessage() {
           } catch (err) {
             console.error('Chat response handling failed:', err);
             appendBubble('Reply received. (Render error)', 'bot', famName, famAvatar);
+          }
+          if (trickFailures.length) {
+            appendBubble(`TRICK error: ${trickFailures[0]}`, 'bot', famName, famAvatar);
           }
 
           // Handle background change from familiar response
@@ -1289,6 +1344,7 @@ async function sendGreet(famId) {
         if (s.status === 'responded' && token === POLL_TOKEN && famAtSend === document.getElementById('familiar').value) {
           done = true;
           clearInterval(timer);
+          const trickFailures = await executeTrickDirectives(s, fam);
           setBubbleContent(bubble, s.reply, { markdown: true });
           // Remove greeting class BEFORE setting avatar so layout applies correctly
           try { document.body.classList.remove('greeting'); } catch { }
@@ -1323,6 +1379,9 @@ async function sendGreet(famId) {
           renderIdentity(fam);
           // If a dev-triggered break is pending, trigger it now (after this message)
           try { maybeTriggerPendingBreak(); } catch { }
+          if (trickFailures.length) {
+            appendBubble(`TRICK error: ${trickFailures[0]}`, 'bot');
+          }
           return;
         }
       } catch (_) {
@@ -1847,7 +1906,11 @@ async function scheduleBreakMoments() {
           try {
             const s = await getJSON(`/cli/status?familiar=${encodeURIComponent(fam)}&turn_id=${encodeURIComponent(react.turn_id)}`);
             if (s.status === 'responded' && token === POLL_TOKEN && famAtSend === document.getElementById('familiar').value) {
+              const trickFailures = await executeTrickDirectives(s, fam);
               appendBubble(s.reply, 'bot');
+              if (trickFailures.length) {
+                appendBubble(`TRICK error: ${trickFailures[0]}`, 'bot');
+              }
               return;
             }
           } catch { }

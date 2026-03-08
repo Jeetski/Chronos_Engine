@@ -37,7 +37,7 @@ def run(args, properties):
          return
 
     rel_path = os.path.relpath(src_path, USER_DIR)
-    archive_base = os.path.join(USER_DIR, "Archive")
+    archive_base = os.path.join(USER_DIR, "archive")
     dest_path = os.path.join(archive_base, rel_path)
 
     ensure_dir(os.path.dirname(dest_path))

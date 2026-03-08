@@ -104,7 +104,7 @@ def run(args, properties):
     if weekday:
         data["days"] = [weekday]
 
-    days_dir = os.path.join(USER_DIR, "Days")
+    days_dir = os.path.join(USER_DIR, "days")
     os.makedirs(days_dir, exist_ok=True)
     filename = name.replace('/', '_').strip()
     path = os.path.join(days_dir, f"{filename}.yml")

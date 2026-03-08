@@ -9,6 +9,7 @@ import threading
 import socket
 import tempfile
 import secrets
+import time
 from datetime import datetime, timedelta
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote, quote, urlencode
@@ -47,8 +48,12 @@ _ADUC_PORT = 8080
 _ADUC_LOG_PATH = os.path.join(tempfile.gettempdir(), "aduc_launch.log")
 _ADUC_NO_BROWSER_FLAG = os.path.join(tempfile.gettempdir(), "ADUC", "no_browser.flag")
 _ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "temp", "no_browser.flag")
-_LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "link_settings.yml")
+_LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "link_settings.yml")
 _EDITOR_OPEN_REQUEST_PATH = os.path.join(ROOT_DIR, "Temp", "editor_open_request.json")
+_TRICK_SESSION_STATE = {}
+_TRICK_OPEN_REQUESTS = []
+_TRICK_OPEN_LOCK = threading.Lock()
+_TRICK_OPEN_SEQ = 0
 
 
 def _aduc_proxy_request(path: str, method: str = "GET", payload: dict | None = None, timeout: float = 8.0):
@@ -82,6 +87,412 @@ def _aduc_proxy_request(path: str, method: str = "GET", payload: dict | None = N
         return int(getattr(e, "code", 502) or 502), body
     except Exception as e:
         return 502, {"ok": False, "error": f"ADUC request failed: {e}"}
+
+
+def _trick_registry():
+    from utilities import registry_builder
+    return registry_builder.build_trick_registry(force=False)
+
+
+def _trick_actor_key(actor):
+    key = str(actor or "default").strip().lower()
+    key = re.sub(r"[^a-z0-9_.-]+", "_", key)
+    return key or "default"
+
+
+def _trick_session(actor):
+    key = _trick_actor_key(actor)
+    state = _TRICK_SESSION_STATE.get(key)
+    if not isinstance(state, dict):
+        state = {
+            "profile_select": "classic_pomodoro",
+            "cycles_input": None,
+            "auto_advance_checkbox": True,
+            "bind_type_input": "",
+            "bind_name_input": "",
+        }
+        _TRICK_SESSION_STATE[key] = state
+    return state
+
+
+def _timer_status_safe():
+    try:
+        from modules.timer import main as Timer
+        st = Timer.status() or {}
+        return st if isinstance(st, dict) else {}
+    except Exception:
+        return {}
+
+
+def _fmt_mmss(seconds):
+    try:
+        total = int(seconds or 0)
+    except Exception:
+        total = 0
+    total = max(0, total)
+    mm, ss = divmod(total, 60)
+    return f"{mm:02d}:{ss:02d}"
+
+
+def _trick_timer_elements(actor):
+    sess = _trick_session(actor)
+    st = _timer_status_safe()
+    status_key = str(st.get("status") or "idle").lower()
+    current_phase = str(st.get("current_phase") or "-")
+    cycle_index = int(st.get("cycle_index") or 0)
+    remaining = int(st.get("remaining_seconds") or 0)
+
+    profile = st.get("profile") if isinstance(st.get("profile"), dict) else {}
+    block = st.get("current_block") if isinstance(st.get("current_block"), dict) else {}
+    sched = st.get("schedule_state") if isinstance(st.get("schedule_state"), dict) else {}
+    pending = st.get("pending_confirmation") if isinstance(st.get("pending_confirmation"), dict) else {}
+
+    total = 1
+    mode = str(st.get("mode") or "").lower()
+    if mode == "schedule" and block and block.get("minutes"):
+        try:
+            total = max(1, int(float(block.get("minutes")) * 60))
+        except Exception:
+            total = 1
+    elif current_phase == "focus":
+        total = max(1, int(profile.get("focus_minutes") or 25) * 60)
+    elif current_phase == "short_break":
+        total = max(1, int(profile.get("short_break_minutes") or 5) * 60)
+    elif current_phase == "long_break":
+        total = max(1, int(profile.get("long_break_minutes") or 15) * 60)
+    pct = max(0, min(100, int(round(((total - remaining) / total) * 100))))
+
+    block_text = ""
+    if block:
+        block_text = f"Block: {block.get('name') or 'Block'} ({block.get('minutes') or '?'}m)"
+
+    queue_text = ""
+    plan = sched.get("plan") if isinstance(sched.get("plan"), dict) else {}
+    total_blocks = int(sched.get("total_blocks") or (len(plan.get("blocks") or []) if isinstance(plan.get("blocks"), list) else 0))
+    current_idx = int(sched.get("current_index") or 0)
+    if total_blocks > 0:
+        queue_text = f"Schedule: block {min(total_blocks, current_idx + 1)} of {total_blocks}"
+
+    waiting_anchor = bool(st.get("waiting_for_anchor_start"))
+    has_pending = bool(pending and isinstance(pending.get("block"), dict))
+    has_target = bool(block) and not waiting_anchor
+    banner_visible = has_pending or has_target or (waiting_anchor and bool(block))
+
+    confirmation_text = "No active schedule block right now."
+    if has_pending:
+        blk = pending.get("block") if isinstance(pending.get("block"), dict) else {}
+        confirmation_text = f"Finished \"{blk.get('name') or 'this block'}\"?"
+    elif waiting_anchor and block:
+        confirmation_text = f"Waiting for anchor \"{block.get('name') or 'block'}\""
+    elif has_target and block:
+        confirmation_text = f"Block \"{block.get('name') or 'current block'}\" actions"
+
+    run_state = status_key in {"running", "paused"}
+    is_paused = status_key == "paused"
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    return {
+        "widget.timer.title": _mk("Timer"),
+        "widget.timer.minimize_button": _mk("_"),
+        "widget.timer.close_button": _mk("x"),
+        "widget.timer.phase_text": _mk(f"Phase: {current_phase}"),
+        "widget.timer.cycle_text": _mk(f"Cycle: {cycle_index}"),
+        "widget.timer.status_text": _mk(f"Status: {status_key}"),
+        "widget.timer.clock_text": _mk(_fmt_mmss(remaining)),
+        "widget.timer.progress_text": _mk(f"{pct}% elapsed"),
+        "widget.timer.block_text": _mk(block_text, visible=bool(block_text)),
+        "widget.timer.queue_text": _mk(queue_text, visible=bool(queue_text)),
+        "widget.timer.confirmation_banner": _mk("visible" if banner_visible else "hidden", visible=banner_visible),
+        "widget.timer.confirmation_text": _mk(confirmation_text, visible=banner_visible),
+        "widget.timer.confirm_yes_button": _mk("Yes", visible=banner_visible, enabled=has_target),
+        "widget.timer.confirm_skip_today_button": _mk("Skip Today", visible=banner_visible, enabled=has_target),
+        "widget.timer.confirm_later_button": _mk("Later", visible=banner_visible, enabled=has_target),
+        "widget.timer.confirm_start_over_button": _mk("Start Over", visible=banner_visible, enabled=has_target),
+        "widget.timer.confirm_stretch_button": _mk("Stretch", visible=banner_visible, enabled=has_target),
+        "widget.timer.profile_select": _mk(sess.get("profile_select") or "classic_pomodoro"),
+        "widget.timer.cycles_input": _mk(sess.get("cycles_input")),
+        "widget.timer.auto_advance_checkbox": _mk(bool(sess.get("auto_advance_checkbox", True))),
+        "widget.timer.bind_type_input": _mk(sess.get("bind_type_input") or ""),
+        "widget.timer.bind_name_input": _mk(sess.get("bind_name_input") or ""),
+        "widget.timer.start_button": _mk("Stop" if run_state else "Start"),
+        "widget.timer.start_day_button": _mk("Start Day"),
+        "widget.timer.pause_resume_button": _mk("Resume" if is_paused else "Pause", enabled=run_state),
+        "widget.timer.cancel_button": _mk("Cancel", enabled=run_state),
+        "widget.timer.refresh_button": _mk("Refresh"),
+    }
+
+
+def _trick_surface_exists(surface_id):
+    reg = _trick_registry()
+    for s in reg.get("surfaces", []) if isinstance(reg, dict) else []:
+        if str(s.get("id") or "").lower() == surface_id:
+            return True
+    return False
+
+
+def _trick_surface_entry(surface_id):
+    sid = str(surface_id or "").strip().lower()
+    if not sid:
+        return None
+    reg = _trick_registry()
+    for s in reg.get("surfaces", []) if isinstance(reg, dict) else []:
+        if str(s.get("id") or "").lower() == sid:
+            return s if isinstance(s, dict) else None
+    return None
+
+
+def _trick_open_request_push(surface_id, action: str = "open"):
+    global _TRICK_OPEN_SEQ
+    entry = _trick_surface_entry(surface_id)
+    if not isinstance(entry, dict):
+        return None
+    with _TRICK_OPEN_LOCK:
+        _TRICK_OPEN_SEQ += 1
+        req_id = int(_TRICK_OPEN_SEQ)
+    req = {
+        "id": req_id,
+        "action": str(action or "open").strip().lower() or "open",
+        "surface": str(entry.get("id") or "").strip().lower(),
+        "type": str(entry.get("type") or "").strip().lower(),
+        "name": str(entry.get("name") or "").strip().lower(),
+        "label": str(entry.get("label") or "").strip(),
+        "module": str(entry.get("module") or "").strip(),
+        "requested_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+    }
+    with _TRICK_OPEN_LOCK:
+        _TRICK_OPEN_REQUESTS.append(req)
+        if len(_TRICK_OPEN_REQUESTS) > 64:
+            del _TRICK_OPEN_REQUESTS[:-64]
+    return req
+
+
+def _trick_open_request_latest():
+    with _TRICK_OPEN_LOCK:
+        if not _TRICK_OPEN_REQUESTS:
+            return None
+        return _TRICK_OPEN_REQUESTS[-1]
+
+
+def _trick_element_allowed(element_id, action):
+    reg = _trick_registry()
+    elements = reg.get("elements") if isinstance(reg, dict) else {}
+    row = elements.get(element_id) if isinstance(elements, dict) else None
+    if not isinstance(row, dict):
+        return False
+    actions = row.get("actions") if isinstance(row.get("actions"), list) else []
+    return str(action).lower() in {str(a).lower() for a in actions}
+
+
+def _trick_exec_timer(action_args, props=None):
+    ok, out, err = run_console_command("timer", action_args, props or {})
+    return ok, out, err, _timer_status_safe()
+
+
+def _trick_click(target, actor):
+    session = _trick_session(actor)
+    status_key = str(_timer_status_safe().get("status") or "idle").lower()
+    target = str(target or "").strip().lower()
+
+    if target == "widget.timer.start_button":
+        if status_key in {"running", "paused"}:
+            ok, out, err, st = _trick_exec_timer(["stop"])
+            return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer stop failed")
+        prof = str(session.get("profile_select") or "classic_pomodoro").strip() or "classic_pomodoro"
+        props = {
+            "auto_advance": bool(session.get("auto_advance_checkbox", True)),
+        }
+        if session.get("bind_type_input"):
+            props["type"] = str(session.get("bind_type_input")).strip()
+        if session.get("bind_name_input"):
+            props["name"] = str(session.get("bind_name_input")).strip()
+        if session.get("cycles_input") not in (None, ""):
+            try:
+                props["cycles"] = int(session.get("cycles_input"))
+            except Exception:
+                pass
+        ok, out, err, st = _trick_exec_timer(["start", prof], props)
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer start failed")
+
+    if target == "widget.timer.pause_resume_button":
+        cmd = "resume" if status_key == "paused" else "pause"
+        ok, out, err, st = _trick_exec_timer([cmd])
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or f"Timer {cmd} failed")
+
+    if target == "widget.timer.cancel_button":
+        # Cancel in UI semantics maps to stopping the active timer run.
+        # Prefer "stop" (supported by current timer CLI); keep a fallback
+        # to "cancel" for forward/backward compatibility.
+        ok, out, err, st = _trick_exec_timer(["stop"])
+        if (not ok) and "Usage:" in str(out or ""):
+            ok, out, err, st = _trick_exec_timer(["cancel"])
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer cancel/stop failed")
+
+    if target == "widget.timer.confirm_yes_button":
+        ok, out, err, st = _trick_exec_timer(["confirm", "yes"])
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer confirm yes failed")
+
+    if target in {"widget.timer.confirm_skip_today_button", "widget.timer.confirm_later_button"}:
+        ok, out, err, st = _trick_exec_timer(["confirm", "skip"])
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer confirm skip failed")
+
+    if target == "widget.timer.confirm_start_over_button":
+        ok, out, err, st = _trick_exec_timer(["confirm", "start_over"])
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer confirm start_over failed")
+
+    if target == "widget.timer.confirm_stretch_button":
+        ok, out, err, st = _trick_exec_timer(["confirm", "stretch"])
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Timer confirm stretch failed")
+
+    if target == "widget.timer.start_day_button":
+        ok, out, err = run_console_command("start", ["day"])
+        st = _timer_status_safe()
+        return ok, {"status": st, "stdout": out, "stderr": err}, None if ok else (err or out or "Start day failed")
+
+    if target in {"widget.timer.refresh_button", "widget.timer.minimize_button", "widget.timer.close_button"}:
+        # Refresh is read-only server-side; minimize/close are UI-local and no-op via API.
+        return True, {"status": _timer_status_safe(), "ui_only": target.endswith("minimize_button") or target.endswith("close_button")}, None
+
+    return False, {}, f"Unsupported CLICK target: {target}"
+
+
+def _trick_get_value(target, actor):
+    target = str(target or "").strip().lower()
+    if target == "widget.timer":
+        return True, {"surface": target, "elements": _trick_timer_elements(actor)}, None
+    elements = _trick_timer_elements(actor)
+    if target in elements:
+        return True, {"target": target, **elements[target]}, None
+    return False, {}, f"Unknown target: {target}"
+
+
+def _trick_set_value(target, value, actor):
+    target = str(target or "").strip().lower()
+    session = _trick_session(actor)
+
+    if target == "widget.timer.profile_select":
+        session["profile_select"] = str(value or "").strip() or "classic_pomodoro"
+    elif target == "widget.timer.cycles_input":
+        if value in (None, ""):
+            session["cycles_input"] = None
+        else:
+            try:
+                session["cycles_input"] = int(value)
+            except Exception:
+                return False, {}, "cycles_input expects an integer"
+    elif target == "widget.timer.auto_advance_checkbox":
+        if isinstance(value, bool):
+            session["auto_advance_checkbox"] = value
+        elif isinstance(value, (int, float)):
+            session["auto_advance_checkbox"] = bool(value)
+        else:
+            session["auto_advance_checkbox"] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+    elif target == "widget.timer.bind_type_input":
+        session["bind_type_input"] = str(value or "").strip()
+    elif target == "widget.timer.bind_name_input":
+        session["bind_name_input"] = str(value or "").strip()
+    else:
+        return False, {}, f"Unsupported SET target: {target}"
+
+    ok, payload, err = _trick_get_value(target, actor)
+    return ok, payload, err
+
+
+def _trick_eval_predicate(predicate, target, expected, actor):
+    predicate = str(predicate or "exists").strip().lower()
+    target = str(target or "").strip().lower()
+    if not target:
+        return False, {"error": "Missing target"}
+
+    surface_id = ".".join(target.split(".")[:2]) if "." in target else target
+    exists = _trick_surface_exists(surface_id) and (target == surface_id or target in _trick_timer_elements(actor))
+
+    if predicate == "exists":
+        return exists, {"exists": exists}
+    if predicate == "gone":
+        return (not exists), {"exists": exists}
+
+    ok, payload, err = _trick_get_value(target, actor)
+    if not ok:
+        return False, {"error": err}
+
+    if predicate == "visible":
+        return bool(payload.get("visible", False)), payload
+    if predicate == "enabled":
+        return bool(payload.get("enabled", False)), payload
+    if predicate == "value":
+        lhs = "" if payload.get("value") is None else str(payload.get("value"))
+        rhs = "" if expected is None else str(expected)
+        return lhs == rhs, payload
+    if predicate == "text_contains":
+        lhs = str(payload.get("text") or "").lower()
+        rhs = str(expected or "").lower()
+        return rhs in lhs, payload
+    return False, {"error": f"Unsupported predicate: {predicate}"}
+
+
+def _trick_parse_request(payload):
+    req = {
+        "command": "",
+        "target": "",
+        "value": None,
+        "actor": "default",
+        "predicate": None,
+        "expected": None,
+        "timeout_ms": 5000,
+    }
+    if isinstance(payload, dict):
+        req["actor"] = payload.get("actor") or payload.get("familiar") or "default"
+        req["target"] = str(payload.get("target") or "").strip()
+        req["value"] = payload.get("value")
+        req["predicate"] = payload.get("predicate")
+        req["expected"] = payload.get("expected")
+        try:
+            req["timeout_ms"] = int(payload.get("timeout_ms") or 5000)
+        except Exception:
+            req["timeout_ms"] = 5000
+
+        raw = str(payload.get("input") or payload.get("command") or "").strip()
+        if raw:
+            toks = raw.split()
+            if toks:
+                req["command"] = toks[0].upper()
+            if req["command"] == "WAIT":
+                if len(toks) >= 2 and toks[1].lower() in {"exists", "visible", "enabled", "value", "text_contains", "gone"}:
+                    req["predicate"] = toks[1].lower()
+                    if len(toks) >= 3:
+                        req["target"] = toks[2]
+                    tail = toks[3:]
+                else:
+                    req["predicate"] = req["predicate"] or "exists"
+                    if len(toks) >= 2:
+                        req["target"] = toks[1]
+                    tail = toks[2:]
+                if tail:
+                    # Accept optional trailing timeout int.
+                    if tail and re.fullmatch(r"\d+", str(tail[-1])):
+                        req["timeout_ms"] = int(tail[-1])
+                        tail = tail[:-1]
+                    if tail:
+                        req["expected"] = " ".join(tail)
+            else:
+                if len(toks) >= 2 and not req["target"]:
+                    req["target"] = toks[1]
+                if len(toks) > 2 and req["value"] is None:
+                    req["value"] = " ".join(toks[2:])
+        elif payload.get("command"):
+            req["command"] = str(payload.get("command") or "").strip().upper()
+
+    req["command"] = str(req["command"] or "").strip().upper()
+    req["target"] = str(req["target"] or "").strip().lower()
+    req["timeout_ms"] = max(100, min(20000, int(req["timeout_ms"] or 5000)))
+    return req
 
 def _load_link_settings():
     data = {}
@@ -239,7 +650,7 @@ def _vars_seed_defaults():
             except Exception:
                 pass
         # Seed from optional user/settings/vars.yml
-        vpath = os.path.join(ROOT_DIR, 'user', 'Settings', 'vars.yml')
+        vpath = os.path.join(ROOT_DIR, 'user', 'settings', 'vars.yml')
         if os.path.exists(vpath):
             try:
                 with open(vpath, 'r', encoding='utf-8') as f:
@@ -317,7 +728,7 @@ def run_console_command(command_name, args_list, properties=None):
 
 
 def _list_system_databases():
-    data_dir = os.path.join(ROOT_DIR, "user", "Data")
+    data_dir = os.path.join(ROOT_DIR, "user", "data")
     registry_path = os.path.join(data_dir, "databases.yml")
     databases = []
     seen = set()
@@ -417,8 +828,8 @@ STICKY_NOTE_COLORS = {
 DEFAULT_STICKY_NOTE_COLOR = "amber"
 
 MEDIA_ROOT = os.path.join(ROOT_DIR, "user", "Media")
-MP3_DIR = os.path.join(MEDIA_ROOT, "MP3")
-PLAYLIST_DIR = os.path.join(MEDIA_ROOT, "Playlists")
+MP3_DIR = os.path.join(MEDIA_ROOT, "mp3")
+PLAYLIST_DIR = os.path.join(MEDIA_ROOT, "playlists")
 DEFAULT_PLAYLIST_SLUG = "default"
 CALENDAR_OVERLAY_PRESET_DIR = os.path.join(ROOT_DIR, "presets", "calendar_overlays")
 
@@ -839,7 +1250,7 @@ def _ensure_default_playlist(library=None):
     tracks = [{"file": track["file"]} for track in lib]
     data = {
         "name": "All Tracks",
-        "description": "Auto playlist of every MP3 in user/media/MP3.",
+        "description": "Auto playlist of every MP3 in user/media/mp3.",
         "tracks": tracks,
     }
     _write_playlist(DEFAULT_PLAYLIST_SLUG, data)
@@ -948,6 +1359,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         sys.stderr.write(f"DEBUG: GET request path: {parsed.path}\n") # DEBUG
         sys.stderr.flush()
 
+        if parsed.path == "/api/trick/registry":
+            try:
+                self._write_json(200, {"ok": True, "registry": _trick_registry()})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"TRICK registry error: {e}"})
+            return
+
         if parsed.path == "/api/registry":
             try:
                 qs = parse_qs(parsed.query or "")
@@ -955,7 +1373,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing name"}); return
                 
-                if name in ("wizards", "themes", "widgets", "views", "panels", "popups", "gadgets"):
+                if name in ("wizards", "themes", "widgets", "views", "panels", "popups", "gadgets", "trick", "skills"):
                     # Dynamic build
                     from utilities import registry_builder
                     data = {}
@@ -973,10 +1391,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         data = registry_builder.build_popups_registry()
                     elif name == "gadgets":
                         data = registry_builder.build_gadgets_registry()
+                    elif name == "trick":
+                        data = registry_builder.build_trick_registry(force=False)
+                    elif name == "skills":
+                        data = registry_builder.build_skills_registry()
                     self._write_json(200, {"ok": True, "registry": data})
                     return
 
-                if name not in ("command", "item", "property"):
+                if name not in ("command", "item", "property", "skills"):
                     self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
 
                 reg_dir = os.path.join(ROOT_DIR, 'registry')
@@ -1343,7 +1765,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 name = (qs.get('name') or [''])[0].strip()
                 if not name:
                     self._write_json(400, {"ok": False, "error": "Missing name"}); return
-                settings_path = os.path.join(ROOT_DIR, 'user', 'Settings', 'theme_settings.yml')
+                settings_path = os.path.join(ROOT_DIR, 'user', 'settings', 'theme_settings.yml')
                 if not os.path.exists(settings_path):
                     self._write_json(404, {"ok": False, "error": "theme_settings.yml not found"}); return
                 with open(settings_path, 'r', encoding='utf-8') as f:
@@ -1420,7 +1842,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/trends/metrics":
             try:
                 import sqlite3
-                data_dir = os.path.join(ROOT_DIR, 'user', 'Data')
+                data_dir = os.path.join(ROOT_DIR, 'user', 'data')
                 trends_db = os.path.join(data_dir, 'chronos_trends.db')
                 
                 if not os.path.exists(trends_db):
@@ -2117,7 +2539,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
                 # Overlay/augment from completion entries for the full year.
                 # This lets tracker reflect explicit check-ins saved by popups and schedule logs.
-                comp_dir = os.path.join(ROOT_DIR, 'user', 'Schedules', 'completions')
+                comp_dir = os.path.join(ROOT_DIR, 'user', 'schedules', 'completions')
                 span_days = (end_dt - start_dt).days + 1
                 for offset in range(span_days):
                     dt = start_dt + timedelta(days=offset)
@@ -2437,8 +2859,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/timer/settings":
             try:
-                # Load Timer_Settings.yml if present
-                path = os.path.join(ROOT_DIR, 'user', 'Settings', 'Timer_Settings.yml')
+                # Load timer_settings.yml if present
+                path = os.path.join(ROOT_DIR, 'user', 'settings', 'timer_settings.yml')
                 data = {}
                 if os.path.exists(path):
                     with open(path, 'r') as f:
@@ -2562,7 +2984,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             # List or fetch user settings files under user/settings
             try:
                 qs = parse_qs(parsed.query or '')
-                settings_root = os.path.join(ROOT_DIR, 'user', 'Settings')
+                settings_root = os.path.join(ROOT_DIR, 'user', 'settings')
                 if not os.path.isdir(settings_root):
                     self._write_json(200, {"ok": True, "files": []}); return
                 fname = (qs.get('file') or [''])[0].strip()
@@ -2600,6 +3022,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 qs = parse_qs(parsed.query or "")
                 name = (qs.get("name") or [""])[0].strip().lower()
+                if name == "trick":
+                    self._write_json(200, {"ok": True, "registry": _trick_registry()})
+                    return
+                if name == "skills":
+                    from utilities import registry_builder
+                    self._write_json(200, {"ok": True, "registry": registry_builder.build_skills_registry()})
+                    return
                 if name not in {"command", "item", "property"}:
                     self._write_json(400, {"ok": False, "error": "Invalid registry name"}); return
                 reg_path = os.path.join(ROOT_DIR, "registry", f"{name}_registry.json")
@@ -2959,7 +3388,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
                 def count_completed(date_obj):
                     date_str = date_obj.strftime("%Y-%m-%d")
-                    comp_path = os.path.join(ROOT_DIR, "user", "Schedules", "completions", f"{date_str}.yml")
+                    comp_path = os.path.join(ROOT_DIR, "user", "schedules", "completions", f"{date_str}.yml")
                     if not os.path.exists(comp_path):
                         return 0
                     try:
@@ -3140,7 +3569,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         "scheduled_end": end,
                     })
 
-                completions_dir = os.path.join(ROOT_DIR, "user", "Schedules", "completions")
+                completions_dir = os.path.join(ROOT_DIR, "user", "schedules", "completions")
                 os.makedirs(completions_dir, exist_ok=True)
                 completion_path = os.path.join(completions_dir, f"{target_date}.yml")
                 completion_payload = {"entries": {}}
@@ -3330,7 +3759,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     if arr:
                         days_raw = str(arr[0])
 
-                comp_dir = os.path.join(ROOT_DIR, 'user', 'Schedules', 'completions')
+                comp_dir = os.path.join(ROOT_DIR, 'user', 'schedules', 'completions')
 
                 def _read_completed_for_date(target_date: str):
                     comp_path = os.path.join(comp_dir, f"{target_date}.yml")
@@ -3805,6 +4234,25 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Editor open request error: {e}"})
             return
+        if parsed.path == "/api/trick/open-request":
+            try:
+                qs = parse_qs(parsed.query or "")
+                since = 0
+                try:
+                    since = int((qs.get("since") or ["0"])[0] or 0)
+                except Exception:
+                    since = 0
+                req = _trick_open_request_latest()
+                if isinstance(req, dict):
+                    try:
+                        if int(req.get("id") or 0) <= since:
+                            req = None
+                    except Exception:
+                        pass
+                self._write_json(200, {"ok": True, "request": req})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"TRICK open request error: {e}"})
+            return
 
         return super().do_GET()
 
@@ -3821,6 +4269,131 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._write_yaml(400, {"ok": False, "error": f"Invalid YAML: {e}"})
             return
 
+        if parsed.path == "/api/trick":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"})
+                    return
+                req = _trick_parse_request(payload)
+                cmd = req.get("command") or ""
+                target = req.get("target") or ""
+                actor = req.get("actor") or "default"
+
+                if cmd not in {"OPEN", "CLOSE", "LIST", "GET", "SET", "CLICK", "WAIT"}:
+                    self._write_json(400, {"ok": False, "error": "Invalid TRICK command"})
+                    return
+
+                if cmd in {"OPEN", "CLOSE", "LIST"}:
+                    if target.count(".") < 1:
+                        self._write_json(400, {"ok": False, "error": "Target must be type.name"})
+                        return
+                    surface = ".".join(target.split(".")[:2])
+                    if not _trick_surface_exists(surface):
+                        self._write_json(404, {"ok": False, "error": f"Unknown TRICK surface: {surface}"})
+                        return
+                    if cmd == "OPEN":
+                        open_req = _trick_open_request_push(surface, "open")
+                        self._write_json(200, {
+                            "ok": True,
+                            "command": cmd,
+                            "target": surface,
+                            "result": {
+                                "opened": bool(open_req),
+                                "mode": "queued_ui",
+                                "request": open_req,
+                                "note": "Open request queued for dashboard UI.",
+                            },
+                        })
+                        return
+                    if cmd == "CLOSE":
+                        close_req = _trick_open_request_push(surface, "close")
+                        self._write_json(200, {
+                            "ok": True,
+                            "command": cmd,
+                            "target": surface,
+                            "result": {
+                                "closed": bool(close_req),
+                                "mode": "queued_ui",
+                                "request": close_req,
+                                "note": "Close request queued for dashboard UI.",
+                            },
+                        })
+                        return
+
+                    reg = _trick_registry()
+                    rows = []
+                    for s in reg.get("surfaces", []) if isinstance(reg, dict) else []:
+                        if str(s.get("id") or "").lower() == surface:
+                            rows = s.get("elements") if isinstance(s.get("elements"), list) else []
+                            break
+                    self._write_json(200, {"ok": True, "command": cmd, "target": surface, "result": {"elements": rows}})
+                    return
+
+                if not target:
+                    self._write_json(400, {"ok": False, "error": "Missing target"})
+                    return
+
+                if cmd == "GET":
+                    ok, result, err = _trick_get_value(target, actor)
+                    self._write_json(200 if ok else 404, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "SET":
+                    if not _trick_element_allowed(target, "set"):
+                        self._write_json(400, {"ok": False, "error": f"SET not allowed for target: {target}"})
+                        return
+                    ok, result, err = _trick_set_value(target, req.get("value"), actor)
+                    self._write_json(200 if ok else 400, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "CLICK":
+                    if not _trick_element_allowed(target, "click"):
+                        self._write_json(400, {"ok": False, "error": f"CLICK not allowed for target: {target}"})
+                        return
+                    ok, result, err = _trick_click(target, actor)
+                    self._write_json(200 if ok else 500, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "WAIT":
+                    predicate = req.get("predicate") or "exists"
+                    expected = req.get("expected")
+                    timeout_ms = int(req.get("timeout_ms") or 5000)
+                    start_t = time.time()
+                    last = {}
+                    while int((time.time() - start_t) * 1000) < timeout_ms:
+                        matched, details = _trick_eval_predicate(predicate, target, expected, actor)
+                        last = details if isinstance(details, dict) else {}
+                        if matched:
+                            self._write_json(200, {
+                                "ok": True,
+                                "command": cmd,
+                                "target": target,
+                                "result": {
+                                    "predicate": predicate,
+                                    "matched": True,
+                                    "elapsed_ms": int((time.time() - start_t) * 1000),
+                                    "details": last,
+                                },
+                            })
+                            return
+                        time.sleep(0.2)
+                    self._write_json(408, {
+                        "ok": False,
+                        "command": cmd,
+                        "target": target,
+                        "error": "WAIT timeout",
+                        "result": {
+                            "predicate": predicate,
+                            "matched": False,
+                            "elapsed_ms": timeout_ms,
+                            "details": last,
+                        },
+                    })
+                    return
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"TRICK execution failed: {e}"})
+            return
+
         if parsed.path == "/api/aduc/chat":
             try:
                 if not isinstance(payload, dict):
@@ -3832,6 +4405,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     self._write_json(400, {"ok": False, "error": "Missing message"})
                     return
                 aduc_payload = {"familiar": familiar, "message": message}
+                selected_skills = payload.get("selected_skills")
+                if isinstance(selected_skills, list):
+                    clean = [str(s).strip() for s in selected_skills if str(s).strip()]
+                    if clean:
+                        aduc_payload["selected_skills"] = clean
                 status, body = _aduc_proxy_request("/chat", method="POST", payload=aduc_payload)
                 self._write_json(status, body if isinstance(body, dict) else {"ok": False, "error": "Invalid ADUC response"})
             except Exception as e:
@@ -3968,7 +4546,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     target_dt = datetime.now() - timedelta(days=1)
                 target_date = target_dt.strftime("%Y-%m-%d")
 
-                completions_dir = os.path.join(ROOT_DIR, "user", "Schedules", "completions")
+                completions_dir = os.path.join(ROOT_DIR, "user", "schedules", "completions")
                 os.makedirs(completions_dir, exist_ok=True)
                 completion_path = os.path.join(completions_dir, f"{target_date}.yml")
                 completion_payload = {"entries": {}}
@@ -5271,7 +5849,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             # - Payload: { file: Name.yml, raw: "yaml..." } (server writes raw)
             try:
                 qs = parse_qs(parsed.query or '')
-                settings_root = os.path.join(ROOT_DIR, 'user', 'Settings')
+                settings_root = os.path.join(ROOT_DIR, 'user', 'settings')
                 os.makedirs(settings_root, exist_ok=True)
 
                 fname = (qs.get('file') or [''])[0].strip()

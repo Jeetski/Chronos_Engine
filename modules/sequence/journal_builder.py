@@ -11,7 +11,7 @@ from modules.scheduler import status_current_path
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-DATA_DIR = os.path.join(USER_DIR, "Data")
+DATA_DIR = os.path.join(USER_DIR, "data")
 BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
 JOURNAL_DB_PATH = os.path.join(DATA_DIR, "chronos_journal.db")
 CURRENT_STATUS_PATH = status_current_path()

@@ -20,7 +20,8 @@ def run(args, properties):
     count = 0
     for root, dirs, files in os.walk(USER_DIR):
 
-        if "Backups" in root or "Archive" in root or "Settings" in root or ".git" in root:
+        root_l = root.lower()
+        if "backups" in root_l or "archive" in root_l or "settings" in root_l or ".git" in root_l:
             continue
             
         for file in files:

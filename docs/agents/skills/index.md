@@ -11,6 +11,7 @@ This index maps common user intents to the skill folder to load first.
    - Use `Day-Execution` second for block-level edits/logging.
 4. If request is dashboard-specific, include `Dashboard-Ops` even when a domain skill is primary.
 5. If cleanup/reset/backup is requested, include `Data-Hygiene` before destructive actions.
+6. If request needs dashboard UI control, load `docs/agents/trick.md` before issuing UI actions.
 
 ## Intent -> Skill
 

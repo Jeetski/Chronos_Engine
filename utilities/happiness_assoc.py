@@ -2,8 +2,8 @@ import os
 import yaml
 from modules.item_manager import get_user_dir
 
-ASSOC_FILE = os.path.join(get_user_dir(), "Settings", "happiness_value_name_assoc.yml")
-MAP_FILE = os.path.join(get_user_dir(), "Settings", "map_of_happiness.yml")
+ASSOC_FILE = os.path.join(get_user_dir(), "settings", "happiness_value_name_assoc.yml")
+MAP_FILE = os.path.join(get_user_dir(), "settings", "map_of_happiness.yml")
 
 _CACHE = {"mtime": None, "data": None}
 

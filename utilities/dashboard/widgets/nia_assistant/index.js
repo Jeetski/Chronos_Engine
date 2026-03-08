@@ -67,6 +67,10 @@ export function mount(el, context) {
                   <span class="nia-add-icon">🪄</span>
                   <span class="nia-add-label">Wizards</span>
                 </button>
+                <button class="nia-add-item" id="niaMenuSkills" type="button" role="menuitem">
+                  <span class="nia-add-icon">🧩</span>
+                  <span class="nia-add-label">Skills</span>
+                </button>
               </div>
             </div>
             <input class="input nia-input" id="niaInput" placeholder="Prompt Nia..." />
@@ -98,6 +102,7 @@ export function mount(el, context) {
   const addMenu = el.querySelector('#niaAddMenu');
   const menuAttach = el.querySelector('#niaMenuAttach');
   const menuWizards = el.querySelector('#niaMenuWizards');
+  const menuSkills = el.querySelector('#niaMenuSkills');
   const fileInput = el.querySelector('#niaFileInput');
   const input = el.querySelector('#niaInput');
   const log = el.querySelector('#niaLog');
@@ -111,6 +116,8 @@ export function mount(el, context) {
   let niaAvatarUrl = '';
   let aducBaseUrl = 'http://127.0.0.1:8080';
   let initialGreetingBubble = null;
+  let skillsRegistry = null;
+  let selectedSkillIds = [];
 
   function apiBase() {
     const origin = window.location.origin;
@@ -145,6 +152,73 @@ export function mount(el, context) {
   const NIA_MEMORY_JSON_PATH = 'Agents Dress Up Committee/familiars/nia/memory.json';
   const PREF_SETTINGS_PATH = 'user/profile/preferences_settings.yml';
   const PILOT_BRIEF_PATH = 'user/profile/pilot_brief.md';
+
+  async function loadSkillsRegistry() {
+    if (skillsRegistry && Array.isArray(skillsRegistry.skills)) return skillsRegistry;
+    const data = await apiGet('/api/registry?name=skills');
+    const reg = data?.registry || {};
+    reg.skills = Array.isArray(reg.skills) ? reg.skills : [];
+    skillsRegistry = reg;
+    return reg;
+  }
+
+  async function openSkillsPicker() {
+    const reg = await loadSkillsRegistry();
+    const list = Array.isArray(reg.skills) ? reg.skills : [];
+    if (!list.length) {
+      appendMsg('No skills found in registry.', 'assistant');
+      return;
+    }
+    const byId = new Map();
+    const lines = [];
+    list.forEach((s, idx) => {
+      const id = String(s?.id || '').trim();
+      const label = String(s?.label || id || `skill_${idx + 1}`).trim();
+      const summary = String(s?.summary || '').trim();
+      if (!id) return;
+      byId.set(id, { id, label });
+      lines.push(`${idx + 1}. ${id} - ${label}${summary ? ` (${summary})` : ''}`);
+    });
+    if (!lines.length) {
+      appendMsg('No selectable skills found.', 'assistant');
+      return;
+    }
+    const current = selectedSkillIds.length ? selectedSkillIds.join(', ') : 'none';
+    const typed = window.prompt(
+      `Select skills by index or id (comma/space separated).\nType "none" to clear.\nCurrent: ${current}\n\n${lines.join('\n')}`,
+      selectedSkillIds.join(', ')
+    );
+    if (typed == null) return;
+    const raw = String(typed).trim();
+    if (!raw || /^none$/i.test(raw)) {
+      selectedSkillIds = [];
+      appendMsg('Skills cleared for Nia messages.', 'assistant');
+      return;
+    }
+    const tokens = raw.split(/[,\s]+/).map(t => t.trim()).filter(Boolean);
+    const picked = [];
+    const seen = new Set();
+    for (const tok of tokens) {
+      let id = '';
+      if (/^\d+$/.test(tok)) {
+        const pos = Number(tok) - 1;
+        const row = list[pos];
+        id = String(row?.id || '').trim();
+      } else {
+        id = tok;
+      }
+      if (!id || seen.has(id) || !byId.has(id)) continue;
+      seen.add(id);
+      picked.push(id);
+    }
+    selectedSkillIds = picked;
+    if (!selectedSkillIds.length) {
+      appendMsg('No valid skills selected.', 'assistant');
+      return;
+    }
+    const labels = selectedSkillIds.map((id) => byId.get(id)?.label || id);
+    appendMsg(`Skills selected: ${labels.join(', ')}`, 'assistant');
+  }
 
   function fallbackAvatarDataUrl(label) {
     const txt = encodeURIComponent(String(label || '?').slice(0, 1).toUpperCase() || '?');
@@ -224,14 +298,17 @@ export function mount(el, context) {
   }
 
   async function waitForReply(turnId) {
-    for (let i = 0; i < 120; i += 1) {
+    // Match ADUC behavior: keep polling until responded/cancelled.
+    for (;;) {
       const q = `/api/aduc/cli/status?familiar=${encodeURIComponent(familiarId)}&turn_id=${encodeURIComponent(turnId)}`;
       const st = await apiGet(q).catch(() => null);
-      if (st?.status === 'responded') return st;
+      if (st?.status === 'responded') {
+        try { console.info('[ADUC/NIA] replied', { familiar: familiarId, turnId }); } catch { }
+        return st;
+      }
       if (st?.status === 'cancelled') throw new Error('Cancelled.');
-      await sleep(900);
+      await sleep(1000);
     }
-    throw new Error('Timed out waiting for Nia reply.');
   }
 
   const STATE_KEY = 'chronos_nia_widget_open_v1';
@@ -395,9 +472,57 @@ export function mount(el, context) {
     out = out.replace(/<<<[\s\S]*?>>>/g, '');
     out = out.replace(/^\s*ADUC\s+REPLY\s*:?\s*$/gim, '');
     out = out.replace(/^\s*ADUC\s+THOUGHT(?:S)?\s*:?\s*$/gim, '');
+    // Remove TRICK action directives.
+    out = out.replace(/^\s*<\s*trick\s*:\s*[^>]+>\s*$/gim, '');
     // Collapse excessive empty lines created by removals.
     out = out.replace(/\n{3,}/g, '\n\n');
     return out.trim();
+  }
+
+  async function applyTrickDirectives(statusPayload) {
+    const input = String(statusPayload?.reply || '');
+    const directives = [];
+    const fromStatus = Array.isArray(statusPayload?.trick) ? statusPayload.trick : [];
+    for (const raw of fromStatus) {
+      const cmd = String(raw || '').trim();
+      if (!cmd) continue;
+      directives.push(cmd);
+      if (directives.length >= 8) break;
+    }
+    const regex = /<\s*trick\s*:\s*([^>]+)>/gim;
+    let m;
+    while (directives.length < 8 && (m = regex.exec(input)) !== null) {
+      const cmd = String(m[1] || '').trim();
+      if (cmd) directives.push(cmd);
+    }
+
+    let display = input.replace(regex, '').trim();
+    if (!directives.length) {
+      try { console.info('[TRICK] no directives found in reply payload'); } catch { }
+      return { displayText: display, results: [] };
+    }
+    try { console.info('[TRICK] directives', directives); } catch { }
+
+    const results = [];
+    for (const cmd of directives) {
+      try {
+        try { console.info('[TRICK]', cmd); } catch { }
+        const r = await apiPost('/api/trick', { input: cmd, actor: familiarId });
+        const ok = !!r?.ok;
+        if (!ok) {
+          const err = String(r?.error || 'TRICK command failed');
+          try { console.warn('[TRICK] failed', { command: cmd, error: err, response: r }); } catch { }
+          results.push({ ok: false, command: cmd, error: err, response: r });
+        } else {
+          try { console.info('[TRICK] ok', { command: cmd, result: r?.result || null }); } catch { }
+          results.push({ ok: true, command: cmd, response: r });
+        }
+      } catch (err) {
+        try { console.error('[TRICK] exception', { command: cmd, error: String(err?.message || err || 'TRICK command failed') }); } catch { }
+        results.push({ ok: false, command: cmd, error: String(err?.message || err || 'TRICK command failed') });
+      }
+    }
+    return { displayText: display, results };
   }
 
   function ensureCopyButton(bubble, copyText) {
@@ -702,16 +827,26 @@ export function mount(el, context) {
     (async () => {
       const ready = await ensureAducReady();
       if (!ready) throw new Error('ADUC did not start in time.');
-      const chat = await apiPost('/api/aduc/chat', { familiar: familiarId, message: outbound });
+      const chat = await apiPost('/api/aduc/chat', {
+        familiar: familiarId,
+        message: outbound,
+        selected_skills: selectedSkillIds,
+      });
       const turnId = String(chat?.turn_id || '').trim();
       if (!turnId) throw new Error('Missing turn id from ADUC.');
+      try { console.info('[ADUC/NIA] sent', { familiar: familiarId, turnId }); } catch { }
       const reply = await waitForReply(turnId);
+      const trickApplied = await applyTrickDirectives(reply || {});
+      const trickFailures = (trickApplied.results || []).filter((x) => !x?.ok);
       thinking.stop();
       if (thinking.bubble) {
-        const cleanedReply = stripHiddenControlLines(String(reply?.reply || '...'));
+        const cleanedReply = stripHiddenControlLines(String(trickApplied.displayText || '...'));
         thinking.bubble.innerHTML = markdownToHtml(cleanedReply || '...');
         ensureCodeCopyButtons(thinking.bubble);
         ensureCopyButton(thinking.bubble, cleanedReply || '...');
+      }
+      if (trickFailures.length) {
+        appendMsg(`TRICK error: ${trickFailures[0].error || 'command failed'}`, 'assistant');
       }
     })().catch((err) => {
       thinking.stop();
@@ -737,6 +872,10 @@ export function mount(el, context) {
   menuWizards?.addEventListener('click', () => {
     closeAddMenu();
     appendMsg('Wizards menu coming soon.', 'assistant');
+  });
+  menuSkills?.addEventListener('click', () => {
+    closeAddMenu();
+    openSkillsPicker().catch(() => appendMsg('Failed to load skills registry.', 'assistant'));
   });
   document.addEventListener('click', (ev) => {
     const target = ev.target;

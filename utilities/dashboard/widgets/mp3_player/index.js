@@ -342,7 +342,7 @@ export function mount(el, context) {
         <div class="mp3-upload-row">
           <button id="mp3UploadBtn">Upload MP3s</button>
           <input type="file" id="mp3FileInput" accept=".mp3,audio/mpeg" multiple style="display:none;" />
-          <span class="mp3-hint">Files saved to user/media/MP3</span>
+          <span class="mp3-hint">Files saved to user/media/mp3</span>
         </div>
         <div class="mp3-lists">
           <div class="mp3-list">

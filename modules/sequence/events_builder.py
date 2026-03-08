@@ -9,9 +9,9 @@ from modules.sequence.registry import ensure_data_home, update_database_entry, l
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-LOGS_DIR = os.path.join(USER_DIR, "Logs")
+LOGS_DIR = os.path.join(USER_DIR, "logs")
 LISTENER_LOG = os.path.join(LOGS_DIR, "listener.log")
-DATA_DIR = os.path.join(USER_DIR, "Data")
+DATA_DIR = os.path.join(USER_DIR, "data")
 EVENTS_DB_PATH = os.path.join(DATA_DIR, "chronos_events.db")
 
 

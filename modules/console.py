@@ -38,7 +38,7 @@ else:
 # --- Path Configuration ---
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-CONSOLE_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "Settings", "console_settings.yml")
+CONSOLE_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "console_settings.yml")
 
 # Add ROOT_DIR to sys.path to allow absolute imports from project root
 if ROOT_DIR not in sys.path:
@@ -777,7 +777,7 @@ def _run_startup_core_sync_with_macro_hook():
 
 def _load_aliases():
     """Load aliases from user/settings/aliases.yml"""
-    path = os.path.join(ROOT_DIR, 'user', 'Settings', 'aliases.yml')
+    path = os.path.join(ROOT_DIR, 'user', 'settings', 'aliases.yml')
     aliases = {}
     
     # Load default map first

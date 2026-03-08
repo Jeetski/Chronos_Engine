@@ -702,7 +702,7 @@ export async function launch(context, options = {}) {
         yamlSnapshot += `answers:\n`;
         Object.keys(answers).forEach(id => { yamlSnapshot += `  ${id}: ${answers[id]}\n`; });
 
-        await saveFile(`user/profile/Big5/results_${activeTestId}_${dateStr}.yml`, yamlSnapshot);
+        await saveFile(`user/profile/big_5/results_${activeTestId}_${dateStr}.yml`, yamlSnapshot);
         await saveFile(`user/profile/personality_${activeTestId}.yml`, yamlSnapshot);
         await saveFile(`user/profile/personality.yml`, yamlSnapshot);
 

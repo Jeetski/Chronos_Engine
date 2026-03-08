@@ -10,7 +10,7 @@ from modules.sequence.behavior_builder import build_behavior_db
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-DATA_DIR = os.path.join(USER_DIR, "Data")
+DATA_DIR = os.path.join(USER_DIR, "data")
 BEHAVIOR_DB_PATH = os.path.join(DATA_DIR, "chronos_behavior.db")
 TRENDS_DB_PATH = os.path.join(DATA_DIR, "chronos_trends.db")
 TRENDS_MD_PATH = os.path.join(DATA_DIR, "trends.md")
@@ -105,7 +105,7 @@ def _collect_completion_property_stats(cursor: sqlite3.Cursor) -> Tuple[Dict[str
 
 def _fetch_habit_stats() -> Dict[str, Any]:
     """Collect metrics from all habit files."""
-    habits_dir = os.path.join(USER_DIR, "Habits")
+    habits_dir = os.path.join(USER_DIR, "habits")
     stats = {
         "total_habits": 0,
         "habits_with_current_streak": 0,
@@ -182,8 +182,8 @@ def _fetch_habit_stats() -> Dict[str, Any]:
 
 def _fetch_goal_stats() -> Dict[str, Any]:
     """Collect metrics from goals and milestones."""
-    goals_dir = os.path.join(USER_DIR, "Goals")
-    milestones_dir = os.path.join(USER_DIR, "Milestones")
+    goals_dir = os.path.join(USER_DIR, "goals")
+    milestones_dir = os.path.join(USER_DIR, "milestones")
     stats = {
         "total_goals": 0,
         "goals_in_progress": 0,
@@ -265,7 +265,7 @@ def _fetch_goal_stats() -> Dict[str, Any]:
 
 def _fetch_timer_stats() -> Dict[str, Any]:
     """Collect metrics from timer session logs."""
-    sessions_dir = os.path.join(USER_DIR, "Timers", "sessions")
+    sessions_dir = os.path.join(USER_DIR, "timers", "sessions")
     stats = {
         "sessions_total": 0,
         "focus_minutes": 0,
@@ -494,7 +494,7 @@ def _format_duration_prose(minutes: int) -> str:
 
 def _superlative_habit(habit_stats: Dict[str, Any]) -> str:
     """Find the habit with the longest current streak."""
-    habits_dir = os.path.join(USER_DIR, "Habits")
+    habits_dir = os.path.join(USER_DIR, "habits")
     if not os.path.isdir(habits_dir):
         return "your habits"
     
@@ -522,7 +522,7 @@ def _superlative_habit(habit_stats: Dict[str, Any]) -> str:
 
 def _productivity_peak_day(timer_stats: Dict[str, Any]) -> tuple:
     """Find the most productive day by timer minutes."""
-    sessions_dir = os.path.join(USER_DIR, "Timers", "sessions")
+    sessions_dir = os.path.join(USER_DIR, "timers", "sessions")
     if not os.path.isdir(sessions_dir):
         return ("this week", 0)
     

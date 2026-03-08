@@ -51,6 +51,7 @@ EXTERNAL_CTX_CACHE_PATH = TEMP_DIR / "external_context_mtime.json"
 # Delimiters for extracting the in-character reply from Codex output
 START_DELIM = "<<<ADUC_REPLY>>>"
 END_DELIM = "<<<END>>>"
+TRICK_TAG_RE = re.compile(r"<\s*trick\s*:\s*([^>]+)>", re.IGNORECASE)
 
 # Emotion tag regex used as a fallback when delimiters aren't present
 EMOTION_RE = re.compile(r"<emotion:\s*([a-zA-Z0-9_\-]+)\s*>")
@@ -126,6 +127,7 @@ def chronos_docs_targets() -> dict:
         "Guides/Dashboard.md",
         "Guides/Cockpit.md",
         "Agents/agents.md",
+        "Agents/trick.md",
         "Guides/Settings.md",
         "Dev/Sequence.md",
     ]
@@ -185,7 +187,6 @@ def familiar_docs_targets(fam_id: str) -> dict:
         "greet.md",
         "lore.md",
         "affection.md",
-        "chronos.md",
         "outfits.md",
         "locations.md",
         "preferences.md",
@@ -518,12 +519,15 @@ def build_prompt(
     ext_context_path = os.environ.get("ADUC_EXTERNAL_CONTEXT_FILE")
     if ext_context_path and os.path.isfile(ext_context_path):
         # 1. ALWAYS inject Chronos Protocol when in Chronos Mode (not cached!)
-        chronos_proto = read_text(fdocs / "chronos.md").strip()
+        chronos_proto = read_text(BASE_DIR / "docs" / "agents" / "chronos.md").strip()
         if chronos_proto:
             parts.append("[Chronos Protocols]\n" + chronos_proto)
         chronos_index = read_text(BASE_DIR.parent / "docs" / "INDEX.md").strip()
         if chronos_index:
             parts.append("[Chronos Docs Index]\n" + chronos_index)
+        trick_protocol = read_text(BASE_DIR.parent / "docs" / "agents" / "trick.md").strip()
+        if trick_protocol:
+            parts.append("[TRICK Protocol]\n" + trick_protocol)
 
         # 2. Inject External System Context (The Manual) only when first/changed
         try:
@@ -856,7 +860,6 @@ def build_guest_context(
     meta_json = read_text(fdir / "meta.json").strip() if should_inject_fam else ""
     locations_md = read_text(fdocs / "locations.md").strip() if should_inject_fam else ""
     affection_local = read_text(fdocs / "affection.md").strip() if should_inject_fam else ""
-    chronos_md = read_text(fdocs / "chronos.md").strip() if should_inject_fam else ""
     outfits_txt = load_outfits_with_avatars(fam_id)
     state = load_state(fam_id)
 
@@ -872,8 +875,6 @@ def build_guest_context(
             parts.append("[Familiar Identity]\n" + meta_json)
         if locations_md:
             parts.append("[Available Locations]\n" + locations_md)
-        if chronos_md:
-            parts.append("[Chronos Protocols]\n" + chronos_md)
         if fam_note:
             parts.append("[Familiar Docs Update]\n" + fam_note)
         try:
@@ -1235,6 +1236,8 @@ def feed_chunks(fam: str, merged_context: str, user_text: str, chunk_size: int, 
             "Use 3-6 dialogue lines, each formatted: [CharacterName]: \"Dialogue...\" <avatar: familiar/pose>. "
             "Do not output standalone names or unlabeled lines. "
             "Each familiar may change their own outfit or pose via their avatar tag; respect NSFW policy and consent. "
+            "If the user asks to operate dashboard UI, include one or more TRICK directives as standalone lines like <trick: OPEN widget.timer> and/or <trick: CLICK widget.timer.start_button>. "
+            "Never claim a UI action happened unless the matching <trick: ...> directive is present. "
             "After the dialogue lines, include a hearts directive on its own line and put the host familiar's emotion tag on the last line."
         )
     else:
@@ -1242,7 +1245,9 @@ def feed_chunks(fam: str, merged_context: str, user_text: str, chunk_size: int, 
             f"You are roleplaying the Familiar '{fam}'. Output ONLY the final user-visible reply between <<<ADUC_REPLY>>> and <<<END>>>. "
             "Inside the block, put a hearts directive on its own line just before the final line (e.g., <hearts: +1>), "
             "and end with a single <avatar: ...> tag on the last line (always, including the first greeting; repeat Current Avatar if unsure). "
-            "If you include <emotion: ...>, place it above the hearts line."
+            "If you include <emotion: ...>, place it above the hearts line. "
+            "When the user asks for dashboard UI actions, include TRICK directives as standalone lines such as <trick: OPEN widget.timer> or <trick: CLICK widget.timer.start_button>. "
+            "Do not claim a dashboard action succeeded unless you emit the matching <trick: ...> directive."
         )
     final_prompt = f"INSTRUCTIONS:\n{instruction}\n\nCONTEXT:\n{merged_context}\n\nUSER:\n{user_text}\n\nREPLY:"
 
@@ -1262,6 +1267,11 @@ def feed_chunks(fam: str, merged_context: str, user_text: str, chunk_size: int, 
         print(f"[ADUC] Turn {parent_turn_id[:8]}... was cancelled")
         return  # Don't write a reply for cancelled turns
     out = extract_reply(out_raw)
+    try:
+        trick_tags = [t.strip() for t in TRICK_TAG_RE.findall(out or "") if str(t).strip()]
+        print(f"[ADUC] TRICK tags for turn {parent_turn_id[:8]}...: {trick_tags if trick_tags else 'none'}")
+    except Exception:
+        pass
     if not committee_fams:
         out = ensure_avatar_tag(out, fam)
 
@@ -2394,6 +2404,14 @@ def loop():
                     user_text_tagged = text
             except Exception:
                 user_text_tagged = text
+            try:
+                selected_skills = u.get("selected_skills") if isinstance(u.get("selected_skills"), list) else []
+                selected_skills = [str(s).strip() for s in selected_skills if str(s).strip()]
+                if selected_skills:
+                    skills_block = "[Selected Skills]\n" + "\n".join(f"- {sid}" for sid in selected_skills)
+                    user_text_tagged = (str(user_text_tagged or "").rstrip() + "\n\n" + skills_block).strip()
+            except Exception:
+                pass
 
             # Honor per-turn flags when provided; otherwise settings/env decide
             mem_present = "include_memory" in u

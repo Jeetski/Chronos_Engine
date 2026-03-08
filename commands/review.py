@@ -192,7 +192,7 @@ def _save_review(period_type: str, start: datetime, data: dict):
 
 
 def _load_review_template():
-    path = _user_path('Settings', 'Review_Templates.yml')
+    path = _user_path('settings', 'review_templates.yml')
     if not os.path.exists(path):
         return {'include': {'tasks': True, 'points': True, 'goals': True, 'habits': True, 'schedule': True}}
     try:
@@ -436,7 +436,7 @@ def _export_markdown(period_type: str, start: datetime):
         lines.append('## Schedule')
         lines.append(f"Planned minutes: {sc.get('planned_minutes_total')}")
 
-    out_dir = _user_path('Exports', 'Reports')
+    out_dir = _user_path('exports', 'reports')
     os.makedirs(out_dir, exist_ok=True)
     fname = None
     if period_type == 'daily':

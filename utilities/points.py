@@ -79,11 +79,11 @@ def ensure_balance(required: int) -> bool:
 
 def _config_file():
     # Prefer new lowercase convention
-    p = os.path.join(get_user_dir(), 'Settings', 'points_settings.yml')
+    p = os.path.join(get_user_dir(), 'settings', 'points_settings.yml')
     if os.path.exists(p):
         return p
     # Backward compatibility
-    return os.path.join(get_user_dir(), 'Settings', 'Points.yml')
+    return os.path.join(get_user_dir(), 'settings', 'Points.yml')
 
 
 def _load_config():

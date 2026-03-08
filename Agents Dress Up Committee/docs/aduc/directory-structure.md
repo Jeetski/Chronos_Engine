@@ -25,7 +25,7 @@ Familiar docs layout (`familiars/<name>/docs/`)
 - `lore.md`: immersive background (optional).
 - `preferences.md`: user preferences for behavior.
 - `memories.md`: permanent facts about the user.
-- `chronos.md`: Chronos pilot protocol (optional).
+- Shared Chronos protocol: `docs/agents/chronos.md`.
 - `affection.md`: familiar-specific hearts rules (optional).
 - `outfits.md`: outfit registry and avatar references (optional).
 - `locations.md`: available backgrounds (optional).

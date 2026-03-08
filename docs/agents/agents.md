@@ -52,6 +52,7 @@ Do not preload all skills. Load only what matches intent.
 ## 7. Canonical References
 
 - Skills index: `docs/agents/skills/index.md`
+- TRICK protocol: `docs/agents/trick.md`
 - CLI reference: `docs/reference/cli_commands.md`
 - Dashboard API: `docs/reference/dashboard_api.md`
 - Item properties: `docs/reference/item_properties.md`

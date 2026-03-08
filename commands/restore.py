@@ -34,7 +34,7 @@ def run(args, properties):
         if os.path.exists(target):
             backup_path = target
         else:
-            # check in Backups dir
+            # check in backups dir
             possible_path = os.path.join(BACKUPS_DIR, target)
             if not possible_path.endswith('.zip'):
                 possible_path += ".zip"

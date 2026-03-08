@@ -2,7 +2,7 @@ import os, sys, time, shlex, subprocess, yaml
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
-MACROS_CONF = os.path.join(USER_DIR, "Scripts", "Macros", "macros.yml")
+MACROS_CONF = os.path.join(USER_DIR, "scripts", "macros", "macros.yml")
 
 _CFG = None
 _MTIME = None

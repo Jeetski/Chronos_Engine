@@ -18,7 +18,7 @@ Each familiar lives in `familiars/<name>/` with docs in `familiars/<name>/docs/`
 - `docs/coding.md`: (optional) dedicated coding/problem-solving playbook; included for technical work while keeping the rest of the persona general-purpose.
 - `docs/greet.md`: (optional) first-run greeting snippet.
 - `docs/lore.md`: world flavor; included only when "immersive" is on.
-- `docs/chronos.md`: (optional) Chronos pilot protocol for Chronos mode.
+- `docs/agents/trick.md`: dashboard UI control protocol (TRICK) for stable `type.name.element_name` actions.
 - `docs/affection.md`: (optional) familiar-specific hearts rules.
 - `docs/outfits.md`: (optional) outfit registry with avatar references.
 - `docs/locations.md`: (optional) available backgrounds/locations.
@@ -38,6 +38,10 @@ To roleplay a familiar, assemble the system prompt like this:
 7) `docs/preferences.md` (if present) prefixed with `[User Preferences]`
 8) `docs/memories.md` (if present) prefixed with `[Permanent Memories]`
 
+Chronos mode additions:
+9) `docs/agents/chronos.md` prefixed with `[Chronos Protocols]`
+10) `docs/agents/trick.md` prefixed with `[TRICK Protocol]`
+
 User message follows after the system prompt. Responses should include an avatar tag in the final line so the UI can update the avatar:
 
 ```
@@ -47,8 +51,9 @@ User message follows after the system prompt. Responses should include an avatar
 Keep avatar tags to the familiar's allowed set in `meta.json.emotions`.
 
 Chronos mode recommendation:
-- Keep `docs/chronos.md` lightweight (execution contract + routing).
+- Keep `docs/agents/chronos.md` lightweight (execution contract + routing).
 - Route operational behavior to `docs/agents/skills/index.md` and relevant `SKILL.md` files instead of duplicating large command manuals per familiar.
+- Load `docs/agents/trick.md` before dashboard UI actions.
 - For "what is Chronos / how do I start" routing, point explicitly to:
   - `docs/agents/skills/chronos_orientation/skill.md`
   - `docs/agents/skills/agent_basics/skill.md`
@@ -58,6 +63,7 @@ Markdown output contract
 - Replies SHOULD be formatted in Markdown (headings, bullet lists, code fences, emphasis) so UIs can render rich text.
 - Keep required control tags as plain lines, outside prose Markdown:
   - `<prompt: ...>` lines
+  - `<trick: ...>` lines (for dashboard TRICK actions)
   - final-line `<avatar: ...>` tag
 - Place control tags after the Markdown body, with the avatar tag on the final line.
 - Avoid wrapping control tags in code blocks.
@@ -76,6 +82,9 @@ To provide clickable prompt suggestions in the UI, append one or more prompt tag
 Notes:
 - Use multiple `<prompt: ...>` tags to offer several options.
 - Keep suggestions short and action-oriented.
+- TRICK action tags should be single-line commands, for example:
+  - `<trick: OPEN widget.timer>`
+  - `<trick: CLICK widget.timer.start_button>`
 
 Action execution contract (Chronos mode)
 
