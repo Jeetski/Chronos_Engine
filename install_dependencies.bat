@@ -58,6 +58,7 @@ echo.
 echo Dependencies installed successfully.
 echo.
 call :offer_listener_startup
+call :offer_tray_startup
 goto :end_ok
 
 :find_python
@@ -123,4 +124,47 @@ goto :end_ok
   echo Skipping Startup shortcut. You can enable it later by rerunning this script.
 
 :listener_startup_done
+  exit /b 0
+
+:: ----------------------------------------------
+:: Helper: Offer Tray auto-start on login
+:: ----------------------------------------------
+:offer_tray_startup
+  echo.
+  echo Chronos Tray provides quick timer and schedule controls from the system tray.
+  echo You can have it start automatically when you sign in to Windows.
+  echo.
+  choice /C YN /N /M "Add 'Chronos Tray' to your Startup folder so it runs on sign-in? [Y/N]: "
+  if errorlevel 2 goto tray_startup_no
+  if errorlevel 1 goto tray_startup_yes
+  goto tray_startup_done
+
+:tray_startup_yes
+  if not exist "%ROOT_DIR%tray_launcher.bat" (
+    echo Warning: tray_launcher.bat not found. Skipping tray shortcut creation.
+    goto tray_startup_done
+  )
+  echo Creating Startup shortcut for Chronos Tray...
+  powershell -NoProfile -Command ^
+    "$shell = New-Object -ComObject WScript.Shell; " ^
+    "$startup = [Environment]::GetFolderPath('Startup'); " ^
+    "$target = Join-Path -Path '%ROOT_DIR%' -ChildPath 'tray_launcher.bat'; " ^
+    "$shortcutPath = Join-Path -Path $startup -ChildPath 'Chronos Tray.lnk'; " ^
+    "$shortcut = $shell.CreateShortcut($shortcutPath); " ^
+    "$shortcut.TargetPath = $target; " ^
+    "$shortcut.WorkingDirectory = '%ROOT_DIR%'; " ^
+    "$shortcut.WindowStyle = 7; " ^
+    "$shortcut.Save()"
+  if %ERRORLEVEL% EQU 0 (
+    echo Added 'Chronos Tray' shortcut to your Startup folder.
+  ) else (
+    echo Warning: Failed to create Startup shortcut automatically.
+    echo You can still run the tray via tray_launcher.bat.
+  )
+  goto tray_startup_done
+
+:tray_startup_no
+  echo Skipping tray Startup shortcut. You can enable it later by rerunning this script.
+
+:tray_startup_done
   exit /b 0
