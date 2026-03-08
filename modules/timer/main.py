@@ -1075,11 +1075,16 @@ def _is_break_or_buffer_block(block):
         return False
     if bool(block.get("is_buffer")) or bool(block.get("is_break")):
         return True
+    # Dynamic/template buffer rows often carry buffer_type without explicit flags.
+    if str(block.get("buffer_type") or "").strip():
+        return True
     subtype = str(block.get("subtype") or "").strip().lower()
     if subtype in {"buffer", "break"}:
         return True
     schedule_type = str(block.get("type") or block.get("schedule_type") or "").strip().lower()
     if schedule_type in {"buffer", "break"}:
+        return True
+    if "buffer" in schedule_type:
         return True
     return False
 

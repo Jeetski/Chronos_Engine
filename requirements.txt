@@ -15,3 +15,7 @@ playsound>=1.2.2
 # CLI UX (autocomplete/suggestions)
 prompt_toolkit>=3.0.43
 
+# Desktop tray app + icon rendering
+pystray>=0.19.5
+Pillow>=10.3.0
+

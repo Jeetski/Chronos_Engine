@@ -71,6 +71,7 @@ export function mount(el, context) {
       <div class="row" style="gap:8px; align-items:center;">
         <button class="btn btn-primary" id="twStart" data-ui-id="widget.timer.start_button">Start</button>
         <button class="btn" id="twStartDay" data-ui-id="widget.timer.start_day_button">Start Day</button>
+        <button class="btn" id="twTray" data-ui-id="widget.timer.open_tray_button">Open Tray</button>
         <button class="btn" id="twPause" data-ui-id="widget.timer.pause_resume_button">Pause</button>
         <button class="btn btn-secondary" id="twCancel" data-ui-id="widget.timer.cancel_button">Cancel</button>
         <div class="spacer"></div>
@@ -95,6 +96,7 @@ export function mount(el, context) {
   const bindNameEl = el.querySelector('#twBindName');
   const startBtn = el.querySelector('#twStart');
   const startDayBtn = el.querySelector('#twStartDay');
+  const trayBtn = el.querySelector('#twTray');
   const pauseBtn = el.querySelector('#twPause');
   const cancelBtn = el.querySelector('#twCancel');
   const refreshBtn = el.querySelector('#twRefresh');
@@ -398,6 +400,7 @@ export function mount(el, context) {
     else await start();
   });
   startDayBtn?.addEventListener('click', () => startDayRun());
+  trayBtn?.addEventListener('click', () => openTray());
   pauseBtn.addEventListener('click', async () => {
     const s = String(lastTimerStatus || 'idle').toLowerCase();
     if (s === 'paused') {
@@ -453,7 +456,29 @@ export function mount(el, context) {
       startDayBtn.disabled = false;
     }
   }
-
+  async function openTray() {
+    if (!trayBtn || trayBtn.disabled) return;
+    const prev = trayBtn.textContent;
+    trayBtn.disabled = true;
+    trayBtn.textContent = 'Opening...';
+    try {
+      const resp = await fetch(apiBase() + '/api/cli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'tray', args: ['start'], properties: {} })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.ok === false) {
+        throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
+      }
+    } catch (err) {
+      console.error('[Chronos][Timer] Open tray failed', err);
+      alert(`Failed to open tray: ${err?.message || err}`);
+    } finally {
+      trayBtn.textContent = prev;
+      trayBtn.disabled = false;
+    }
+  }
   function resetDisplayForSelected() {
     const p = profiles[profSel.value] || {};
     const sec = (p.focus_minutes ? Number(p.focus_minutes) : 25) * 60;
@@ -503,4 +528,6 @@ export function mount(el, context) {
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(MIN_TIMER_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(MIN_TIMER_WIDTH, e.clientX - sr.left) + 'px'; el.style.height = Math.max(MIN_TIMER_HEIGHT, e.clientY - sr.top) + 'px'; })(ev); });
 }
+
+
 
