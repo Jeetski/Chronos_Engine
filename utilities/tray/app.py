@@ -55,6 +55,7 @@ class ChronosTrayApp:
         self._last_icon_key = None
         self._tick_job = None
         self._quitting = False
+        self._last_pending_prompt_key = None
         self._base_icon = self._load_base_icon()
         self.icon = pystray.Icon("chronos_tray", self._base_icon, "Chronos", self._build_menu())
 
@@ -166,6 +167,20 @@ class ChronosTrayApp:
         mm, ss = divmod(s, 60)
         return f"{mm:02d}:{ss:02d}"
 
+    def _nice_label(self, value):
+        txt = str(value or "").strip()
+        if not txt:
+            return "-"
+        return txt.replace("_", " ").title()
+
+    def _status_phase_time_line(self, status, phase, rem):
+        status_txt = self._nice_label(status or "idle")
+        phase_txt = self._nice_label(phase or "-")
+        rem_txt = self._hhmmss(rem or 0)
+        if status_txt.lower() == "running":
+            return f"{phase_txt} | {rem_txt}"
+        return f"{status_txt} | {phase_txt} | {rem_txt}"
+
     def _minutes_from_label(self, value):
         if value is None:
             return None
@@ -179,6 +194,14 @@ class ChronosTrayApp:
             except Exception:
                 continue
         return None
+
+    def _display_time_label(self, value):
+        mins = self._minutes_from_label(value)
+        if mins is None:
+            return "--:--"
+        hh = mins // 60
+        mm = mins % 60
+        return f"{hh:02d}:{mm:02d}"
 
     def _current_schedule_blocks(self):
         path = schedule_path_for_date(datetime.now())
@@ -201,9 +224,15 @@ class ChronosTrayApp:
             end = blk.get("end_time") or blk.get("ideal_end_time") or ""
             is_buffer = bool(blk.get("is_buffer") or blk.get("is_break"))
             if not is_buffer:
-                subtype = str(blk.get("subtype") or "").lower()
+                block_id = str(blk.get("block_id") or "").strip().lower()
+                subtype = str(blk.get("subtype") or blk.get("timeblock_subtype") or "").lower()
                 typ = str(blk.get("type") or "").lower()
-                if subtype in {"buffer", "break"} or typ in {"buffer", "break"}:
+                if (
+                    subtype in {"buffer", "break"}
+                    or typ in {"buffer", "break"}
+                    or "::buffer::" in block_id
+                    or "::break::" in block_id
+                ):
                     is_buffer = True
             blocks.append(
                 {
@@ -225,6 +254,12 @@ class ChronosTrayApp:
             Item("Pause/Resume Timer", lambda: self.timer_pause_resume()),
             Item("Stop Timer", lambda: self.timer_stop()),
             pystray.Menu.SEPARATOR,
+            Item("Done", lambda: self.timer_done()),
+            Item("Skip Today", lambda: self.timer_skip_today()),
+            Item("Later", lambda: self.timer_later()),
+            Item("Start Over", lambda: self.timer_start_over()),
+            Item("Stretch", lambda: self.timer_stretch()),
+            pystray.Menu.SEPARATOR,
             Item("Open Console", lambda: self.open_cli()),
             Item("Open Dashboard", lambda: self.open_dashboard()),
             pystray.Menu.SEPARATOR,
@@ -233,10 +268,7 @@ class ChronosTrayApp:
 
     def _menu_status_line(self):
         st = self._latest_timer_state or {}
-        status = str(st.get("status") or "idle")
-        phase = str(st.get("current_phase") or "-")
-        rem = self._hhmmss(st.get("remaining_seconds") or 0)
-        return f"Timer: {status} | {phase} | {rem}"
+        return f"Timer: {self._status_phase_time_line(st.get('status'), st.get('current_phase'), st.get('remaining_seconds'))}"
 
     def open_cli(self):
         subprocess.Popen(["cmd", "/c", "console_launcher.bat"], cwd=str(ROOT_DIR))
@@ -287,6 +319,30 @@ class ChronosTrayApp:
         except Exception:
             pass
         self.refresh_state()
+
+    def _timer_confirm_action(self, action):
+        try:
+            # Uses the same schedule confirmation actions as the dashboard timer widget.
+            Timer.confirm_schedule_block(None, action)
+        except Exception:
+            pass
+        self.refresh_state()
+
+    def timer_done(self):
+        self._timer_confirm_action("yes")
+
+    def timer_skip_today(self):
+        self._timer_confirm_action("skip")
+
+    def timer_later(self):
+        # Keep behavior aligned with the dashboard timer widget's "Later" action.
+        self._timer_confirm_action("skip")
+
+    def timer_start_over(self):
+        self._timer_confirm_action("start_over")
+
+    def timer_stretch(self):
+        self._timer_confirm_action("stretch")
 
     def _build_window(self):
         self._apply_theme()
@@ -358,7 +414,9 @@ class ChronosTrayApp:
         for blk in blocks:
             marker = ">" if current_block_name and blk["name"] == current_block_name else " "
             kind = "break" if blk["is_buffer"] else "focus"
-            line = f"{marker} [{kind}] {blk['start']} - {blk['end']}  {blk['name']}"
+            start_label = self._display_time_label(blk.get("start"))
+            end_label = self._display_time_label(blk.get("end"))
+            line = f"{marker} [{kind}] {start_label} - {end_label}  {blk['name']}"
             self.schedule_box.insert(tk.END, line.strip())
 
             start_min = self._minutes_from_label(blk.get("start"))
@@ -382,8 +440,8 @@ class ChronosTrayApp:
     def refresh_state(self):
         st = Timer.status()
         self._latest_timer_state = st if isinstance(st, dict) else {}
-        status = str(st.get("status") or "idle")
-        phase = str(st.get("current_phase") or "-")
+        status = st.get("status") or "idle"
+        phase = st.get("current_phase") or "-"
         rem = self._hhmmss(st.get("remaining_seconds") or 0)
         block = st.get("current_block") if isinstance(st.get("current_block"), dict) else {}
         block_name = str(block.get("name") or "-")
@@ -400,7 +458,13 @@ class ChronosTrayApp:
         self._refresh_schedule_list(block_name if block_name != "-" else "")
 
         self._update_tray_icon(st)
-        self.icon.title = f"Chronos - {status} | {phase} | {rem}"
+        self._maybe_notify_pending_confirmation(st)
+        state_line = self._status_phase_time_line(status, phase, st.get("remaining_seconds"))
+        if block_name and block_name != "-":
+            short_block = (block_name[:48] + "...") if len(block_name) > 51 else block_name
+            self.icon.title = f"Chronos\n{short_block}\n{state_line}"
+        else:
+            self.icon.title = f"Chronos\nNo active block\n{state_line}"
         self.icon.update_menu()
 
     def _update_tray_icon(self, st):
@@ -415,6 +479,26 @@ class ChronosTrayApp:
         if self._last_icon_key != "base":
             self.icon.icon = self._base_icon
             self._last_icon_key = "base"
+
+    def _maybe_notify_pending_confirmation(self, st):
+        pending = st.get("pending_confirmation") if isinstance(st, dict) else None
+        if not isinstance(pending, dict):
+            self._last_pending_prompt_key = None
+            return
+        block = pending.get("block") if isinstance(pending.get("block"), dict) else {}
+        block_name = str(block.get("name") or "this block").strip() or "this block"
+        prompted_at = str(pending.get("prompted_at") or "").strip()
+        key = f"{block_name}|{prompted_at}"
+        if key == self._last_pending_prompt_key:
+            return
+        self._last_pending_prompt_key = key
+        try:
+            self.icon.notify(
+                f'Finished "{block_name}"?\nOpen Chronos Mini to confirm.',
+                "Chronos Timer Check-in",
+            )
+        except Exception:
+            pass
 
     def _tick(self):
         if self._quitting:

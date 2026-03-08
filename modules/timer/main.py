@@ -1075,10 +1075,13 @@ def _is_break_or_buffer_block(block):
         return False
     if bool(block.get("is_buffer")) or bool(block.get("is_break")):
         return True
+    block_id = str(block.get("block_id") or "").strip().lower()
+    if "::buffer::" in block_id or "::break::" in block_id:
+        return True
     # Dynamic/template buffer rows often carry buffer_type without explicit flags.
     if str(block.get("buffer_type") or "").strip():
         return True
-    subtype = str(block.get("subtype") or "").strip().lower()
+    subtype = str(block.get("subtype") or block.get("timeblock_subtype") or "").strip().lower()
     if subtype in {"buffer", "break"}:
         return True
     schedule_type = str(block.get("type") or block.get("schedule_type") or "").strip().lower()
@@ -1086,6 +1089,19 @@ def _is_break_or_buffer_block(block):
         return True
     if "buffer" in schedule_type:
         return True
+    # Backstop for rows where markers only survive in original payload.
+    src = block.get("original_item_data") if isinstance(block.get("original_item_data"), dict) else {}
+    if src:
+        if bool(src.get("is_buffer")) or bool(src.get("is_break")):
+            return True
+        if str(src.get("buffer_type") or "").strip():
+            return True
+        src_subtype = str(src.get("subtype") or src.get("timeblock_subtype") or "").strip().lower()
+        if src_subtype in {"buffer", "break"}:
+            return True
+        src_type = str(src.get("type") or src.get("schedule_type") or "").strip().lower()
+        if src_type in {"buffer", "break"} or "buffer" in src_type:
+            return True
     return False
 
 
