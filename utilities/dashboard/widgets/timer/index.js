@@ -115,6 +115,7 @@ export function mount(el, context) {
   const queueMetaEl = el.querySelector('#twQueueMeta');
 
   let profiles = {};
+  let profileGroups = {};
   let pendingConfirmation = null;
   let lastTimerStatus = 'idle';
   let lastPendingConfirmVisible = null;
@@ -186,15 +187,68 @@ export function mount(el, context) {
       const selectedBefore = profSel.value || '';
       const r = await fetch(apiBase() + '/api/timer/profiles?_=' + Date.now(), { cache: 'no-store' }); const d = await r.json();
       profiles = d.profiles || {};
-      profSel.innerHTML = '';
-      const names = Object.keys(profiles);
-      names.forEach(n => { const opt = document.createElement('option'); opt.value = n; opt.textContent = n; profSel.appendChild(opt); });
-      if (selectedBefore) {
-        const opt = Array.from(profSel.options).find(o => o.value === selectedBefore);
-        if (opt) profSel.value = selectedBefore;
-      }
+      profileGroups = d.profile_groups || {};
+      renderProfileOptions(selectedBefore);
       if (!profSel.value) applyProfileSelection();
     } catch { }
+  }
+
+  function renderProfileOptions(selectedBefore = '') {
+    profSel.innerHTML = '';
+    const names = Object.keys(profiles || {});
+    const known = new Set(names);
+    const groups = (profileGroups && typeof profileGroups === 'object') ? profileGroups : {};
+    const assigned = new Set();
+    let hasGroups = false;
+
+    Object.entries(groups).forEach(([label, entries]) => {
+      if (!Array.isArray(entries)) return;
+      const groupNames = [];
+      entries.forEach((raw) => {
+        const name = String(raw || '').trim();
+        if (!name || !known.has(name) || assigned.has(name)) return;
+        groupNames.push(name);
+        assigned.add(name);
+      });
+      if (!groupNames.length) return;
+      hasGroups = true;
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = label;
+      groupNames.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        optgroup.appendChild(opt);
+      });
+      profSel.appendChild(optgroup);
+    });
+
+    const remaining = names.filter((name) => !assigned.has(name));
+    if (hasGroups && remaining.length) {
+      const other = document.createElement('optgroup');
+      other.label = 'Other';
+      remaining.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        other.appendChild(opt);
+      });
+      profSel.appendChild(other);
+    }
+
+    if (!hasGroups) {
+      names.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        profSel.appendChild(opt);
+      });
+    }
+
+    if (selectedBefore) {
+      const opt = Array.from(profSel.options).find((o) => o.value === selectedBefore);
+      if (opt) profSel.value = selectedBefore;
+    }
   }
 
   async function loadSettings() {

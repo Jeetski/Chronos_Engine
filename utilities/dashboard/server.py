@@ -2851,9 +2851,46 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 from modules.timer import main as Timer
                 Timer.ensure_default_profiles()
                 profiles = {}
-                for name in (Timer.profiles_list() or []):
+                names = Timer.profiles_list() or []
+                for name in names:
                     profiles[name] = Timer.profiles_view(name)
-                self._write_json(200, {"ok": True, "profiles": profiles})
+
+                groups = {}
+                settings_path = os.path.join(ROOT_DIR, 'user', 'settings', 'timer_settings.yml')
+                settings_data = {}
+                if os.path.exists(settings_path):
+                    try:
+                        with open(settings_path, 'r', encoding='utf-8') as fh:
+                            settings_data = yaml.safe_load(fh) or {}
+                    except Exception:
+                        settings_data = {}
+
+                raw_groups = {}
+                if isinstance(settings_data, dict):
+                    maybe_groups = settings_data.get('profile_groups')
+                    if isinstance(maybe_groups, dict):
+                        raw_groups = maybe_groups
+
+                known = set(str(n) for n in names)
+                assigned = set()
+                for label, raw_list in (raw_groups.items() if isinstance(raw_groups, dict) else []):
+                    if not isinstance(raw_list, list):
+                        continue
+                    ordered = []
+                    for item in raw_list:
+                        name = str(item or '').strip()
+                        if not name or name not in known or name in assigned:
+                            continue
+                        ordered.append(name)
+                        assigned.add(name)
+                    if ordered:
+                        groups[str(label)] = ordered
+
+                remaining = [n for n in names if n not in assigned]
+                if remaining:
+                    groups['Other'] = remaining
+
+                self._write_json(200, {"ok": True, "profiles": profiles, "profile_groups": groups})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Timer profiles error: {e}"})
             return

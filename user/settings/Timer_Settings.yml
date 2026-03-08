@@ -2,6 +2,27 @@ default_profile: classic_pomodoro
 auto_advance: true
 bind_default_type: task
 poll_interval_ms: 1000
+profile_groups:
+  Micro:
+    - reset_1_1
+    - two_minute_2_1
+    - starter_5_1
+    - burst_10_2
+    - focus_15_3
+  Classic productivity:
+    - classic_pomodoro
+    - classic_pomodoro_25_5
+    - ultralight_20_5
+    - deep_work_50_10
+    - deep_work_60_10
+  Long cycles:
+    - sprint_75_15
+    - sprint_90_30
+    - desk_time_112_26
+  Rhythm timers:
+    - microbreak_25_2
+    - hourly_55_5
+    - desk_time_52_17
 sounds:
-  focus_end: sounds/alarm.mp3
-  break_end: sounds/alarm.mp3
+  focus_end: sounds/focus_end.mp3
+  break_end: sounds/break_end.mp3
