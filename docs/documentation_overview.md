@@ -123,7 +123,7 @@ today reschedule
 ### 4. CHS Scripting Language
 
 **Features**:
-- Variables: `@nickname`, `@var`, `@{var}`
+- Variables: `@nickname`, `@status_energy`, `@status_focus`, `@location` (alias `@status_place`), `@timer_profile`, `@var`, `@{var}`
 - Conditionals: `if/elseif/else/end` (block and single-line)
 - Loops: `repeat`, `for`, `while` (bounded)
 - Operators: `== != > < >= <= matches` (regex)

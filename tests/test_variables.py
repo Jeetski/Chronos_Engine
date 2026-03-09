@@ -5,6 +5,7 @@ class TestVariables(unittest.TestCase):
     def setUp(self):
         # Clear variables before each test
         Variables._VARS.clear()
+        Variables._STATUS_MANAGED.clear()
 
     def test_set_get_unset(self):
         Variables.set_var("foo", "bar")
@@ -39,6 +40,20 @@ class TestVariables(unittest.TestCase):
         # Current implementation: returns "" if val is None
         text = "Hello @missing"
         self.assertEqual(Variables.expand_token(text), "Hello ")
+
+    def test_sync_status_vars_sets_and_unsets_managed_status_keys(self):
+        Variables.sync_status_vars({"energy": "high", "focus": "medium"})
+        self.assertEqual(Variables.get_var("status_energy"), "high")
+        self.assertEqual(Variables.get_var("status_focus"), "medium")
+
+        Variables.sync_status_vars({"energy": "low"})
+        self.assertEqual(Variables.get_var("status_energy"), "low")
+        self.assertIsNone(Variables.get_var("status_focus"))
+
+    def test_location_alias_maps_to_status_place(self):
+        Variables.set_var("location", "office")
+        self.assertEqual(Variables.get_var("status_place"), "office")
+        self.assertEqual(Variables.get_var("location"), "office")
 
 if __name__ == '__main__':
     unittest.main()

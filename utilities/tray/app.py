@@ -44,6 +44,7 @@ class ChronosTrayApp:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         self.window = None
         self._theme_ready = False
+        self._window_icon_path = self._resolve_window_icon_path()
 
         self.status_var = tk.StringVar(value="Timer: idle")
         self.phase_var = tk.StringVar(value="Phase: -")
@@ -56,7 +57,10 @@ class ChronosTrayApp:
         self._tick_job = None
         self._quitting = False
         self._last_pending_prompt_key = None
+        self._pending_popup = None
+        self._pending_popup_key = None
         self._base_icon = self._load_base_icon()
+        self._apply_window_icon(self.root)
         self.icon = pystray.Icon("chronos_tray", self._base_icon, "Chronos", self._build_menu())
 
     def _apply_theme(self):
@@ -128,6 +132,28 @@ class ChronosTrayApp:
                 except Exception:
                     continue
         return Image.new("RGBA", (64, 64), (20, 26, 37, 255))
+
+    def _resolve_window_icon_path(self):
+        candidates = [
+            ROOT_DIR / "assets" / "chronos.ico",
+            ROOT_DIR / "assets" / "images" / "icon.ico",
+            ROOT_DIR / "assets" / "images" / "hivemind_studio_icon.ico",
+        ]
+        for path in candidates:
+            if path.exists():
+                return str(path)
+        return None
+
+    def _apply_window_icon(self, win):
+        if not win:
+            return
+        icon_path = self._window_icon_path
+        if not icon_path:
+            return
+        try:
+            win.iconbitmap(icon_path)
+        except Exception:
+            pass
 
     def _render_ring_icon(self, percent):
         img = self._base_icon.copy().resize((64, 64))
@@ -344,6 +370,76 @@ class ChronosTrayApp:
     def timer_stretch(self):
         self._timer_confirm_action("stretch")
 
+    def _close_pending_popup(self):
+        popup = self._pending_popup
+        self._pending_popup = None
+        self._pending_popup_key = None
+        if popup is None:
+            return
+        try:
+            if popup.winfo_exists():
+                popup.destroy()
+        except Exception:
+            pass
+
+    def _show_pending_popup(self, block_name, prompt_key):
+        name = str(block_name or "").strip() or "this block"
+        key = str(prompt_key or "").strip()
+        if (
+            self._pending_popup
+            and self._pending_popup.winfo_exists()
+            and self._pending_popup_key == key
+        ):
+            try:
+                self._pending_popup.deiconify()
+                self._pending_popup.lift()
+                self._pending_popup.focus_force()
+            except Exception:
+                pass
+            return
+
+        self._close_pending_popup()
+        self._apply_theme()
+        pop = tk.Toplevel(self.root)
+        pop.title("Chronos Timer")
+        pop.geometry("360x206")
+        pop.resizable(False, False)
+        pop.attributes("-topmost", True)
+        pop.configure(bg="#0b1220")
+        self._apply_window_icon(pop)
+
+        frame = ttk.Frame(pop, padding=12, style="Chronos.TFrame")
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(frame, text="Timer Check-in", style="Chronos.Header.TLabel").pack(anchor=tk.W)
+        ttk.Label(
+            frame,
+            text=f'Finished "{name}"?',
+            style="Chronos.TLabel",
+            wraplength=320,
+            justify=tk.LEFT,
+        ).pack(anchor=tk.W, pady=(6, 12))
+
+        row1 = ttk.Frame(frame, style="Chronos.TFrame")
+        row1.pack(fill=tk.X, pady=(0, 6))
+        ttk.Button(row1, text="Done", command=self.timer_done, style="ChronosAccent.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(row1, text="Skip Today", command=self.timer_skip_today, style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(row1, text="Later", command=self.timer_later, style="Chronos.TButton").pack(side=tk.LEFT)
+
+        row2 = ttk.Frame(frame, style="Chronos.TFrame")
+        row2.pack(fill=tk.X, pady=(0, 6))
+        ttk.Button(row2, text="Start Over", command=self.timer_start_over, style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(row2, text="Stretch", command=self.timer_stretch, style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(row2, text="Open Mini", command=self.show_window, style="Chronos.TButton").pack(side=tk.LEFT)
+
+        def _on_close():
+            # Dismiss UI only; keep timer pending state untouched.
+            self._close_pending_popup()
+
+        pop.protocol("WM_DELETE_WINDOW", _on_close)
+        self._pending_popup = pop
+        self._pending_popup_key = key
+
     def _build_window(self):
         self._apply_theme()
         win = tk.Toplevel(self.root)
@@ -352,6 +448,7 @@ class ChronosTrayApp:
         win.protocol("WM_DELETE_WINDOW", self.hide_window)
         win.attributes("-topmost", True)
         win.configure(bg="#0b1220")
+        self._apply_window_icon(win)
 
         frame = ttk.Frame(win, padding=12, style="Chronos.TFrame")
         frame.pack(fill=tk.BOTH, expand=True)
@@ -484,6 +581,7 @@ class ChronosTrayApp:
         pending = st.get("pending_confirmation") if isinstance(st, dict) else None
         if not isinstance(pending, dict):
             self._last_pending_prompt_key = None
+            self._close_pending_popup()
             return
         block = pending.get("block") if isinstance(pending.get("block"), dict) else {}
         block_name = str(block.get("name") or "this block").strip() or "this block"
@@ -492,6 +590,7 @@ class ChronosTrayApp:
         if key == self._last_pending_prompt_key:
             return
         self._last_pending_prompt_key = key
+        self._show_pending_popup(block_name, key)
         try:
             self.icon.notify(
                 f'Finished "{block_name}"?\nOpen Chronos Mini to confirm.',
@@ -531,6 +630,7 @@ class ChronosTrayApp:
                 self.root.after_cancel(self._tick_job)
         except Exception:
             pass
+        self._close_pending_popup()
         try:
             self.icon.visible = False
         except Exception:

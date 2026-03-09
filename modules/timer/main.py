@@ -8,6 +8,11 @@ except Exception:
     pygame = None  # type: ignore
 
 try:
+    import winsound  # type: ignore
+except Exception:
+    winsound = None  # type: ignore
+
+try:
     import tkinter as tk
     from tkinter import messagebox
 except Exception:
@@ -396,16 +401,28 @@ def _append_session(entry: dict):
 
 def _notify(title: str, message: str, *, channel_index: int = 2, sound_filename: str | None = None):
     # Play sound
+    played = False
+    sound_path = None
     try:
         if pygame and pygame.mixer:
             pygame.mixer.init()
             if sound_filename:
-                from_path = _resolve_timer_sound_path(sound_filename)
-                if from_path and os.path.exists(from_path):
-                    snd = pygame.mixer.Sound(from_path)
+                sound_path = _resolve_timer_sound_path(sound_filename)
+                if sound_path and os.path.exists(sound_path):
+                    snd = pygame.mixer.Sound(sound_path)
                     ch = pygame.mixer.Channel(channel_index)
                     if not ch.get_busy():
                         ch.play(snd)
+                        played = True
+    except Exception:
+        pass
+    # Windows fallback for environments where pygame mixer cannot initialize.
+    try:
+        if (not played) and winsound and os.name == "nt" and sound_filename:
+            if not sound_path:
+                sound_path = _resolve_timer_sound_path(sound_filename)
+            if sound_path and os.path.exists(sound_path):
+                winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)  # type: ignore[attr-defined]
     except Exception:
         pass
     # Popup

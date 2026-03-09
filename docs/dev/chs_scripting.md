@@ -6,6 +6,10 @@ Chronos executes `.chs` scripts with one command per line. Lines support quoted 
 
 - Set a variable: `set var name:World`
 - Use in any command: `echo Hello @name` or `echo Hello @{name}`
+- Current status is mirrored to vars like `@status_energy`, `@status_focus`, `@status_health`
+- `@location` is an alias of `@status_place` (for example, `set var location:home`)
+- Setting `status_*` vars writes through to status YAML: `set var status_energy:high`
+- `@timer_profile` mirrors timer default profile; set with `set var timer_profile:classic_pomodoro`
 - Escape a literal `@`: use `@@`
 - Scope: Variables persist for the duration of the current console session or script execution.
 - Inspect and remove:
@@ -61,6 +65,7 @@ create note "IF Note @who" category:work priority:high
 
 if exists note:"IF Note @who" then echo FOUND else echo MISSING
 if status:energy eq high and exists env:PATH then echo READY
+if @status_energy eq high and exists env:PATH then echo READY
 if note:"IF Note @who":priority matches ^h.* then echo STARTS_WITH_H
 if ( status:energy eq high and exists note:"IF Note @who" ) or status:emotion ne sad then echo OK
 

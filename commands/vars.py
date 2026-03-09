@@ -10,7 +10,7 @@ def run(args, properties):
     name = properties.get('name')
 
     if name:
-        val = vars_map.get(name)
+        val = Variables.get_var(name)
         if val is None:
             print(f"No variable named '{name}'.")
         else:
@@ -31,5 +31,6 @@ Usage: vars [name:<varname>]
 Description: Lists current script variables or a single variable by name.
 Example: vars
 Example: vars name:project
+Example: vars name:status_energy
 """
 

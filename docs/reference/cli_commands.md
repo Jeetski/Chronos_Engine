@@ -31,6 +31,10 @@ Appends text to the content of an existing item.
 ### `set`
 Sets properties of an item or defines a script variable.
 **Usage:** `set <type> <name> <property_key>:<value> [...]`
+**Notes:**
+- `set var status_<indicator>:<value>` also updates `user/current_status.yml` (same source used by `status`).
+- `set var location:<value>` is an alias for `set var status_place:<value>`.
+- `set var timer_profile:<name>` updates `user/settings/timer_settings.yml` (`default_profile`).
 
 ### `get`
 Retrieves the value of a specific property from an item.
@@ -171,6 +175,8 @@ Views or sets user status variables.
 **Usage:**
 - `status`
 - `status <indicator>:<value>`
+**Notes:**
+- Current status values are mirrored to runtime vars such as `@status_energy` and `@status_focus`.
 
 ### `complete`
 Marks an item as completed.
@@ -551,6 +557,10 @@ Runs a command while a condition remains true (bounded).
 ### `vars`
 Lists current script variables or a single variable by name.
 **Usage:** `vars [name:<varname>]`
+**Examples:**
+- `vars`
+- `vars name:project`
+- `vars name:status_energy`
 
 ### `unset`
 Removes a script variable from the current session.

@@ -127,6 +127,9 @@ Common commands (all item types now share the same verbs via `handle_command`)
 
 Variables
 - The console seeds `@nickname` from `user/profile/profile.yml`. Use in scripts/messages.
+- Current status values are mirrored as runtime vars like `@status_energy`, `@status_focus`, `@status_health`.
+- `@location` is an alias of `@status_place` (same source, no duplicate storage).
+- Timer default profile is mirrored as `@timer_profile` (from `user/settings/timer_settings.yml`).
 - Set/read variables programmatically via `modules/variables.py` or CLI patterns.
 
 ## Dashboard

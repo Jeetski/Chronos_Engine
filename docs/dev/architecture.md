@@ -7,7 +7,7 @@ This guide explains how Chronos fits together so you can extend it confidently.
 - CLI Entrypoint — `modules/console.py`
   - Adds project paths, sets UTF-8, and loads `commands/*.py` dynamically.
   - Parses interactive input, CLI args, and `.chs` scripts (supports nested `if/elseif/else/end` and loop blocks).
-  - Uses `modules/variables.py` for in-memory variables and token expansion (e.g., `@nickname`).
+  - Uses `modules/variables.py` for in-memory variables and token expansion (e.g., `@nickname`, `@status_energy`).
   - Macro hooks: command execution is wrapped with BEFORE/AFTER hooks via `modules/macro_engine.py` (enabled by `user/scripts/macros/macros.yml`). Dashboard calls also pass through these hooks.
   - Autosuggest and autocomplete are registry-driven; see `docs/dev/autosuggest.md` for the slot model and refresh workflow.
 

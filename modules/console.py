@@ -637,6 +637,32 @@ def _load_profile_and_seed_vars():
                     Variables.set_var('nickname', nick)
                 except Exception:
                     pass
+
+        # Mirror current status values into runtime vars (e.g., @status_energy).
+        status_candidates = [
+            os.path.join(ROOT_DIR, "user", "current_status.yml"),
+            os.path.join(ROOT_DIR, "user", "profile", "current_status.yml"),
+        ]
+        status_map = {}
+        for path in status_candidates:
+            data = _safe_load_yaml(path)
+            if isinstance(data, dict):
+                status_map = data
+                break
+        try:
+            Variables.sync_status_vars(status_map)
+        except Exception:
+            pass
+
+        # Mirror timer default profile into runtime var.
+        try:
+            timer_cfg = _safe_load_yaml(os.path.join(ROOT_DIR, "user", "settings", "timer_settings.yml")) or {}
+            if isinstance(timer_cfg, dict):
+                default_profile = str(timer_cfg.get("default_profile") or "").strip()
+                if default_profile:
+                    Variables.set_var("timer_profile", default_profile)
+        except Exception:
+            pass
     except Exception:
         pass
 

@@ -436,6 +436,7 @@ Scripts (Automation)
 
 - Variables
   - Use `@nickname` (from `user/profile/profile.yml`) in messages.
+  - Use mirrored status vars in scripts/macros (for example `@status_energy`, `@status_focus`).
   - Set inside scripts with `set var <name> <value>` or via specific command outputs.
 
 ----------------------------------------

@@ -2,24 +2,63 @@ import re
 
 # Simple in-memory variable store shared across commands
 _VARS = {}
+_STATUS_MANAGED = set()
+_ALIASES = {
+    "location": "status_place",
+}
+
+
+def canonical_var_name(name: str) -> str:
+    raw = str(name or "").strip()
+    if not raw:
+        return raw
+    mapped = _ALIASES.get(raw.lower())
+    return mapped if mapped else raw
 
 
 def set_var(name: str, value):
     if name is None:
         return
-    _VARS[str(name)] = str(value)
+    _VARS[canonical_var_name(str(name))] = str(value)
 
 
 def get_var(name: str, default=None):
-    return _VARS.get(str(name), default)
+    key = canonical_var_name(str(name))
+    return _VARS.get(key, default)
 
 
 def unset_var(name: str):
-    _VARS.pop(str(name), None)
+    _VARS.pop(canonical_var_name(str(name)), None)
 
 
 def all_vars():
     return dict(_VARS)
+
+
+def _status_slug(name):
+    raw = str(name or "").strip().lower()
+    raw = re.sub(r"[^a-z0-9]+", "_", raw)
+    return raw.strip("_")
+
+
+def sync_status_vars(status_map):
+    """
+    Mirror current status values into runtime vars:
+      status_energy, status_focus, status_health, ...
+    """
+    global _STATUS_MANAGED
+    source = status_map if isinstance(status_map, dict) else {}
+    next_managed = set()
+    for key, value in source.items():
+        slug = _status_slug(key)
+        if not slug:
+            continue
+        var_name = f"status_{slug}"
+        set_var(var_name, value)
+        next_managed.add(var_name)
+    for stale in (_STATUS_MANAGED - next_managed):
+        unset_var(stale)
+    _STATUS_MANAGED = next_managed
 
 
 _re_braced = re.compile(r"@\{([A-Za-z_][A-Za-z0-9_]*)\}")

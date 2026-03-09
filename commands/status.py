@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from modules.scheduler import status_current_path, status_history_path_for_date
 from modules import status_utils
+from modules import variables as Variables
 
 def run(args, properties):
     status_file_path = status_current_path()
@@ -18,6 +19,10 @@ def run(args, properties):
                 with open(status_file_path, 'r') as f:
                     current_status = yaml.safe_load(f)
                     if current_status:
+                        try:
+                            Variables.sync_status_vars(current_status)
+                        except Exception:
+                            pass
                         print("Current Status:")
                         for key, value in current_status.items():
                             print(f"  {key}: {value}")
@@ -64,6 +69,10 @@ def run(args, properties):
         # Write updated status
         with open(status_file_path, 'w') as f:
             yaml.dump(current_status, f, default_flow_style=False)
+        try:
+            Variables.sync_status_vars(current_status)
+        except Exception:
+            pass
 
         # Append to dated status history
         history_path = status_history_path_for_date(datetime.now())
@@ -99,7 +108,17 @@ def run(args, properties):
         print(f"❌ An unexpected error occurred: {e}")
 
 def get_help_message():
-    return "Views or sets user status variables.\n\nUsage: status <indicator>:<value>\n       status (to view current status)\n\nExamples:\n  status emotion:happy\n  status energy:low"
+    return (
+        "Views or sets user status values.\n\n"
+        "Usage: status <indicator>:<value>\n"
+        "       status (to view current status)\n\n"
+        "Runtime variable mirror:\n"
+        "  Current status values are also exposed as @status_<indicator>\n"
+        "  Example: @status_energy, @status_focus\n\n"
+        "Examples:\n"
+        "  status emotion:happy\n"
+        "  status energy:low"
+    )
 
 if __name__ == '__main__':
     # This block is for testing the command directly
