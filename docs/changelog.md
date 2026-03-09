@@ -18,6 +18,11 @@
   - `@timer.profile` <-> `timer_profile`
 - `set var nickname:<value>` now writes through to `user/profile/profile.yml`.
 - `set var timer_profile:<name>` now writes through to `user/settings/timer_settings.yml` (`default_profile`) with profile validation against `timer_profiles.yml` when available.
+- Added optional `user/settings/variable_bindings.yml` support:
+  - safe binding loader in `modules/variables.py`
+  - `set var <name>:<value>` write-through fallback via binding rules (no command-specific changes)
+  - dotted YAML paths (`path: a.b.c`) with `mode: read|write|readwrite`
+  - safe defaults: ignored invalid bindings, project-root path guard, YAML-only target files
 
 ### Tray + Timer UX
 - Tray app now shows a timer check-in popup when a schedule block reaches pending confirmation (Done / Skip Today / Later / Start Over / Stretch actions).

@@ -131,6 +131,7 @@ Variables
 - `@location` is an alias of `@status_place` (same source, no duplicate storage).
 - Timer default profile is mirrored as `@timer_profile` (from `user/settings/timer_settings.yml`).
 - Dotted aliases are supported for readability: `@status.energy`, `@profile.nickname`, `@timer.profile`.
+- Power-user optional bindings: define `user/settings/variable_bindings.yml` to map vars to nested YAML paths for read/write sync.
 - Set/read variables programmatically via `modules/variables.py` or CLI patterns.
 
 ## Dashboard

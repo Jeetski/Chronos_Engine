@@ -36,6 +36,7 @@ Sets properties of an item or defines a script variable.
 - `set var location:<value>` is an alias for `set var status_place:<value>`.
 - Dotted aliases are supported for readability, for example: `status.energy`, `profile.nickname`, `timer.profile`.
 - `set var timer_profile:<name>` updates `user/settings/timer_settings.yml` (`default_profile`).
+- Optional: `set var <name>:<value>` can write-through via `user/settings/variable_bindings.yml` for user-defined YAML bindings.
 
 ### `get`
 Retrieves the value of a specific property from an item.

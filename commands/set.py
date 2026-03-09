@@ -184,6 +184,8 @@ def run(args, properties):
                 return
             normalized_nickname_value = None
             normalized_timer_profile_value = None
+            normalized_bound_value = None
+            bound_sync_target = None
             if normalized_status_value is None:
                 nick_err, normalized_nickname_value = _sync_nickname_var_to_profile(var_name, var_value)
                 if nick_err:
@@ -194,6 +196,13 @@ def run(args, properties):
                 if timer_err:
                     print(f"❌ {timer_err}")
                     return
+            if normalized_status_value is None and normalized_nickname_value is None and normalized_timer_profile_value is None:
+                handled_bound, normalized_bound_value, bound_err, bound_sync_target = Variables.write_bound_var(var_name, var_value)
+                if bound_err:
+                    print(f"❌ {bound_err}")
+                    return
+                if not handled_bound:
+                    normalized_bound_value = None
             final_value = (
                 normalized_status_value
                 if normalized_status_value is not None
@@ -201,6 +210,8 @@ def run(args, properties):
                 if normalized_nickname_value is not None
                 else normalized_timer_profile_value
                 if normalized_timer_profile_value is not None
+                else normalized_bound_value
+                if normalized_bound_value is not None
                 else var_value
             )
             Variables.set_var(var_name, final_value)
@@ -214,6 +225,8 @@ def run(args, properties):
                 print("↳ Synced to profile.yml")
             elif str(var_name).strip().lower() == "timer_profile":
                 print("↳ Synced to timer_settings.yml")
+            elif bound_sync_target:
+                print(f"↳ Synced via variable binding to {bound_sync_target}")
         else:
             print(f"❌ Invalid variable assignment: {var_assignment}. Expected format: <variable_name>:<value>")
         return
@@ -322,6 +335,7 @@ Example: set var status_energy:high   # updates var and current_status.yml
 Example: set var location:home        # alias of status_place; updates current_status.yml
 Example: set var nickname:Alice       # updates var and user/profile/profile.yml
 Example: set var timer_profile:classic_pomodoro  # updates var and user/settings/timer_settings.yml
+Example: set var weather.city:Kyiv    # optional write-through via user/settings/variable_bindings.yml
 
 Special (goals):
   set goal "<name>" template:true      # mark goal as a template

@@ -11,6 +11,7 @@ Chronos executes `.chs` scripts with one command per line. Lines support quoted 
 - Dotted namespace aliases are supported (for readability): `@status.energy`, `@profile.nickname`, `@timer.profile`
 - Setting `status_*` vars writes through to status YAML: `set var status_energy:high`
 - `@timer_profile` mirrors timer default profile; set with `set var timer_profile:classic_pomodoro`
+- Optional power-user bindings can mirror arbitrary vars to YAML using `user/settings/variable_bindings.yml`
 - Escape a literal `@`: use `@@`
 - Scope: Variables persist for the duration of the current console session or script execution.
 - Inspect and remove:
@@ -36,6 +37,38 @@ Targets:
 - variable (`today > @out`, `today >> @out`)
 
 This is implemented at the console routing layer, so it works for commands without requiring per-command changes.
+
+## Optional YAML Variable Bindings (`variable_bindings.yml`)
+
+For advanced workflows, you can bind variables to nested YAML values so reads and `set var` writes sync automatically.
+
+Path: `user/settings/variable_bindings.yml` (optional; if missing, Chronos behavior is unchanged).
+
+Example:
+
+```yaml
+bindings:
+  - var: weather.city
+    file: user/profile/profile.yml
+    path: preferences.weather.city
+    mode: readwrite
+  - var: goals.active
+    file: user/profile/profile.yml
+    path: metrics.goals.active
+    mode: write
+```
+
+Rules:
+- `var`: variable name (`status.energy`/aliases still canonicalize the same way).
+- `file`: YAML file path relative to project root (or absolute path inside project root).
+- `path`: dotted YAML path inside that file (for example `preferences.weather.city`).
+- `mode`: `read`, `write`, or `readwrite`.
+
+Safe defaults:
+- Invalid bindings are ignored.
+- Only `.yml`/`.yaml` targets are allowed.
+- Targets outside project root are refused.
+- If the bindings file is absent, no additional syncing occurs.
 
 ## Conditionals: `if`
 
