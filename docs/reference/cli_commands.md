@@ -34,6 +34,7 @@ Sets properties of an item or defines a script variable.
 **Notes:**
 - `set var status_<indicator>:<value>` also updates `user/current_status.yml` (same source used by `status`).
 - `set var location:<value>` is an alias for `set var status_place:<value>`.
+- Dotted aliases are supported for readability, for example: `status.energy`, `profile.nickname`, `timer.profile`.
 - `set var timer_profile:<name>` updates `user/settings/timer_settings.yml` (`default_profile`).
 
 ### `get`
@@ -96,6 +97,21 @@ Displays the contents of an item in the terminal.
 ### `help`
 Displays help information for a command.
 **Usage:** `help <command>`
+
+### Console Redirection
+Chronos supports console-level output redirection for any command.
+
+**Usage:**
+- `<command> > <file_path>` (overwrite file)
+- `<command> >> <file_path>` (append file)
+- `<command> > @<varname>` (overwrite variable)
+- `<command> >> @<varname>` (append variable)
+
+**Examples:**
+- `today > temp/today.txt`
+- `today >> temp/today.txt`
+- `today > @out`
+- `today >> @out`
 
 ## Scheduling & Tracking
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-03-09
+
+### CLI - Native Output Redirection (`>` / `>>`)
+- Added console-level post-command redirection in `modules/console.py` (no per-command changes required).
+- Supports:
+  - file targets: `today > temp/today.txt`, `today >> temp/today.txt`
+  - variable targets: `today > @out`, `today >> @out`
+- Redirection is parsed in the console after command parsing and routes captured command stdout to the selected destination.
+
+### CLI - Persistent Variable Write-Through
+- `set var status_<indicator>:<value>` now writes through to `user/current_status.yml` and re-syncs mirrored status vars.
+- Added `@location` alias for `@status_place` (read/write alias to a single canonical source).
+- Added dotted namespace aliases for readability:
+  - `@status.energy` <-> `status_energy`
+  - `@profile.nickname` <-> `nickname`
+  - `@timer.profile` <-> `timer_profile`
+- `set var nickname:<value>` now writes through to `user/profile/profile.yml`.
+- `set var timer_profile:<name>` now writes through to `user/settings/timer_settings.yml` (`default_profile`) with profile validation against `timer_profiles.yml` when available.
+
+### Tray + Timer UX
+- Tray app now shows a timer check-in popup when a schedule block reaches pending confirmation (Done / Skip Today / Later / Start Over / Stretch actions).
+- Mini panel and tray timer popup windows now apply the Chronos icon where available.
+- Added Windows timer sound fallback (`winsound`) in timer notifications when pygame mixer playback is unavailable.
+
 ## 2026-03-02
 
 ### Dashboard - Milestones Filtering and Deep-Linking

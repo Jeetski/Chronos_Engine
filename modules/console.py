@@ -6,6 +6,8 @@ import time
 import shlex
 import json
 import re
+import io
+from contextlib import redirect_stdout
 
 try:
     import yaml  # type: ignore
@@ -945,6 +947,81 @@ def _coerce_value(val: str):
     return val
 
 
+_REDIR_VAR_SIMPLE_RE = re.compile(r"^@([A-Za-z_][A-Za-z0-9_]*)$")
+_REDIR_VAR_BRACED_RE = re.compile(r"^@\{([A-Za-z_][A-Za-z0-9_]*)\}$")
+
+
+def _parse_redirection_target(raw_target: str):
+    """
+    Parse redirection target token.
+    - @name / @{name} => variable target
+    - otherwise => file path target (after variable expansion)
+    Returns: (kind, target)
+    """
+    token = str(raw_target or "").strip()
+    if not token:
+        return None, None
+    m = _REDIR_VAR_SIMPLE_RE.match(token) or _REDIR_VAR_BRACED_RE.match(token)
+    if m:
+        return "var", m.group(1)
+    # For file targets we allow variable expansion in token text.
+    return "file", Variables.expand_token(token)
+
+
+def _extract_redirection_tokens(command: str, raw_tokens: list):
+    """
+    Extract a trailing redirection from raw tokens.
+    Supported: ... > target, ... >> target
+    Returns: (tokens_without_redirection, op, target_kind, target_value)
+    """
+    if not raw_tokens:
+        return raw_tokens, None, None, None
+    op_idx = None
+    op_val = None
+    # Take the last operator so regular '>' text in args remains usable.
+    for i, tok in enumerate(raw_tokens):
+        t = str(tok).strip()
+        if t in (">", ">>"):
+            op_idx = i
+            op_val = t
+    if op_idx is None:
+        return raw_tokens, None, None, None
+    if op_idx + 1 >= len(raw_tokens):
+        print("❌ Redirection target missing after > or >>.")
+        return raw_tokens[:op_idx], None, None, None
+    target_raw = str(raw_tokens[op_idx + 1] or "").strip()
+    kind, target = _parse_redirection_target(target_raw)
+    if not kind or not target:
+        print("❌ Invalid redirection target.")
+        return raw_tokens[:op_idx], None, None, None
+    # Ignore any extra tokens after target to keep behavior deterministic.
+    return raw_tokens[:op_idx], op_val, kind, target
+
+
+def _route_command_output(op: str, target_kind: str, target_value: str, output_text: str):
+    """
+    Route captured command stdout according to redirection.
+    """
+    text = str(output_text or "")
+    if target_kind == "var":
+        var_name = str(target_value).strip()
+        if op == ">>":
+            prev = Variables.get_var(var_name, "")
+            Variables.set_var(var_name, f"{prev}{text}")
+        else:
+            Variables.set_var(var_name, text)
+        return
+
+    # File target
+    path = str(target_value).strip()
+    if not os.path.isabs(path):
+        path = os.path.join(ROOT_DIR, path)
+    os.makedirs(os.path.dirname(path) or ROOT_DIR, exist_ok=True)
+    mode = "a" if op == ">>" else "w"
+    with open(path, mode, encoding="utf-8") as fh:
+        fh.write(text)
+
+
 def parse_input(input_parts):
     command = None
     args = []
@@ -961,11 +1038,19 @@ def parse_input(input_parts):
         args = raw
         return command, args, properties
 
+    # Parse redirection before variable expansion so `@var` targets are kept
+    # as variable references instead of being expanded to values.
+    raw, redir_op, redir_kind, redir_target = _extract_redirection_tokens(command, raw)
+
     # Expand variables in all tokens first
-    parts = Variables.expand_list(input_parts)
+    parts = Variables.expand_list([command] + raw)
 
     command = parts[0]
     raw = parts[1:]
+    if redir_op:
+        properties["__redir_op"] = redir_op
+        properties["__redir_kind"] = redir_kind
+        properties["__redir_target"] = redir_target
 
     # Special-case: keep raw args to allow colon syntax
     if command.lower() == 'set' and raw and str(raw[0]).lower() == 'var':
@@ -993,27 +1078,44 @@ except NameError:
 def run_command(command_name, args, properties):
     command_name = resolve_command_alias(command_name)
     try:
+        props_local = dict(properties or {})
+        redir_op = props_local.pop("__redir_op", None)
+        redir_kind = props_local.pop("__redir_kind", None)
+        redir_target = props_local.pop("__redir_target", None)
         suppress = False
         try:
             if os.environ.get("CHRONOS_SUPPRESS_MACROS"):
                 suppress = True
-            if str((properties or {}).get("no_macros")).lower() in ("1", "true", "yes"):
+            if str((props_local or {}).get("no_macros")).lower() in ("1", "true", "yes"):
                 suppress = True
         except Exception:
             pass
         if not suppress:
             try:
                 from modules import macro_engine
-                MacroEngine.run_before(command_name, args, properties)
+                MacroEngine.run_before(command_name, args, props_local)
             except Exception:
                 pass
-        run_command_core(command_name, args, properties)
+        if redir_op in (">", ">>") and redir_kind in ("var", "file") and redir_target:
+            capture = io.StringIO()
+            with redirect_stdout(capture):
+                run_command_core(command_name, args, props_local)
+            try:
+                _route_command_output(redir_op, redir_kind, redir_target, capture.getvalue())
+            except Exception as e:
+                print(f"❌ Redirection failed: {e}")
+                # Fallback: print captured output so it isn't lost.
+                out = capture.getvalue()
+                if out:
+                    print(out, end="" if out.endswith("\n") else "\n")
+        else:
+            run_command_core(command_name, args, props_local)
         try:
             from modules.achievement import evaluator as AchievementEvaluator  # type: ignore
             AchievementEvaluator.emit_event("command_executed", {
                 "command": str(command_name or "").lower(),
                 "args": list(args or []),
-                "properties": dict(properties or {}),
+                "properties": dict(props_local or {}),
             })
         except Exception:
             pass
@@ -1021,7 +1123,7 @@ def run_command(command_name, args, properties):
         try:
             if not suppress:
                 from modules import macro_engine
-                MacroEngine.run_after(command_name, args, properties, {"ok": True})
+                MacroEngine.run_after(command_name, args, props_local, {"ok": True})
         except Exception:
             pass
 

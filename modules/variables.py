@@ -5,6 +5,8 @@ _VARS = {}
 _STATUS_MANAGED = set()
 _ALIASES = {
     "location": "status_place",
+    "profile.nickname": "nickname",
+    "timer.profile": "timer_profile",
 }
 
 
@@ -12,7 +14,12 @@ def canonical_var_name(name: str) -> str:
     raw = str(name or "").strip()
     if not raw:
         return raw
-    mapped = _ALIASES.get(raw.lower())
+    low = raw.lower()
+    # Namespace illusion: map dotted status keys to canonical flat keys.
+    if low.startswith("status.") and len(raw) > len("status."):
+        tail = raw[len("status."):]
+        return f"status_{_status_slug(tail)}"
+    mapped = _ALIASES.get(low)
     return mapped if mapped else raw
 
 
@@ -61,9 +68,10 @@ def sync_status_vars(status_map):
     _STATUS_MANAGED = next_managed
 
 
-_re_braced = re.compile(r"@\{([A-Za-z_][A-Za-z0-9_]*)\}")
+_VAR_TOKEN = r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*"
+_re_braced = re.compile(rf"@\{{({_VAR_TOKEN})\}}")
 # Only expand @var when not preceded by a word char to avoid emails/usernames
-_re_simple = re.compile(r"(?<![A-Za-z0-9_])@([A-Za-z_][A-Za-z0-9_]*)")
+_re_simple = re.compile(rf"(?<![A-Za-z0-9_])@({_VAR_TOKEN})")
 
 
 def _replace_match(match):

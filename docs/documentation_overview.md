@@ -124,6 +124,7 @@ today reschedule
 
 **Features**:
 - Variables: `@nickname`, `@status_energy`, `@status_focus`, `@location` (alias `@status_place`), `@timer_profile`, `@var`, `@{var}`
+- Dotted aliases are supported: `@status.energy`, `@profile.nickname`, `@timer.profile`
 - Conditionals: `if/elseif/else/end` (block and single-line)
 - Loops: `repeat`, `for`, `while` (bounded)
 - Operators: `== != > < >= <= matches` (regex)

@@ -55,5 +55,23 @@ class TestVariables(unittest.TestCase):
         self.assertEqual(Variables.get_var("status_place"), "office")
         self.assertEqual(Variables.get_var("location"), "office")
 
+    def test_dotted_status_namespace_alias_maps_to_flat(self):
+        Variables.set_var("status.energy", "high")
+        self.assertEqual(Variables.get_var("status_energy"), "high")
+        self.assertEqual(Variables.get_var("status.energy"), "high")
+
+    def test_dotted_profile_and_timer_aliases(self):
+        Variables.set_var("profile.nickname", "Alice")
+        Variables.set_var("timer.profile", "classic_pomodoro")
+        self.assertEqual(Variables.get_var("nickname"), "Alice")
+        self.assertEqual(Variables.get_var("timer_profile"), "classic_pomodoro")
+        self.assertEqual(Variables.get_var("profile.nickname"), "Alice")
+        self.assertEqual(Variables.get_var("timer.profile"), "classic_pomodoro")
+
+    def test_expansion_dotted_tokens(self):
+        Variables.set_var("status.energy", "low")
+        text = "Energy is @status.energy and braced @{status.energy}"
+        self.assertEqual(Variables.expand_token(text), "Energy is low and braced low")
+
 if __name__ == '__main__':
     unittest.main()

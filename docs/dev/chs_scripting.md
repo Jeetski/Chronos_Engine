@@ -8,6 +8,7 @@ Chronos executes `.chs` scripts with one command per line. Lines support quoted 
 - Use in any command: `echo Hello @name` or `echo Hello @{name}`
 - Current status is mirrored to vars like `@status_energy`, `@status_focus`, `@status_health`
 - `@location` is an alias of `@status_place` (for example, `set var location:home`)
+- Dotted namespace aliases are supported (for readability): `@status.energy`, `@profile.nickname`, `@timer.profile`
 - Setting `status_*` vars writes through to status YAML: `set var status_energy:high`
 - `@timer_profile` mirrors timer default profile; set with `set var timer_profile:classic_pomodoro`
 - Escape a literal `@`: use `@@`
@@ -22,6 +23,19 @@ Chronos executes `.chs` scripts with one command per line. Lines support quoted 
 - Any `key:value` tokens are parsed as properties and passed to commands (e.g., `priority:high`).
 - Quote values with spaces: `category:"deep work"`.
 - Detection rule: a token is treated as a property only if the key starts with a letter and the key contains letters, digits, or underscores. This avoids mis-parsing Windows paths like `C:\Work\file.txt` as properties.
+
+## Output Redirection
+
+Chronos console supports post-command output redirection:
+
+- `>` overwrite target
+- `>>` append target
+
+Targets:
+- file path (`today > temp/today.txt`)
+- variable (`today > @out`, `today >> @out`)
+
+This is implemented at the console routing layer, so it works for commands without requiring per-command changes.
 
 ## Conditionals: `if`
 

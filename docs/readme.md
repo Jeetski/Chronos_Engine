@@ -130,6 +130,7 @@ Variables
 - Current status values are mirrored as runtime vars like `@status_energy`, `@status_focus`, `@status_health`.
 - `@location` is an alias of `@status_place` (same source, no duplicate storage).
 - Timer default profile is mirrored as `@timer_profile` (from `user/settings/timer_settings.yml`).
+- Dotted aliases are supported for readability: `@status.energy`, `@profile.nickname`, `@timer.profile`.
 - Set/read variables programmatically via `modules/variables.py` or CLI patterns.
 
 ## Dashboard
