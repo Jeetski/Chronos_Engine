@@ -129,6 +129,29 @@ class TestKairosEngine(unittest.TestCase):
         self.assertEqual(events[0].get("buffer_type"), "timer_profile")
         self.assertEqual(len(out), 3)
 
+    def test_timer_break_insertion_counts_midnight_start_duration(self):
+        scheduler = KairosScheduler()
+        scheduler.runtime = {
+            "options": {"use_buffers": False, "use_timer_breaks": True},
+            "timer_settings": {"default_profile": "p"},
+            "timer_profiles": {"p": {"focus_minutes": 25, "short_break_minutes": 5}},
+            "buffer_settings": {},
+        }
+        timeline = [
+            (
+                0,
+                25,
+                {"name": "Task 1", "type": "task", "window_name": "WIN", "start_time": "00:00", "end_time": "00:25"},
+            ),
+            (
+                40,
+                60,
+                {"name": "Task 2", "type": "task", "window_name": "WIN", "start_time": "00:40", "end_time": "01:00"},
+            ),
+        ]
+        _, events = scheduler._insert_timeblocks(timeline)
+        self.assertTrue(any(e.get("subtype") == "break" and e.get("start") == "00:25" for e in events))
+
     def test_sprint_split(self):
         scheduler = KairosScheduler(user_context={"use_timer_sprints": True})
         scheduler.runtime = {
@@ -522,8 +545,39 @@ class TestKairosEngine(unittest.TestCase):
         self.assertEqual(int(by_name["C"][0]), 630)
         self.assertEqual(int(info.get("remaining_violations", 0)), 0)
 
+    def test_duration_minutes_uses_raw_duration_fallback(self):
+        scheduler = KairosScheduler()
+        mins = scheduler._duration_minutes({"name": "Synthetic", "_raw": {"duration": "45m"}})
+        self.assertEqual(mins, 45)
+
 
 class TestKairosCommandParsing(unittest.TestCase):
+    def test_today_inject_parses_bool_flags_without_scope_error(self):
+        captured = {}
+
+        class FakeKairos:
+            def __init__(self, user_context=None):
+                self.user_context = user_context or {}
+                self.phase_notes = {"construct": {"windows": []}}
+
+            def generate_schedule(self, _):
+                return {"date": "2026-02-21", "blocks": [], "stats": {}}
+
+        def _fake_inject(*args, **kwargs):
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+
+        with _today_user_dir():
+            with patch("modules.scheduler.kairosScheduler", FakeKairos), patch(
+                "modules.scheduler.inject_item_in_file", side_effect=_fake_inject
+            ):
+                with redirect_stdout(io.StringIO()):
+                    Today.run(["inject", "Task"], {"force": "true", "override_anchor": "false", "type": "task"})
+        self.assertIn("kwargs", captured)
+        self.assertTrue(captured["kwargs"].get("force"))
+        self.assertFalse(captured["kwargs"].get("override_anchor"))
+        self.assertEqual(captured["kwargs"].get("mode"), "soft")
+
     def test_today_kairos_native_syntax_parsing(self):
         captured = {}
 

@@ -1671,6 +1671,19 @@ def run(args, properties):
         completion_entries = normalize_completion_entries(today_completion_data)
         reschedule_requested = "reschedule" in args_lower
 
+        def _to_bool(raw, default=None):
+            # Tolerant bool parser for CLI property values.
+            if isinstance(raw, bool):
+                return raw
+            if raw is None:
+                return default
+            s = str(raw).strip().lower()
+            if s in ("1", "true", "yes", "on", "y"):
+                return True
+            if s in ("0", "false", "no", "off", "n"):
+                return False
+            return default
+
         # Keep old manual inject flow compatible, with Kairos-native hard/soft
         # behavior:
         # - `today inject <name>` => soft inject (no pinned time)
@@ -1724,19 +1737,6 @@ def run(args, properties):
                 if k:
                     out[k] = v
             return out
-
-        def _to_bool(raw, default=None):
-            # Tolerant bool parser for CLI property values.
-            if isinstance(raw, bool):
-                return raw
-            if raw is None:
-                return default
-            s = str(raw).strip().lower()
-            if s in ("1", "true", "yes", "on", "y"):
-                return True
-            if s in ("0", "false", "no", "off", "n"):
-                return False
-            return default
 
         def _parse_active_kairos_context(raw_args):
             """

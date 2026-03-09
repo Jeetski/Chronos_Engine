@@ -1280,7 +1280,13 @@ class KairosScheduler:
 
     def _duration_minutes(self, item: Dict[str, Any]) -> int:
         """Normalize candidate duration; fallback to 30m when unknown/non-positive."""
+        raw_payload = item.get("_raw") if isinstance(item.get("_raw"), dict) else {}
         raw = item.get("_effective_duration", item.get("duration_minutes", item.get("duration")))
+        if raw is None:
+            raw = raw_payload.get(
+                "_effective_duration",
+                raw_payload.get("duration_minutes", raw_payload.get("duration")),
+            )
         if isinstance(raw, (int, float)):
             mins = int(raw)
         elif isinstance(raw, str):
@@ -2043,7 +2049,8 @@ class KairosScheduler:
             next_start, _, _ = sorted_tl[i + 1]
             gap = max(0, next_start - curr_end)
             curr_type = str(curr_block.get("type") or "").strip().lower()
-            curr_dur = max(0, curr_end - (sorted_tl[i][0] or curr_end))
+            curr_start = sorted_tl[i][0]
+            curr_dur = max(0, curr_end - (curr_start if curr_start is not None else curr_end))
             is_anchor = str(curr_block.get("window_name") or "").upper() == "ANCHOR"
             is_timeblock = curr_type == "timeblock"
             if not is_anchor and not is_timeblock:
