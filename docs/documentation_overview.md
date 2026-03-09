@@ -213,9 +213,16 @@ SQLite mirrors for fast analytics:
 
 ### 8. Extensibility
 
-**Auto-Discovery System**:
-- All dashboard components are plug-and-play (drop folder → auto-discovered)
-- No configuration files or code editing required
+**CLI Plugin System**:
+- Config: `user/plugins/plugins.yml`
+- Load path: `user/plugins/<plugin_id>/plugin.py`
+- Contract: `register(context)` returning `commands`/`aliases`/optional `help`
+- Failure isolation: one broken plugin does not block CLI boot
+- Built-in management command: `plugins` (alias: `plugin`)
+
+**Dashboard Auto-Discovery System**:
+- All dashboard components are plug-and-play (drop folder -> auto-discovered)
+- No dashboard configuration files or code editing required
 - **Wizards**: `utilities/dashboard/wizards/<Name>/`
 - **Themes**: `utilities/dashboard/themes/<name>.css`
 - **Widgets**: `utilities/dashboard/widgets/<Name>/`
@@ -231,11 +238,12 @@ SQLite mirrors for fast analytics:
 
 **Adding Components**:
 1. **Command**: Create `commands/name.py` with `run(args, properties)`
-2. **Item Type**: Create `modules/type/main.py` with `handle_command`
-3. **Widget/View/Panel/Popup/Gadget**: Create folder in appropriate directory with `index.js`
-4. **Wizard**: Create folder in `Wizards/` with `index.js`
-5. **Theme**: Drop CSS file into `Themes/`
-6. Refresh dashboard - component appears automatically
+2. **CLI Plugin Command**: Add plugin entry in `user/plugins/plugins.yml`, then implement `user/plugins/<id>/plugin.py`
+3. **Item Type**: Create `modules/type/main.py` with `handle_command`
+4. **Widget/View/Panel/Popup/Gadget**: Create folder in appropriate directory with `index.js`
+5. **Wizard**: Create folder in `Wizards/` with `index.js`
+6. **Theme**: Drop CSS file into `Themes/`
+7. Refresh dashboard - component appears automatically
 
 See `docs/dev/extensibility.md` for complete documentation.
 

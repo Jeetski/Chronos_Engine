@@ -1,6 +1,7 @@
 import os
 import importlib.util
 import re
+from modules import console as Console
 
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -42,26 +43,39 @@ def run(args, properties):
         print("\nChronos Engine Commands")
         print("=" * 60)
         file_map = _command_file_map()
+        plugin_snapshot = Console.get_plugins_snapshot(force=False)
+        plugin_commands = set((plugin_snapshot.get("command_meta") or {}).keys())
         command_names = sorted(
-            [name for name in file_map.keys() if name != "help"],
+            [name for name in set(file_map.keys()) | plugin_commands if name != "help"],
             key=lambda s: s.lower(),
         )
         for command_name in command_names:
             command_file = file_map.get(command_name)
-            if not command_file:
-                continue
-            try:
-                spec = importlib.util.spec_from_file_location(command_name, os.path.join(COMMANDS_DIR, command_file))
-                command_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(command_module)
-                print(f"\nCommand: {command_name}")
-                if hasattr(command_module, "get_help_message"):
-                    print(command_module.get_help_message())
+            print(f"\nCommand: {command_name}")
+            if command_file:
+                try:
+                    spec = importlib.util.spec_from_file_location(command_name, os.path.join(COMMANDS_DIR, command_file))
+                    command_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(command_module)
+                    if hasattr(command_module, "get_help_message"):
+                        print(command_module.get_help_message())
+                    else:
+                        print("Description: No help message available.")
+                    continue
+                except Exception as e:
+                    print(f"Description: Error loading help message: {e}")
+                    continue
+            plugin_help = Console.get_plugin_help(command_name)
+            if plugin_help:
+                print(plugin_help)
+            else:
+                meta = (plugin_snapshot.get("command_meta") or {}).get(command_name) or {}
+                pid = str(meta.get("plugin_id") or "").strip()
+                if pid:
+                    print(f"Description: Plugin command from '{pid}'.")
                 else:
                     print("Description: No help message available.")
-            except Exception as e:
-                print(f"\nCommand: {command_name}")
-                print(f"Description: Error loading help message: {e}")
+
         print(f"\nCommand: help")
         print(get_help_message())
         print("=" * 60 + "\n")
@@ -84,6 +98,11 @@ def run(args, properties):
                 print(f"\nCommand: {command_name}")
                 print(f"Description: Error loading help message: {e}")
         else:
+            plugin_help = Console.get_plugin_help(command_name)
+            if plugin_help:
+                print(f"\nCommand: {command_name}")
+                print(plugin_help)
+                return
             print(f"Error: Command '{command_name}' not found.")
 
 

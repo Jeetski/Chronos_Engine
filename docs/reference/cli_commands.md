@@ -99,6 +99,20 @@ Displays the contents of an item in the terminal.
 Displays help information for a command.
 **Usage:** `help <command>`
 
+### `plugins`
+Inspects and reloads CLI plugins.
+**Usage:**
+- `plugins list [refresh:true|false]`
+- `plugins status`
+- `plugins reload`
+- `plugins show <plugin_id>`
+- `plugins help <plugin_command>`
+**Alias:** `plugin`
+**Notes:**
+- Reads `user/plugins/plugins.yml`.
+- Loads only from `user/plugins/<id>/plugin.py`.
+- Core commands are resolved before plugin commands.
+
 ### Console Redirection
 Chronos supports console-level output redirection for any command.
 

@@ -49,6 +49,8 @@ if ROOT_DIR not in sys.path:
 # Define paths for commands and modules directories
 COMMANDS_DIR = os.path.join(ROOT_DIR, "commands")
 MODULES_DIR = os.path.join(ROOT_DIR, "modules")
+USER_PLUGINS_DIR = os.path.join(ROOT_DIR, "user", "plugins")
+PLUGINS_CONFIG_PATH = os.path.join(USER_PLUGINS_DIR, "plugins.yml")
 
 # Ensure both COMMANDS_DIR and MODULES_DIR are in sys.path
 # This allows Python to find command and module files when imported dynamically
@@ -56,6 +58,17 @@ if COMMANDS_DIR not in sys.path:
     sys.path.insert(0, COMMANDS_DIR)
 if MODULES_DIR not in sys.path:
     sys.path.insert(0, MODULES_DIR)
+
+PLUGIN_ID_RE = re.compile(r"^[a-z0-9_-]+$")
+_PLUGIN_COMMANDS = {}
+_PLUGIN_ALIAS_MAP = {}
+_PLUGIN_COMMAND_META = {}
+_PLUGIN_BOOT_LOG = {
+    "loaded": [],
+    "disabled": [],
+    "failed": [],
+}
+_PLUGINS_LOADED = False
 
 # Now that MODULES_DIR is on sys.path, import Variables helper
 from modules import variables as Variables
@@ -94,6 +107,8 @@ def _safe_load_yaml(path):
 
 
 def _to_bool_token(value):
+    if isinstance(value, bool):
+        return value
     s = str(value or "").strip().lower()
     if s in {"true", "1", "yes", "on"}:
         return True
@@ -163,6 +178,218 @@ def _extract_runtime_options(argv_tokens):
         remaining.append(tok)
     return options, remaining
 
+
+def _normalize_plugin_id(raw_id):
+    pid = str(raw_id or "").strip().lower()
+    if not pid:
+        return ""
+    if not PLUGIN_ID_RE.match(pid):
+        return ""
+    return pid
+
+
+def _path_is_within(base_dir, target_path):
+    try:
+        base_real = os.path.realpath(base_dir)
+        target_real = os.path.realpath(target_path)
+        common = os.path.commonpath([base_real, target_real])
+        return common == base_real
+    except Exception:
+        return False
+
+
+def _iter_plugin_entries(config):
+    if isinstance(config, dict):
+        entries = config.get("plugins")
+        if isinstance(entries, list):
+            return entries
+    if isinstance(config, list):
+        return config
+    return []
+
+
+def _plugin_contract_to_maps(module, register_result):
+    commands_map = {}
+    aliases_map = {}
+    help_map = {}
+
+    if isinstance(register_result, dict):
+        commands_map = register_result.get("commands") or {}
+        aliases_map = register_result.get("aliases") or {}
+        help_map = register_result.get("help") or {}
+
+    if not commands_map:
+        commands_map = getattr(module, "COMMANDS", {}) or {}
+    if not aliases_map:
+        aliases_map = getattr(module, "ALIASES", {}) or {}
+    if not help_map:
+        help_map = getattr(module, "HELP", {}) or {}
+
+    if not isinstance(commands_map, dict):
+        commands_map = {}
+    if not isinstance(aliases_map, dict):
+        aliases_map = {}
+    if not isinstance(help_map, dict):
+        help_map = {}
+
+    return commands_map, aliases_map, help_map
+
+
+def _load_plugins(force=False):
+    global _PLUGINS_LOADED
+    if _PLUGINS_LOADED and not force:
+        return _PLUGIN_BOOT_LOG
+
+    _PLUGIN_COMMANDS.clear()
+    _PLUGIN_ALIAS_MAP.clear()
+    _PLUGIN_COMMAND_META.clear()
+    _PLUGIN_BOOT_LOG["loaded"] = []
+    _PLUGIN_BOOT_LOG["disabled"] = []
+    _PLUGIN_BOOT_LOG["failed"] = []
+
+    cfg = _safe_load_yaml(PLUGINS_CONFIG_PATH)
+    entries = _iter_plugin_entries(cfg)
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+
+        raw_id = entry.get("id") or entry.get("plugin") or entry.get("name")
+        plugin_id = _normalize_plugin_id(raw_id)
+        if not plugin_id:
+            _PLUGIN_BOOT_LOG["failed"].append({"id": str(raw_id or ""), "reason": "invalid_id"})
+            continue
+
+        enabled = _to_bool_token(entry.get("enabled"))
+        if enabled is False:
+            _PLUGIN_BOOT_LOG["disabled"].append(plugin_id)
+            continue
+
+        allow_override = bool(_to_bool_token(entry.get("allow_override")))
+        plugin_dir = os.path.join(USER_PLUGINS_DIR, plugin_id)
+        module_path = os.path.join(plugin_dir, "plugin.py")
+
+        if not _path_is_within(USER_PLUGINS_DIR, plugin_dir):
+            _PLUGIN_BOOT_LOG["failed"].append({"id": plugin_id, "reason": "path_not_allowed"})
+            continue
+        if not os.path.isfile(module_path):
+            _PLUGIN_BOOT_LOG["failed"].append({"id": plugin_id, "reason": "missing_plugin_py"})
+            continue
+
+        try:
+            spec = importlib.util.spec_from_file_location(
+                f"chronos_plugin.{plugin_id}", module_path
+            )
+            if spec is None or spec.loader is None:
+                raise RuntimeError("spec_load_failed")
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception as e:
+            _PLUGIN_BOOT_LOG["failed"].append({"id": plugin_id, "reason": f"import_error:{e}"})
+            continue
+
+        try:
+            register_result = None
+            if hasattr(mod, "register"):
+                context = {
+                    "root_dir": ROOT_DIR,
+                    "user_dir": os.path.join(ROOT_DIR, "user"),
+                    "commands_dir": COMMANDS_DIR,
+                    "plugin_id": plugin_id,
+                    "plugin_dir": plugin_dir,
+                }
+                try:
+                    register_result = mod.register(context)
+                except TypeError:
+                    # Backward-compatible fallback for register() with no args.
+                    register_result = mod.register()
+            commands_map, aliases_map, help_map = _plugin_contract_to_maps(mod, register_result)
+        except Exception as e:
+            _PLUGIN_BOOT_LOG["failed"].append({"id": plugin_id, "reason": f"register_error:{e}"})
+            continue
+
+        loaded_commands = 0
+        for raw_name, fn in commands_map.items():
+            cmd_name = _canonical_command_name(raw_name)
+            if not cmd_name or not callable(fn):
+                continue
+            has_core = bool(_get_command_file_stem(cmd_name))
+            if has_core and not allow_override:
+                continue
+            _PLUGIN_COMMANDS[cmd_name] = fn
+            h = help_map.get(raw_name)
+            if h is None:
+                h = help_map.get(cmd_name)
+            if h is None:
+                h = getattr(fn, "help_message", None) or getattr(fn, "__doc__", None)
+            _PLUGIN_COMMAND_META[cmd_name] = {
+                "plugin_id": plugin_id,
+                "help": h,
+            }
+            loaded_commands += 1
+
+        loaded_aliases = 0
+        for raw_alias, raw_target in aliases_map.items():
+            alias_name = _canonical_command_name(raw_alias)
+            target_name = _canonical_command_name(raw_target)
+            if not alias_name or not target_name:
+                continue
+            has_core_alias_target = bool(_get_command_file_stem(alias_name))
+            if has_core_alias_target and not allow_override:
+                continue
+            _PLUGIN_ALIAS_MAP[alias_name] = target_name
+            loaded_aliases += 1
+
+        _PLUGIN_BOOT_LOG["loaded"].append({
+            "id": plugin_id,
+            "commands": loaded_commands,
+            "aliases": loaded_aliases,
+        })
+
+    _PLUGINS_LOADED = True
+    return _PLUGIN_BOOT_LOG
+
+
+def _print_plugin_boot_log():
+    log = _load_plugins()
+    for item in log.get("loaded", []):
+        pid = item.get("id")
+        cmds = int(item.get("commands") or 0)
+        aliases = int(item.get("aliases") or 0)
+        print(f"Loaded plugin {pid} (commands:{cmds}, aliases:{aliases})")
+    for pid in log.get("disabled", []):
+        print(f"Skipped plugin {pid} (disabled)")
+    for item in log.get("failed", []):
+        print(f"Failed plugin {item.get('id')} ({item.get('reason')})")
+
+
+def get_plugins_snapshot(force=False):
+    log = _load_plugins(force=force)
+    return {
+        "loaded": list(log.get("loaded") or []),
+        "disabled": list(log.get("disabled") or []),
+        "failed": list(log.get("failed") or []),
+        "commands": dict(_PLUGIN_COMMANDS or {}),
+        "aliases": dict(_PLUGIN_ALIAS_MAP or {}),
+        "command_meta": dict(_PLUGIN_COMMAND_META or {}),
+    }
+
+
+def get_plugin_help(command_name):
+    try:
+        _load_plugins()
+        canonical = _canonical_command_name(command_name)
+        if not canonical:
+            return None
+        meta = (_PLUGIN_COMMAND_META or {}).get(canonical) or {}
+        help_val = meta.get("help")
+        if callable(help_val):
+            return str(help_val())
+        if isinstance(help_val, str) and help_val.strip():
+            return help_val.strip()
+    except Exception:
+        return None
+    return None
 
 
 REGISTRY_DIR = os.path.join(ROOT_DIR, "registry")
@@ -754,6 +981,7 @@ LOADED_MODULES = {}
 COMMAND_ALIASES = {
     "dash": "dashboard",
     "sounds": "sound",
+    "plugin": "plugins",
 }
 
 
@@ -823,6 +1051,12 @@ def _load_aliases():
                     target = _canonical_command_name(v)
                     if source and target:
                         aliases[source] = target
+    except Exception:
+        pass
+    try:
+        _load_plugins()
+        for k, v in (_PLUGIN_ALIAS_MAP or {}).items():
+            aliases[k] = v
     except Exception:
         pass
     return aliases
@@ -917,6 +1151,20 @@ def run_command(command_name, args, properties):
             Logger.error(f"Command failed: {command_name}", e)
             _play_cli_sound("error")
         return
+
+    try:
+        _load_plugins()
+        plugin_fn = _PLUGIN_COMMANDS.get(command_name)
+        if callable(plugin_fn):
+            try:
+                plugin_fn(args, properties)
+            except Exception as e:
+                print(f"❌ Error running plugin command '{command_name}': {e}")
+                Logger.error(f"Plugin command failed: {command_name}", e)
+                _play_cli_sound("error")
+            return
+    except Exception:
+        pass
 
     print(f"❌ Unknown command: {command_name}")
     _play_cli_sound("error")
@@ -1515,6 +1763,14 @@ if __name__ == "__main__":
     # Seed variables (e.g., @nickname from profile)
     try:
         _load_profile_and_seed_vars()
+    except Exception:
+        pass
+
+    # Load plugins early so aliases/commands are ready before first command.
+    try:
+        _load_plugins(force=True)
+        if not has_cli_input:
+            _print_plugin_boot_log()
     except Exception:
         pass
 

@@ -1,5 +1,71 @@
 # Extensibility Guide
 
+Chronos is extensible in two layers:
+- **CLI plugins**: user-configured Python command extensions loaded at console boot.
+- **Dashboard components**: filesystem auto-discovery for views/widgets/panels/wizards/etc.
+
+---
+
+## CLI Plugin System
+
+CLI plugins are configured via:
+- `user/plugins/plugins.yml`
+
+Each plugin is loaded only from:
+- `user/plugins/<plugin_id>/plugin.py`
+
+### Config Schema
+
+```yaml
+plugins:
+  - id: my_plugin
+    enabled: true
+    allow_override: false
+```
+
+### Safety Rules
+
+- Plugin IDs must match: `^[a-z0-9_-]+$`
+- Plugin paths are constrained under `user/plugins/`
+- Each plugin import/register is isolated so one failure does not stop boot
+- Core command files resolve first; plugin commands resolve second
+
+### Plugin Contract
+
+Minimal contract in `plugin.py`:
+
+```python
+def register(context):
+    def my_command(args, properties):
+        print("hello from plugin")
+
+    return {
+        "commands": {
+            "mycmd": my_command,
+        },
+        "aliases": {
+            "mc": "mycmd",
+        },
+        "help": {
+            "mycmd": "Usage: mycmd\\nDescription: ...",
+        },
+    }
+```
+
+Also supported:
+- `register()` with no args (backward-compatible)
+- Module-level `COMMANDS`, `ALIASES`, `HELP` dicts
+
+### CLI Management
+
+Built-in command:
+- `plugins list|status|reload|show|help`
+- Alias: `plugin`
+
+---
+
+## Dashboard Auto-Discovery System
+
 Chronos Dashboard is designed to be **fully extensible** through a plug-and-play architecture. All components (Wizards, Themes, Views, Widgets, Panels, Popups, and Gadgets) are automatically discovered by scanning the filesystem - no configuration files or code editing required.
 
 ## Auto-Discovery System

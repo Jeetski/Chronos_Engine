@@ -34,7 +34,7 @@ This index points to the main documentation entry points in this repo and what e
 ## Development
 - Architecture: `docs/dev/architecture.md` - runtime modules and data flow.
 - Development Conventions: `docs/dev/dev_conventions.md` - naming, path, and contribution standards (`lower_snake_case`).
-- Extensibility: `docs/dev/extensibility.md` - dynamic registries (Wizards, Themes, Data Cards).
+- Extensibility: `docs/dev/extensibility.md` - CLI plugin system and dashboard auto-discovery registries.
 - Data Cards: `docs/dev/data_cards.md` - generic item schema and backend details.
 - Sequence Mirrors: `docs/dev/sequence.md` - SQLite mirrors and trends pipeline.
 - Macros (BEFORE/AFTER): `docs/dev/macros.md` - command hooks and macro config.

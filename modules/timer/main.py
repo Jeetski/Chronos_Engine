@@ -994,8 +994,25 @@ def _time_to_minutes(label):
 def _is_future_anchor_block(block):
     if not isinstance(block, dict):
         return False
-    schedule_type = str(block.get("schedule_type") or "").strip().lower()
-    if "anchor" not in schedule_type:
+    window_name = str(block.get("window_name") or "").strip().upper()
+    if window_name == "ANCHOR":
+        anchor_like = True
+    elif bool(block.get("anchored")):
+        anchor_like = True
+    else:
+        anchor_like = False
+        reschedule = block.get("reschedule")
+        if isinstance(reschedule, bool):
+            anchor_like = (reschedule is False)
+        elif isinstance(reschedule, str):
+            anchor_like = reschedule.strip().lower() in ("never", "false", "no")
+        if not anchor_like:
+            subtype = str(block.get("subtype") or block.get("timeblock_subtype") or "").strip().lower()
+            anchor_like = subtype == "anchor"
+        if not anchor_like:
+            schedule_type = str(block.get("schedule_type") or "").strip().lower()
+            anchor_like = "anchor" in schedule_type
+    if not anchor_like:
         return False
     start_label = block.get("start") or block.get("scheduled_start")
     start_min = _time_to_minutes(str(start_label or ""))
@@ -1178,6 +1195,10 @@ def _build_schedule_plan_for_date(date_key: str):
             "minutes": max(1, int(minutes)),
             "is_buffer": is_buffer,
             "schedule_type": block.get("type"),
+            "window_name": block.get("window_name"),
+            "reschedule": block.get("reschedule"),
+            "anchored": bool(block.get("anchored")),
+            "subtype": block.get("subtype") or block.get("timeblock_subtype"),
             "start": _normalize_time_label(block.get("start_time") or block.get("ideal_start_time")),
             "end": _normalize_time_label(block.get("end_time") or block.get("ideal_end_time")),
             "buffer_type": block.get("buffer_type"),
