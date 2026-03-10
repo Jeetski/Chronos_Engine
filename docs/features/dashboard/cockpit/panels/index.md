@@ -15,6 +15,7 @@ Expanded feature docs for cockpit panels.
 10. `docs/features/dashboard/cockpit/panels/panel_checklist.md`
 11. `docs/features/dashboard/cockpit/panels/panel_flashcards.md`
 12. `docs/features/dashboard/cockpit/panels/panel_random_picker.md`
+13. `docs/features/dashboard/cockpit/panels/panel_progress_gauge.md`
 
 ## Full List
 - `docs/features/dashboard/cockpit/panels/panel_checklist.md`
@@ -26,6 +27,7 @@ Expanded feature docs for cockpit panels.
 - `docs/features/dashboard/cockpit/panels/panel_map_of_happiness.md`
 - `docs/features/dashboard/cockpit/panels/panel_matrix.md`
 - `docs/features/dashboard/cockpit/panels/panel_matrix_visuals.md`
+- `docs/features/dashboard/cockpit/panels/panel_progress_gauge.md`
 - `docs/features/dashboard/cockpit/panels/panel_random_picker.md`
 - `docs/features/dashboard/cockpit/panels/panel_schedule.md`
 - `docs/features/dashboard/cockpit/panels/panel_status_strip.md`

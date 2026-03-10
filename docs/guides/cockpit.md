@@ -20,6 +20,7 @@ The Cockpit is the dashboard’s drag-and-drop canvas for live panels. It shares
 - **Commitments** - Snapshot of rules, violations, on-track counts; evaluate via `/api/cli commitments check`.
 - **Map of Happiness** - Reads `user/settings/map_of_happiness.yml`; shows coverage/satisfaction.
 - **Status Strip** - Horizontal ticker of status indicators, color-coded by priority.
+- **Progress Gauge** - One or more circular gauges for countdowns and numeric targets.
 
 ## Data Sources
 

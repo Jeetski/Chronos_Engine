@@ -70,6 +70,7 @@ const POST_RELEASE_PANELS = new Set(['map of happiness', 'flashcards']);
 const PRIORITY_PANELS = new Set(['commitments', 'commitments snapshot']);
 const URGENT_PANELS = new Set(['status chart', 'status strip', 'schedule panel', 'matrix', 'matrix visuals']);
 const URGENT_GADGETS = new Set(['timer', 'reschedule']);
+const DEV_GADGETS = new Set(['progress gauge', 'progress_gauge']);
 
 function arePopupsEnabled() {
   try {
@@ -1135,6 +1136,12 @@ ready(async () => {
           badge.className = 'urgent-badge';
           badge.textContent = 'urgent';
           badge.title = 'Urgent gadget';
+          item.appendChild(badge);
+        } else if (DEV_GADGETS.has(normalized) || DEV_GADGETS.has(normalizedKey)) {
+          const badge = document.createElement('span');
+          badge.className = 'dev-badge';
+          badge.textContent = 'dev';
+          badge.title = 'Development feature';
           item.appendChild(badge);
         }
       }

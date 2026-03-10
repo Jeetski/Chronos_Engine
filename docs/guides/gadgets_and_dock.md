@@ -39,7 +39,7 @@ This guide covers daily use and developer extension points.
 
 ## Built-In Gadgets
 
-As of March 2026, two gadgets ship by default.
+As of March 2026, three gadgets ship by default.
 
 ### 1. Timer Gadget
 
@@ -68,6 +68,19 @@ Behavior:
 - Executes through CLI bridge:
   - `POST /api/cli` with `{ command: "today", args: ["reschedule"] }`
 - Reloads Calendar today view after success.
+
+### 3. Progress Gauge Gadget
+
+Location: `utilities/dashboard/gadgets/progress_gauge/`
+
+Behavior:
+- Shows a compact circular progress ring in the dock.
+- Supports:
+  - countdown to a target date
+  - numeric progress against a target
+  - item-backed numeric properties via `GET /api/item`
+- Click opens an inline editor/menu.
+- Refreshes automatically on a short interval and can be refreshed manually.
 
 ---
 

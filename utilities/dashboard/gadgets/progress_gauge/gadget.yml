@@ -1,0 +1,4 @@
+label: "Progress Gauge"
+module: "progress_gauge"
+enabled: true
+order: 30
