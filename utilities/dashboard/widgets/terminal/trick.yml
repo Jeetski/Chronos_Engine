@@ -1,0 +1,41 @@
+type: widget
+name: terminal
+label: Terminal
+module: terminal
+root: widget.terminal
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: copy_button
+    kind: button
+    actions: [click]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: output_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: identity_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: input_field
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: ghost_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: run_button
+    kind: button
+    actions: [click]
+  - name: expand_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

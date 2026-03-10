@@ -1,0 +1,27 @@
+type: widget
+name: resolution_tracker
+label: Resolutions
+module: resolution_tracker
+root: widget.resolution_tracker
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: refresh_button
+    kind: button
+    actions: [click]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: stats_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: list_container
+    kind: container
+    actions: [get, wait, copy]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

@@ -1,20 +1,22 @@
 export function mount(el) {
   el.className = 'widget status-widget';
+  try { el.dataset.uiId = 'widget.status'; } catch { }
 
   const tpl = `
-    <div class="header" id="statusHeader">
-      <div class="title">Status Station</div>
+    <div class="header" id="statusHeader" data-ui-id="widget.status.header">
+      <div class="title" data-ui-id="widget.status.title">Status Station</div>
       <div class="controls">
-        <button class="icon-btn" id="statusMin" title="Minimize">_</button>
-        <button class="icon-btn" id="statusClose" title="Close">x</button>
+        <button class="icon-btn" id="statusMin" title="Minimize" data-ui-id="widget.status.minimize_button">_</button>
+        <button class="icon-btn" id="statusClose" title="Close" data-ui-id="widget.status.close_button">x</button>
       </div>
     </div>
-    <div class="content">
-      <div id="statusFields"></div>
+    <div class="content" data-ui-id="widget.status.panel">
+      <div id="statusFields" data-ui-id="widget.status.fields_container"></div>
       <div class="row">
         <div class="spacer"></div>
-        <button class="btn btn-primary" id="statusUpdate">Update</button>
+        <button class="btn btn-primary" id="statusUpdate" data-ui-id="widget.status.update_button">Update</button>
       </div>
+      <div class="hint" id="statusText" data-ui-id="widget.status.status_text">Ready.</div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -37,7 +39,12 @@ export function mount(el) {
   const contentRoot = el.querySelector('.content');
   const fieldsRoot = el.querySelector('#statusFields');
   const btnUpdate = el.querySelector('#statusUpdate');
+  const statusTextEl = el.querySelector('#statusText');
   fieldsRoot.classList.add('status-knob-polygon');
+
+  function setStatusText(text) {
+    if (statusTextEl) statusTextEl.textContent = String(text || 'Ready.');
+  }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -123,6 +130,7 @@ export function mount(el) {
 
     const valDisplay = document.createElement('div');
     valDisplay.className = 'knob-value-display';
+    valDisplay.setAttribute('data-ui-id', `widget.status.${typeSlug}_value`);
     wrap.appendChild(valDisplay);
 
     // State
@@ -399,8 +407,11 @@ export function mount(el) {
     function onUp() { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); }
     window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
   });
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => el.style.display = 'none');
+  btnMin.addEventListener('click', () => {
+    el.classList.toggle('minimized');
+    setStatusText(el.classList.contains('minimized') ? 'Minimized.' : 'Ready.');
+  });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; setStatusText('Closed.'); });
 
   // Update handler
   btnUpdate.addEventListener('click', async () => {
@@ -408,6 +419,7 @@ export function mount(el) {
     const lines = [];
     Object.keys(fieldRefs).forEach(k => { const v = fieldRefs[k].value; if (v) lines.push(`${k}: ${v}`); });
     const payload = lines.join('\n');
+    setStatusText('Updating status...');
     try {
       const resp = await fetch(apiBase() + '/api/status/update', { method: 'POST', headers: { 'Content-Type': 'text/yaml' }, body: payload });
       const text = await resp.text();
@@ -420,12 +432,15 @@ export function mount(el) {
           console.warn('[Chronos][Status] Refresh failed after update:', e);
         }
         triggerRadarUpdateFx();
+        setStatusText('Status updated.');
         setTimeout(() => { alert('Status updated.'); }, 780);
       } else {
+        setStatusText('Status update failed.');
         alert('Failed to update status.');
       }
     } catch (e) {
       console.error('[Chronos][Status] Update error:', e);
+      setStatusText('Status update failed.');
       alert('Failed to reach Chronos dashboard server. Run: dashboard');
     }
   });
@@ -439,9 +454,9 @@ export function mount(el) {
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(minWidgetHeight, e.clientY - sr.top) + 'px'; })(ev); });
   if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(minWidgetWidth, e.clientX - sr.left) + 'px'; el.style.height = Math.max(minWidgetHeight, e.clientY - sr.top) + 'px'; })(ev); });
 
-  initFields().then(() => fetchCurrentStatus().then(applyCurrentStatus).catch(() => { })).catch(() => {
+  initFields().then(() => fetchCurrentStatus().then((status) => { applyCurrentStatus(status); setStatusText('Status loaded.'); }).catch(() => { })).catch(() => {
     renderFields();
-    fetchCurrentStatus().then(applyCurrentStatus).catch(() => { });
+    fetchCurrentStatus().then((status) => { applyCurrentStatus(status); setStatusText('Status loaded.'); }).catch(() => { });
   });
 
   try {

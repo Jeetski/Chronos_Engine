@@ -1,0 +1,69 @@
+type: widget
+name: achievements
+label: Achievements
+module: achievements
+root: widget.achievements
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: total_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: awarded_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: pending_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: level_ring
+    kind: text
+    actions: [get, wait]
+  - name: level_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: level_meta_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: list_toggle_button
+    kind: button
+    actions: [click]
+  - name: list_section
+    kind: container
+    actions: [get, wait]
+  - name: search_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: status_filter_select
+    kind: select
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: title_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: set_title_button
+    kind: button
+    actions: [click]
+  - name: refresh_button
+    kind: button
+    actions: [click]
+  - name: award_primary_button
+    kind: button
+    actions: [click]
+  - name: archive_primary_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: list_container
+    kind: container
+    actions: [get, wait, copy]

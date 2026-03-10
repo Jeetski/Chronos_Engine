@@ -9,6 +9,7 @@ export function mount(el) {
   }
 
   el.className = 'widget achievements-widget';
+  try { el.dataset.uiId = 'widget.achievements'; } catch { }
 
   const tpl = `
     <style>
@@ -69,58 +70,63 @@ export function mount(el) {
       .ac-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
       .ac-item.expanded .ac-detail { display:flex; }
     </style>
-    <div class="header">
-      <div class="title">Achievements</div>
+    <div class="header" data-ui-id="widget.achievements.header">
+      <div class="title" data-ui-id="widget.achievements.title">Achievements</div>
       <div class="controls" style="align-items:center; gap:6px;">
-        <button class="icon-btn" id="acMin">_</button>
-        <button class="icon-btn" id="acClose">x</button>
+        <button class="icon-btn" id="acMin" data-ui-id="widget.achievements.minimize_button">_</button>
+        <button class="icon-btn" id="acClose" data-ui-id="widget.achievements.close_button">x</button>
       </div>
     </div>
-    <div class="content ac-content">
+    <div class="content ac-content" data-ui-id="widget.achievements.panel">
       <div class="ac-cards">
         <div class="ac-card">
           <h4>Total</h4>
-          <div class="ac-card-value" id="acTotal">--</div>
+          <div class="ac-card-value" id="acTotal" data-ui-id="widget.achievements.total_text">--</div>
           <div class="ac-card-meta">All achievements tracked.</div>
         </div>
         <div class="ac-card">
           <h4>Awarded</h4>
-          <div class="ac-card-value" id="acAwarded">--</div>
+          <div class="ac-card-value" id="acAwarded" data-ui-id="widget.achievements.awarded_text">--</div>
           <div class="ac-card-meta">Unlocked achievements.</div>
         </div>
         <div class="ac-card">
           <h4>Pending</h4>
-          <div class="ac-card-value" id="acPending">--</div>
+          <div class="ac-card-value" id="acPending" data-ui-id="widget.achievements.pending_text">--</div>
           <div class="ac-card-meta">Still waiting to celebrate.</div>
         </div>
         <div class="ac-card ac-level-card" aria-label="Level progress">
           <div class="ac-level-wrap">
-            <div class="ac-level-ring" id="acLevelRing">
-              <div class="ac-level-ring-center" id="acLevelText">LVL 1</div>
+            <div class="ac-level-ring" id="acLevelRing" data-ui-id="widget.achievements.level_ring">
+              <div class="ac-level-ring-center" id="acLevelText" data-ui-id="widget.achievements.level_text">LVL 1</div>
             </div>
-            <div class="ac-level-meta" id="acLevelMeta">0 / 1000 XP</div>
+            <div class="ac-level-meta" id="acLevelMeta" data-ui-id="widget.achievements.level_meta_text">0 / 1000 XP</div>
           </div>
         </div>
       </div>
-      <button class="btn ac-list-toggle" id="acListToggle" aria-expanded="false">Show List Section ▾</button>
-      <div id="acListSection" class="ac-list-section" hidden>
+      <button class="btn ac-list-toggle" id="acListToggle" aria-expanded="false" data-ui-id="widget.achievements.list_toggle_button">Show List Section ▾</button>
+      <div id="acListSection" class="ac-list-section" hidden data-ui-id="widget.achievements.list_section">
         <div class="row" style="gap:8px; flex-wrap:wrap; align-items:center;">
-          <input id="acSearch" class="input" placeholder="Search achievements..." style="flex:1 1 220px; min-width:160px;" />
-          <select id="acStatusFilter" class="input" style="flex:0 0 180px;">
+          <input id="acSearch" class="input" placeholder="Search achievements..." style="flex:1 1 220px; min-width:160px;" data-ui-id="widget.achievements.search_input" />
+          <select id="acStatusFilter" class="input" style="flex:0 0 180px;" data-ui-id="widget.achievements.status_filter_select">
             <option value="all">All states</option>
             <option value="pending">Pending</option>
             <option value="awarded">Awarded</option>
             <option value="archived">Archived</option>
           </select>
-          <select id="acTitleSelect" class="input" style="flex:0 0 200px;">
+          <select id="acTitleSelect" class="input" style="flex:0 0 200px;" data-ui-id="widget.achievements.title_select">
             <option value="">Select title...</option>
           </select>
-          <button class="btn" id="acSetTitle">Set Title</button>
+          <button class="btn" id="acSetTitle" data-ui-id="widget.achievements.set_title_button">Set Title</button>
           <div class="spacer"></div>
-          <button class="btn" id="acRefresh">Refresh</button>
+          <button class="btn" id="acRefresh" data-ui-id="widget.achievements.refresh_button">Refresh</button>
         </div>
-        <div id="acStatusLine" class="ac-status"></div>
-        <div id="acList" class="ac-list"></div>
+        <div class="row" style="gap:8px; align-items:center;">
+          <button class="btn btn-primary" id="acAwardPrimary" data-ui-id="widget.achievements.award_primary_button">Award Primary</button>
+          <button class="btn btn-secondary" id="acArchivePrimary" data-ui-id="widget.achievements.archive_primary_button">Archive Primary</button>
+          <div class="spacer"></div>
+        </div>
+        <div id="acStatusLine" class="ac-status" data-ui-id="widget.achievements.status_text"></div>
+        <div id="acList" class="ac-list" data-ui-id="widget.achievements.list_container"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -147,9 +153,11 @@ export function mount(el) {
   const levelRingEl = el.querySelector('#acLevelRing');
   const levelTextEl = el.querySelector('#acLevelText');
   const levelMetaEl = el.querySelector('#acLevelMeta');
+  const awardPrimaryBtn = el.querySelector('#acAwardPrimary');
+  const archivePrimaryBtn = el.querySelector('#acArchivePrimary');
 
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Achievements'); } catch { } });
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : ''); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { setStatus('Closed.'); window?.ChronosBus?.emit?.('widget:closed', 'Achievements'); } catch { } });
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -376,6 +384,25 @@ export function mount(el) {
     });
   }
 
+  function getPrimaryVisibleAchievement() {
+    const term = (searchEl.value || '').trim().toLowerCase();
+    const wanted = (statusSel.value || 'all').toLowerCase();
+    const filtered = achievements.filter(item => {
+      if (wanted !== 'all' && (item.state || item.status || '').toLowerCase() !== wanted) return false;
+      if (!term) return true;
+      const hay = `${item.name || ''} ${item.description || ''} ${item.category || ''} ${(item.tags || []).join(' ')}`.toLowerCase();
+      return hay.includes(term);
+    });
+    filtered.sort((a, b) => {
+      const stateRank = { 'awarded': 0, 'pending': 1, 'archived': 2 };
+      const ar = stateRank[(a.state || 'pending').toLowerCase()] ?? 1;
+      const br = stateRank[(b.state || 'pending').toLowerCase()] ?? 1;
+      if (ar !== br) return ar - br;
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    });
+    return filtered[0] || null;
+  }
+
   async function updateAchievement(item, action, button) {
     if (!item?.name) return;
     const original = button?.textContent;
@@ -433,6 +460,16 @@ export function mount(el) {
       console.warn('[Achievements] title update failed', err);
       setStatus('Failed to update title.', 'error');
     }
+  });
+  awardPrimaryBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleAchievement();
+    if (!item) return;
+    updateAchievement(item, 'award', awardPrimaryBtn);
+  });
+  archivePrimaryBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleAchievement();
+    if (!item) return;
+    updateAchievement(item, 'archive', archivePrimaryBtn);
   });
 
   setListOpen(false);

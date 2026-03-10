@@ -144,6 +144,7 @@ export async function mount(elem, context) {
 
   el = elem;
   elem.className = 'widget profile-widget';
+  elem.dataset.uiId = 'widget.profile';
 
   const resp = await fetch(new URL('./template.html', import.meta.url));
   el.innerHTML = await resp.text();
@@ -176,6 +177,8 @@ export async function mount(elem, context) {
   // Close button
   const closeBtn = el.querySelector('#profileClose');
   if (closeBtn) closeBtn.addEventListener('click', () => { el.style.display = 'none'; });
+  const minBtn = el.querySelector('#profileMin');
+  if (minBtn) minBtn.addEventListener('click', () => { el.classList.toggle('minimized'); });
 
   // Save button
   const saveBtn = el.querySelector('#save-profile');
@@ -195,13 +198,15 @@ export async function mount(elem, context) {
         }
       };
       try {
+        setStatus('Saving profile...');
         const respSave = await fetch(apiBase() + '/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const ok = respSave.ok; // server returns JSON ok:true, but treat HTTP ok as success
         if (!ok) throw new Error('Save failed');
         await loadProfile();
+        setStatus('Profile saved.');
       } catch (e) {
         console.error('Profile save failed:', e);
-        alert('Save failed');
+        setStatus('Save failed.', true);
       }
     });
   }
@@ -215,6 +220,7 @@ export async function mount(elem, context) {
       const file = avatarFileInput.files && avatarFileInput.files[0];
       if (!file) return;
       try {
+        setStatus('Uploading avatar...');
         const avatarDataUrl = await fileToPngDataUrl(file);
         const respUpload = await fetch(apiBase() + '/api/profile/avatar', {
           method: 'POST',
@@ -223,9 +229,10 @@ export async function mount(elem, context) {
         });
         if (!respUpload.ok) throw new Error('Avatar upload failed');
         await loadProfile();
+        setStatus('Avatar updated.');
       } catch (e) {
         console.error('Avatar update failed:', e);
-        alert('Avatar update failed');
+        setStatus('Avatar update failed.', true);
       } finally {
         avatarFileInput.value = '';
       }
@@ -260,6 +267,7 @@ export async function mount(elem, context) {
         return;
       }
       showNotesWidget();
+      setStatus(`Opened ${title} in Notes.`);
     } catch { }
   }
   if (editPrefsBtn) {
@@ -294,5 +302,12 @@ export async function mount(elem, context) {
 
   await loadUnlockedTitles();
   await loadProfile();
+  setStatus('Ready.');
 }
 
+  const statusEl = el.querySelector('#profile-status');
+  function setStatus(message, isError = false) {
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.style.color = isError ? '#ef6a6a' : '#a6adbb';
+  }

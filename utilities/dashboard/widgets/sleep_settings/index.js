@@ -1,5 +1,6 @@
 export function mount(el, context = {}) {
   el.className = 'widget sleep-settings-widget';
+  el.dataset.uiId = 'widget.sleep_settings';
 
   if (!document.getElementById('sleep-settings-widget-style')) {
     const style = document.createElement('style');
@@ -455,14 +456,14 @@ export function mount(el, context = {}) {
   function render() {
     el.innerHTML = `
       <div class="sleep-widget-shell">
-        <div class="sleep-widget-header header" id="sleepWidgetHeader">
-          <div class="sleep-widget-title title">Sleep Settings</div>
+        <div class="sleep-widget-header header" id="sleepWidgetHeader" data-ui-id="widget.sleep_settings.header">
+          <div class="sleep-widget-title title" data-ui-id="widget.sleep_settings.title">Sleep Settings</div>
           <div class="sleep-widget-controls controls">
-            <button class="icon-btn" id="sleepMin" title="Minimize">_</button>
-            <button class="icon-btn" id="sleepClose" title="Close">x</button>
+            <button class="icon-btn" id="sleepMin" title="Minimize" data-ui-id="widget.sleep_settings.minimize_button">_</button>
+            <button class="icon-btn" id="sleepClose" title="Close" data-ui-id="widget.sleep_settings.close_button">x</button>
           </div>
         </div>
-        <div class="sleep-widget-content content" id="sleepWidgetContent"></div>
+        <div class="sleep-widget-content content" id="sleepWidgetContent" data-ui-id="widget.sleep_settings.content"></div>
         <div class="resizer e"></div>
         <div class="resizer s"></div>
         <div class="resizer se"></div>
@@ -475,6 +476,7 @@ export function mount(el, context = {}) {
     const modeInline = createEl('div', 'sleep-inline');
     const modeSelect = document.createElement('select');
     modeSelect.className = 'sleep-input';
+    modeSelect.dataset.uiId = 'widget.sleep_settings.mode_select';
     ['monophasic', 'biphasic', 'polyphasic'].forEach(v => {
       const opt = document.createElement('option');
       opt.value = v;
@@ -485,11 +487,13 @@ export function mount(el, context = {}) {
     const splitsInput = document.createElement('input');
     splitsInput.className = 'sleep-input';
     splitsInput.type = 'number';
+    splitsInput.dataset.uiId = 'widget.sleep_settings.splits_input';
     splitsInput.min = '3';
     splitsInput.max = '6';
     splitsInput.value = String(state.splits);
     splitsInput.style.maxWidth = '90px';
     const applyMode = createEl('button', 'sleep-btn', 'Apply Mode Preset');
+    applyMode.dataset.uiId = 'widget.sleep_settings.apply_mode_button';
     applyMode.addEventListener('click', () => {
       state.mode = modeSelect.value;
       state.splits = splitsInput.value;
@@ -500,7 +504,9 @@ export function mount(el, context = {}) {
     modeCard.appendChild(modeInline);
 
     const blocksWrap = createEl('div');
+    blocksWrap.dataset.uiId = 'widget.sleep_settings.blocks_container';
     const chartHost = createEl('div');
+    chartHost.dataset.uiId = 'widget.sleep_settings.chart_container';
     const refreshChart = () => renderClockPie(chartHost, collectBlocks(blocksWrap));
     state.blocks.forEach(block => blocksWrap.appendChild(createBlockRow(block, refreshChart)));
     modeCard.appendChild(blocksWrap);
@@ -508,11 +514,13 @@ export function mount(el, context = {}) {
 
     const addInline = createEl('div', 'sleep-inline');
     const addSeg = createEl('button', 'sleep-btn', 'Add Sleep Segment');
+    addSeg.dataset.uiId = 'widget.sleep_settings.add_segment_button';
     addSeg.addEventListener('click', () => {
       blocksWrap.appendChild(createBlockRow({ label: 'Sleep Segment', start: '', end: '', days: defaultDays() }, refreshChart));
       refreshChart();
     });
     const addIn = createEl('button', 'sleep-btn', 'Add Sleep-In');
+    addIn.dataset.uiId = 'widget.sleep_settings.add_sleep_in_button';
     addIn.addEventListener('click', () => {
       blocksWrap.appendChild(createBlockRow({ label: 'Sleep In', start: '', end: '', days: ['sat', 'sun'] }, refreshChart));
       refreshChart();
@@ -533,6 +541,9 @@ export function mount(el, context = {}) {
       input.type = 'radio';
       input.name = 'sleep-template-mode';
       input.value = m.id;
+      if (m.id === 'selected') input.dataset.uiId = 'widget.sleep_settings.template_mode_selected_radio';
+      if (m.id === 'all') input.dataset.uiId = 'widget.sleep_settings.template_mode_all_radio';
+      if (m.id === 'new') input.dataset.uiId = 'widget.sleep_settings.template_mode_new_radio';
       input.checked = state.templates.mode === m.id;
       input.addEventListener('change', () => { state.templates.mode = m.id; render(); });
       label.append(input, document.createTextNode(` ${m.label}`));
@@ -544,6 +555,7 @@ export function mount(el, context = {}) {
       const nameInput = document.createElement('input');
       nameInput.className = 'sleep-input';
       nameInput.placeholder = 'Template name';
+      nameInput.dataset.uiId = 'widget.sleep_settings.template_name_input';
       nameInput.value = state.templates.name;
       nameInput.addEventListener('input', () => { state.templates.name = nameInput.value; });
       applyCard.appendChild(nameInput);
@@ -566,6 +578,7 @@ export function mount(el, context = {}) {
 
     const applyInline = createEl('div', 'sleep-inline');
     const applyBtn = createEl('button', 'sleep-btn primary', 'Apply Sleep Anchors');
+    applyBtn.dataset.uiId = 'widget.sleep_settings.apply_sleep_button';
     applyBtn.addEventListener('click', async () => {
       try {
         const blocks = collectBlocks(blocksWrap);
@@ -585,8 +598,10 @@ export function mount(el, context = {}) {
     });
     applyInline.append(applyBtn);
 
-    content.append(modeCard, applyCard, createEl('div', 'sleep-status', ''), applyInline);
-    content.querySelector('.sleep-status').setAttribute('data-sleep-status', '1');
+    const statusLine = createEl('div', 'sleep-status', '');
+    statusLine.setAttribute('data-sleep-status', '1');
+    statusLine.dataset.uiId = 'widget.sleep_settings.status_text';
+    content.append(modeCard, applyCard, statusLine, applyInline);
 
     el.querySelector('#sleepMin')?.addEventListener('click', () => el.classList.toggle('minimized'));
     el.querySelector('#sleepClose')?.addEventListener('click', () => { el.style.display = 'none'; });

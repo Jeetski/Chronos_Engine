@@ -105,11 +105,316 @@ def _trick_session(actor):
     state = _TRICK_SESSION_STATE.get(key)
     if not isinstance(state, dict):
         state = {
+            "clipboard": "",
             "profile_select": "classic_pomodoro",
             "cycles_input": None,
             "auto_advance_checkbox": True,
             "bind_type_input": "",
             "bind_name_input": "",
+            "today": {
+                "environment_slider": 7,
+                "category_slider": 6,
+                "happiness_slider": 5,
+                "due_date_slider": 4,
+                "deadline_slider": 5,
+                "status_slider": 3,
+                "priority_slider": 2,
+                "template_slider": 1,
+                "custom_property_key_input": "",
+                "custom_property_slider": 5,
+                "balance_slider": 5,
+                "enforcer_environment_scope_select": "day",
+                "enforcer_environment_input": "",
+                "enforcer_template_day_input": "",
+                "enforcer_template_input": "",
+                "schedule_state_select": "draft",
+                "buffers_checkbox": True,
+                "timer_breaks_checkbox": False,
+                "sprints_checkbox": False,
+                "ignore_trends_checkbox": False,
+                "repair_trim_checkbox": True,
+                "repair_cut_checkbox": False,
+                "timer_profile_input": "",
+                "template_override_input": "",
+                "quickwins_input": None,
+                "repair_min_duration_input": None,
+                "repair_cut_threshold_input": None,
+                "status_threshold_input": None,
+                "preset_hint_text": "Safe: trim on, cut off, min 20m, threshold 0.85. Balanced: trim on, cut on, min 12m, threshold 0.60. Aggressive: trim on, cut on, min 8m, threshold 0.40.",
+                "window_filter_row_count": 0,
+                "calendar_context_visible": False,
+                "calendar_day_label": "Calendar day selected.",
+                "calendar_day_note": "",
+                "selection_hint": "Select a day in Calendar to preview the schedule.",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "terminal": {
+                "identity_text": "chronos@you",
+                "input_field": "",
+                "ghost_text": "",
+                "expand_checkbox": True,
+                "output_text": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "item_manager": {
+                "type_select": "task",
+                "search_input": "",
+                "count_text": "0 items",
+                "list_items": [],
+                "item_name_input": "",
+                "yaml_input": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "status_widget": {
+                "values": {},
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "goal_tracker": {
+                "search_input": "",
+                "goals": [],
+                "selected_goal": None,
+                "goal_title_text": "Select a goal",
+                "goal_progress": 0,
+                "goal_meta_text": "",
+                "milestones_text": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "milestones_widget": {
+                "search_input": "",
+                "status_filter_select": "all",
+                "project_filter_select": "all",
+                "goal_filter_select": "all",
+                "list_open": False,
+                "milestones": [],
+                "summary": {"total": 0, "completed": 0, "in_progress": 0},
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "commitments_widget": {
+                "search_input": "",
+                "status_filter_select": "all",
+                "list_open": False,
+                "commitments": [],
+                "summary": {"total": 0, "met": 0, "violations": 0},
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "rewards_widget": {
+                "search_input": "",
+                "ready_only_checkbox": False,
+                "list_open": False,
+                "balance": 0,
+                "history": [],
+                "rewards": [],
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "achievements_widget": {
+                "search_input": "",
+                "status_filter_select": "all",
+                "title_select": "",
+                "list_open": False,
+                "achievements": [],
+                "counts": {"total": 0, "awarded": 0, "pending": 0, "archived": 0},
+                "current_title": "",
+                "profile_progress": {"level": 1, "xp_total": 0, "xp_into_level": 0, "xp_to_next_level": 1000},
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "habit_tracker": {
+                "search_input": "",
+                "polarity_select": "all",
+                "habits": [],
+                "summary_text": "",
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "review_widget": {
+                "type_select": "daily",
+                "period_input": "",
+                "expand_checkbox": True,
+                "status_text": "",
+                "log_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "variables_widget": {
+                "rows": {},
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "resolution_tracker": {
+                "items": [],
+                "stats_text": "",
+                "list_text": "",
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "notes_widget": {
+                "title_input": "",
+                "format_select": "note",
+                "preview_checkbox": False,
+                "category_select": "",
+                "priority_select": "",
+                "tags_input": "",
+                "path_hint_text": "",
+                "content_input": "",
+                "preview_text": "",
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "inventory_manager_widget": {
+                "search_input": "",
+                "place_filter_select": "",
+                "new_name_input": "",
+                "new_places_input": "",
+                "new_tags_input": "",
+                "inventories": [],
+                "selected_name": "",
+                "selected_detail": "",
+                "count_text": "",
+                "status_text": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "profile_widget": {
+                "nickname_input": "",
+                "title_select": "",
+                "available_titles": [],
+                "welcome_line1_input": "",
+                "welcome_line2_input": "",
+                "welcome_line3_input": "",
+                "exit_line1_input": "",
+                "exit_line2_input": "",
+                "avatar_preview": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "settings_widget": {
+                "file_select": "",
+                "files": [],
+                "form_mode_checkbox": True,
+                "editor_input": "",
+                "dynamic_content": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "sleep_settings_widget": {
+                "mode_select": "monophasic",
+                "splits_input": 3,
+                "template_mode_select": "selected",
+                "template_name_input": "Sleep Skeleton",
+                "selected_templates": [],
+                "available_templates": [],
+                "blocks_text": "Core Sleep|22:00|06:00|mon,tue,wed,thu,fri,sat,sun",
+                "chart_container": "Sleep total: 8h",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "link_widget": {
+                "peer_input": "",
+                "token_input": "",
+                "board_select": "",
+                "boards": [],
+                "status_text": "offline",
+                "peer_status_text": "unknown",
+                "last_sync_text": "Last sync: never",
+                "invite_text": "",
+                "connected": False,
+                "minimized": False,
+                "closed": False,
+            },
+            "trends_widget": {
+                "metrics_container": "Loading...",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "admin_widget": {
+                "db_select": "",
+                "dbs": [],
+                "registry_select": "wizards",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "cockpit_minimap_widget": {
+                "hint_text": "Open the Cockpit view to use the minimap.",
+                "track_container": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "debug_console_widget": {
+                "filter_select": "all",
+                "output_text": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "clock_widget": {
+                "mode_select": "analog",
+                "time_text": "",
+                "date_text": "",
+                "status_text": "Ready.",
+                "minimized": False,
+                "closed": False,
+            },
+            "journal_widget": {
+                "type_filter_select": "all",
+                "search_input": "",
+                "entry_type_select": "journal_entry",
+                "date_input": "",
+                "title_input": "",
+                "tags_input": "",
+                "content_input": "",
+                "list_text": "",
+                "status_text": "Ready.",
+                "selected_type": "",
+                "selected_name": "",
+                "minimized": False,
+                "closed": False,
+            },
+            "mp3_player_widget": {
+                "playlist_select": "",
+                "status_text": "Ready.",
+                "track_title_text": "",
+                "track_artist_text": "",
+                "library_text": "",
+                "playlist_text": "",
+                "is_playing": False,
+                "minimized": False,
+                "closed": False,
+            },
+            "sticky_notes_widget": {
+                "new_content_input": "",
+                "new_color_select": "amber",
+                "notes_text": "",
+                "status_text": "Ready.",
+                "selected_note": "",
+                "minimized": False,
+                "closed": False,
+            },
         }
         _TRICK_SESSION_STATE[key] = state
     return state
@@ -227,6 +532,3353 @@ def _trick_timer_elements(actor):
         "widget.timer.cancel_button": _mk("Cancel", enabled=run_state),
         "widget.timer.refresh_button": _mk("Refresh"),
     }
+
+
+def _trick_today_session(actor):
+    session = _trick_session(actor)
+    today = session.get("today")
+    if not isinstance(today, dict):
+        today = {}
+        session["today"] = today
+    return today
+
+
+def _trick_today_apply_preset(today, preset_name):
+    preset = str(preset_name or "").strip().lower()
+    if preset == "safe":
+        today["repair_trim_checkbox"] = True
+        today["repair_cut_checkbox"] = False
+        today["repair_min_duration_input"] = 20
+        today["repair_cut_threshold_input"] = 0.85
+    elif preset == "balanced":
+        today["repair_trim_checkbox"] = True
+        today["repair_cut_checkbox"] = True
+        today["repair_min_duration_input"] = 12
+        today["repair_cut_threshold_input"] = 0.60
+    elif preset == "aggressive":
+        today["repair_trim_checkbox"] = True
+        today["repair_cut_checkbox"] = True
+        today["repair_min_duration_input"] = 8
+        today["repair_cut_threshold_input"] = 0.40
+    return preset
+
+
+def _trick_today_run(action_args, props=None):
+    ok, out, err = run_console_command("today", action_args, props or {})
+    return ok, out, err
+
+
+def _trick_today_props(today):
+    props = {}
+    props["buffers"] = bool(today.get("buffers_checkbox", True))
+    props["breaks"] = "timer" if bool(today.get("timer_breaks_checkbox")) else "none"
+    props["sprints"] = bool(today.get("sprints_checkbox"))
+    props["ignore-trends"] = bool(today.get("ignore_trends_checkbox"))
+    props["repair-trim"] = bool(today.get("repair_trim_checkbox", True))
+    props["repair-cut"] = bool(today.get("repair_cut_checkbox"))
+    custom_key = str(today.get("custom_property_key_input") or "").strip()
+    if custom_key:
+        props["custom_property"] = custom_key
+        try:
+            weight = int(today.get("custom_property_slider") or 0)
+        except Exception:
+            weight = 0
+        if weight > 0:
+            props["prioritize"] = f"custom_property={weight}"
+    for key, prop_name, caster in [
+        ("timer_profile_input", "timer_profile", str),
+        ("template_override_input", "template", str),
+        ("quickwins_input", "quickwins", int),
+        ("repair_min_duration_input", "repair-min-duration", int),
+        ("repair_cut_threshold_input", "repair-cut-threshold", float),
+        ("status_threshold_input", "status-threshold", float),
+    ]:
+        raw = today.get(key)
+        if raw in (None, ""):
+            continue
+        try:
+            value = caster(raw)
+        except Exception:
+            continue
+        if prop_name == "status-threshold":
+            value = max(0.0, min(1.0, float(value)))
+        props[prop_name] = value
+    return props
+
+
+def _trick_today_elements(actor):
+    today = _trick_today_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(today.get("closed"))
+    visible = not closed
+    minimized = bool(today.get("minimized"))
+    calendar_visible = bool(today.get("calendar_context_visible"))
+    row_count = max(0, int(today.get("window_filter_row_count") or 0))
+
+    elements = {
+        "widget.today.title": _mk("Scheduler", visible=visible),
+        "widget.today.minimize_button": _mk("−", visible=visible),
+        "widget.today.close_button": _mk("×", visible=visible),
+        "widget.today.refresh_button": _mk("↻ Refresh", visible=visible and not minimized),
+        "widget.today.reschedule_button": _mk("📅 Generate / Reschedule", visible=visible and not minimized),
+        "widget.today.scheduling_controls": _mk("Scheduling Controls", visible=visible and not minimized),
+        "widget.today.priority_weights_section": _mk("Priority Weights (1-10)", visible=visible and not minimized),
+        "widget.today.advanced_weights_section": _mk("Advanced Weights", visible=visible and not minimized),
+        "widget.today.enforcers_section": _mk("Enforcers", visible=visible and not minimized),
+        "widget.today.quick_toggles_section": _mk("Quick Toggles", visible=visible and not minimized),
+        "widget.today.environment_slider": _mk(today.get("environment_slider"), visible=visible and not minimized),
+        "widget.today.category_slider": _mk(today.get("category_slider"), visible=visible and not minimized),
+        "widget.today.happiness_slider": _mk(today.get("happiness_slider"), visible=visible and not minimized),
+        "widget.today.due_date_slider": _mk(today.get("due_date_slider"), visible=visible and not minimized),
+        "widget.today.deadline_slider": _mk(today.get("deadline_slider"), visible=visible and not minimized),
+        "widget.today.status_slider": _mk(today.get("status_slider"), visible=visible and not minimized),
+        "widget.today.priority_slider": _mk(today.get("priority_slider"), visible=visible and not minimized),
+        "widget.today.template_slider": _mk(today.get("template_slider"), visible=visible and not minimized),
+        "widget.today.custom_property_key_input": _mk(today.get("custom_property_key_input") or "", visible=visible and not minimized),
+        "widget.today.custom_property_slider": _mk(today.get("custom_property_slider"), visible=visible and not minimized),
+        "widget.today.balance_slider": _mk(today.get("balance_slider"), visible=visible and not minimized),
+        "widget.today.enforcer_environment_scope_select": _mk(today.get("enforcer_environment_scope_select") or "day", visible=visible and not minimized),
+        "widget.today.enforcer_environment_input": _mk(today.get("enforcer_environment_input") or "", visible=visible and not minimized),
+        "widget.today.enforcer_template_day_input": _mk(today.get("enforcer_template_day_input") or "", visible=visible and not minimized),
+        "widget.today.enforcer_template_input": _mk(today.get("enforcer_template_input") or "", visible=visible and not minimized),
+        "widget.today.schedule_state_select": _mk(today.get("schedule_state_select") or "draft", visible=visible and not minimized),
+        "widget.today.buffers_checkbox": _mk(bool(today.get("buffers_checkbox", True)), visible=visible and not minimized),
+        "widget.today.timer_breaks_checkbox": _mk(bool(today.get("timer_breaks_checkbox")), visible=visible and not minimized),
+        "widget.today.sprints_checkbox": _mk(bool(today.get("sprints_checkbox")), visible=visible and not minimized),
+        "widget.today.ignore_trends_checkbox": _mk(bool(today.get("ignore_trends_checkbox")), visible=visible and not minimized),
+        "widget.today.repair_trim_checkbox": _mk(bool(today.get("repair_trim_checkbox", True)), visible=visible and not minimized),
+        "widget.today.repair_cut_checkbox": _mk(bool(today.get("repair_cut_checkbox")), visible=visible and not minimized),
+        "widget.today.timer_profile_input": _mk(today.get("timer_profile_input") or "", visible=visible and not minimized),
+        "widget.today.template_override_input": _mk(today.get("template_override_input") or "", visible=visible and not minimized),
+        "widget.today.quickwins_input": _mk(today.get("quickwins_input"), visible=visible and not minimized),
+        "widget.today.repair_min_duration_input": _mk(today.get("repair_min_duration_input"), visible=visible and not minimized),
+        "widget.today.repair_cut_threshold_input": _mk(today.get("repair_cut_threshold_input"), visible=visible and not minimized),
+        "widget.today.status_threshold_input": _mk(today.get("status_threshold_input"), visible=visible and not minimized),
+        "widget.today.preset_safe_button": _mk("Safe", visible=visible and not minimized),
+        "widget.today.preset_balanced_button": _mk("Balanced", visible=visible and not minimized),
+        "widget.today.preset_aggressive_button": _mk("Aggressive", visible=visible and not minimized),
+        "widget.today.preset_hint_text": _mk(today.get("preset_hint_text") or "", visible=visible and not minimized),
+        "widget.today.window_filter_rows": _mk(row_count, visible=visible and not minimized),
+        "widget.today.add_window_filter_row_button": _mk("+ Add Override", visible=visible and not minimized),
+        "widget.today.calendar_context": _mk("visible" if calendar_visible else "hidden", visible=visible and calendar_visible and not minimized),
+        "widget.today.calendar_day_label": _mk(today.get("calendar_day_label") or "Calendar day selected.", visible=visible and calendar_visible and not minimized),
+        "widget.today.calendar_day_note": _mk(today.get("calendar_day_note") or "", visible=visible and calendar_visible and not minimized),
+        "widget.today.status_text": _mk(today.get("status_text") or "Ready.", visible=visible and not minimized),
+        "widget.today.selection_hint": _mk(today.get("selection_hint") or "", visible=visible and not minimized),
+    }
+
+    slider_to_value = {
+        "widget.today.environment_slider": "widget.today.environment_value",
+        "widget.today.category_slider": "widget.today.category_value",
+        "widget.today.happiness_slider": "widget.today.happiness_value",
+        "widget.today.due_date_slider": "widget.today.due_date_value",
+        "widget.today.deadline_slider": "widget.today.deadline_value",
+        "widget.today.status_slider": "widget.today.status_value",
+        "widget.today.priority_slider": "widget.today.priority_value",
+        "widget.today.template_slider": "widget.today.template_value",
+        "widget.today.custom_property_slider": "widget.today.custom_property_value",
+        "widget.today.balance_slider": "widget.today.balance_value",
+    }
+    for slider_id, value_id in slider_to_value.items():
+        payload = elements.get(slider_id, {})
+        elements[value_id] = _mk(payload.get("value"), visible=payload.get("visible", False))
+    return elements
+
+
+def _trick_terminal_session(actor):
+    session = _trick_session(actor)
+    terminal = session.get("terminal")
+    if not isinstance(terminal, dict):
+        terminal = {}
+        session["terminal"] = terminal
+    return terminal
+
+
+def _trick_terminal_run_command(actor):
+    terminal = _trick_terminal_session(actor)
+    line = str(terminal.get("input_field") or "").strip()
+    if not line:
+        terminal["status_text"] = "Ready."
+        return True, {"stdout": "", "stderr": "", "mode": "noop"}, None
+
+    terminal["output_text"] = f"{terminal.get('identity_text') or 'chronos@you'}> {line}\n"
+    terminal["status_text"] = "Running..."
+
+    if line.lower() in {"cls", "clear"}:
+        terminal["output_text"] = ""
+        terminal["status_text"] = "Cleared."
+        terminal["input_field"] = ""
+        return True, {"stdout": "", "stderr": "", "mode": "clear"}, None
+
+    try:
+        parts = shlex.split(line)
+    except Exception as e:
+        terminal["output_text"] += f"{e}\n"
+        terminal["status_text"] = "Command failed."
+        return False, {"stdout": "", "stderr": str(e), "mode": "parse"}, str(e)
+
+    if not parts:
+        terminal["status_text"] = "Ready."
+        return True, {"stdout": "", "stderr": "", "mode": "noop"}, None
+
+    cmd = str(parts[0] or "").strip()
+    args = list(parts[1:])
+    if cmd.lower() == "vars":
+        try:
+            data = load_runtime_vars() or {}
+            text = json.dumps(data, indent=2, ensure_ascii=True)
+            terminal["output_text"] += text + ("\n" if text else "")
+            terminal["status_text"] = "Variables loaded."
+            terminal["input_field"] = ""
+            return True, {"stdout": text, "stderr": "", "mode": "vars"}, None
+        except Exception as e:
+            terminal["output_text"] += f"{e}\n"
+            terminal["status_text"] = "Command failed."
+            terminal["input_field"] = ""
+            return False, {"stdout": "", "stderr": str(e), "mode": "vars"}, str(e)
+
+    from utilities import registry_builder
+    registry = registry_builder.build_command_registry()
+    commands = registry.get("commands") if isinstance(registry, dict) else {}
+    aliases = registry.get("aliases") if isinstance(registry, dict) else {}
+    resolved = aliases.get(cmd, cmd)
+    is_cli = resolved in commands
+
+    if is_cli:
+        ok, out, err = run_console_command(cmd, args)
+        if out:
+            terminal["output_text"] += str(out).rstrip() + "\n"
+        if err:
+            terminal["output_text"] += str(err).rstrip() + "\n"
+        terminal["status_text"] = "Command completed." if ok else "Command failed."
+        terminal["input_field"] = ""
+        return ok, {"stdout": out, "stderr": err, "mode": "cli"}, None if ok else (err or out or "CLI command failed")
+
+    proc = subprocess.run(
+        line,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    out = proc.stdout or ""
+    err = proc.stderr or ""
+    if out:
+        terminal["output_text"] += out.rstrip() + "\n"
+    if err:
+        terminal["output_text"] += err.rstrip() + "\n"
+    terminal["status_text"] = "Command completed." if proc.returncode == 0 else "Command failed."
+    terminal["input_field"] = ""
+    return proc.returncode == 0, {
+        "stdout": out,
+        "stderr": err,
+        "code": proc.returncode,
+        "mode": "shell",
+    }, None if proc.returncode == 0 else (err or out or "Shell command failed")
+
+
+def _trick_terminal_elements(actor):
+    terminal = _trick_terminal_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(terminal.get("closed"))
+    visible = not closed
+    minimized = bool(terminal.get("minimized"))
+    body_visible = visible and not minimized
+
+    return {
+        "widget.terminal.title": _mk("Terminal", visible=visible),
+        "widget.terminal.copy_button": _mk("C", visible=visible),
+        "widget.terminal.minimize_button": _mk("_", visible=visible),
+        "widget.terminal.close_button": _mk("x", visible=visible),
+        "widget.terminal.output_text": _mk(terminal.get("output_text") or "", visible=body_visible),
+        "widget.terminal.identity_text": _mk(terminal.get("identity_text") or "chronos@you", visible=body_visible),
+        "widget.terminal.input_field": _mk(terminal.get("input_field") or "", visible=body_visible),
+        "widget.terminal.ghost_text": _mk(terminal.get("ghost_text") or "", visible=body_visible),
+        "widget.terminal.run_button": _mk("Run", visible=body_visible),
+        "widget.terminal.expand_checkbox": _mk(bool(terminal.get("expand_checkbox", True)), visible=body_visible),
+        "widget.terminal.status_text": _mk(terminal.get("status_text") or "Ready.", visible=visible),
+    }
+
+
+def _trick_item_manager_session(actor):
+    session = _trick_session(actor)
+    item_manager = session.get("item_manager")
+    if not isinstance(item_manager, dict):
+        item_manager = {}
+        session["item_manager"] = item_manager
+    return item_manager
+
+
+def _trick_item_manager_refresh(actor):
+    item_manager = _trick_item_manager_session(actor)
+    item_type = str(item_manager.get("type_select") or "task").strip() or "task"
+    query = str(item_manager.get("search_input") or "").strip()
+    qs = urlencode({"type": item_type, "q": query})
+    origin = "http://127.0.0.1:7357"
+    try:
+        with urlrequest.urlopen(f"{origin}/api/items?{qs}", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception as e:
+        item_manager["status_text"] = "Load failed."
+        return False, {"items": [], "error": str(e)}, str(e)
+
+    rows = payload.get("items") if isinstance(payload, dict) else []
+    norm = []
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        norm.append({
+            "name": str(row.get("name") or "").strip(),
+            "type": str(row.get("type") or item_type).strip(),
+            "status": str(row.get("status") or "").strip(),
+            "priority": str(row.get("priority") or "").strip(),
+            "category": str(row.get("category") or "").strip(),
+        })
+    item_manager["list_items"] = norm
+    item_manager["count_text"] = f"{len(norm)} items"
+    item_manager["status_text"] = f"Loaded {len(norm)} items."
+    return True, {"items": norm, "count": len(norm)}, None
+
+
+def _trick_item_manager_load_item(actor, name=None):
+    item_manager = _trick_item_manager_session(actor)
+    item_type = str(item_manager.get("type_select") or "task").strip() or "task"
+    item_name = str(name or item_manager.get("item_name_input") or "").strip()
+    if not item_name:
+        item_manager["status_text"] = "Load failed."
+        return False, {"error": "Missing item name"}, "Missing item name"
+    qs = urlencode({"type": item_type, "name": item_name})
+    origin = "http://127.0.0.1:7357"
+    try:
+        with urlrequest.urlopen(f"{origin}/api/item?{qs}", timeout=10) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        item_manager["status_text"] = "Load failed."
+        return False, {"error": str(e)}, str(e)
+
+    try:
+        payload = json.loads(text)
+        raw = payload.get("content") or payload.get("item") or payload.get("text") or ""
+        if isinstance(raw, dict):
+            text = yaml.safe_dump(raw, sort_keys=False, allow_unicode=False)
+        else:
+            text = str(raw or "")
+    except Exception:
+        pass
+
+    item_manager["item_name_input"] = item_name
+    item_manager["yaml_input"] = text
+    item_manager["status_text"] = f'Loaded "{item_name}".'
+    return True, {"name": item_name, "content": text}, None
+
+
+def _trick_item_manager_save(actor):
+    item_manager = _trick_item_manager_session(actor)
+    item_type = str(item_manager.get("type_select") or "task").strip() or "task"
+    item_name = str(item_manager.get("item_name_input") or "").strip()
+    if not item_name:
+        item_manager["status_text"] = "Save failed."
+        return False, {"error": "Name required"}, "Name required"
+    body = json.dumps({
+        "type": item_type,
+        "name": item_name,
+        "content": str(item_manager.get("yaml_input") or ""),
+    }).encode("utf-8")
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/item",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        item_manager["status_text"] = "Save failed."
+        return False, {"error": str(e)}, str(e)
+    if payload.get("ok") is False:
+        msg = payload.get("error") or "Save failed"
+        item_manager["status_text"] = "Save failed."
+        return False, payload, msg
+    item_manager["status_text"] = f'Saved "{item_name}".'
+    return True, payload, None
+
+
+def _trick_item_manager_post(action_path, payload):
+    body = json.dumps(payload).encode("utf-8")
+    req = urlrequest.Request(
+        f"http://127.0.0.1:7357{action_path}",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with urlrequest.urlopen(req, timeout=10) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    return data
+
+
+def _trick_item_manager_elements(actor):
+    item_manager = _trick_item_manager_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(item_manager.get("closed"))
+    visible = not closed
+    minimized = bool(item_manager.get("minimized"))
+    body_visible = visible and not minimized
+    list_items = item_manager.get("list_items") if isinstance(item_manager.get("list_items"), list) else []
+    list_text = "\n".join(str(row.get("name") or "").strip() for row in list_items if isinstance(row, dict))
+
+    return {
+        "widget.item_manager.title": _mk("Item Manager", visible=visible),
+        "widget.item_manager.minimize_button": _mk("_", visible=visible),
+        "widget.item_manager.close_button": _mk("x", visible=visible),
+        "widget.item_manager.type_select": _mk(item_manager.get("type_select") or "task", visible=body_visible),
+        "widget.item_manager.search_input": _mk(item_manager.get("search_input") or "", visible=body_visible),
+        "widget.item_manager.search_button": _mk("Search", visible=body_visible),
+        "widget.item_manager.refresh_button": _mk("Refresh", visible=body_visible),
+        "widget.item_manager.new_button": _mk("New", visible=body_visible),
+        "widget.item_manager.count_text": _mk(item_manager.get("count_text") or "0 items", visible=body_visible),
+        "widget.item_manager.list_container": _mk(list_text, visible=body_visible),
+        "widget.item_manager.item_name_input": _mk(item_manager.get("item_name_input") or "", visible=body_visible),
+        "widget.item_manager.yaml_input": _mk(item_manager.get("yaml_input") or "", visible=body_visible),
+        "widget.item_manager.save_button": _mk("Save", visible=body_visible),
+        "widget.item_manager.copy_button": _mk("Copy", visible=body_visible),
+        "widget.item_manager.rename_button": _mk("Rename", visible=body_visible),
+        "widget.item_manager.delete_button": _mk("Delete", visible=body_visible),
+        "widget.item_manager.status_text": _mk(item_manager.get("status_text") or "Ready.", visible=visible),
+    }
+
+
+def _trick_status_session(actor):
+    session = _trick_session(actor)
+    status_widget = session.get("status_widget")
+    if not isinstance(status_widget, dict):
+        status_widget = {}
+        session["status_widget"] = status_widget
+    return status_widget
+
+
+def _trick_status_refresh(actor):
+    status_widget = _trick_status_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/status/current", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        status_widget["status_text"] = "Status load failed."
+        return False, {"error": str(e)}, str(e)
+    raw = payload.get("status") if isinstance(payload, dict) else {}
+    if not isinstance(raw, dict):
+        raw = {}
+    norm = {}
+    for key, value in raw.items():
+        slug = re.sub(r"\s+", "_", str(key or "").strip().lower())
+        if slug:
+            norm[slug] = value
+    status_widget["values"] = norm
+    status_widget["status_text"] = "Status loaded."
+    return True, {"values": norm}, None
+
+
+def _trick_status_update(actor):
+    status_widget = _trick_status_session(actor)
+    values = status_widget.get("values") if isinstance(status_widget.get("values"), dict) else {}
+    lines = []
+    for key, value in values.items():
+        if value not in (None, ""):
+            lines.append(f"{key}: {value}")
+    body = "\n".join(lines).encode("utf-8")
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/status/update",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "text/yaml"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            ok = getattr(resp, "status", 200) < 400
+    except Exception as e:
+        status_widget["status_text"] = "Status update failed."
+        return False, {"error": str(e)}, str(e)
+    status_widget["status_text"] = "Status updated." if ok else "Status update failed."
+    return ok, {"values": values}, None if ok else "Status update failed."
+
+
+def _trick_status_elements(actor):
+    status_widget = _trick_status_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(status_widget.get("closed"))
+    visible = not closed
+    minimized = bool(status_widget.get("minimized"))
+    body_visible = visible and not minimized
+    values = status_widget.get("values") if isinstance(status_widget.get("values"), dict) else {}
+    fields_text = "\n".join(f"{k}: {v}" for k, v in values.items())
+
+    return {
+        "widget.status.title": _mk("Status Station", visible=visible),
+        "widget.status.minimize_button": _mk("_", visible=visible),
+        "widget.status.close_button": _mk("x", visible=visible),
+        "widget.status.fields_container": _mk(fields_text, visible=body_visible),
+        "widget.status.update_button": _mk("Update", visible=body_visible),
+        "widget.status.status_text": _mk(status_widget.get("status_text") or "Ready.", visible=visible),
+    }
+
+
+def _trick_parse_status_text(text):
+    out = {}
+    for raw in str(text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        line = raw.strip()
+        if not line or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        slug = re.sub(r"\s+", "_", str(key or "").strip().lower())
+        if slug:
+            out[slug] = value.strip()
+    return out
+
+
+def _trick_goal_tracker_session(actor):
+    session = _trick_session(actor)
+    goal_tracker = session.get("goal_tracker")
+    if not isinstance(goal_tracker, dict):
+        goal_tracker = {}
+        session["goal_tracker"] = goal_tracker
+    return goal_tracker
+
+
+def _trick_goal_tracker_refresh(actor):
+    goal_tracker = _trick_goal_tracker_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/goals", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        goal_tracker["status_text"] = "Goal load failed."
+        return False, {"error": str(e)}, str(e)
+    goals = payload.get("goals") if isinstance(payload, dict) else []
+    query = str(goal_tracker.get("search_input") or "").strip().lower()
+    norm = []
+    for row in goals if isinstance(goals, list) else []:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name") or "").strip()
+        if query and query not in name.lower():
+            continue
+        norm.append({
+            "name": name,
+            "overall": int(row.get("overall") or 0),
+            "priority": str(row.get("priority") or "").strip(),
+            "due_date": str(row.get("due_date") or "").strip(),
+            "status": str(row.get("status") or "").strip(),
+        })
+    norm.sort(key=lambda x: x.get("overall", 0), reverse=True)
+    goal_tracker["goals"] = norm
+    goal_tracker["status_text"] = f"Loaded {len(norm)} goals."
+    return True, {"goals": norm, "count": len(norm)}, None
+
+
+def _trick_goal_tracker_select(actor, goal_name=None):
+    goal_tracker = _trick_goal_tracker_session(actor)
+    name = str(goal_name or goal_tracker.get("selected_goal") or "").strip()
+    if not name:
+        goals = goal_tracker.get("goals") if isinstance(goal_tracker.get("goals"), list) else []
+        if goals:
+            name = str(goals[0].get("name") or "").strip()
+    if not name:
+        goal_tracker["status_text"] = "No goal selected."
+        return False, {"error": "No goal selected"}, "No goal selected"
+    try:
+        with urlrequest.urlopen(f"http://127.0.0.1:7357/api/goal?name={quote(name)}", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        goal_tracker["status_text"] = "Goal load failed."
+        return False, {"error": str(e)}, str(e)
+    goal = payload.get("goal") if isinstance(payload, dict) else {}
+    if not isinstance(goal, dict) or not goal.get("name"):
+        goal_tracker["status_text"] = "Goal load failed."
+        return False, {"error": "Goal not found"}, "Goal not found"
+    goal_tracker["selected_goal"] = str(goal.get("name") or "").strip()
+    goal_tracker["goal_title_text"] = goal_tracker["selected_goal"]
+    goal_tracker["goal_progress"] = int(goal.get("overall") or 0)
+    meta = []
+    if goal.get("priority"):
+        meta.append(f"Priority: {goal.get('priority')}")
+    if goal.get("due_date"):
+        meta.append(f"Due: {goal.get('due_date')}")
+    if goal.get("status"):
+        meta.append(f"Status: {goal.get('status')}")
+    goal_tracker["goal_meta_text"] = "  •  ".join(meta)
+    milestones = goal.get("milestones") if isinstance(goal.get("milestones"), list) else []
+    lines = []
+    for milestone in milestones:
+        if not isinstance(milestone, dict):
+            continue
+        pct = round((milestone.get("progress") or {}).get("percent") or 0)
+        lines.append(f"{milestone.get('name')}: {pct}% [{milestone.get('status') or 'unknown'}]")
+    goal_tracker["milestones_text"] = "\n".join(lines) if lines else "No milestones defined for this goal."
+    goal_tracker["status_text"] = f'Loaded "{goal_tracker["selected_goal"]}".'
+    return True, {"goal": goal}, None
+
+
+def _trick_goal_tracker_recalc(actor):
+    goal_tracker = _trick_goal_tracker_session(actor)
+    req = urlrequest.Request("http://127.0.0.1:7357/api/milestone/recalc", data=b"", method="POST")
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            _ = resp.read()
+    except Exception as e:
+        goal_tracker["status_text"] = "Recalc failed."
+        return False, {"error": str(e)}, str(e)
+    goal_tracker["status_text"] = "Milestones recalculated."
+    _trick_goal_tracker_refresh(actor)
+    if goal_tracker.get("selected_goal"):
+        _trick_goal_tracker_select(actor, goal_tracker.get("selected_goal"))
+    return True, {"recalculated": True}, None
+
+
+def _trick_goal_tracker_primary_milestone(goal):
+    milestones = goal.get("milestones") if isinstance(goal, dict) else []
+    for milestone in milestones if isinstance(milestones, list) else []:
+        if isinstance(milestone, dict) and milestone.get("name"):
+            return milestone
+    return None
+
+
+def _trick_goal_tracker_complete_primary(actor):
+    goal_tracker = _trick_goal_tracker_session(actor)
+    ok, payload, err = _trick_goal_tracker_select(actor, goal_tracker.get("selected_goal"))
+    if not ok:
+        return False, payload, err
+    goal = payload.get("goal") if isinstance(payload, dict) else {}
+    milestone = _trick_goal_tracker_primary_milestone(goal)
+    if not milestone:
+        goal_tracker["status_text"] = "No milestone available."
+        return False, {"error": "No milestone available"}, "No milestone available"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/milestone/complete",
+        data=json.dumps({"name": milestone.get("name")}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            _ = resp.read()
+    except Exception as e:
+        goal_tracker["status_text"] = "Milestone completion failed."
+        return False, {"error": str(e)}, str(e)
+    goal_tracker["status_text"] = f'Completed milestone "{milestone.get("name")}".'
+    _trick_goal_tracker_select(actor, goal_tracker.get("selected_goal"))
+    return True, {"milestone": milestone.get("name")}, None
+
+
+def _trick_goal_tracker_focus_primary(actor):
+    goal_tracker = _trick_goal_tracker_session(actor)
+    ok, payload, err = _trick_goal_tracker_select(actor, goal_tracker.get("selected_goal"))
+    if not ok:
+        return False, payload, err
+    goal = payload.get("goal") if isinstance(payload, dict) else {}
+    milestone = _trick_goal_tracker_primary_milestone(goal)
+    if not milestone:
+        goal_tracker["status_text"] = "No milestone available."
+        return False, {"error": "No milestone available"}, "No milestone available"
+    link = {}
+    links = milestone.get("links")
+    if isinstance(links, list) and links:
+        first = links[0]
+        if isinstance(first, dict):
+            link = first
+    if not link.get("type") or not link.get("name"):
+        goal_tracker["status_text"] = "No linked item to bind."
+        return False, {"error": "No linked item to bind"}, "No linked item to bind"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/timer/start",
+        data=json.dumps({"profile": "classic_pomodoro", "bind_type": link.get("type"), "bind_name": link.get("name")}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            _ = resp.read()
+    except Exception as e:
+        goal_tracker["status_text"] = "Focus start failed."
+        return False, {"error": str(e)}, str(e)
+    goal_tracker["status_text"] = f'Started focus for "{milestone.get("name")}".'
+    return True, {"milestone": milestone.get("name")}, None
+
+
+def _trick_goal_tracker_elements(actor):
+    goal_tracker = _trick_goal_tracker_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(goal_tracker.get("closed"))
+    visible = not closed
+    minimized = bool(goal_tracker.get("minimized"))
+    body_visible = visible and not minimized
+    goals = goal_tracker.get("goals") if isinstance(goal_tracker.get("goals"), list) else []
+    goal_list_text = "\n".join(f"{g.get('name')}: {g.get('overall')}%" for g in goals if isinstance(g, dict))
+
+    return {
+        "widget.goal_tracker.title": _mk("Goals", visible=visible),
+        "widget.goal_tracker.minimize_button": _mk("_", visible=visible),
+        "widget.goal_tracker.close_button": _mk("x", visible=visible),
+        "widget.goal_tracker.search_input": _mk(goal_tracker.get("search_input") or "", visible=body_visible),
+        "widget.goal_tracker.search_button": _mk("Search", visible=body_visible),
+        "widget.goal_tracker.recalc_button": _mk("Recalc", visible=body_visible),
+        "widget.goal_tracker.refresh_button": _mk("Refresh", visible=body_visible),
+        "widget.goal_tracker.list_container": _mk(goal_list_text, visible=body_visible),
+        "widget.goal_tracker.goal_list": _mk(goal_list_text, visible=body_visible),
+        "widget.goal_tracker.goal_title_text": _mk(goal_tracker.get("goal_title_text") or "Select a goal", visible=body_visible),
+        "widget.goal_tracker.goal_progress_bar": _mk(goal_tracker.get("goal_progress") or 0, visible=body_visible),
+        "widget.goal_tracker.goal_meta_text": _mk(goal_tracker.get("goal_meta_text") or "", visible=body_visible),
+        "widget.goal_tracker.complete_primary_button": _mk("Complete Primary", visible=body_visible),
+        "widget.goal_tracker.focus_primary_button": _mk("Focus Primary", visible=body_visible),
+        "widget.goal_tracker.milestones_container": _mk(goal_tracker.get("milestones_text") or "", visible=body_visible),
+        "widget.goal_tracker.status_text": _mk(goal_tracker.get("status_text") or "Ready.", visible=visible),
+    }
+
+
+def _trick_milestones_session(actor):
+    session = _trick_session(actor)
+    milestones_widget = session.get("milestones_widget")
+    if not isinstance(milestones_widget, dict):
+        milestones_widget = {}
+        session["milestones_widget"] = milestones_widget
+    return milestones_widget
+
+
+def _trick_milestones_filtered_rows(milestones_widget):
+    rows = milestones_widget.get("milestones") if isinstance(milestones_widget.get("milestones"), list) else []
+    term = str(milestones_widget.get("search_input") or "").strip().lower()
+    wanted = str(milestones_widget.get("status_filter_select") or "all").strip().lower()
+    wanted_project = str(milestones_widget.get("project_filter_select") or "all").strip().lower()
+    wanted_goal = str(milestones_widget.get("goal_filter_select") or "all").strip().lower()
+    out = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        if wanted != "all" and str(item.get("status") or "").strip().lower() != wanted:
+            continue
+        if wanted_project != "all" and str(item.get("project") or "").strip().lower() != wanted_project:
+            continue
+        if wanted_goal != "all" and str(item.get("goal") or "").strip().lower() != wanted_goal:
+            continue
+        if term:
+            hay = " ".join([
+                str(item.get("name") or ""),
+                str(item.get("goal") or ""),
+                str(item.get("project") or ""),
+                str(item.get("category") or ""),
+            ]).lower()
+            if term not in hay:
+                continue
+        out.append(item)
+    return out
+
+
+def _trick_milestones_refresh(actor):
+    milestones_widget = _trick_milestones_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/milestones", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        milestones_widget["status_text"] = "Failed to load milestones."
+        return False, {"error": str(e)}, str(e)
+    rows = payload.get("milestones") if isinstance(payload, dict) else []
+    milestones_widget["milestones"] = rows if isinstance(rows, list) else []
+    filtered = _trick_milestones_filtered_rows(milestones_widget)
+    milestones_widget["summary"] = {
+        "total": len(filtered),
+        "completed": len([m for m in filtered if str(m.get("status") or "").lower() == "completed"]),
+        "in_progress": len([m for m in filtered if str(m.get("status") or "").lower() == "in-progress"]),
+    }
+    milestones_widget["status_text"] = ""
+    return True, {"count": len(filtered)}, None
+
+
+def _trick_milestones_primary(milestones_widget):
+    filtered = _trick_milestones_filtered_rows(milestones_widget)
+    return filtered[0] if filtered else None
+
+
+def _trick_milestones_update(actor, action):
+    milestones_widget = _trick_milestones_session(actor)
+    item = _trick_milestones_primary(milestones_widget)
+    if not item or not item.get("name"):
+        milestones_widget["status_text"] = "No milestone available."
+        return False, {"error": "No milestone available"}, "No milestone available"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/milestone/update",
+        data=json.dumps({"name": item.get("name"), "action": action}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            _ = resp.read()
+    except Exception as e:
+        milestones_widget["status_text"] = f"Update failed: {e}"
+        return False, {"error": str(e)}, str(e)
+    milestones_widget["status_text"] = "Milestone updated."
+    _trick_milestones_refresh(actor)
+    return True, {"name": item.get("name"), "action": action}, None
+
+
+def _trick_milestones_elements(actor):
+    milestones_widget = _trick_milestones_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(milestones_widget.get("closed"))
+    visible = not closed
+    minimized = bool(milestones_widget.get("minimized"))
+    list_open = bool(milestones_widget.get("list_open"))
+    body_visible = visible and not minimized
+    list_visible = body_visible and list_open
+    filtered = _trick_milestones_filtered_rows(milestones_widget)
+    list_text = "\n".join(f"{m.get('name')}: {m.get('status')}" for m in filtered if isinstance(m, dict))
+    summary = milestones_widget.get("summary") if isinstance(milestones_widget.get("summary"), dict) else {}
+
+    return {
+        "widget.milestones.title": _mk("Milestones", visible=visible),
+        "widget.milestones.minimize_button": _mk("_", visible=visible),
+        "widget.milestones.close_button": _mk("x", visible=visible),
+        "widget.milestones.total_text": _mk(summary.get("total", 0), visible=body_visible),
+        "widget.milestones.completed_text": _mk(summary.get("completed", 0), visible=body_visible),
+        "widget.milestones.in_progress_text": _mk(summary.get("in_progress", 0), visible=body_visible),
+        "widget.milestones.list_toggle_button": _mk("Hide List Section ▴" if list_open else "Show List Section ▾", visible=body_visible),
+        "widget.milestones.list_section": _mk("open" if list_open else "closed", visible=list_visible),
+        "widget.milestones.search_input": _mk(milestones_widget.get("search_input") or "", visible=list_visible),
+        "widget.milestones.status_filter_select": _mk(milestones_widget.get("status_filter_select") or "all", visible=list_visible),
+        "widget.milestones.project_filter_select": _mk(milestones_widget.get("project_filter_select") or "all", visible=list_visible),
+        "widget.milestones.goal_filter_select": _mk(milestones_widget.get("goal_filter_select") or "all", visible=list_visible),
+        "widget.milestones.refresh_button": _mk("Refresh", visible=list_visible),
+        "widget.milestones.complete_primary_button": _mk("Complete Primary", visible=list_visible),
+        "widget.milestones.reset_primary_button": _mk("Reset Primary", visible=list_visible),
+        "widget.milestones.status_text": _mk(milestones_widget.get("status_text") or "", visible=body_visible),
+        "widget.milestones.list_container": _mk(list_text, visible=list_visible),
+    }
+
+
+def _trick_commitments_session(actor):
+    session = _trick_session(actor)
+    commitments_widget = session.get("commitments_widget")
+    if not isinstance(commitments_widget, dict):
+        commitments_widget = {}
+        session["commitments_widget"] = commitments_widget
+    return commitments_widget
+
+
+def _trick_commitments_filtered_rows(commitments_widget):
+    rows = commitments_widget.get("commitments") if isinstance(commitments_widget.get("commitments"), list) else []
+    term = str(commitments_widget.get("search_input") or "").strip().lower()
+    wanted = str(commitments_widget.get("status_filter_select") or "all").strip().lower()
+    out = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        if wanted != "all" and str(item.get("status") or "").strip().lower() != wanted:
+            continue
+        if term:
+            hay = " ".join([
+                str(item.get("name") or ""),
+                str(item.get("description") or ""),
+                str(item.get("period") or ""),
+                " ".join(str(t.get("name") or "") for t in (item.get("targets") or []) if isinstance(t, dict)),
+            ]).lower()
+            if term not in hay:
+                continue
+        out.append(item)
+    out.sort(key=lambda item: (
+        {"violation": 0, "pending": 1, "met": 2}.get(str(item.get("status") or "pending").lower(), 1),
+        str(item.get("name") or "").lower(),
+    ))
+    return out
+
+
+def _trick_commitments_recount(commitments_widget):
+    filtered = _trick_commitments_filtered_rows(commitments_widget)
+    commitments_widget["summary"] = {
+        "total": len(filtered),
+        "met": len([c for c in filtered if str(c.get("status") or "").lower() == "met"]),
+        "violations": len([c for c in filtered if str(c.get("status") or "").lower() == "violation"]),
+    }
+    return filtered
+
+
+def _trick_commitments_refresh(actor):
+    commitments_widget = _trick_commitments_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/commitments", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        commitments_widget["status_text"] = "Failed to load commitments."
+        return False, {"error": str(e)}, str(e)
+    rows = payload.get("commitments") if isinstance(payload, dict) else []
+    commitments_widget["commitments"] = rows if isinstance(rows, list) else []
+    _trick_commitments_recount(commitments_widget)
+    commitments_widget["status_text"] = ""
+    return True, {"count": len(commitments_widget.get("commitments") or [])}, None
+
+
+def _trick_commitments_primary(commitments_widget):
+    filtered = _trick_commitments_filtered_rows(commitments_widget)
+    return filtered[0] if filtered else None
+
+
+def _trick_commitments_override(actor, state):
+    commitments_widget = _trick_commitments_session(actor)
+    item = _trick_commitments_primary(commitments_widget)
+    if not item or not item.get("name"):
+        commitments_widget["status_text"] = "No commitment available."
+        return False, {"error": "No commitment available"}, "No commitment available"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/commitments/override",
+        data=json.dumps({"name": item.get("name"), "state": state}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        commitments_widget["status_text"] = f"Check-in failed: {e}"
+        return False, {"error": str(e)}, str(e)
+    commitments_widget["status_text"] = "Daily check-in saved."
+    _trick_commitments_refresh(actor)
+    return True, payload, None
+
+
+def _trick_commitments_evaluate(actor):
+    commitments_widget = _trick_commitments_session(actor)
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/cli",
+        data=json.dumps({"command": "commitments", "args": ["check"], "properties": {}}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        commitments_widget["status_text"] = f"Evaluation failed: {e}"
+        return False, {"error": str(e)}, str(e)
+    _trick_commitments_refresh(actor)
+    commitments_widget["status_text"] = "Commitments evaluated."
+    return True, {"stdout": text}, None
+
+
+def _trick_commitments_elements(actor):
+    commitments_widget = _trick_commitments_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(commitments_widget.get("closed"))
+    visible = not closed
+    minimized = bool(commitments_widget.get("minimized"))
+    list_open = bool(commitments_widget.get("list_open"))
+    body_visible = visible and not minimized
+    list_visible = body_visible and list_open
+    filtered = _trick_commitments_filtered_rows(commitments_widget)
+    list_text = "\n".join(f"{c.get('name')}: {c.get('status')}" for c in filtered if isinstance(c, dict))
+    summary = commitments_widget.get("summary") if isinstance(commitments_widget.get("summary"), dict) else {}
+
+    return {
+        "widget.commitments.title": _mk("Commitments", visible=visible),
+        "widget.commitments.evaluate_button": _mk("Evaluate", visible=visible),
+        "widget.commitments.minimize_button": _mk("_", visible=visible),
+        "widget.commitments.close_button": _mk("x", visible=visible),
+        "widget.commitments.total_text": _mk(summary.get("total", 0), visible=body_visible),
+        "widget.commitments.met_text": _mk(summary.get("met", 0), visible=body_visible),
+        "widget.commitments.violations_text": _mk(summary.get("violations", 0), visible=body_visible),
+        "widget.commitments.list_toggle_button": _mk("Hide List Section ▴" if list_open else "Show List Section ▾", visible=body_visible),
+        "widget.commitments.list_section": _mk("open" if list_open else "closed", visible=list_visible),
+        "widget.commitments.search_input": _mk(commitments_widget.get("search_input") or "", visible=list_visible),
+        "widget.commitments.status_filter_select": _mk(commitments_widget.get("status_filter_select") or "all", visible=list_visible),
+        "widget.commitments.refresh_button": _mk("Refresh", visible=list_visible),
+        "widget.commitments.met_primary_button": _mk("Mark Primary Met", visible=list_visible),
+        "widget.commitments.violation_primary_button": _mk("Mark Primary Violated", visible=list_visible),
+        "widget.commitments.clear_primary_button": _mk("Clear Primary", visible=list_visible),
+        "widget.commitments.status_text": _mk(commitments_widget.get("status_text") or "", visible=body_visible),
+        "widget.commitments.list_container": _mk(list_text, visible=list_visible),
+    }
+
+
+def _trick_rewards_session(actor):
+    session = _trick_session(actor)
+    rewards_widget = session.get("rewards_widget")
+    if not isinstance(rewards_widget, dict):
+        rewards_widget = {}
+        session["rewards_widget"] = rewards_widget
+    return rewards_widget
+
+
+def _trick_rewards_filtered_rows(rewards_widget):
+    rows = rewards_widget.get("rewards") if isinstance(rewards_widget.get("rewards"), list) else []
+    term = str(rewards_widget.get("search_input") or "").strip().lower()
+    ready_only = bool(rewards_widget.get("ready_only_checkbox"))
+    out = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        if ready_only and not bool(item.get("available")):
+            continue
+        if term:
+            hay = " ".join([
+                str(item.get("name") or ""),
+                str(item.get("category") or ""),
+                str(item.get("description") or ""),
+            ]).lower()
+            if term not in hay:
+                continue
+        out.append(item)
+    out.sort(key=lambda item: (
+        not bool(item.get("available")),
+        int(item.get("cost_points") or 0),
+        str(item.get("name") or "").lower(),
+    ))
+    return out
+
+
+def _trick_rewards_refresh(actor):
+    rewards_widget = _trick_rewards_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/points?limit=6", timeout=10) as resp:
+            points_payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/rewards", timeout=10) as resp:
+            rewards_payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        rewards_widget["status_text"] = "Failed to load rewards."
+        return False, {"error": str(e)}, str(e)
+    rewards_widget["balance"] = int(points_payload.get("balance") or 0) if isinstance(points_payload, dict) else 0
+    history = points_payload.get("history") if isinstance(points_payload, dict) else []
+    rewards_widget["history"] = history if isinstance(history, list) else []
+    rows = rewards_payload.get("rewards") if isinstance(rewards_payload, dict) else []
+    rewards_widget["rewards"] = rows if isinstance(rows, list) else []
+    rewards_widget["status_text"] = ""
+    return True, {"count": len(rewards_widget["rewards"]), "balance": rewards_widget["balance"]}, None
+
+
+def _trick_rewards_primary(rewards_widget):
+    filtered = _trick_rewards_filtered_rows(rewards_widget)
+    return filtered[0] if filtered else None
+
+
+def _trick_rewards_redeem(actor):
+    rewards_widget = _trick_rewards_session(actor)
+    item = _trick_rewards_primary(rewards_widget)
+    if not item or not item.get("name"):
+        rewards_widget["status_text"] = "No reward available."
+        return False, {"error": "No reward available"}, "No reward available"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/reward/redeem",
+        data=json.dumps({"name": item.get("name")}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        rewards_widget["status_text"] = str(e)
+        return False, {"error": str(e)}, str(e)
+    rewards_widget["status_text"] = str(payload.get("stdout") or f'Redeemed {item.get("name")}.').strip()
+    _trick_rewards_refresh(actor)
+    if "balance" in payload:
+        try:
+            rewards_widget["balance"] = int(payload.get("balance") or 0)
+        except Exception:
+            pass
+    return True, payload, None
+
+
+def _trick_rewards_elements(actor):
+    rewards_widget = _trick_rewards_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(rewards_widget.get("closed"))
+    visible = not closed
+    minimized = bool(rewards_widget.get("minimized"))
+    list_open = bool(rewards_widget.get("list_open"))
+    body_visible = visible and not minimized
+    list_visible = body_visible and list_open
+    filtered = _trick_rewards_filtered_rows(rewards_widget)
+    list_text = "\n".join(
+        f"{r.get('name')}: {r.get('cost_points')} pts ({'ready' if r.get('available') else 'locked'})"
+        for r in filtered if isinstance(r, dict)
+    )
+    history = rewards_widget.get("history") if isinstance(rewards_widget.get("history"), list) else []
+    ledger_text = "\n".join(
+        f"{entry.get('delta', 0)} {entry.get('reason') or entry.get('source') or ''} {entry.get('date') or ''}".strip()
+        for entry in history[-5:] if isinstance(entry, dict)
+    )
+
+    return {
+        "widget.rewards.title": _mk("Rewards", visible=visible),
+        "widget.rewards.minimize_button": _mk("_", visible=visible),
+        "widget.rewards.close_button": _mk("x", visible=visible),
+        "widget.rewards.balance_text": _mk(rewards_widget.get("balance") or 0, visible=body_visible),
+        "widget.rewards.ledger_container": _mk(ledger_text, visible=body_visible),
+        "widget.rewards.list_toggle_button": _mk("Hide List Section ▴" if list_open else "Show List Section ▾", visible=body_visible),
+        "widget.rewards.list_section": _mk("open" if list_open else "closed", visible=list_visible),
+        "widget.rewards.search_input": _mk(rewards_widget.get("search_input") or "", visible=list_visible),
+        "widget.rewards.ready_only_checkbox": _mk(bool(rewards_widget.get("ready_only_checkbox")), visible=list_visible),
+        "widget.rewards.refresh_button": _mk("Refresh", visible=list_visible),
+        "widget.rewards.redeem_primary_button": _mk("Redeem Primary", visible=list_visible),
+        "widget.rewards.status_text": _mk(rewards_widget.get("status_text") or "", visible=body_visible),
+        "widget.rewards.list_container": _mk(list_text, visible=list_visible),
+    }
+
+
+def _trick_achievements_session(actor):
+    session = _trick_session(actor)
+    achievements_widget = session.get("achievements_widget")
+    if not isinstance(achievements_widget, dict):
+        achievements_widget = {}
+        session["achievements_widget"] = achievements_widget
+    return achievements_widget
+
+
+def _trick_achievements_filtered_rows(achievements_widget):
+    rows = achievements_widget.get("achievements") if isinstance(achievements_widget.get("achievements"), list) else []
+    term = str(achievements_widget.get("search_input") or "").strip().lower()
+    wanted = str(achievements_widget.get("status_filter_select") or "all").strip().lower()
+    out = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        state = str(item.get("state") or item.get("status") or "pending").strip().lower()
+        if wanted != "all" and state != wanted:
+            continue
+        if term:
+            tags = item.get("tags") if isinstance(item.get("tags"), list) else []
+            hay = " ".join([
+                str(item.get("name") or ""),
+                str(item.get("description") or ""),
+                str(item.get("category") or ""),
+                " ".join(str(t) for t in tags),
+            ]).lower()
+            if term not in hay:
+                continue
+        out.append(item)
+    out.sort(key=lambda item: (
+        {"awarded": 0, "pending": 1, "archived": 2}.get(str(item.get("state") or "pending").lower(), 1),
+        str(item.get("name") or "").lower(),
+    ))
+    return out
+
+
+def _trick_achievements_refresh(actor):
+    achievements_widget = _trick_achievements_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/achievements", timeout=10) as resp:
+            achievements_payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/profile", timeout=10) as resp:
+            profile_payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        achievements_widget["status_text"] = "Failed to load achievements."
+        return False, {"error": str(e)}, str(e)
+    rows = achievements_payload.get("achievements") if isinstance(achievements_payload, dict) else []
+    achievements_widget["achievements"] = rows if isinstance(rows, list) else []
+    counts = achievements_payload.get("counts") if isinstance(achievements_payload, dict) else {}
+    achievements_widget["counts"] = counts if isinstance(counts, dict) else {"total": 0, "awarded": 0, "pending": 0, "archived": 0}
+    profile = profile_payload.get("profile") if isinstance(profile_payload, dict) else {}
+    if not isinstance(profile, dict):
+        profile = {}
+    achievements_widget["current_title"] = str(profile.get("title") or "")
+    achievements_widget["title_select"] = achievements_widget["current_title"]
+    achievements_widget["profile_progress"] = {
+        "level": int(profile.get("level") or 1),
+        "xp_total": int(profile.get("xp_total") or 0),
+        "xp_into_level": int(profile.get("xp_into_level") or 0),
+        "xp_to_next_level": int(profile.get("xp_to_next_level") or 1000),
+    }
+    achievements_widget["status_text"] = ""
+    return True, {"count": len(achievements_widget["achievements"])}, None
+
+
+def _trick_achievements_primary(achievements_widget):
+    filtered = _trick_achievements_filtered_rows(achievements_widget)
+    return filtered[0] if filtered else None
+
+
+def _trick_achievements_update(actor, action):
+    achievements_widget = _trick_achievements_session(actor)
+    item = _trick_achievements_primary(achievements_widget)
+    if not item or not item.get("name"):
+        achievements_widget["status_text"] = "No achievement available."
+        return False, {"error": "No achievement available"}, "No achievement available"
+    payload = {"name": item.get("name")}
+    if action == "award":
+        payload["award_now"] = True
+    elif action == "archive":
+        payload["archive_now"] = True
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/achievement/update",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        achievements_widget["status_text"] = f"Update failed: {e}"
+        return False, {"error": str(e)}, str(e)
+    achievements_widget["status_text"] = "Achievement marked as awarded." if action == "award" else "Achievement archived."
+    _trick_achievements_refresh(actor)
+    return True, result, None
+
+
+def _trick_achievements_set_title(actor):
+    achievements_widget = _trick_achievements_session(actor)
+    title = str(achievements_widget.get("title_select") or "").strip()
+    if not title:
+        achievements_widget["status_text"] = "No title selected."
+        return False, {"error": "No title selected"}, "No title selected"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/profile",
+        data=json.dumps({"title": title}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        achievements_widget["status_text"] = "Failed to update title."
+        return False, {"error": str(e)}, str(e)
+    achievements_widget["current_title"] = title
+    achievements_widget["title_select"] = title
+    achievements_widget["status_text"] = "Title updated."
+    return True, result, None
+
+
+def _trick_achievements_elements(actor):
+    achievements_widget = _trick_achievements_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(achievements_widget.get("closed"))
+    visible = not closed
+    minimized = bool(achievements_widget.get("minimized"))
+    list_open = bool(achievements_widget.get("list_open"))
+    body_visible = visible and not minimized
+    list_visible = body_visible and list_open
+    filtered = _trick_achievements_filtered_rows(achievements_widget)
+    list_text = "\n".join(
+        f"{a.get('name')}: {a.get('state') or a.get('status')}"
+        for a in filtered if isinstance(a, dict)
+    )
+    progress = achievements_widget.get("profile_progress") if isinstance(achievements_widget.get("profile_progress"), dict) else {}
+    level = int(progress.get("level") or 1)
+    xp_into = int(progress.get("xp_into_level") or 0)
+    xp_next = int(progress.get("xp_to_next_level") or 1000)
+    level_pct = 100 if xp_next <= 0 else max(0, min(100, round((xp_into / xp_next) * 100)))
+    counts = achievements_widget.get("counts") if isinstance(achievements_widget.get("counts"), dict) else {}
+
+    return {
+        "widget.achievements.title": _mk("Achievements", visible=visible),
+        "widget.achievements.minimize_button": _mk("_", visible=visible),
+        "widget.achievements.close_button": _mk("x", visible=visible),
+        "widget.achievements.total_text": _mk(counts.get("total", 0), visible=body_visible),
+        "widget.achievements.awarded_text": _mk(counts.get("awarded", 0), visible=body_visible),
+        "widget.achievements.pending_text": _mk(counts.get("pending", 0), visible=body_visible),
+        "widget.achievements.level_ring": _mk(level_pct, visible=body_visible),
+        "widget.achievements.level_text": _mk(f"LVL {level}", visible=body_visible),
+        "widget.achievements.level_meta_text": _mk(f"{xp_into} / {xp_next} XP" if xp_next > 0 else f"MAX • {int(progress.get('xp_total') or 0)} XP", visible=body_visible),
+        "widget.achievements.list_toggle_button": _mk("Hide List Section ▴" if list_open else "Show List Section ▾", visible=body_visible),
+        "widget.achievements.list_section": _mk("open" if list_open else "closed", visible=list_visible),
+        "widget.achievements.search_input": _mk(achievements_widget.get("search_input") or "", visible=list_visible),
+        "widget.achievements.status_filter_select": _mk(achievements_widget.get("status_filter_select") or "all", visible=list_visible),
+        "widget.achievements.title_select": _mk(achievements_widget.get("title_select") or "", visible=list_visible),
+        "widget.achievements.set_title_button": _mk("Set Title", visible=list_visible),
+        "widget.achievements.refresh_button": _mk("Refresh", visible=list_visible),
+        "widget.achievements.award_primary_button": _mk("Award Primary", visible=list_visible),
+        "widget.achievements.archive_primary_button": _mk("Archive Primary", visible=list_visible),
+        "widget.achievements.status_text": _mk(achievements_widget.get("status_text") or "", visible=body_visible),
+        "widget.achievements.list_container": _mk(list_text, visible=list_visible),
+    }
+
+
+def _trick_habit_tracker_session(actor):
+    session = _trick_session(actor)
+    habit_tracker = session.get("habit_tracker")
+    if not isinstance(habit_tracker, dict):
+        habit_tracker = {}
+        session["habit_tracker"] = habit_tracker
+    return habit_tracker
+
+
+def _trick_habit_tracker_filtered_rows(habit_tracker):
+    rows = habit_tracker.get("habits") if isinstance(habit_tracker.get("habits"), list) else []
+    term = str(habit_tracker.get("search_input") or "").strip().lower()
+    wanted = str(habit_tracker.get("polarity_select") or "all").strip().lower()
+    out = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        if wanted != "all" and str(item.get("polarity") or "").strip().lower() != wanted:
+            continue
+        if term and term not in str(item.get("name") or "").strip().lower():
+            continue
+        out.append(item)
+    return out
+
+
+def _trick_habit_tracker_summary(rows):
+    try:
+        good = [h for h in rows if str(h.get("polarity") or "").lower() != "bad"]
+        bad = [h for h in rows if str(h.get("polarity") or "").lower() == "bad"]
+        good_done = len([h for h in good if str(h.get("today_status") or "").lower() == "done"])
+        bad_inc = len([h for h in bad if str(h.get("today_status") or "").lower() == "incident"])
+        return f"Good: {good_done}/{len(good)} done today | Bad: {bad_inc}/{len(bad)} incidents today"
+    except Exception:
+        return ""
+
+
+def _trick_habit_tracker_refresh(actor):
+    habit_tracker = _trick_habit_tracker_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/habits", timeout=10) as resp:
+            payload = yaml.safe_load(resp.read().decode("utf-8", errors="replace") or "") or {}
+    except Exception as e:
+        habit_tracker["status_text"] = "Failed to load habits."
+        return False, {"error": str(e)}, str(e)
+    rows = payload.get("habits") if isinstance(payload, dict) else []
+    norm = []
+    for item in rows if isinstance(rows, list) else []:
+        if not isinstance(item, dict):
+            continue
+        norm.append({
+            "name": str(item.get("name") or ""),
+            "polarity": str(item.get("polarity") or "good"),
+            "category": str(item.get("category") or ""),
+            "priority": str(item.get("priority") or ""),
+            "streak_current": int(item.get("streak_current") or 0),
+            "streak_longest": int(item.get("streak_longest") or 0),
+            "clean_current": int(item.get("clean_current") or 0),
+            "clean_longest": int(item.get("clean_longest") or 0),
+            "today_status": item.get("today_status"),
+        })
+    habit_tracker["habits"] = norm
+    habit_tracker["summary_text"] = _trick_habit_tracker_summary(norm)
+    habit_tracker["status_text"] = ""
+    return True, {"count": len(norm)}, None
+
+
+def _trick_habit_tracker_primary(habit_tracker):
+    rows = _trick_habit_tracker_filtered_rows(habit_tracker)
+    return rows[0] if rows else None
+
+
+def _trick_habit_tracker_update(actor, action):
+    habit_tracker = _trick_habit_tracker_session(actor)
+    item = _trick_habit_tracker_primary(habit_tracker)
+    if not item or not item.get("name"):
+        habit_tracker["status_text"] = "No habit available."
+        return False, {"error": "No habit available"}, "No habit available"
+    endpoint = "incident" if action == "incident" else "complete"
+    req = urlrequest.Request(
+        f"http://127.0.0.1:7357/api/habits/{endpoint}",
+        data=json.dumps({"name": item.get("name")}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        habit_tracker["status_text"] = "Habit update failed."
+        return False, {"error": str(e)}, str(e)
+    habit_tracker["status_text"] = "Habit updated."
+    _trick_habit_tracker_refresh(actor)
+    return True, payload, None
+
+
+def _trick_habit_tracker_elements(actor):
+    habit_tracker = _trick_habit_tracker_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(habit_tracker.get("closed"))
+    visible = not closed
+    minimized = bool(habit_tracker.get("minimized"))
+    body_visible = visible and not minimized
+    filtered = _trick_habit_tracker_filtered_rows(habit_tracker)
+    list_text = "\n".join(
+        f"{h.get('name')}: {h.get('today_status') or 'pending'}"
+        for h in filtered if isinstance(h, dict)
+    )
+    return {
+        "widget.habit_tracker.title": _mk("Habits", visible=visible),
+        "widget.habit_tracker.search_input": _mk(habit_tracker.get("search_input") or "", visible=body_visible),
+        "widget.habit_tracker.polarity_select": _mk(habit_tracker.get("polarity_select") or "all", visible=body_visible),
+        "widget.habit_tracker.refresh_button": _mk("R", visible=visible),
+        "widget.habit_tracker.minimize_button": _mk("_", visible=visible),
+        "widget.habit_tracker.close_button": _mk("x", visible=visible),
+        "widget.habit_tracker.done_primary_button": _mk("Done Primary", visible=body_visible),
+        "widget.habit_tracker.incident_primary_button": _mk("Incident Primary", visible=body_visible),
+        "widget.habit_tracker.summary_text": _mk(habit_tracker.get("summary_text") or "", visible=body_visible),
+        "widget.habit_tracker.status_text": _mk(habit_tracker.get("status_text") or "", visible=body_visible),
+        "widget.habit_tracker.list_container": _mk(list_text, visible=body_visible),
+    }
+
+
+def _trick_review_session(actor):
+    session = _trick_session(actor)
+    review_widget = session.get("review_widget")
+    if not isinstance(review_widget, dict):
+        review_widget = {}
+        session["review_widget"] = review_widget
+    return review_widget
+
+
+def _trick_review_today():
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def _trick_review_this_week():
+    now = datetime.utcnow()
+    iso_year, iso_week, _ = now.isocalendar()
+    return f"{iso_year}-{iso_week:02d}"
+
+
+def _trick_review_this_month():
+    now = datetime.now()
+    return f"{now.year}-{now.month:02d}"
+
+
+def _trick_review_set_this(review_widget):
+    review_type = str(review_widget.get("type_select") or "daily").strip().lower()
+    if review_type == "weekly":
+        review_widget["period_input"] = _trick_review_this_week()
+    elif review_type == "monthly":
+        review_widget["period_input"] = _trick_review_this_month()
+    else:
+        review_widget["period_input"] = _trick_review_today()
+    return review_widget["period_input"]
+
+
+def _trick_review_shift_period(review_widget, direction):
+    review_type = str(review_widget.get("type_select") or "daily").strip().lower()
+    period = str(review_widget.get("period_input") or "").strip()
+    try:
+        if review_type == "daily":
+            dt = datetime.strptime(period if re.match(r"^\d{4}-\d{2}-\d{2}$", period) else _trick_review_today(), "%Y-%m-%d")
+            dt = dt + timedelta(days=direction)
+            review_widget["period_input"] = dt.strftime("%Y-%m-%d")
+        elif review_type == "weekly":
+            m = re.match(r"^(\d{4})-(\d{2})$", period or "")
+            if not m:
+                review_widget["period_input"] = _trick_review_this_week()
+            else:
+                year = int(m.group(1))
+                week = int(m.group(2))
+                monday = datetime.fromisocalendar(year, week, 1) + timedelta(days=7 * direction)
+                iso_year, iso_week, _ = monday.isocalendar()
+                review_widget["period_input"] = f"{iso_year}-{iso_week:02d}"
+        else:
+            m = re.match(r"^(\d{4})-(\d{2})$", period or "")
+            if not m:
+                review_widget["period_input"] = _trick_review_this_month()
+            else:
+                year = int(m.group(1))
+                month = int(m.group(2))
+                month += direction
+                while month < 1:
+                    year -= 1
+                    month += 12
+                while month > 12:
+                    year += 1
+                    month -= 12
+                review_widget["period_input"] = f"{year}-{month:02d}"
+    except Exception:
+        _trick_review_set_this(review_widget)
+    return review_widget["period_input"]
+
+
+def _trick_review_fetch(review_widget):
+    review_type = str(review_widget.get("type_select") or "daily").strip().lower()
+    period = str(review_widget.get("period_input") or "").strip()
+    url = f"http://127.0.0.1:7357/api/review?type={quote(review_type)}&period={quote(period)}"
+    with urlrequest.urlopen(url, timeout=10) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def _trick_review_run_cli(command_args):
+    ok, out, err = run_console_command("review", command_args)
+    return ok, out, err
+
+
+def _trick_review_generate(actor):
+    review_widget = _trick_review_session(actor)
+    review_type = str(review_widget.get("type_select") or "daily").strip().lower()
+    period = str(review_widget.get("period_input") or "").strip()
+    ok, out, err = _trick_review_run_cli([review_type, period] if period else [review_type])
+    if not ok:
+        review_widget["status_text"] = "Generation failed."
+        return False, {"stdout": out, "stderr": err}, err or out or "Generation failed"
+    try:
+        review_widget["log_text"] = _trick_review_fetch(review_widget)
+    except Exception:
+        review_widget["log_text"] = ""
+    review_widget["status_text"] = "Done"
+    return True, {"stdout": out, "stderr": err}, None
+
+
+def _trick_review_open(actor):
+    review_widget = _trick_review_session(actor)
+    try:
+        review_widget["log_text"] = _trick_review_fetch(review_widget)
+    except Exception as e:
+        review_widget["status_text"] = "Load failed."
+        return False, {"error": str(e)}, str(e)
+    review_widget["status_text"] = "Done"
+    return True, {"loaded": True}, None
+
+
+def _trick_review_export(actor):
+    review_widget = _trick_review_session(actor)
+    review_type = str(review_widget.get("type_select") or "daily").strip().lower()
+    period = str(review_widget.get("period_input") or "").strip()
+    ok, out, err = _trick_review_run_cli(["export", review_type, period] if period else ["export", review_type])
+    review_widget["status_text"] = "Done" if ok else "Export failed."
+    return ok, {"stdout": out, "stderr": err}, None if ok else (err or out or "Export failed")
+
+
+def _trick_review_elements(actor):
+    review_widget = _trick_review_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(review_widget.get("closed"))
+    visible = not closed
+    minimized = bool(review_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.review.title": _mk("Review", visible=visible),
+        "widget.review.minimize_button": _mk("_", visible=visible),
+        "widget.review.close_button": _mk("x", visible=visible),
+        "widget.review.type_select": _mk(review_widget.get("type_select") or "daily", visible=body_visible),
+        "widget.review.period_input": _mk(review_widget.get("period_input") or "", visible=body_visible),
+        "widget.review.this_button": _mk("This", visible=body_visible),
+        "widget.review.generate_button": _mk("Generate", visible=body_visible),
+        "widget.review.open_button": _mk("Open", visible=body_visible),
+        "widget.review.export_button": _mk("Export", visible=body_visible),
+        "widget.review.prev_button": _mk("Prev", visible=body_visible),
+        "widget.review.next_button": _mk("Next", visible=body_visible),
+        "widget.review.expand_checkbox": _mk(bool(review_widget.get("expand_checkbox")), visible=body_visible),
+        "widget.review.status_text": _mk(review_widget.get("status_text") or "", visible=body_visible),
+        "widget.review.log_text": _mk(review_widget.get("log_text") or "", visible=body_visible),
+    }
+
+
+def _trick_variables_session(actor):
+    session = _trick_session(actor)
+    variables_widget = session.get("variables_widget")
+    if not isinstance(variables_widget, dict):
+        variables_widget = {}
+        session["variables_widget"] = variables_widget
+    return variables_widget
+
+
+def _trick_variables_refresh(actor):
+    variables_widget = _trick_variables_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/vars", timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        variables_widget["status_text"] = "Refresh failed."
+        return False, {"error": str(e)}, str(e)
+    variables_widget["rows"] = payload.get("vars") if isinstance(payload.get("vars"), dict) else {}
+    variables_widget["status_text"] = "Refreshed."
+    return True, {"count": len(variables_widget["rows"])}, None
+
+
+def _trick_variables_save(actor):
+    variables_widget = _trick_variables_session(actor)
+    rows = variables_widget.get("rows") if isinstance(variables_widget.get("rows"), dict) else {}
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/vars",
+        data=json.dumps({"set": rows, "unset": []}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        variables_widget["status_text"] = "Save failed."
+        return False, {"error": str(e)}, str(e)
+    variables_widget["rows"] = payload.get("vars") if isinstance(payload.get("vars"), dict) else rows
+    variables_widget["status_text"] = "Saved."
+    return True, payload, None
+
+
+def _trick_variables_grid_text(rows):
+    return "\n".join(f"{k}={v}" for k, v in sorted((rows or {}).items()))
+
+
+def _trick_variables_elements(actor):
+    variables_widget = _trick_variables_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(variables_widget.get("closed"))
+    visible = not closed
+    minimized = bool(variables_widget.get("minimized"))
+    body_visible = visible and not minimized
+    rows = variables_widget.get("rows") if isinstance(variables_widget.get("rows"), dict) else {}
+    return {
+        "widget.variables.title": _mk("Variables", visible=visible),
+        "widget.variables.minimize_button": _mk("_", visible=visible),
+        "widget.variables.close_button": _mk("x", visible=visible),
+        "widget.variables.add_button": _mk("Add", visible=body_visible),
+        "widget.variables.save_button": _mk("Save", visible=body_visible),
+        "widget.variables.refresh_button": _mk("Refresh", visible=body_visible),
+        "widget.variables.grid_container": _mk(_trick_variables_grid_text(rows), visible=body_visible),
+        "widget.variables.status_text": _mk(variables_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_parse_grid_text(value):
+    rows = {}
+    for raw in str(value or "").splitlines():
+        line = str(raw).strip()
+        if not line or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        key = key.strip()
+        if key:
+            rows[key] = val.strip()
+    return rows
+
+
+def _trick_resolution_tracker_session(actor):
+    session = _trick_session(actor)
+    resolution_tracker = session.get("resolution_tracker")
+    if not isinstance(resolution_tracker, dict):
+        resolution_tracker = {}
+        session["resolution_tracker"] = resolution_tracker
+    return resolution_tracker
+
+
+def _trick_resolution_tracker_refresh(actor):
+    resolution_tracker = _trick_resolution_tracker_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/items", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        resolution_tracker["status_text"] = "Failed to load resolutions."
+        return False, {"error": str(e)}, str(e)
+    all_items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    projects_by_name = {
+        str(i.get("name")): i.get("resolution")
+        for i in all_items if isinstance(i, dict) and str(i.get("type") or "").lower() == "project" and i.get("name") and i.get("resolution")
+    }
+    goals_by_name = {
+        str(i.get("name")): i
+        for i in all_items if isinstance(i, dict) and str(i.get("type") or "").lower() == "goal" and i.get("name")
+    }
+    resolved = []
+    for item in all_items:
+        if not isinstance(item, dict):
+            continue
+        out = dict(item)
+        eff = out.get("resolution") or None
+        if (not eff) and out.get("resolution_ref"):
+            eff = projects_by_name.get(str(out.get("resolution_ref"))) or None
+        if not eff:
+            t = str(out.get("type") or "").lower()
+            if t in {"goal", "milestone"} and out.get("project"):
+                eff = projects_by_name.get(str(out.get("project"))) or None
+            if (not eff) and t == "milestone" and out.get("goal"):
+                goal = goals_by_name.get(str(out.get("goal")))
+                if isinstance(goal, dict) and goal.get("project"):
+                    eff = projects_by_name.get(str(goal.get("project"))) or None
+        out["__resolution_effective"] = eff or None
+        if out["__resolution_effective"]:
+            resolved.append(out)
+    resolution_tracker["items"] = resolved
+    current_year = datetime.now().year
+    year_items = [item for item in resolved if not item.get("__resolution_effective", {}).get("year") or int(item.get("__resolution_effective", {}).get("year")) in {current_year, current_year + 1}]
+    groups = {}
+    for item in year_items:
+        res = item.get("__resolution_effective") or {}
+        key = "||".join([str(res.get("year") or ""), str(res.get("affirmation") or ""), str(res.get("raw_text") or "")])
+        groups.setdefault(key, {"resolution": res, "items": []})["items"].append(item)
+    entries = []
+    for entry in groups.values():
+        linked = entry["items"]
+        avg = round(sum([0 if not isinstance(i, dict) else (100 if str(i.get("type") or "").lower() == "routine" else (100 if (str(i.get("type") or "").lower() == "task" and (i.get("complete") or str(i.get("status") or "").lower() == "complete")) else 0)) for i in linked]) / max(1, len(linked)))
+        affirmation = str((entry["resolution"] or {}).get("affirmation") or "No affirmation")
+        entries.append({"affirmation": affirmation, "percent": avg, "count": len(linked)})
+    entries.sort(key=lambda row: (-int(row.get("percent") or 0), str(row.get("affirmation") or "").lower()))
+    resolution_tracker["stats_text"] = f"{len(entries)} resolutions | {round(sum(int(e.get('percent') or 0) for e in entries) / max(1, len(entries)))}% overall" if entries else ""
+    resolution_tracker["list_text"] = "\n".join(f"{row['affirmation']}: {row['percent']}%" for row in entries)
+    resolution_tracker["status_text"] = "Loaded." if entries else "No resolutions found."
+    return True, {"count": len(entries)}, None
+
+
+def _trick_resolution_tracker_elements(actor):
+    resolution_tracker = _trick_resolution_tracker_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(resolution_tracker.get("closed"))
+    visible = not closed
+    minimized = bool(resolution_tracker.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.resolution_tracker.title": _mk("Resolutions", visible=visible),
+        "widget.resolution_tracker.refresh_button": _mk("R", visible=visible),
+        "widget.resolution_tracker.minimize_button": _mk("_", visible=visible),
+        "widget.resolution_tracker.close_button": _mk("x", visible=visible),
+        "widget.resolution_tracker.stats_text": _mk(resolution_tracker.get("stats_text") or "", visible=body_visible),
+        "widget.resolution_tracker.list_container": _mk(resolution_tracker.get("list_text") or "", visible=body_visible),
+        "widget.resolution_tracker.status_text": _mk(resolution_tracker.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_notes_session(actor):
+    session = _trick_session(actor)
+    notes_widget = session.get("notes_widget")
+    if not isinstance(notes_widget, dict):
+        notes_widget = {}
+        session["notes_widget"] = notes_widget
+    return notes_widget
+
+
+def _trick_notes_update_preview(notes_widget):
+    title = str(notes_widget.get("title_input") or "").strip()
+    body = str(notes_widget.get("content_input") or "")
+    notes_widget["preview_text"] = (f"{title}\n\n{body}" if title else body).strip()
+
+
+def _trick_notes_create(actor):
+    notes_widget = _trick_notes_session(actor)
+    name = str(notes_widget.get("title_input") or "").strip()
+    if not name:
+        notes_widget["status_text"] = "Create failed."
+        return False, {"error": "Missing note title"}, "Missing note title"
+    category = str(notes_widget.get("category_select") or "").strip()
+    priority = str(notes_widget.get("priority_select") or "").strip()
+    tags = [s.strip() for s in str(notes_widget.get("tags_input") or "").split(",") if s.strip()]
+    content = str(notes_widget.get("content_input") or "")
+    fmt = str(notes_widget.get("format_select") or "note").strip().lower()
+    if fmt == "note":
+        req = urlrequest.Request(
+            "http://127.0.0.1:7357/api/new/note",
+            data=json.dumps({"name": name, "category": category, "priority": priority, "tags": tags, "content": content}).encode("utf-8"),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+    else:
+        ext = ".md" if fmt == "markdown" else ".yml"
+        fname = re.sub(r"\s+", " ", name.lower().replace("&", "and").replace(":", "-")).strip() or "untitled"
+        target = str(notes_widget.get("path_hint_text") or "").replace("Path: ", "").strip() or f"user/notes/{fname}{ext}"
+        payload_content = content
+        req = urlrequest.Request(
+            "http://127.0.0.1:7357/api/file/write",
+            data=json.dumps({"path": target, "content": payload_content}).encode("utf-8"),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        notes_widget["path_hint_text"] = f"Path: {target}"
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        notes_widget["status_text"] = "Create failed."
+        return False, {"error": str(e)}, str(e)
+    notes_widget["status_text"] = "Created note." if fmt == "note" else "Saved."
+    return True, {"name": name, "format": fmt}, None
+
+
+def _trick_notes_load(actor):
+    notes_widget = _trick_notes_session(actor)
+    path = str(notes_widget.get("path_hint_text") or "").replace("Path: ", "").strip()
+    title = str(notes_widget.get("title_input") or "").strip()
+    if path:
+        req = urlrequest.Request(
+            "http://127.0.0.1:7357/api/file/read",
+            data=json.dumps({"path": path}).encode("utf-8"),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urlrequest.urlopen(req, timeout=10) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+        except Exception as e:
+            notes_widget["status_text"] = "Load failed."
+            return False, {"error": str(e)}, str(e)
+        try:
+            obj = json.loads(raw)
+            content = obj.get("content") if isinstance(obj, dict) else raw
+        except Exception:
+            content = raw
+        notes_widget["content_input"] = str(content or "")
+        _trick_notes_update_preview(notes_widget)
+        notes_widget["status_text"] = "Loaded."
+        return True, {"path": path}, None
+    if title:
+        try:
+            from modules.item_manager import read_item_data
+            data = read_item_data("note", title)
+        except Exception as e:
+            notes_widget["status_text"] = "Load failed."
+            return False, {"error": str(e)}, str(e)
+        if not isinstance(data, dict):
+            notes_widget["status_text"] = "Load failed."
+            return False, {"error": "Note not found"}, "Note not found"
+        notes_widget["category_select"] = str(data.get("category") or "")
+        notes_widget["priority_select"] = str(data.get("priority") or "")
+        tags = data.get("tags") if isinstance(data.get("tags"), list) else []
+        notes_widget["tags_input"] = ", ".join(str(t) for t in tags)
+        notes_widget["content_input"] = str(data.get("content") or "")
+        notes_widget["format_select"] = "note"
+        notes_widget["path_hint_text"] = ""
+        _trick_notes_update_preview(notes_widget)
+        notes_widget["status_text"] = "Loaded."
+        return True, {"name": title}, None
+    notes_widget["status_text"] = "Load failed."
+    return False, {"error": "No title or path"}, "No title or path"
+
+
+def _trick_notes_to_sticky(actor):
+    notes_widget = _trick_notes_session(actor)
+    title = str(notes_widget.get("title_input") or "").strip()
+    body = str(notes_widget.get("content_input") or "").strip()
+    if not title and not body:
+        notes_widget["status_text"] = "Sticky export failed."
+        return False, {"error": "Empty note"}, "Empty note"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/sticky-notes",
+        data=json.dumps({"name": title, "content": body or title}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        notes_widget["status_text"] = "Sticky export failed."
+        return False, {"error": str(e)}, str(e)
+    notes_widget["status_text"] = "Sent to Sticky Notes."
+    return True, payload, None
+
+
+def _trick_notes_elements(actor):
+    notes_widget = _trick_notes_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(notes_widget.get("closed"))
+    visible = not closed
+    minimized = bool(notes_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.notes.title": _mk("Notes", visible=visible),
+        "widget.notes.minimize_button": _mk("_", visible=visible),
+        "widget.notes.close_button": _mk("x", visible=visible),
+        "widget.notes.title_input": _mk(notes_widget.get("title_input") or "", visible=body_visible),
+        "widget.notes.format_select": _mk(notes_widget.get("format_select") or "note", visible=body_visible),
+        "widget.notes.preview_checkbox": _mk(bool(notes_widget.get("preview_checkbox")), visible=body_visible),
+        "widget.notes.category_select": _mk(notes_widget.get("category_select") or "", visible=body_visible),
+        "widget.notes.priority_select": _mk(notes_widget.get("priority_select") or "", visible=body_visible),
+        "widget.notes.tags_input": _mk(notes_widget.get("tags_input") or "", visible=body_visible),
+        "widget.notes.path_hint_text": _mk(notes_widget.get("path_hint_text") or "", visible=body_visible),
+        "widget.notes.content_input": _mk(notes_widget.get("content_input") or "", visible=body_visible),
+        "widget.notes.preview_text": _mk(notes_widget.get("preview_text") or "", visible=body_visible),
+        "widget.notes.load_button": _mk("Load", visible=body_visible),
+        "widget.notes.to_sticky_button": _mk("To Sticky", visible=body_visible),
+        "widget.notes.create_button": _mk("Create", visible=body_visible),
+        "widget.notes.status_text": _mk(notes_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_inventory_manager_session(actor):
+    session = _trick_session(actor)
+    inventory_widget = session.get("inventory_manager_widget")
+    if not isinstance(inventory_widget, dict):
+        inventory_widget = {}
+        session["inventory_manager_widget"] = inventory_widget
+    return inventory_widget
+
+
+def _trick_inventory_manager_filtered_rows(inventory_widget):
+    rows = inventory_widget.get("inventories") if isinstance(inventory_widget.get("inventories"), list) else []
+    term = str(inventory_widget.get("search_input") or "").strip().lower()
+    place = str(inventory_widget.get("place_filter_select") or "").strip().lower()
+    out = []
+    for inv in rows:
+        if not isinstance(inv, dict):
+            continue
+        name = str(inv.get("name") or "").lower()
+        if term and term not in name:
+            continue
+        if place:
+            places = inv.get("places") if isinstance(inv.get("places"), list) else ([inv.get("location")] if inv.get("location") else [])
+            if place not in [str(p).lower() for p in places]:
+                continue
+        out.append(inv)
+    return out
+
+
+def _trick_inventory_manager_refresh(actor):
+    inventory_widget = _trick_inventory_manager_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/items?type=inventory", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        inventory_widget["status_text"] = "Failed to load inventories."
+        return False, {"error": str(e)}, str(e)
+    items = payload.get("items") if isinstance(payload.get("items"), list) else (payload if isinstance(payload, list) else [])
+    inventory_widget["inventories"] = items
+    filtered = _trick_inventory_manager_filtered_rows(inventory_widget)
+    inventory_widget["count_text"] = f"{len(filtered)} / {len(items)} inventories" if items else "No inventories"
+    inventory_widget["status_text"] = f"Loaded {len(items)} inventories."
+    if filtered and not inventory_widget.get("selected_name"):
+        inventory_widget["selected_name"] = str(filtered[0].get("name") or "")
+    return _trick_inventory_manager_load_selected(actor)
+
+
+def _trick_inventory_manager_load_selected(actor):
+    inventory_widget = _trick_inventory_manager_session(actor)
+    name = str(inventory_widget.get("selected_name") or "").strip()
+    if not name:
+        inventory_widget["selected_detail"] = "Select an inventory to see details."
+        return True, {"selected": None}, None
+    try:
+        with urlrequest.urlopen(f"http://127.0.0.1:7357/api/item?type=inventory&name={quote(name)}", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        inventory_widget["status_text"] = "Failed to load inventory."
+        return False, {"error": str(e)}, str(e)
+    item = payload.get("item") if isinstance(payload, dict) else {}
+    if not isinstance(item, dict):
+        item = {}
+    places = item.get("places") if isinstance(item.get("places"), list) else ([item.get("location")] if item.get("location") else [])
+    tags = item.get("tags") if isinstance(item.get("tags"), list) else []
+    items = item.get("inventory_items") if isinstance(item.get("inventory_items"), list) else (item.get("items") if isinstance(item.get("items"), list) else [])
+    tools = item.get("tools") if isinstance(item.get("tools"), list) else []
+    parts = [str(item.get("name") or "Inventory")]
+    if places:
+        parts.append(f"Places: {', '.join(str(p) for p in places)}")
+    if tags:
+        parts.append(f"Tags: {', '.join(str(t) for t in tags)}")
+    parts.append(f"Items: {len(items)}")
+    parts.append(f"Tools: {len(tools)}")
+    inventory_widget["selected_detail"] = "\n".join(parts)
+    inventory_widget["status_text"] = f"Loaded {name}."
+    return True, {"selected": name}, None
+
+
+def _trick_inventory_manager_create(actor):
+    inventory_widget = _trick_inventory_manager_session(actor)
+    name = str(inventory_widget.get("new_name_input") or "").strip()
+    if not name:
+        inventory_widget["status_text"] = "Inventory name is required."
+        return False, {"error": "Inventory name is required"}, "Inventory name is required"
+    places = [s.strip() for s in str(inventory_widget.get("new_places_input") or "").split(",") if s.strip()]
+    tags = [s.strip() for s in str(inventory_widget.get("new_tags_input") or "").split(",") if s.strip()]
+    payload = {
+        "type": "inventory",
+        "name": name,
+        "properties": {"type": "inventory", "name": name, "description": "", "places": places, "tags": tags, "inventory_items": [], "tools": []},
+    }
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/item",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        inventory_widget["status_text"] = "Failed to create inventory."
+        return False, {"error": str(e)}, str(e)
+    inventory_widget["selected_name"] = name
+    inventory_widget["status_text"] = f"Created inventory '{name}'."
+    return _trick_inventory_manager_refresh(actor)
+
+
+def _trick_inventory_manager_list_text(rows):
+    return "\n".join(str(inv.get("name") or "") for inv in rows if isinstance(inv, dict))
+
+
+def _trick_inventory_manager_elements(actor):
+    inventory_widget = _trick_inventory_manager_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(inventory_widget.get("closed"))
+    visible = not closed
+    minimized = bool(inventory_widget.get("minimized"))
+    body_visible = visible and not minimized
+    filtered = _trick_inventory_manager_filtered_rows(inventory_widget)
+    return {
+        "widget.inventory_manager.title": _mk("Inventory Manager", visible=visible),
+        "widget.inventory_manager.minimize_button": _mk("_", visible=visible),
+        "widget.inventory_manager.close_button": _mk("x", visible=visible),
+        "widget.inventory_manager.search_input": _mk(inventory_widget.get("search_input") or "", visible=body_visible),
+        "widget.inventory_manager.place_filter_select": _mk(inventory_widget.get("place_filter_select") or "", visible=body_visible),
+        "widget.inventory_manager.search_button": _mk("Search", visible=body_visible),
+        "widget.inventory_manager.refresh_button": _mk("Refresh", visible=body_visible),
+        "widget.inventory_manager.new_name_input": _mk(inventory_widget.get("new_name_input") or "", visible=body_visible),
+        "widget.inventory_manager.new_places_input": _mk(inventory_widget.get("new_places_input") or "", visible=body_visible),
+        "widget.inventory_manager.new_tags_input": _mk(inventory_widget.get("new_tags_input") or "", visible=body_visible),
+        "widget.inventory_manager.create_button": _mk("Create", visible=body_visible),
+        "widget.inventory_manager.count_text": _mk(inventory_widget.get("count_text") or "", visible=body_visible),
+        "widget.inventory_manager.list_container": _mk(_trick_inventory_manager_list_text(filtered), visible=body_visible),
+        "widget.inventory_manager.detail_container": _mk(inventory_widget.get("selected_detail") or "", visible=body_visible),
+        "widget.inventory_manager.status_text": _mk(inventory_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_profile_session(actor):
+    session = _trick_session(actor)
+    profile_widget = session.get("profile_widget")
+    if not isinstance(profile_widget, dict):
+        profile_widget = {}
+        session["profile_widget"] = profile_widget
+    return profile_widget
+
+
+def _trick_profile_refresh(actor):
+    profile_widget = _trick_profile_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/profile", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        profile_widget["status_text"] = "Failed to load profile."
+        return False, {"error": str(e)}, str(e)
+    data = payload.get("profile") if isinstance(payload, dict) else {}
+    if not isinstance(data, dict):
+        data = {}
+    profile_widget["nickname_input"] = str(data.get("nickname") or "")
+    profile_widget["title_select"] = str(data.get("title") or "")
+    welcome = data.get("welcome") if isinstance(data.get("welcome"), dict) else {}
+    exit_block = data.get("exit") if isinstance(data.get("exit"), dict) else {}
+    profile_widget["welcome_line1_input"] = str(welcome.get("line1") or "")
+    profile_widget["welcome_line2_input"] = str(welcome.get("line2") or "")
+    profile_widget["welcome_line3_input"] = str(welcome.get("line3") or "")
+    profile_widget["exit_line1_input"] = str(exit_block.get("line1") or "")
+    profile_widget["exit_line2_input"] = str(exit_block.get("line2") or "")
+    profile_widget["avatar_preview"] = str(data.get("avatar_path") or data.get("avatar_data_url") or "")
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/achievements", timeout=15) as resp:
+            achievements_payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception:
+        achievements_payload = {}
+    achievements = achievements_payload.get("achievements") if isinstance(achievements_payload, dict) else []
+    titles = []
+    if isinstance(achievements, list):
+        for achievement in achievements:
+            if not isinstance(achievement, dict):
+                continue
+            state = str(achievement.get("state") or achievement.get("status") or "").lower()
+            title = str(achievement.get("title") or "").strip()
+            if state == "awarded" and title:
+                titles.append(title)
+    profile_widget["available_titles"] = sorted(set(titles))
+    profile_widget["status_text"] = "Profile loaded."
+    return True, {"profile": data}, None
+
+
+def _trick_profile_save(actor):
+    profile_widget = _trick_profile_session(actor)
+    payload = {
+        "nickname": str(profile_widget.get("nickname_input") or "").strip(),
+        "title": str(profile_widget.get("title_select") or "").strip(),
+        "welcome": {
+            "line1": str(profile_widget.get("welcome_line1_input") or ""),
+            "line2": str(profile_widget.get("welcome_line2_input") or ""),
+            "line3": str(profile_widget.get("welcome_line3_input") or ""),
+        },
+        "exit": {
+            "line1": str(profile_widget.get("exit_line1_input") or ""),
+            "line2": str(profile_widget.get("exit_line2_input") or ""),
+        },
+    }
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/profile",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        profile_widget["status_text"] = "Save failed."
+        return False, {"error": str(e)}, str(e)
+    profile_widget["status_text"] = "Profile saved."
+    return True, payload, None
+
+
+def _trick_profile_elements(actor):
+    profile_widget = _trick_profile_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(profile_widget.get("closed"))
+    visible = not closed
+    minimized = bool(profile_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.profile.title": _mk("Profile", visible=visible),
+        "widget.profile.minimize_button": _mk("_", visible=visible),
+        "widget.profile.close_button": _mk("x", visible=visible),
+        "widget.profile.nickname_input": _mk(profile_widget.get("nickname_input") or "", visible=body_visible),
+        "widget.profile.title_select": _mk(profile_widget.get("title_select") or "", visible=body_visible),
+        "widget.profile.available_titles_text": _mk(", ".join(profile_widget.get("available_titles") or []), visible=body_visible),
+        "widget.profile.welcome_line1_input": _mk(profile_widget.get("welcome_line1_input") or "", visible=body_visible),
+        "widget.profile.welcome_line2_input": _mk(profile_widget.get("welcome_line2_input") or "", visible=body_visible),
+        "widget.profile.welcome_line3_input": _mk(profile_widget.get("welcome_line3_input") or "", visible=body_visible),
+        "widget.profile.exit_line1_input": _mk(profile_widget.get("exit_line1_input") or "", visible=body_visible),
+        "widget.profile.exit_line2_input": _mk(profile_widget.get("exit_line2_input") or "", visible=body_visible),
+        "widget.profile.avatar_preview": _mk(profile_widget.get("avatar_preview") or "", visible=body_visible),
+        "widget.profile.save_button": _mk("Save Changes", visible=body_visible),
+        "widget.profile.edit_preferences_button": _mk("Edit Agent Preferences", visible=body_visible),
+        "widget.profile.edit_preferences_settings_button": _mk("Edit Preferences Settings", visible=body_visible),
+        "widget.profile.edit_pilot_brief_button": _mk("Edit Pilot Brief", visible=body_visible),
+        "widget.profile.status_text": _mk(profile_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_settings_session(actor):
+    session = _trick_session(actor)
+    settings_widget = session.get("settings_widget")
+    if not isinstance(settings_widget, dict):
+        settings_widget = {}
+        session["settings_widget"] = settings_widget
+    return settings_widget
+
+
+def _trick_settings_summarize(yaml_text):
+    lines = [line.rstrip() for line in str(yaml_text or "").splitlines() if line.strip()]
+    return "\n".join(lines[:12])
+
+
+def _trick_settings_refresh(actor):
+    settings_widget = _trick_settings_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/settings", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        settings_widget["status_text"] = "Failed to list settings files."
+        return False, {"error": str(e)}, str(e)
+    files = payload.get("files") if isinstance(payload, dict) and isinstance(payload.get("files"), list) else []
+    settings_widget["files"] = [str(f) for f in files]
+    if not settings_widget.get("file_select") and files:
+        settings_widget["file_select"] = str(files[0])
+    if settings_widget.get("file_select"):
+        return _trick_settings_load_file(actor, settings_widget.get("file_select"))
+    settings_widget["editor_input"] = ""
+    settings_widget["dynamic_content"] = ""
+    settings_widget["status_text"] = "Loaded settings files."
+    return True, {"files": files}, None
+
+
+def _trick_settings_load_file(actor, file_name):
+    settings_widget = _trick_settings_session(actor)
+    name = str(file_name or "").strip()
+    if not name:
+        settings_widget["status_text"] = "Select a file first."
+        return False, {"error": "Missing file"}, "Missing file"
+    try:
+        with urlrequest.urlopen(f"http://127.0.0.1:7357/api/settings?file={quote(name)}", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        settings_widget["status_text"] = "Failed to load file."
+        return False, {"error": str(e)}, str(e)
+    content = str(payload.get("content") or "")
+    settings_widget["file_select"] = name
+    settings_widget["editor_input"] = content
+    settings_widget["dynamic_content"] = _trick_settings_summarize(content)
+    settings_widget["status_text"] = f"Loaded {name}"
+    return True, {"file": name, "content": content}, None
+
+
+def _trick_settings_save(actor):
+    settings_widget = _trick_settings_session(actor)
+    name = str(settings_widget.get("file_select") or "").strip()
+    if not name:
+        settings_widget["status_text"] = "Select a file first."
+        return False, {"error": "Missing file"}, "Missing file"
+    req = urlrequest.Request(
+        f"http://127.0.0.1:7357/api/settings?file={quote(name)}",
+        data=str(settings_widget.get("editor_input") or "").encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "text/yaml"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        settings_widget["status_text"] = "Save failed."
+        return False, {"error": str(e)}, str(e)
+    settings_widget["dynamic_content"] = _trick_settings_summarize(settings_widget.get("editor_input") or "")
+    settings_widget["status_text"] = "Saved."
+    return True, {"file": name}, None
+
+
+def _trick_settings_elements(actor):
+    settings_widget = _trick_settings_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(settings_widget.get("closed"))
+    visible = not closed
+    minimized = bool(settings_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.settings.title": _mk("Settings", visible=visible),
+        "widget.settings.minimize_button": _mk("_", visible=visible),
+        "widget.settings.close_button": _mk("x", visible=visible),
+        "widget.settings.file_select": _mk(settings_widget.get("file_select") or "", visible=body_visible),
+        "widget.settings.files_text": _mk(", ".join(settings_widget.get("files") or []), visible=body_visible),
+        "widget.settings.reload_button": _mk("Reload", visible=body_visible),
+        "widget.settings.form_mode_checkbox": _mk(bool(settings_widget.get("form_mode_checkbox", True)), visible=body_visible),
+        "widget.settings.editor_input": _mk(settings_widget.get("editor_input") or "", visible=body_visible),
+        "widget.settings.dynamic_content": _mk(settings_widget.get("dynamic_content") or "", visible=body_visible),
+        "widget.settings.save_button": _mk("Save", visible=body_visible),
+        "widget.settings.status_text": _mk(settings_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_sleep_settings_session(actor):
+    session = _trick_session(actor)
+    sleep_widget = session.get("sleep_settings_widget")
+    if not isinstance(sleep_widget, dict):
+        sleep_widget = {}
+        session["sleep_settings_widget"] = sleep_widget
+    return sleep_widget
+
+
+def _trick_sleep_settings_parse_blocks(value):
+    blocks = []
+    for line in str(value or "").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = [part.strip() for part in line.split("|")]
+        if len(parts) < 4:
+            continue
+        blocks.append(
+            {
+                "label": parts[0] or "Sleep Segment",
+                "start": parts[1],
+                "end": parts[2],
+                "days": [day.strip() for day in parts[3].split(",") if day.strip()],
+            }
+        )
+    return blocks
+
+
+def _trick_sleep_settings_blocks_text(blocks):
+    rows = []
+    for block in blocks or []:
+        if not isinstance(block, dict):
+            continue
+        rows.append(
+            f"{str(block.get('label') or 'Sleep Segment')}|{str(block.get('start') or '')}|{str(block.get('end') or '')}|{','.join(str(day) for day in (block.get('days') or []))}"
+        )
+    return "\n".join(rows)
+
+
+def _trick_sleep_settings_refresh_chart(sleep_widget):
+    blocks = _trick_sleep_settings_parse_blocks(sleep_widget.get("blocks_text") or "")
+    total_minutes = 0
+    for block in blocks:
+        start = block.get("start")
+        end = block.get("end")
+        try:
+            sh, sm = [int(x) for x in str(start).split(":", 1)]
+            eh, em = [int(x) for x in str(end).split(":", 1)]
+            mins = (eh * 60 + em) - (sh * 60 + sm)
+            if mins <= 0:
+                mins += 1440
+            total_minutes += mins
+        except Exception:
+            continue
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    sleep_widget["chart_container"] = f"Sleep total: {hours}h {minutes}m" if minutes else f"Sleep total: {hours}h"
+
+
+def _trick_sleep_settings_refresh(actor):
+    sleep_widget = _trick_sleep_settings_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/template/list?type=day", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        sleep_widget["status_text"] = "Failed to load templates."
+        return False, {"error": str(e)}, str(e)
+    templates = payload.get("templates") if isinstance(payload, dict) and isinstance(payload.get("templates"), list) else []
+    sleep_widget["available_templates"] = [str(t) for t in templates]
+    if not sleep_widget.get("selected_templates") and templates:
+        sleep_widget["selected_templates"] = [str(templates[0])]
+    _trick_sleep_settings_refresh_chart(sleep_widget)
+    sleep_widget["status_text"] = "Templates loaded."
+    return True, {"templates": templates}, None
+
+
+def _trick_sleep_settings_apply_mode(actor):
+    sleep_widget = _trick_sleep_settings_session(actor)
+    mode = str(sleep_widget.get("mode_select") or "monophasic").strip().lower()
+    splits = int(sleep_widget.get("splits_input") or 3)
+    if mode == "biphasic":
+        blocks = [
+            {"label": "Core Sleep", "start": "22:30", "end": "06:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]},
+            {"label": "Second Sleep", "start": "14:00", "end": "15:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]},
+        ]
+    elif mode == "polyphasic":
+        blocks = [
+            {"label": f"Sleep {idx + 1}", "start": "", "end": "", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}
+            for idx in range(max(3, min(6, splits)))
+        ]
+    else:
+        blocks = [{"label": "Core Sleep", "start": "22:00", "end": "06:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}]
+    sleep_widget["blocks_text"] = _trick_sleep_settings_blocks_text(blocks)
+    _trick_sleep_settings_refresh_chart(sleep_widget)
+    sleep_widget["status_text"] = "Mode preset applied."
+    return True, {"mode": mode, "blocks": blocks}, None
+
+
+def _trick_sleep_settings_apply(actor):
+    sleep_widget = _trick_sleep_settings_session(actor)
+    blocks = _trick_sleep_settings_parse_blocks(sleep_widget.get("blocks_text") or "")
+    if not blocks:
+        sleep_widget["status_text"] = "Add at least one sleep block."
+        return False, {"error": "Missing blocks"}, "Missing blocks"
+    names = list(sleep_widget.get("selected_templates") or [])
+    mode = str(sleep_widget.get("template_mode_select") or "selected")
+    if mode == "new":
+        names = [str(sleep_widget.get("template_name_input") or "").strip() or "Sleep Skeleton"]
+    elif mode == "all":
+        names = list(sleep_widget.get("available_templates") or [])
+    if not names:
+        sleep_widget["status_text"] = "Select at least one template."
+        return False, {"error": "Missing templates"}, "Missing templates"
+
+    entries = []
+    for idx, block in enumerate(blocks, start=1):
+        label = str(block.get("label") or f"Sleep {idx}")
+        entries.append(
+            {
+                "name": label,
+                "type": "timeblock",
+                "start_time": str(block.get("start") or ""),
+                "end_time": str(block.get("end") or ""),
+                "tags": ["anchor", "sleep"],
+                "category": "sleep",
+                "sleep": True,
+                "description": "sleep anchor created by Sleep Settings widget.",
+            }
+        )
+
+    for name in names:
+        req = urlrequest.Request(
+            "http://127.0.0.1:7357/api/template",
+            data=json.dumps({"type": "day", "name": name, "children": entries}).encode("utf-8"),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urlrequest.urlopen(req, timeout=15) as resp:
+                _ = resp.read()
+        except Exception as e:
+            sleep_widget["status_text"] = "Apply failed."
+            return False, {"error": str(e)}, str(e)
+    sleep_widget["status_text"] = "Sleep anchors applied."
+    return True, {"templates": names, "entries": entries}, None
+
+
+def _trick_sleep_settings_elements(actor):
+    sleep_widget = _trick_sleep_settings_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(sleep_widget.get("closed"))
+    visible = not closed
+    minimized = bool(sleep_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.sleep_settings.title": _mk("Sleep Settings", visible=visible),
+        "widget.sleep_settings.minimize_button": _mk("_", visible=visible),
+        "widget.sleep_settings.close_button": _mk("x", visible=visible),
+        "widget.sleep_settings.mode_select": _mk(sleep_widget.get("mode_select") or "monophasic", visible=body_visible),
+        "widget.sleep_settings.splits_input": _mk(sleep_widget.get("splits_input"), visible=body_visible),
+        "widget.sleep_settings.apply_mode_button": _mk("Apply Mode Preset", visible=body_visible),
+        "widget.sleep_settings.blocks_container": _mk(sleep_widget.get("blocks_text") or "", visible=body_visible),
+        "widget.sleep_settings.chart_container": _mk(sleep_widget.get("chart_container") or "", visible=body_visible),
+        "widget.sleep_settings.template_mode_select": _mk(sleep_widget.get("template_mode_select") or "selected", visible=body_visible),
+        "widget.sleep_settings.template_name_input": _mk(sleep_widget.get("template_name_input") or "", visible=body_visible),
+        "widget.sleep_settings.templates_text": _mk(", ".join(sleep_widget.get("available_templates") or []), visible=body_visible),
+        "widget.sleep_settings.add_segment_button": _mk("Add Sleep Segment", visible=body_visible),
+        "widget.sleep_settings.add_sleep_in_button": _mk("Add Sleep-In", visible=body_visible),
+        "widget.sleep_settings.apply_sleep_button": _mk("Apply Sleep Anchors", visible=body_visible),
+        "widget.sleep_settings.status_text": _mk(sleep_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_link_session(actor):
+    session = _trick_session(actor)
+    link_widget = session.get("link_widget")
+    if not isinstance(link_widget, dict):
+        link_widget = {}
+        session["link_widget"] = link_widget
+    return link_widget
+
+
+def _trick_link_write_settings(link_widget):
+    try:
+        os.makedirs(os.path.dirname(_LINK_SETTINGS_PATH), exist_ok=True)
+        with open(_LINK_SETTINGS_PATH, "w", encoding="utf-8") as f:
+            yaml.safe_dump(
+                {
+                    "peer": str(link_widget.get("peer_input") or ""),
+                    "token": str(link_widget.get("token_input") or ""),
+                    "board": str(link_widget.get("board_select") or ""),
+                    "link_id": _load_link_settings().get("link_id") or f"link-{secrets.token_hex(4)}",
+                },
+                f,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+    except Exception:
+        pass
+
+
+def _trick_link_refresh(actor):
+    link_widget = _trick_link_session(actor)
+    settings = _load_link_settings()
+    link_widget["peer_input"] = str(settings.get("peer") or link_widget.get("peer_input") or "")
+    link_widget["token_input"] = str(settings.get("token") or link_widget.get("token_input") or "")
+    link_widget["board_select"] = str(settings.get("board") or link_widget.get("board_select") or "")
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/items?type=canvas_board", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        link_widget["status_text"] = "offline"
+        return False, {"error": str(e)}, str(e)
+    items = payload.get("items") if isinstance(payload, dict) and isinstance(payload.get("items"), list) else []
+    link_widget["boards"] = [str(item.get("name") or "") for item in items if isinstance(item, dict)]
+    if not link_widget.get("board_select") and link_widget["boards"]:
+        link_widget["board_select"] = link_widget["boards"][0]
+    link_widget["status_text"] = "offline" if not link_widget.get("connected") else str(link_widget.get("status_text") or "connecting")
+    return True, {"boards": link_widget["boards"]}, None
+
+
+def _trick_link_connect(actor):
+    link_widget = _trick_link_session(actor)
+    peer = str(link_widget.get("peer_input") or "").strip()
+    token = str(link_widget.get("token_input") or "").strip()
+    board = str(link_widget.get("board_select") or "").strip()
+    if not peer or not token or not board:
+        link_widget["status_text"] = "offline"
+        return False, {"error": "Missing peer, token, or board"}, "Missing peer, token, or board"
+    link_widget["connected"] = True
+    link_widget["status_text"] = "connecting"
+    _trick_link_write_settings(link_widget)
+    return _trick_link_sync(actor)
+
+
+def _trick_link_sync(actor):
+    link_widget = _trick_link_session(actor)
+    peer = str(link_widget.get("peer_input") or "").strip().rstrip("/")
+    if peer and not peer.startswith("http://") and not peer.startswith("https://"):
+        peer = f"http://{peer}"
+    token = str(link_widget.get("token_input") or "").strip()
+    board = str(link_widget.get("board_select") or "").strip()
+    if not link_widget.get("connected"):
+        link_widget["status_text"] = "offline"
+        return False, {"error": "Not connected"}, "Not connected"
+    try:
+        req = urlrequest.Request(
+            f"{peer}/api/link/board?name={quote(board)}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+        with urlrequest.urlopen(f"{peer}/api/link/status", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        link_widget["connected"] = False
+        link_widget["status_text"] = "offline"
+        link_widget["peer_status_text"] = "offline"
+        return False, {"error": str(e)}, str(e)
+    link_widget["status_text"] = "synced"
+    link_widget["peer_status_text"] = str(payload.get("link_id") or "online")
+    link_widget["last_sync_text"] = f"Last sync: {datetime.utcnow().strftime('%H:%M:%S')}"
+    return True, {"board": board}, None
+
+
+def _trick_link_invite(actor):
+    link_widget = _trick_link_session(actor)
+    board = str(link_widget.get("board_select") or "").strip()
+    if not board:
+        link_widget["status_text"] = "offline"
+        return False, {"error": "Missing board"}, "Missing board"
+    try:
+        with urlrequest.urlopen(f"http://127.0.0.1:7357/api/link/invite?board={quote(board)}", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        return False, {"error": str(e)}, str(e)
+    link_widget["invite_text"] = str(payload.get("url") or "")
+    link_widget["status_text"] = "invite ready"
+    return True, payload, None
+
+
+def _trick_link_disconnect(actor):
+    link_widget = _trick_link_session(actor)
+    link_widget["connected"] = False
+    link_widget["status_text"] = "offline"
+    link_widget["peer_status_text"] = "offline"
+    link_widget["last_sync_text"] = "Last sync: never"
+    return True, {"connected": False}, None
+
+
+def _trick_link_elements(actor):
+    link_widget = _trick_link_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {
+            "value": value,
+            "text": "" if value is None else str(value),
+            "visible": bool(visible),
+            "enabled": bool(enabled),
+        }
+
+    closed = bool(link_widget.get("closed"))
+    visible = not closed
+    minimized = bool(link_widget.get("minimized"))
+    body_visible = visible and not minimized
+    connected = bool(link_widget.get("connected"))
+    return {
+        "widget.link.title": _mk("Link", visible=visible),
+        "widget.link.minimize_button": _mk("_", visible=visible),
+        "widget.link.close_button": _mk("x", visible=visible),
+        "widget.link.peer_input": _mk(link_widget.get("peer_input") or "", visible=body_visible),
+        "widget.link.token_input": _mk(link_widget.get("token_input") or "", visible=body_visible),
+        "widget.link.board_select": _mk(link_widget.get("board_select") or "", visible=body_visible),
+        "widget.link.boards_text": _mk(", ".join(link_widget.get("boards") or []), visible=body_visible),
+        "widget.link.connect_button": _mk("Connect", visible=body_visible, enabled=not connected),
+        "widget.link.sync_button": _mk("Sync Now", visible=body_visible, enabled=connected),
+        "widget.link.invite_button": _mk("Invite", visible=body_visible),
+        "widget.link.disconnect_button": _mk("Disconnect", visible=body_visible, enabled=connected),
+        "widget.link.status_text": _mk(link_widget.get("status_text") or "", visible=body_visible),
+        "widget.link.peer_status_text": _mk(link_widget.get("peer_status_text") or "", visible=body_visible),
+        "widget.link.last_sync_text": _mk(link_widget.get("last_sync_text") or "", visible=body_visible),
+        "widget.link.invite_text": _mk(link_widget.get("invite_text") or "", visible=body_visible),
+    }
+
+
+def _trick_trends_session(actor):
+    session = _trick_session(actor)
+    trends_widget = session.get("trends_widget")
+    if not isinstance(trends_widget, dict):
+        trends_widget = {}
+        session["trends_widget"] = trends_widget
+    return trends_widget
+
+
+def _trick_trends_refresh(actor):
+    trends_widget = _trick_trends_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/trends/metrics", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        trends_widget["metrics_container"] = f"Error: {e}"
+        trends_widget["status_text"] = "Load failed."
+        return False, {"error": str(e)}, str(e)
+    metrics = payload.get("metrics") if isinstance(payload, dict) else {}
+    parts = []
+    if isinstance(metrics, dict):
+        habit_stats = metrics.get("habit_stats") if isinstance(metrics.get("habit_stats"), dict) else {}
+        if habit_stats:
+            parts.append(f"Habits: {habit_stats.get('habits_with_current_streak', 0)} active streaks")
+        goal_stats = metrics.get("goal_stats") if isinstance(metrics.get("goal_stats"), dict) else {}
+        if goal_stats:
+            parts.append(f"Goals: {goal_stats.get('total_goals', 0)} total")
+        timer_stats = metrics.get("timer_stats") if isinstance(metrics.get("timer_stats"), dict) else {}
+        if timer_stats:
+            parts.append(f"Focus: {timer_stats.get('focus_minutes', 0)} minutes")
+    trends_widget["metrics_container"] = "\n".join(parts) if parts else "No data available"
+    trends_widget["status_text"] = "Metrics loaded."
+    return True, {"metrics": metrics}, None
+
+
+def _trick_trends_elements(actor):
+    trends_widget = _trick_trends_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(trends_widget.get("closed"))
+    visible = not closed
+    minimized = bool(trends_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.trends.title": _mk("Performance", visible=visible),
+        "widget.trends.refresh_button": _mk("Refresh", visible=visible),
+        "widget.trends.minimize_button": _mk("-", visible=visible),
+        "widget.trends.close_button": _mk("x", visible=visible),
+        "widget.trends.metrics_container": _mk(trends_widget.get("metrics_container") or "", visible=body_visible),
+        "widget.trends.status_text": _mk(trends_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_admin_session(actor):
+    session = _trick_session(actor)
+    admin_widget = session.get("admin_widget")
+    if not isinstance(admin_widget, dict):
+        admin_widget = {}
+        session["admin_widget"] = admin_widget
+    return admin_widget
+
+
+def _trick_admin_refresh(actor):
+    admin_widget = _trick_admin_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/system/databases", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        admin_widget["status_text"] = "Failed to load databases."
+        return False, {"error": str(e)}, str(e)
+    dbs = payload.get("databases") if isinstance(payload, dict) and isinstance(payload.get("databases"), list) else []
+    admin_widget["dbs"] = [str(db.get("name") or "") for db in dbs if isinstance(db, dict)]
+    if not admin_widget.get("db_select") and admin_widget["dbs"]:
+        admin_widget["db_select"] = admin_widget["dbs"][0]
+    admin_widget["status_text"] = "Admin data loaded."
+    return True, {"databases": dbs}, None
+
+
+def _trick_admin_run(actor, command_text):
+    admin_widget = _trick_admin_session(actor)
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/system/command",
+        data=json.dumps({"command": command_text}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=20) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        admin_widget["status_text"] = f"Command failed: {e}"
+        return False, {"error": str(e)}, str(e)
+    if not payload.get("ok", False):
+        err = str(payload.get("error") or payload.get("stderr") or "Command failed")
+        admin_widget["status_text"] = err
+        return False, payload, err
+    admin_widget["status_text"] = str(payload.get("stdout") or payload.get("message") or "Done").strip() or "Done"
+    return True, payload, None
+
+
+def _trick_admin_elements(actor):
+    admin_widget = _trick_admin_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(admin_widget.get("closed"))
+    visible = not closed
+    minimized = bool(admin_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.admin.title": _mk("System Admin", visible=visible),
+        "widget.admin.minimize_button": _mk("_", visible=visible),
+        "widget.admin.close_button": _mk("x", visible=visible),
+        "widget.admin.db_select": _mk(admin_widget.get("db_select") or "", visible=body_visible),
+        "widget.admin.dbs_text": _mk(", ".join(admin_widget.get("dbs") or []), visible=body_visible),
+        "widget.admin.registry_select": _mk(admin_widget.get("registry_select") or "wizards", visible=body_visible),
+        "widget.admin.clear_logs_button": _mk("Purge Logs", visible=body_visible),
+        "widget.admin.clear_schedules_button": _mk("Purge Sch.", visible=body_visible),
+        "widget.admin.clear_cache_button": _mk("Reset Cache", visible=body_visible),
+        "widget.admin.clear_temp_button": _mk("Clear Temp", visible=body_visible),
+        "widget.admin.clear_db_button": _mk("Delete DB", visible=body_visible),
+        "widget.admin.clear_registry_button": _mk("Clear Cache", visible=body_visible),
+        "widget.admin.clear_archives_button": _mk("Delete All Archives", visible=body_visible),
+        "widget.admin.status_text": _mk(admin_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_cockpit_minimap_session(actor):
+    session = _trick_session(actor)
+    minimap_widget = session.get("cockpit_minimap_widget")
+    if not isinstance(minimap_widget, dict):
+        minimap_widget = {}
+        session["cockpit_minimap_widget"] = minimap_widget
+    return minimap_widget
+
+
+def _trick_cockpit_minimap_elements(actor):
+    minimap_widget = _trick_cockpit_minimap_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(minimap_widget.get("closed"))
+    visible = not closed
+    minimized = bool(minimap_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.cockpit_minimap.title": _mk("Cockpit Minimap", visible=visible),
+        "widget.cockpit_minimap.collapse_button": _mk("_", visible=visible),
+        "widget.cockpit_minimap.track_container": _mk(minimap_widget.get("track_container") or "", visible=body_visible),
+        "widget.cockpit_minimap.hint_text": _mk(minimap_widget.get("hint_text") or "", visible=body_visible),
+    }
+
+
+def _trick_debug_console_session(actor):
+    session = _trick_session(actor)
+    debug_widget = session.get("debug_console_widget")
+    if not isinstance(debug_widget, dict):
+        debug_widget = {}
+        session["debug_console_widget"] = debug_widget
+    return debug_widget
+
+
+def _trick_debug_console_refresh(actor):
+    debug_widget = _trick_debug_console_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/logs?limit=20", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        debug_widget["status_text"] = "Refresh failed."
+        return False, {"error": str(e)}, str(e)
+    logs = payload.get("logs") if isinstance(payload, dict) and isinstance(payload.get("logs"), list) else []
+    debug_widget["output_text"] = "\n".join(str(line) for line in logs)
+    debug_widget["status_text"] = "Logs refreshed."
+    return True, {"logs": logs}, None
+
+
+def _trick_debug_console_elements(actor):
+    debug_widget = _trick_debug_console_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(debug_widget.get("closed"))
+    visible = not closed
+    minimized = bool(debug_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.debug_console.title": _mk("Debug Console", visible=visible),
+        "widget.debug_console.minimize_button": _mk("_", visible=visible),
+        "widget.debug_console.clear_button": _mk("Clear", visible=visible),
+        "widget.debug_console.close_button": _mk("x", visible=visible),
+        "widget.debug_console.filter_select": _mk(debug_widget.get("filter_select") or "all", visible=body_visible),
+        "widget.debug_console.refresh_button": _mk("Refresh", visible=body_visible),
+        "widget.debug_console.open_editor_button": _mk("Open in Editor", visible=body_visible),
+        "widget.debug_console.copy_button": _mk("Copy", visible=body_visible),
+        "widget.debug_console.output_text": _mk(debug_widget.get("output_text") or "", visible=body_visible),
+        "widget.debug_console.status_text": _mk(debug_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_clock_session(actor):
+    session = _trick_session(actor)
+    clock_widget = session.get("clock_widget")
+    if not isinstance(clock_widget, dict):
+        clock_widget = {}
+        session["clock_widget"] = clock_widget
+    return clock_widget
+
+
+def _trick_clock_refresh(actor):
+    clock_widget = _trick_clock_session(actor)
+    now = datetime.now()
+    clock_widget["time_text"] = now.strftime("%H:%M")
+    clock_widget["date_text"] = now.strftime("%Y-%m-%d")
+    clock_widget["status_text"] = "Clock refreshed."
+    return True, {"time": clock_widget["time_text"]}, None
+
+
+def _trick_clock_elements(actor):
+    clock_widget = _trick_clock_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(clock_widget.get("closed"))
+    visible = not closed
+    minimized = bool(clock_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.clock.title": _mk("Chronos Clock", visible=visible),
+        "widget.clock.minimize_button": _mk("_", visible=visible),
+        "widget.clock.close_button": _mk("x", visible=visible),
+        "widget.clock.mode_select": _mk(clock_widget.get("mode_select") or "analog", visible=body_visible),
+        "widget.clock.time_text": _mk(clock_widget.get("time_text") or "", visible=body_visible),
+        "widget.clock.date_text": _mk(clock_widget.get("date_text") or "", visible=body_visible),
+        "widget.clock.appointment_button": _mk("Set Appointment", visible=body_visible),
+        "widget.clock.alarm_button": _mk("Set Alarm", visible=body_visible),
+        "widget.clock.reminder_button": _mk("Set Reminder", visible=body_visible),
+        "widget.clock.status_text": _mk(clock_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_journal_session(actor):
+    session = _trick_session(actor)
+    journal_widget = session.get("journal_widget")
+    if not isinstance(journal_widget, dict):
+        journal_widget = {}
+        session["journal_widget"] = journal_widget
+    return journal_widget
+
+
+def _trick_journal_refresh(actor):
+    journal_widget = _trick_journal_session(actor)
+    entries = []
+    for item_type in ("journal_entry", "dream_diary_entry"):
+        try:
+            with urlrequest.urlopen(f"http://127.0.0.1:7357/api/items?type={item_type}", timeout=15) as resp:
+                payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+        except Exception:
+            continue
+        rows = payload.get("items") if isinstance(payload, dict) and isinstance(payload.get("items"), list) else []
+        for row in rows:
+            if isinstance(row, dict):
+                entries.append((item_type, str(row.get("name") or "")))
+    journal_widget["list_text"] = "\n".join(name for _, name in entries)
+    journal_widget["status_text"] = f"Loaded {len(entries)} entries."
+    return True, {"entries": entries}, None
+
+
+def _trick_journal_save(actor):
+    journal_widget = _trick_journal_session(actor)
+    item_type = str(journal_widget.get("entry_type_select") or "journal_entry")
+    title = str(journal_widget.get("title_input") or "").strip()
+    if not title:
+        journal_widget["status_text"] = "Title is required."
+        return False, {"error": "Title is required"}, "Title is required"
+    payload = {
+        "type": item_type,
+        "name": title,
+        "properties": {
+            "type": item_type,
+            "name": title,
+            "date": str(journal_widget.get("date_input") or ""),
+            "tags": [s.strip() for s in str(journal_widget.get("tags_input") or "").split(",") if s.strip()],
+            "content": str(journal_widget.get("content_input") or ""),
+        },
+    }
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/item",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        journal_widget["status_text"] = "Save failed."
+        return False, {"error": str(e)}, str(e)
+    journal_widget["selected_type"] = item_type
+    journal_widget["selected_name"] = title
+    journal_widget["status_text"] = "Saved."
+    return _trick_journal_refresh(actor)
+
+
+def _trick_journal_to_sticky(actor):
+    journal_widget = _trick_journal_session(actor)
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/sticky-notes",
+        data=json.dumps({"name": str(journal_widget.get("title_input") or "").strip(), "content": str(journal_widget.get("content_input") or "")}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        journal_widget["status_text"] = "Sticky export failed."
+        return False, {"error": str(e)}, str(e)
+    journal_widget["status_text"] = "Sent to Sticky Notes."
+    return True, {}, None
+
+
+def _trick_journal_elements(actor):
+    journal_widget = _trick_journal_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(journal_widget.get("closed"))
+    visible = not closed
+    minimized = bool(journal_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.journal.title": _mk("Journal", visible=visible),
+        "widget.journal.minimize_button": _mk("_", visible=visible),
+        "widget.journal.close_button": _mk("x", visible=visible),
+        "widget.journal.type_filter_select": _mk(journal_widget.get("type_filter_select") or "all", visible=body_visible),
+        "widget.journal.search_input": _mk(journal_widget.get("search_input") or "", visible=body_visible),
+        "widget.journal.new_button": _mk("New", visible=body_visible),
+        "widget.journal.save_button": _mk("Save", visible=body_visible),
+        "widget.journal.sticky_button": _mk("To Sticky", visible=body_visible),
+        "widget.journal.entry_type_select": _mk(journal_widget.get("entry_type_select") or "journal_entry", visible=body_visible),
+        "widget.journal.date_input": _mk(journal_widget.get("date_input") or "", visible=body_visible),
+        "widget.journal.title_input": _mk(journal_widget.get("title_input") or "", visible=body_visible),
+        "widget.journal.tags_input": _mk(journal_widget.get("tags_input") or "", visible=body_visible),
+        "widget.journal.content_input": _mk(journal_widget.get("content_input") or "", visible=body_visible),
+        "widget.journal.list_container": _mk(journal_widget.get("list_text") or "", visible=body_visible),
+        "widget.journal.status_text": _mk(journal_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_mp3_player_session(actor):
+    session = _trick_session(actor)
+    mp3_widget = session.get("mp3_player_widget")
+    if not isinstance(mp3_widget, dict):
+        mp3_widget = {}
+        session["mp3_player_widget"] = mp3_widget
+    return mp3_widget
+
+
+def _trick_mp3_player_refresh(actor):
+    mp3_widget = _trick_mp3_player_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/media/mp3", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        mp3_widget["status_text"] = "Library load failed."
+        return False, {"error": str(e)}, str(e)
+    files = payload.get("files") if isinstance(payload, dict) and isinstance(payload.get("files"), list) else []
+    mp3_widget["library_text"] = "\n".join(str(row.get("name") or row.get("filename") or row) for row in files)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/media/playlists", timeout=15) as resp:
+            playlists_payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception:
+        playlists_payload = {}
+    playlists = playlists_payload.get("playlists") if isinstance(playlists_payload, dict) and isinstance(playlists_payload.get("playlists"), list) else []
+    playlist_names = [str(row.get("slug") or row.get("name") or row) for row in playlists]
+    mp3_widget["playlist_text"] = "\n".join(playlist_names)
+    if not mp3_widget.get("playlist_select") and playlist_names:
+        mp3_widget["playlist_select"] = playlist_names[0]
+    if files:
+        first = files[0]
+        if isinstance(first, dict):
+            mp3_widget["track_title_text"] = str(first.get("title") or first.get("name") or "")
+            mp3_widget["track_artist_text"] = str(first.get("artist") or "")
+    mp3_widget["status_text"] = "Library refreshed."
+    return True, {"files": files}, None
+
+
+def _trick_mp3_player_elements(actor):
+    mp3_widget = _trick_mp3_player_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(mp3_widget.get("closed"))
+    visible = not closed
+    minimized = bool(mp3_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.mp3_player.title": _mk("MP3 Player", visible=visible),
+        "widget.mp3_player.minimize_button": _mk("_", visible=visible),
+        "widget.mp3_player.close_button": _mk("x", visible=visible),
+        "widget.mp3_player.playlist_select": _mk(mp3_widget.get("playlist_select") or "", visible=body_visible),
+        "widget.mp3_player.refresh_button": _mk("Refresh", visible=body_visible),
+        "widget.mp3_player.play_pause_button": _mk("PlayPause", visible=body_visible),
+        "widget.mp3_player.prev_button": _mk("Prev", visible=body_visible),
+        "widget.mp3_player.next_button": _mk("Next", visible=body_visible),
+        "widget.mp3_player.track_title_text": _mk(mp3_widget.get("track_title_text") or "", visible=body_visible),
+        "widget.mp3_player.track_artist_text": _mk(mp3_widget.get("track_artist_text") or "", visible=body_visible),
+        "widget.mp3_player.library_container": _mk(mp3_widget.get("library_text") or "", visible=body_visible),
+        "widget.mp3_player.playlist_container": _mk(mp3_widget.get("playlist_text") or "", visible=body_visible),
+        "widget.mp3_player.status_text": _mk(mp3_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_sticky_notes_session(actor):
+    session = _trick_session(actor)
+    sticky_widget = session.get("sticky_notes_widget")
+    if not isinstance(sticky_widget, dict):
+        sticky_widget = {}
+        session["sticky_notes_widget"] = sticky_widget
+    return sticky_widget
+
+
+def _trick_sticky_notes_refresh(actor):
+    sticky_widget = _trick_sticky_notes_session(actor)
+    try:
+        with urlrequest.urlopen("http://127.0.0.1:7357/api/sticky-notes", timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
+    except Exception as e:
+        sticky_widget["status_text"] = "Refresh failed."
+        return False, {"error": str(e)}, str(e)
+    notes = payload.get("notes") if isinstance(payload, dict) and isinstance(payload.get("notes"), list) else []
+    sticky_widget["notes_text"] = "\n".join(str(note.get("name") or "") for note in notes if isinstance(note, dict))
+    sticky_widget["status_text"] = f"Loaded {len(notes)} notes."
+    return True, {"notes": notes}, None
+
+
+def _trick_sticky_notes_create(actor):
+    sticky_widget = _trick_sticky_notes_session(actor)
+    content = str(sticky_widget.get("new_content_input") or "").strip()
+    if not content:
+        sticky_widget["status_text"] = "Content is required."
+        return False, {"error": "Content is required"}, "Content is required"
+    req = urlrequest.Request(
+        "http://127.0.0.1:7357/api/sticky-notes",
+        data=json.dumps({"name": "Sticky Note", "content": content, "color": str(sticky_widget.get("new_color_select") or "amber")}).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            _ = resp.read()
+    except Exception as e:
+        sticky_widget["status_text"] = "Create failed."
+        return False, {"error": str(e)}, str(e)
+    sticky_widget["status_text"] = "Created sticky note."
+    return _trick_sticky_notes_refresh(actor)
+
+
+def _trick_sticky_notes_elements(actor):
+    sticky_widget = _trick_sticky_notes_session(actor)
+
+    def _mk(value, visible=True, enabled=True):
+        return {"value": value, "text": "" if value is None else str(value), "visible": bool(visible), "enabled": bool(enabled)}
+
+    closed = bool(sticky_widget.get("closed"))
+    visible = not closed
+    minimized = bool(sticky_widget.get("minimized"))
+    body_visible = visible and not minimized
+    return {
+        "widget.sticky_notes.title": _mk("Sticky Notes", visible=visible),
+        "widget.sticky_notes.refresh_button": _mk("Refresh", visible=visible),
+        "widget.sticky_notes.minimize_button": _mk("_", visible=visible),
+        "widget.sticky_notes.close_button": _mk("x", visible=visible),
+        "widget.sticky_notes.new_content_input": _mk(sticky_widget.get("new_content_input") or "", visible=body_visible),
+        "widget.sticky_notes.new_color_select": _mk(sticky_widget.get("new_color_select") or "amber", visible=body_visible),
+        "widget.sticky_notes.create_button": _mk("Create", visible=body_visible),
+        "widget.sticky_notes.notes_container": _mk(sticky_widget.get("notes_text") or "", visible=body_visible),
+        "widget.sticky_notes.status_text": _mk(sticky_widget.get("status_text") or "", visible=body_visible),
+    }
+
+
+def _trick_all_elements(actor):
+    elements = {}
+    elements.update(_trick_timer_elements(actor))
+    elements.update(_trick_today_elements(actor))
+    elements.update(_trick_terminal_elements(actor))
+    elements.update(_trick_item_manager_elements(actor))
+    elements.update(_trick_status_elements(actor))
+    elements.update(_trick_goal_tracker_elements(actor))
+    elements.update(_trick_milestones_elements(actor))
+    elements.update(_trick_commitments_elements(actor))
+    elements.update(_trick_rewards_elements(actor))
+    elements.update(_trick_achievements_elements(actor))
+    elements.update(_trick_habit_tracker_elements(actor))
+    elements.update(_trick_review_elements(actor))
+    elements.update(_trick_variables_elements(actor))
+    elements.update(_trick_resolution_tracker_elements(actor))
+    elements.update(_trick_notes_elements(actor))
+    elements.update(_trick_inventory_manager_elements(actor))
+    elements.update(_trick_profile_elements(actor))
+    elements.update(_trick_settings_elements(actor))
+    elements.update(_trick_sleep_settings_elements(actor))
+    elements.update(_trick_link_elements(actor))
+    elements.update(_trick_trends_elements(actor))
+    elements.update(_trick_admin_elements(actor))
+    elements.update(_trick_cockpit_minimap_elements(actor))
+    elements.update(_trick_debug_console_elements(actor))
+    elements.update(_trick_clock_elements(actor))
+    elements.update(_trick_journal_elements(actor))
+    elements.update(_trick_mp3_player_elements(actor))
+    elements.update(_trick_sticky_notes_elements(actor))
+    return elements
+
+
+def _trick_note_surface_action(surface_id, action, actor):
+    surface_id = str(surface_id or "").strip().lower()
+    action = str(action or "").strip().lower()
+    if surface_id == "widget.today":
+        today = _trick_today_session(actor)
+        if action == "open":
+            today["closed"] = False
+        elif action == "close":
+            today["closed"] = True
+    if surface_id == "widget.terminal":
+        terminal = _trick_terminal_session(actor)
+        if action == "open":
+            terminal["closed"] = False
+        elif action == "close":
+            terminal["closed"] = True
+    if surface_id == "widget.item_manager":
+        item_manager = _trick_item_manager_session(actor)
+        if action == "open":
+            item_manager["closed"] = False
+        elif action == "close":
+            item_manager["closed"] = True
+    if surface_id == "widget.status":
+        status_widget = _trick_status_session(actor)
+        if action == "open":
+            status_widget["closed"] = False
+        elif action == "close":
+            status_widget["closed"] = True
+    if surface_id == "widget.goal_tracker":
+        goal_tracker = _trick_goal_tracker_session(actor)
+        if action == "open":
+            goal_tracker["closed"] = False
+        elif action == "close":
+            goal_tracker["closed"] = True
+    if surface_id == "widget.milestones":
+        milestones_widget = _trick_milestones_session(actor)
+        if action == "open":
+            milestones_widget["closed"] = False
+        elif action == "close":
+            milestones_widget["closed"] = True
+    if surface_id == "widget.commitments":
+        commitments_widget = _trick_commitments_session(actor)
+        if action == "open":
+            commitments_widget["closed"] = False
+        elif action == "close":
+            commitments_widget["closed"] = True
+    if surface_id == "widget.rewards":
+        rewards_widget = _trick_rewards_session(actor)
+        if action == "open":
+            rewards_widget["closed"] = False
+        elif action == "close":
+            rewards_widget["closed"] = True
+    if surface_id == "widget.achievements":
+        achievements_widget = _trick_achievements_session(actor)
+        if action == "open":
+            achievements_widget["closed"] = False
+        elif action == "close":
+            achievements_widget["closed"] = True
+    if surface_id == "widget.habit_tracker":
+        habit_tracker = _trick_habit_tracker_session(actor)
+        if action == "open":
+            habit_tracker["closed"] = False
+        elif action == "close":
+            habit_tracker["closed"] = True
+    if surface_id == "widget.review":
+        review_widget = _trick_review_session(actor)
+        if action == "open":
+            review_widget["closed"] = False
+        elif action == "close":
+            review_widget["closed"] = True
+    if surface_id == "widget.variables":
+        variables_widget = _trick_variables_session(actor)
+        if action == "open":
+            variables_widget["closed"] = False
+        elif action == "close":
+            variables_widget["closed"] = True
+    if surface_id == "widget.resolution_tracker":
+        resolution_tracker = _trick_resolution_tracker_session(actor)
+        if action == "open":
+            resolution_tracker["closed"] = False
+        elif action == "close":
+            resolution_tracker["closed"] = True
+    if surface_id == "widget.notes":
+        notes_widget = _trick_notes_session(actor)
+        if action == "open":
+            notes_widget["closed"] = False
+        elif action == "close":
+            notes_widget["closed"] = True
+    if surface_id == "widget.inventory_manager":
+        inventory_widget = _trick_inventory_manager_session(actor)
+        if action == "open":
+            inventory_widget["closed"] = False
+        elif action == "close":
+            inventory_widget["closed"] = True
+    if surface_id == "widget.profile":
+        profile_widget = _trick_profile_session(actor)
+        if action == "open":
+            profile_widget["closed"] = False
+        elif action == "close":
+            profile_widget["closed"] = True
+    if surface_id == "widget.settings":
+        settings_widget = _trick_settings_session(actor)
+        if action == "open":
+            settings_widget["closed"] = False
+        elif action == "close":
+            settings_widget["closed"] = True
+    if surface_id == "widget.sleep_settings":
+        sleep_widget = _trick_sleep_settings_session(actor)
+        if action == "open":
+            sleep_widget["closed"] = False
+        elif action == "close":
+            sleep_widget["closed"] = True
+    if surface_id == "widget.link":
+        link_widget = _trick_link_session(actor)
+        if action == "open":
+            link_widget["closed"] = False
+        elif action == "close":
+            link_widget["closed"] = True
+    if surface_id == "widget.trends":
+        trends_widget = _trick_trends_session(actor)
+        if action == "open":
+            trends_widget["closed"] = False
+        elif action == "close":
+            trends_widget["closed"] = True
+    if surface_id == "widget.admin":
+        admin_widget = _trick_admin_session(actor)
+        if action == "open":
+            admin_widget["closed"] = False
+        elif action == "close":
+            admin_widget["closed"] = True
+    if surface_id == "widget.cockpit_minimap":
+        minimap_widget = _trick_cockpit_minimap_session(actor)
+        if action == "open":
+            minimap_widget["closed"] = False
+        elif action == "close":
+            minimap_widget["closed"] = True
+    if surface_id == "widget.debug_console":
+        debug_widget = _trick_debug_console_session(actor)
+        if action == "open":
+            debug_widget["closed"] = False
+        elif action == "close":
+            debug_widget["closed"] = True
+    if surface_id == "widget.clock":
+        clock_widget = _trick_clock_session(actor)
+        if action == "open":
+            clock_widget["closed"] = False
+        elif action == "close":
+            clock_widget["closed"] = True
+    if surface_id == "widget.journal":
+        journal_widget = _trick_journal_session(actor)
+        if action == "open":
+            journal_widget["closed"] = False
+        elif action == "close":
+            journal_widget["closed"] = True
+    if surface_id == "widget.mp3_player":
+        mp3_widget = _trick_mp3_player_session(actor)
+        if action == "open":
+            mp3_widget["closed"] = False
+        elif action == "close":
+            mp3_widget["closed"] = True
+    if surface_id == "widget.sticky_notes":
+        sticky_widget = _trick_sticky_notes_session(actor)
+        if action == "open":
+            sticky_widget["closed"] = False
+        elif action == "close":
+            sticky_widget["closed"] = True
 
 
 def _trick_surface_exists(surface_id):
@@ -359,6 +4011,720 @@ def _trick_click(target, actor):
         # Refresh is read-only server-side; minimize/close are UI-local and no-op via API.
         return True, {"status": _timer_status_safe(), "ui_only": target.endswith("minimize_button") or target.endswith("close_button")}, None
 
+    today = _trick_today_session(actor)
+
+    if target == "widget.today.refresh_button":
+        today["status_text"] = "Refreshing schedule..."
+        today["selection_hint"] = "Select a day in Calendar to preview the schedule."
+        today["closed"] = False
+        return True, {"status_text": today["status_text"], "refreshed": True}, None
+
+    if target == "widget.today.reschedule_button":
+        today["status_text"] = "Generating schedule..."
+        props = _trick_today_props(today)
+        ok, out, err = _trick_today_run(["reschedule"], props)
+        today["status_text"] = "Schedule generated." if ok else "Reschedule failed."
+        return ok, {
+            "status_text": today["status_text"],
+            "stdout": out,
+            "stderr": err,
+            "properties": props,
+        }, None if ok else (err or out or "Today reschedule failed")
+
+    if target == "widget.today.preset_safe_button":
+        _trick_today_apply_preset(today, "safe")
+        return True, {"preset": "safe", "status_text": today.get("status_text")}, None
+
+    if target == "widget.today.preset_balanced_button":
+        _trick_today_apply_preset(today, "balanced")
+        return True, {"preset": "balanced", "status_text": today.get("status_text")}, None
+
+    if target == "widget.today.preset_aggressive_button":
+        _trick_today_apply_preset(today, "aggressive")
+        return True, {"preset": "aggressive", "status_text": today.get("status_text")}, None
+
+    if target == "widget.today.add_window_filter_row_button":
+        today["window_filter_row_count"] = max(0, int(today.get("window_filter_row_count") or 0)) + 1
+        return True, {"row_count": today["window_filter_row_count"]}, None
+
+    if target == "widget.today.minimize_button":
+        today["minimized"] = not bool(today.get("minimized"))
+        return True, {"minimized": today["minimized"], "ui_only": True}, None
+
+    if target == "widget.today.close_button":
+        today["closed"] = True
+        return True, {"closed": True, "ui_only": True}, None
+
+    terminal = _trick_terminal_session(actor)
+
+    if target == "widget.terminal.run_button":
+        return _trick_terminal_run_command(actor)
+
+    if target == "widget.terminal.copy_button":
+        return True, {"copied": True, "ui_only": True, "text": terminal.get("output_text") or ""}, None
+
+    if target == "widget.terminal.minimize_button":
+        terminal["minimized"] = not bool(terminal.get("minimized"))
+        terminal["status_text"] = "Minimized." if terminal["minimized"] else "Ready."
+        return True, {"minimized": terminal["minimized"], "ui_only": True}, None
+
+    if target == "widget.terminal.close_button":
+        terminal["closed"] = True
+        terminal["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    item_manager = _trick_item_manager_session(actor)
+
+    if target in {"widget.item_manager.search_button", "widget.item_manager.refresh_button"}:
+        return _trick_item_manager_refresh(actor)
+
+    if target == "widget.item_manager.new_button":
+        item_type = str(item_manager.get("type_select") or "task").strip() or "task"
+        item_manager["item_name_input"] = ""
+        item_manager["yaml_input"] = yaml.safe_dump({"type": item_type, "name": "", "duration": 0}, sort_keys=False, allow_unicode=False)
+        item_manager["status_text"] = f"Prepared new {item_type}."
+        return True, {"type": item_type, "prepared": True}, None
+
+    if target == "widget.item_manager.save_button":
+        return _trick_item_manager_save(actor)
+
+    if target == "widget.item_manager.copy_button":
+        src = str(item_manager.get("item_name_input") or "").strip()
+        if not src:
+            item_manager["status_text"] = "Copy failed."
+            return False, {"error": "Load an item first."}, "Load an item first."
+        dest = f"{src} copy"
+        try:
+            payload = _trick_item_manager_post("/api/item/copy", {
+                "type": str(item_manager.get("type_select") or "task").strip() or "task",
+                "source": src,
+                "new_name": dest,
+            })
+        except Exception as e:
+            item_manager["status_text"] = "Copy failed."
+            return False, {"error": str(e)}, str(e)
+        item_manager["status_text"] = f'Copied to "{dest}".'
+        item_manager["item_name_input"] = dest
+        _trick_item_manager_refresh(actor)
+        _trick_item_manager_load_item(actor, dest)
+        return True, payload, None
+
+    if target == "widget.item_manager.rename_button":
+        src = str(item_manager.get("item_name_input") or "").strip()
+        if not src:
+            item_manager["status_text"] = "Rename failed."
+            return False, {"error": "Load an item first."}, "Load an item first."
+        dest = f"{src} renamed"
+        try:
+            payload = _trick_item_manager_post("/api/item/rename", {
+                "type": str(item_manager.get("type_select") or "task").strip() or "task",
+                "old_name": src,
+                "new_name": dest,
+            })
+        except Exception as e:
+            item_manager["status_text"] = "Rename failed."
+            return False, {"error": str(e)}, str(e)
+        item_manager["status_text"] = f'Renamed to "{dest}".'
+        item_manager["item_name_input"] = dest
+        _trick_item_manager_refresh(actor)
+        _trick_item_manager_load_item(actor, dest)
+        return True, payload, None
+
+    if target == "widget.item_manager.delete_button":
+        name = str(item_manager.get("item_name_input") or "").strip()
+        if not name:
+            item_manager["status_text"] = "Delete failed."
+            return False, {"error": "Load an item first."}, "Load an item first."
+        try:
+            payload = _trick_item_manager_post("/api/item/delete", {
+                "type": str(item_manager.get("type_select") or "task").strip() or "task",
+                "name": name,
+            })
+        except Exception as e:
+            item_manager["status_text"] = "Delete failed."
+            return False, {"error": str(e)}, str(e)
+        item_manager["status_text"] = f'Deleted "{name}".'
+        item_manager["item_name_input"] = ""
+        item_manager["yaml_input"] = ""
+        _trick_item_manager_refresh(actor)
+        return True, payload, None
+
+    if target == "widget.item_manager.minimize_button":
+        item_manager["minimized"] = not bool(item_manager.get("minimized"))
+        item_manager["status_text"] = "Minimized." if item_manager["minimized"] else "Ready."
+        return True, {"minimized": item_manager["minimized"], "ui_only": True}, None
+
+    if target == "widget.item_manager.close_button":
+        item_manager["closed"] = True
+        item_manager["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    status_widget = _trick_status_session(actor)
+
+    if target == "widget.status.update_button":
+        return _trick_status_update(actor)
+
+    if target == "widget.status.minimize_button":
+        status_widget["minimized"] = not bool(status_widget.get("minimized"))
+        status_widget["status_text"] = "Minimized." if status_widget["minimized"] else "Ready."
+        return True, {"minimized": status_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.status.close_button":
+        status_widget["closed"] = True
+        status_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    goal_tracker = _trick_goal_tracker_session(actor)
+
+    if target in {"widget.goal_tracker.search_button", "widget.goal_tracker.refresh_button"}:
+        ok, result, err = _trick_goal_tracker_refresh(actor)
+        if ok and not goal_tracker.get("selected_goal"):
+            _trick_goal_tracker_select(actor)
+        elif ok and goal_tracker.get("selected_goal"):
+            _trick_goal_tracker_select(actor, goal_tracker.get("selected_goal"))
+        return ok, result, err
+
+    if target == "widget.goal_tracker.recalc_button":
+        return _trick_goal_tracker_recalc(actor)
+
+    if target == "widget.goal_tracker.complete_primary_button":
+        return _trick_goal_tracker_complete_primary(actor)
+
+    if target == "widget.goal_tracker.focus_primary_button":
+        return _trick_goal_tracker_focus_primary(actor)
+
+    if target == "widget.goal_tracker.minimize_button":
+        goal_tracker["minimized"] = not bool(goal_tracker.get("minimized"))
+        goal_tracker["status_text"] = "Minimized." if goal_tracker["minimized"] else "Ready."
+        return True, {"minimized": goal_tracker["minimized"], "ui_only": True}, None
+
+    if target == "widget.goal_tracker.close_button":
+        goal_tracker["closed"] = True
+        goal_tracker["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    milestones_widget = _trick_milestones_session(actor)
+
+    if target == "widget.milestones.refresh_button":
+        return _trick_milestones_refresh(actor)
+
+    if target == "widget.milestones.list_toggle_button":
+        milestones_widget["list_open"] = not bool(milestones_widget.get("list_open"))
+        return True, {"list_open": milestones_widget["list_open"], "ui_only": True}, None
+
+    if target == "widget.milestones.complete_primary_button":
+        return _trick_milestones_update(actor, "complete")
+
+    if target == "widget.milestones.reset_primary_button":
+        return _trick_milestones_update(actor, "reset")
+
+    if target == "widget.milestones.minimize_button":
+        milestones_widget["minimized"] = not bool(milestones_widget.get("minimized"))
+        milestones_widget["status_text"] = "Minimized." if milestones_widget["minimized"] else ""
+        return True, {"minimized": milestones_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.milestones.close_button":
+        milestones_widget["closed"] = True
+        milestones_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    commitments_widget = _trick_commitments_session(actor)
+
+    if target == "widget.commitments.evaluate_button":
+        return _trick_commitments_evaluate(actor)
+
+    if target == "widget.commitments.refresh_button":
+        return _trick_commitments_refresh(actor)
+
+    if target == "widget.commitments.list_toggle_button":
+        commitments_widget["list_open"] = not bool(commitments_widget.get("list_open"))
+        return True, {"list_open": commitments_widget["list_open"], "ui_only": True}, None
+
+    if target == "widget.commitments.met_primary_button":
+        return _trick_commitments_override(actor, "met")
+
+    if target == "widget.commitments.violation_primary_button":
+        return _trick_commitments_override(actor, "violation")
+
+    if target == "widget.commitments.clear_primary_button":
+        return _trick_commitments_override(actor, "clear")
+
+    if target == "widget.commitments.minimize_button":
+        commitments_widget["minimized"] = not bool(commitments_widget.get("minimized"))
+        commitments_widget["status_text"] = "Minimized." if commitments_widget["minimized"] else ""
+        return True, {"minimized": commitments_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.commitments.close_button":
+        commitments_widget["closed"] = True
+        commitments_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    rewards_widget = _trick_rewards_session(actor)
+
+    if target == "widget.rewards.refresh_button":
+        return _trick_rewards_refresh(actor)
+
+    if target == "widget.rewards.list_toggle_button":
+        rewards_widget["list_open"] = not bool(rewards_widget.get("list_open"))
+        return True, {"list_open": rewards_widget["list_open"], "ui_only": True}, None
+
+    if target == "widget.rewards.redeem_primary_button":
+        return _trick_rewards_redeem(actor)
+
+    if target == "widget.rewards.minimize_button":
+        rewards_widget["minimized"] = not bool(rewards_widget.get("minimized"))
+        rewards_widget["status_text"] = "Minimized." if rewards_widget["minimized"] else ""
+        return True, {"minimized": rewards_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.rewards.close_button":
+        rewards_widget["closed"] = True
+        rewards_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    achievements_widget = _trick_achievements_session(actor)
+
+    if target == "widget.achievements.refresh_button":
+        return _trick_achievements_refresh(actor)
+
+    if target == "widget.achievements.list_toggle_button":
+        achievements_widget["list_open"] = not bool(achievements_widget.get("list_open"))
+        return True, {"list_open": achievements_widget["list_open"], "ui_only": True}, None
+
+    if target == "widget.achievements.set_title_button":
+        return _trick_achievements_set_title(actor)
+
+    if target == "widget.achievements.award_primary_button":
+        return _trick_achievements_update(actor, "award")
+
+    if target == "widget.achievements.archive_primary_button":
+        return _trick_achievements_update(actor, "archive")
+
+    if target == "widget.achievements.minimize_button":
+        achievements_widget["minimized"] = not bool(achievements_widget.get("minimized"))
+        achievements_widget["status_text"] = "Minimized." if achievements_widget["minimized"] else ""
+        return True, {"minimized": achievements_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.achievements.close_button":
+        achievements_widget["closed"] = True
+        achievements_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    habit_tracker = _trick_habit_tracker_session(actor)
+
+    if target == "widget.habit_tracker.refresh_button":
+        return _trick_habit_tracker_refresh(actor)
+
+    if target == "widget.habit_tracker.done_primary_button":
+        return _trick_habit_tracker_update(actor, "complete")
+
+    if target == "widget.habit_tracker.incident_primary_button":
+        return _trick_habit_tracker_update(actor, "incident")
+
+    if target == "widget.habit_tracker.minimize_button":
+        habit_tracker["minimized"] = not bool(habit_tracker.get("minimized"))
+        habit_tracker["status_text"] = "Minimized." if habit_tracker["minimized"] else ""
+        return True, {"minimized": habit_tracker["minimized"], "ui_only": True}, None
+
+    if target == "widget.habit_tracker.close_button":
+        habit_tracker["closed"] = True
+        habit_tracker["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    review_widget = _trick_review_session(actor)
+
+    if target == "widget.review.this_button":
+        return True, {"period": _trick_review_set_this(review_widget)}, None
+
+    if target == "widget.review.generate_button":
+        review_widget["status_text"] = "Generating..."
+        review_widget["log_text"] = ""
+        return _trick_review_generate(actor)
+
+    if target == "widget.review.open_button":
+        review_widget["status_text"] = "Loading..."
+        review_widget["log_text"] = ""
+        return _trick_review_open(actor)
+
+    if target == "widget.review.export_button":
+        review_widget["status_text"] = "Exporting..."
+        review_widget["log_text"] = ""
+        return _trick_review_export(actor)
+
+    if target == "widget.review.prev_button":
+        return True, {"period": _trick_review_shift_period(review_widget, -1)}, None
+
+    if target == "widget.review.next_button":
+        return True, {"period": _trick_review_shift_period(review_widget, 1)}, None
+
+    if target == "widget.review.minimize_button":
+        review_widget["minimized"] = not bool(review_widget.get("minimized"))
+        review_widget["status_text"] = "Minimized." if review_widget["minimized"] else ""
+        return True, {"minimized": review_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.review.close_button":
+        review_widget["closed"] = True
+        review_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    variables_widget = _trick_variables_session(actor)
+
+    if target == "widget.variables.add_button":
+        rows = variables_widget.get("rows") if isinstance(variables_widget.get("rows"), dict) else {}
+        base = "new_var"
+        idx = 1
+        while f"{base}_{idx}" in rows:
+            idx += 1
+        rows[f"{base}_{idx}"] = ""
+        variables_widget["rows"] = rows
+        return True, {"rows": rows}, None
+
+    if target == "widget.variables.save_button":
+        return _trick_variables_save(actor)
+
+    if target == "widget.variables.refresh_button":
+        return _trick_variables_refresh(actor)
+
+    if target == "widget.variables.minimize_button":
+        variables_widget["minimized"] = not bool(variables_widget.get("minimized"))
+        variables_widget["status_text"] = "Minimized." if variables_widget["minimized"] else ""
+        return True, {"minimized": variables_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.variables.close_button":
+        variables_widget["closed"] = True
+        variables_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    resolution_tracker = _trick_resolution_tracker_session(actor)
+
+    if target == "widget.resolution_tracker.refresh_button":
+        return _trick_resolution_tracker_refresh(actor)
+
+    if target == "widget.resolution_tracker.minimize_button":
+        resolution_tracker["minimized"] = not bool(resolution_tracker.get("minimized"))
+        resolution_tracker["status_text"] = "Minimized." if resolution_tracker["minimized"] else ""
+        return True, {"minimized": resolution_tracker["minimized"], "ui_only": True}, None
+
+    if target == "widget.resolution_tracker.close_button":
+        resolution_tracker["closed"] = True
+        resolution_tracker["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    notes_widget = _trick_notes_session(actor)
+
+    if target == "widget.notes.load_button":
+        return _trick_notes_load(actor)
+
+    if target == "widget.notes.to_sticky_button":
+        return _trick_notes_to_sticky(actor)
+
+    if target == "widget.notes.create_button":
+        return _trick_notes_create(actor)
+
+    if target == "widget.notes.minimize_button":
+        notes_widget["minimized"] = not bool(notes_widget.get("minimized"))
+        notes_widget["status_text"] = "Minimized." if notes_widget["minimized"] else ""
+        return True, {"minimized": notes_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.notes.close_button":
+        notes_widget["closed"] = True
+        notes_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    inventory_widget = _trick_inventory_manager_session(actor)
+
+    if target in {"widget.inventory_manager.search_button", "widget.inventory_manager.refresh_button"}:
+        return _trick_inventory_manager_refresh(actor)
+
+    if target == "widget.inventory_manager.create_button":
+        return _trick_inventory_manager_create(actor)
+
+    if target == "widget.inventory_manager.minimize_button":
+        inventory_widget["minimized"] = not bool(inventory_widget.get("minimized"))
+        inventory_widget["status_text"] = "Minimized." if inventory_widget["minimized"] else ""
+        return True, {"minimized": inventory_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.inventory_manager.close_button":
+        inventory_widget["closed"] = True
+        inventory_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    profile_widget = _trick_profile_session(actor)
+
+    if target == "widget.profile.save_button":
+        return _trick_profile_save(actor)
+
+    if target in {
+        "widget.profile.edit_preferences_button",
+        "widget.profile.edit_preferences_settings_button",
+        "widget.profile.edit_pilot_brief_button",
+    }:
+        path_map = {
+            "widget.profile.edit_preferences_button": "user/profile/preferences.md",
+            "widget.profile.edit_preferences_settings_button": "user/profile/preferences_settings.yml",
+            "widget.profile.edit_pilot_brief_button": "user/profile/pilot_brief.md",
+        }
+        ok = _editor_open_request_write(path_map[target])
+        profile_widget["status_text"] = "Opened in Notes." if ok else "Open failed."
+        return ok, {"path": path_map[target]}, None if ok else "Failed to queue editor open request"
+
+    if target == "widget.profile.minimize_button":
+        profile_widget["minimized"] = not bool(profile_widget.get("minimized"))
+        profile_widget["status_text"] = "Minimized." if profile_widget["minimized"] else "Ready."
+        return True, {"minimized": profile_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.profile.close_button":
+        profile_widget["closed"] = True
+        profile_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    settings_widget = _trick_settings_session(actor)
+
+    if target == "widget.settings.reload_button":
+        return _trick_settings_refresh(actor)
+
+    if target == "widget.settings.save_button":
+        return _trick_settings_save(actor)
+
+    if target == "widget.settings.minimize_button":
+        settings_widget["minimized"] = not bool(settings_widget.get("minimized"))
+        settings_widget["status_text"] = "Minimized." if settings_widget["minimized"] else "Ready."
+        return True, {"minimized": settings_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.settings.close_button":
+        settings_widget["closed"] = True
+        settings_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    sleep_widget = _trick_sleep_settings_session(actor)
+
+    if target == "widget.sleep_settings.apply_mode_button":
+        return _trick_sleep_settings_apply_mode(actor)
+
+    if target == "widget.sleep_settings.add_segment_button":
+        blocks = _trick_sleep_settings_parse_blocks(sleep_widget.get("blocks_text") or "")
+        blocks.append({"label": "Sleep Segment", "start": "", "end": "", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]})
+        sleep_widget["blocks_text"] = _trick_sleep_settings_blocks_text(blocks)
+        _trick_sleep_settings_refresh_chart(sleep_widget)
+        sleep_widget["status_text"] = "Added sleep segment."
+        return True, {"blocks": blocks}, None
+
+    if target == "widget.sleep_settings.add_sleep_in_button":
+        blocks = _trick_sleep_settings_parse_blocks(sleep_widget.get("blocks_text") or "")
+        blocks.append({"label": "Sleep In", "start": "", "end": "", "days": ["sat", "sun"]})
+        sleep_widget["blocks_text"] = _trick_sleep_settings_blocks_text(blocks)
+        _trick_sleep_settings_refresh_chart(sleep_widget)
+        sleep_widget["status_text"] = "Added sleep-in segment."
+        return True, {"blocks": blocks}, None
+
+    if target == "widget.sleep_settings.apply_sleep_button":
+        return _trick_sleep_settings_apply(actor)
+
+    if target == "widget.sleep_settings.minimize_button":
+        sleep_widget["minimized"] = not bool(sleep_widget.get("minimized"))
+        sleep_widget["status_text"] = "Minimized." if sleep_widget["minimized"] else "Ready."
+        return True, {"minimized": sleep_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.sleep_settings.close_button":
+        sleep_widget["closed"] = True
+        sleep_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    link_widget = _trick_link_session(actor)
+
+    if target == "widget.link.connect_button":
+        return _trick_link_connect(actor)
+
+    if target == "widget.link.sync_button":
+        return _trick_link_sync(actor)
+
+    if target == "widget.link.invite_button":
+        return _trick_link_invite(actor)
+
+    if target == "widget.link.disconnect_button":
+        return _trick_link_disconnect(actor)
+
+    if target == "widget.link.minimize_button":
+        link_widget["minimized"] = not bool(link_widget.get("minimized"))
+        link_widget["status_text"] = "offline" if link_widget["minimized"] and not link_widget.get("connected") else str(link_widget.get("status_text") or "Ready.")
+        return True, {"minimized": link_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.link.close_button":
+        link_widget["closed"] = True
+        link_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    trends_widget = _trick_trends_session(actor)
+
+    if target == "widget.trends.refresh_button":
+        return _trick_trends_refresh(actor)
+
+    if target == "widget.trends.minimize_button":
+        trends_widget["minimized"] = not bool(trends_widget.get("minimized"))
+        trends_widget["status_text"] = "Minimized." if trends_widget["minimized"] else "Ready."
+        return True, {"minimized": trends_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.trends.close_button":
+        trends_widget["closed"] = True
+        trends_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    admin_widget = _trick_admin_session(actor)
+
+    if target == "widget.admin.clear_logs_button":
+        return _trick_admin_run(actor, "clear logs force")
+
+    if target == "widget.admin.clear_schedules_button":
+        return _trick_admin_run(actor, "clear schedules force")
+
+    if target == "widget.admin.clear_cache_button":
+        return _trick_admin_run(actor, "clear cache force")
+
+    if target == "widget.admin.clear_temp_button":
+        return _trick_admin_run(actor, "clear temp force")
+
+    if target == "widget.admin.clear_db_button":
+        return _trick_admin_run(actor, f"clear db:{str(admin_widget.get('db_select') or '').strip()} force")
+
+    if target == "widget.admin.clear_registry_button":
+        return _trick_admin_run(actor, f"clear registry:{str(admin_widget.get('registry_select') or '').strip()} force")
+
+    if target == "widget.admin.clear_archives_button":
+        return _trick_admin_run(actor, "clear archives force")
+
+    if target == "widget.admin.minimize_button":
+        admin_widget["minimized"] = not bool(admin_widget.get("minimized"))
+        admin_widget["status_text"] = "Minimized." if admin_widget["minimized"] else "Ready."
+        return True, {"minimized": admin_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.admin.close_button":
+        admin_widget["closed"] = True
+        admin_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    minimap_widget = _trick_cockpit_minimap_session(actor)
+
+    if target == "widget.cockpit_minimap.collapse_button":
+        minimap_widget["minimized"] = not bool(minimap_widget.get("minimized"))
+        return True, {"minimized": minimap_widget["minimized"], "ui_only": True}, None
+
+    debug_widget = _trick_debug_console_session(actor)
+
+    if target == "widget.debug_console.refresh_button":
+        return _trick_debug_console_refresh(actor)
+
+    if target == "widget.debug_console.clear_button":
+        debug_widget["output_text"] = ""
+        debug_widget["status_text"] = "Cleared."
+        return True, {"cleared": True}, None
+
+    if target == "widget.debug_console.copy_button":
+        return _trick_copy_value("widget.debug_console.output_text", actor)
+
+    if target == "widget.debug_console.open_editor_button":
+        ok = _editor_open_request_write("Temp/debug_console_capture.txt", 1)
+        debug_widget["status_text"] = "Queued for editor." if ok else "Editor queue failed."
+        return ok, {"path": "Temp/debug_console_capture.txt"}, None if ok else "Failed to queue editor request"
+
+    if target == "widget.debug_console.minimize_button":
+        debug_widget["minimized"] = not bool(debug_widget.get("minimized"))
+        debug_widget["status_text"] = "Minimized." if debug_widget["minimized"] else "Ready."
+        return True, {"minimized": debug_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.debug_console.close_button":
+        debug_widget["closed"] = True
+        debug_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    clock_widget = _trick_clock_session(actor)
+
+    if target == "widget.clock.appointment_button":
+        return _trick_clock_refresh(actor)
+
+    if target == "widget.clock.alarm_button":
+        return _trick_clock_refresh(actor)
+
+    if target == "widget.clock.reminder_button":
+        return _trick_clock_refresh(actor)
+
+    if target == "widget.clock.minimize_button":
+        clock_widget["minimized"] = not bool(clock_widget.get("minimized"))
+        return True, {"minimized": clock_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.clock.close_button":
+        clock_widget["closed"] = True
+        clock_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    journal_widget = _trick_journal_session(actor)
+
+    if target == "widget.journal.new_button":
+        journal_widget["selected_type"] = ""
+        journal_widget["selected_name"] = ""
+        journal_widget["title_input"] = ""
+        journal_widget["tags_input"] = ""
+        journal_widget["content_input"] = ""
+        journal_widget["status_text"] = "New entry."
+        return True, {"new": True}, None
+
+    if target == "widget.journal.save_button":
+        return _trick_journal_save(actor)
+
+    if target == "widget.journal.sticky_button":
+        return _trick_journal_to_sticky(actor)
+
+    if target == "widget.journal.minimize_button":
+        journal_widget["minimized"] = not bool(journal_widget.get("minimized"))
+        return True, {"minimized": journal_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.journal.close_button":
+        journal_widget["closed"] = True
+        journal_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    mp3_widget = _trick_mp3_player_session(actor)
+
+    if target == "widget.mp3_player.refresh_button":
+        return _trick_mp3_player_refresh(actor)
+
+    if target == "widget.mp3_player.play_pause_button":
+        mp3_widget["is_playing"] = not bool(mp3_widget.get("is_playing"))
+        mp3_widget["status_text"] = "Playing." if mp3_widget["is_playing"] else "Paused."
+        return True, {"playing": mp3_widget["is_playing"]}, None
+
+    if target == "widget.mp3_player.prev_button":
+        mp3_widget["status_text"] = "Previous track."
+        return True, {"action": "prev"}, None
+
+    if target == "widget.mp3_player.next_button":
+        mp3_widget["status_text"] = "Next track."
+        return True, {"action": "next"}, None
+
+    if target == "widget.mp3_player.minimize_button":
+        mp3_widget["minimized"] = not bool(mp3_widget.get("minimized"))
+        return True, {"minimized": mp3_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.mp3_player.close_button":
+        mp3_widget["closed"] = True
+        mp3_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
+    sticky_widget = _trick_sticky_notes_session(actor)
+
+    if target == "widget.sticky_notes.refresh_button":
+        return _trick_sticky_notes_refresh(actor)
+
+    if target == "widget.sticky_notes.create_button":
+        return _trick_sticky_notes_create(actor)
+
+    if target == "widget.sticky_notes.minimize_button":
+        sticky_widget["minimized"] = not bool(sticky_widget.get("minimized"))
+        return True, {"minimized": sticky_widget["minimized"], "ui_only": True}, None
+
+    if target == "widget.sticky_notes.close_button":
+        sticky_widget["closed"] = True
+        sticky_widget["status_text"] = "Closed."
+        return True, {"closed": True, "ui_only": True}, None
+
     return False, {}, f"Unsupported CLICK target: {target}"
 
 
@@ -366,7 +4732,61 @@ def _trick_get_value(target, actor):
     target = str(target or "").strip().lower()
     if target == "widget.timer":
         return True, {"surface": target, "elements": _trick_timer_elements(actor)}, None
-    elements = _trick_timer_elements(actor)
+    if target == "widget.today":
+        return True, {"surface": target, "elements": _trick_today_elements(actor)}, None
+    if target == "widget.terminal":
+        return True, {"surface": target, "elements": _trick_terminal_elements(actor)}, None
+    if target == "widget.item_manager":
+        return True, {"surface": target, "elements": _trick_item_manager_elements(actor)}, None
+    if target == "widget.status":
+        return True, {"surface": target, "elements": _trick_status_elements(actor)}, None
+    if target == "widget.goal_tracker":
+        return True, {"surface": target, "elements": _trick_goal_tracker_elements(actor)}, None
+    if target == "widget.milestones":
+        return True, {"surface": target, "elements": _trick_milestones_elements(actor)}, None
+    if target == "widget.commitments":
+        return True, {"surface": target, "elements": _trick_commitments_elements(actor)}, None
+    if target == "widget.rewards":
+        return True, {"surface": target, "elements": _trick_rewards_elements(actor)}, None
+    if target == "widget.achievements":
+        return True, {"surface": target, "elements": _trick_achievements_elements(actor)}, None
+    if target == "widget.habit_tracker":
+        return True, {"surface": target, "elements": _trick_habit_tracker_elements(actor)}, None
+    if target == "widget.review":
+        return True, {"surface": target, "elements": _trick_review_elements(actor)}, None
+    if target == "widget.variables":
+        return True, {"surface": target, "elements": _trick_variables_elements(actor)}, None
+    if target == "widget.resolution_tracker":
+        return True, {"surface": target, "elements": _trick_resolution_tracker_elements(actor)}, None
+    if target == "widget.notes":
+        return True, {"surface": target, "elements": _trick_notes_elements(actor)}, None
+    if target == "widget.inventory_manager":
+        return True, {"surface": target, "elements": _trick_inventory_manager_elements(actor)}, None
+    if target == "widget.profile":
+        return True, {"surface": target, "elements": _trick_profile_elements(actor)}, None
+    if target == "widget.settings":
+        return True, {"surface": target, "elements": _trick_settings_elements(actor)}, None
+    if target == "widget.sleep_settings":
+        return True, {"surface": target, "elements": _trick_sleep_settings_elements(actor)}, None
+    if target == "widget.link":
+        return True, {"surface": target, "elements": _trick_link_elements(actor)}, None
+    if target == "widget.trends":
+        return True, {"surface": target, "elements": _trick_trends_elements(actor)}, None
+    if target == "widget.admin":
+        return True, {"surface": target, "elements": _trick_admin_elements(actor)}, None
+    if target == "widget.cockpit_minimap":
+        return True, {"surface": target, "elements": _trick_cockpit_minimap_elements(actor)}, None
+    if target == "widget.debug_console":
+        return True, {"surface": target, "elements": _trick_debug_console_elements(actor)}, None
+    if target == "widget.clock":
+        return True, {"surface": target, "elements": _trick_clock_elements(actor)}, None
+    if target == "widget.journal":
+        return True, {"surface": target, "elements": _trick_journal_elements(actor)}, None
+    if target == "widget.mp3_player":
+        return True, {"surface": target, "elements": _trick_mp3_player_elements(actor)}, None
+    if target == "widget.sticky_notes":
+        return True, {"surface": target, "elements": _trick_sticky_notes_elements(actor)}, None
+    elements = _trick_all_elements(actor)
     if target in elements:
         return True, {"target": target, **elements[target]}, None
     return False, {}, f"Unknown target: {target}"
@@ -375,6 +4795,7 @@ def _trick_get_value(target, actor):
 def _trick_set_value(target, value, actor):
     target = str(target or "").strip().lower()
     session = _trick_session(actor)
+    today = _trick_today_session(actor)
 
     if target == "widget.timer.profile_select":
         session["profile_select"] = str(value or "").strip() or "classic_pomodoro"
@@ -397,11 +4818,926 @@ def _trick_set_value(target, value, actor):
         session["bind_type_input"] = str(value or "").strip()
     elif target == "widget.timer.bind_name_input":
         session["bind_name_input"] = str(value or "").strip()
+    elif target.startswith("widget.today."):
+        bool_targets = {
+            "widget.today.buffers_checkbox",
+            "widget.today.timer_breaks_checkbox",
+            "widget.today.sprints_checkbox",
+            "widget.today.ignore_trends_checkbox",
+            "widget.today.repair_trim_checkbox",
+            "widget.today.repair_cut_checkbox",
+        }
+        int_targets = {
+            "widget.today.environment_slider",
+            "widget.today.category_slider",
+            "widget.today.happiness_slider",
+            "widget.today.due_date_slider",
+            "widget.today.deadline_slider",
+            "widget.today.status_slider",
+            "widget.today.priority_slider",
+            "widget.today.template_slider",
+            "widget.today.custom_property_slider",
+            "widget.today.balance_slider",
+            "widget.today.quickwins_input",
+            "widget.today.repair_min_duration_input",
+        }
+        float_targets = {
+            "widget.today.repair_cut_threshold_input",
+            "widget.today.status_threshold_input",
+        }
+        field = target.split(".", 2)[2]
+        if target in bool_targets:
+            if isinstance(value, bool):
+                today[field] = value
+            elif isinstance(value, (int, float)):
+                today[field] = bool(value)
+            else:
+                today[field] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+        elif target in int_targets:
+            if value in (None, ""):
+                today[field] = None
+            else:
+                try:
+                    today[field] = int(value)
+                except Exception:
+                    return False, {}, f"{field} expects an integer"
+        elif target in float_targets:
+            if value in (None, ""):
+                today[field] = None
+            else:
+                try:
+                    today[field] = float(value)
+                except Exception:
+                    return False, {}, f"{field} expects a number"
+        elif target in {
+            "widget.today.custom_property_key_input",
+            "widget.today.enforcer_environment_scope_select",
+            "widget.today.enforcer_environment_input",
+            "widget.today.enforcer_template_day_input",
+            "widget.today.enforcer_template_input",
+            "widget.today.schedule_state_select",
+            "widget.today.timer_profile_input",
+            "widget.today.template_override_input",
+        }:
+            today[field] = str(value or "").strip()
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.terminal."):
+        terminal = _trick_terminal_session(actor)
+        field = target.split(".", 2)[2]
+        if target == "widget.terminal.input_field":
+            terminal[field] = str(value or "")
+        elif target == "widget.terminal.expand_checkbox":
+            if isinstance(value, bool):
+                terminal[field] = value
+            elif isinstance(value, (int, float)):
+                terminal[field] = bool(value)
+            else:
+                terminal[field] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.item_manager."):
+        item_manager = _trick_item_manager_session(actor)
+        field = target.split(".", 2)[2]
+        if target in {"widget.item_manager.type_select", "widget.item_manager.search_input", "widget.item_manager.item_name_input", "widget.item_manager.yaml_input"}:
+            item_manager[field] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.status."):
+        status_widget = _trick_status_session(actor)
+        if target == "widget.status.fields_container":
+            status_widget["values"] = _trick_parse_status_text(value)
+            status_widget["status_text"] = "Status draft updated."
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.goal_tracker."):
+        goal_tracker = _trick_goal_tracker_session(actor)
+        if target == "widget.goal_tracker.search_input":
+            goal_tracker["search_input"] = str(value or "")
+        elif target == "widget.goal_tracker.goal_title_text":
+            goal_tracker["selected_goal"] = str(value or "").strip()
+            if goal_tracker["selected_goal"]:
+                _trick_goal_tracker_select(actor, goal_tracker["selected_goal"])
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.milestones."):
+        milestones_widget = _trick_milestones_session(actor)
+        if target in {
+            "widget.milestones.search_input",
+            "widget.milestones.status_filter_select",
+            "widget.milestones.project_filter_select",
+            "widget.milestones.goal_filter_select",
+        }:
+            milestones_widget[target.split(".", 2)[2]] = str(value or "")
+            filtered = _trick_milestones_filtered_rows(milestones_widget)
+            milestones_widget["summary"] = {
+                "total": len(filtered),
+                "completed": len([m for m in filtered if str(m.get("status") or "").lower() == "completed"]),
+                "in_progress": len([m for m in filtered if str(m.get("status") or "").lower() == "in-progress"]),
+            }
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.commitments."):
+        commitments_widget = _trick_commitments_session(actor)
+        if target in {
+            "widget.commitments.search_input",
+            "widget.commitments.status_filter_select",
+        }:
+            commitments_widget[target.split(".", 2)[2]] = str(value or "")
+            _trick_commitments_recount(commitments_widget)
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.rewards."):
+        rewards_widget = _trick_rewards_session(actor)
+        if target == "widget.rewards.search_input":
+            rewards_widget["search_input"] = str(value or "")
+        elif target == "widget.rewards.ready_only_checkbox":
+            if isinstance(value, bool):
+                rewards_widget["ready_only_checkbox"] = value
+            elif isinstance(value, (int, float)):
+                rewards_widget["ready_only_checkbox"] = bool(value)
+            else:
+                rewards_widget["ready_only_checkbox"] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.achievements."):
+        achievements_widget = _trick_achievements_session(actor)
+        if target in {
+            "widget.achievements.search_input",
+            "widget.achievements.status_filter_select",
+            "widget.achievements.title_select",
+        }:
+            achievements_widget[target.split(".", 2)[2]] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.habit_tracker."):
+        habit_tracker = _trick_habit_tracker_session(actor)
+        if target in {"widget.habit_tracker.search_input", "widget.habit_tracker.polarity_select"}:
+            habit_tracker[target.split(".", 2)[2]] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.review."):
+        review_widget = _trick_review_session(actor)
+        if target in {"widget.review.type_select", "widget.review.period_input"}:
+            review_widget[target.split(".", 2)[2]] = str(value or "")
+        elif target == "widget.review.expand_checkbox":
+            if isinstance(value, bool):
+                review_widget["expand_checkbox"] = value
+            elif isinstance(value, (int, float)):
+                review_widget["expand_checkbox"] = bool(value)
+            else:
+                review_widget["expand_checkbox"] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.variables."):
+        variables_widget = _trick_variables_session(actor)
+        if target == "widget.variables.grid_container":
+            variables_widget["rows"] = _trick_parse_grid_text(value)
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.notes."):
+        notes_widget = _trick_notes_session(actor)
+        field = target.split(".", 2)[2]
+        if target == "widget.notes.preview_checkbox":
+            if isinstance(value, bool):
+                notes_widget[field] = value
+            elif isinstance(value, (int, float)):
+                notes_widget[field] = bool(value)
+            else:
+                notes_widget[field] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+        elif target in {
+            "widget.notes.title_input",
+            "widget.notes.format_select",
+            "widget.notes.category_select",
+            "widget.notes.priority_select",
+            "widget.notes.tags_input",
+            "widget.notes.content_input",
+        }:
+            notes_widget[field] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+        _trick_notes_update_preview(notes_widget)
+    elif target.startswith("widget.inventory_manager."):
+        inventory_widget = _trick_inventory_manager_session(actor)
+        if target in {
+            "widget.inventory_manager.search_input",
+            "widget.inventory_manager.place_filter_select",
+            "widget.inventory_manager.new_name_input",
+            "widget.inventory_manager.new_places_input",
+            "widget.inventory_manager.new_tags_input",
+        }:
+            inventory_widget[target.split(".", 2)[2]] = str(value or "")
+            if target == "widget.inventory_manager.search_input" or target == "widget.inventory_manager.place_filter_select":
+                filtered = _trick_inventory_manager_filtered_rows(inventory_widget)
+                items = inventory_widget.get("inventories") if isinstance(inventory_widget.get("inventories"), list) else []
+                inventory_widget["count_text"] = f"{len(filtered)} / {len(items)} inventories" if items else "No inventories"
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.profile."):
+        profile_widget = _trick_profile_session(actor)
+        if target in {
+            "widget.profile.nickname_input",
+            "widget.profile.title_select",
+            "widget.profile.welcome_line1_input",
+            "widget.profile.welcome_line2_input",
+            "widget.profile.welcome_line3_input",
+            "widget.profile.exit_line1_input",
+            "widget.profile.exit_line2_input",
+        }:
+            profile_widget[target.split(".", 2)[2]] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.settings."):
+        settings_widget = _trick_settings_session(actor)
+        if target == "widget.settings.form_mode_checkbox":
+            if isinstance(value, bool):
+                settings_widget["form_mode_checkbox"] = value
+            elif isinstance(value, (int, float)):
+                settings_widget["form_mode_checkbox"] = bool(value)
+            else:
+                settings_widget["form_mode_checkbox"] = str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+        elif target == "widget.settings.file_select":
+            settings_widget["file_select"] = str(value or "")
+            return _trick_settings_load_file(actor, settings_widget["file_select"])
+        elif target == "widget.settings.editor_input":
+            settings_widget["editor_input"] = str(value or "")
+            settings_widget["dynamic_content"] = _trick_settings_summarize(settings_widget["editor_input"])
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.sleep_settings."):
+        sleep_widget = _trick_sleep_settings_session(actor)
+        if target == "widget.sleep_settings.mode_select":
+            sleep_widget["mode_select"] = str(value or "").strip().lower() or "monophasic"
+        elif target == "widget.sleep_settings.splits_input":
+            try:
+                sleep_widget["splits_input"] = int(value)
+            except Exception:
+                return False, {}, "splits_input expects an integer"
+        elif target == "widget.sleep_settings.blocks_container":
+            sleep_widget["blocks_text"] = str(value or "")
+            _trick_sleep_settings_refresh_chart(sleep_widget)
+        elif target == "widget.sleep_settings.template_mode_select":
+            sleep_widget["template_mode_select"] = str(value or "").strip().lower() or "selected"
+        elif target == "widget.sleep_settings.template_name_input":
+            sleep_widget["template_name_input"] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.link."):
+        link_widget = _trick_link_session(actor)
+        if target in {"widget.link.peer_input", "widget.link.token_input", "widget.link.board_select"}:
+            link_widget[target.split(".", 2)[2]] = str(value or "")
+            _trick_link_write_settings(link_widget)
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.admin."):
+        admin_widget = _trick_admin_session(actor)
+        if target in {"widget.admin.db_select", "widget.admin.registry_select"}:
+            admin_widget[target.split(".", 2)[2]] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.debug_console."):
+        debug_widget = _trick_debug_console_session(actor)
+        if target == "widget.debug_console.filter_select":
+            debug_widget["filter_select"] = str(value or "")
+        elif target == "widget.debug_console.output_text":
+            debug_widget["output_text"] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.clock."):
+        clock_widget = _trick_clock_session(actor)
+        if target == "widget.clock.mode_select":
+            clock_widget["mode_select"] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.journal."):
+        journal_widget = _trick_journal_session(actor)
+        if target in {
+            "widget.journal.type_filter_select",
+            "widget.journal.search_input",
+            "widget.journal.entry_type_select",
+            "widget.journal.date_input",
+            "widget.journal.title_input",
+            "widget.journal.tags_input",
+            "widget.journal.content_input",
+        }:
+            journal_widget[target.split(".", 2)[2]] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.mp3_player."):
+        mp3_widget = _trick_mp3_player_session(actor)
+        if target == "widget.mp3_player.playlist_select":
+            mp3_widget["playlist_select"] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
+    elif target.startswith("widget.sticky_notes."):
+        sticky_widget = _trick_sticky_notes_session(actor)
+        if target in {"widget.sticky_notes.new_content_input", "widget.sticky_notes.new_color_select"}:
+            sticky_widget[target.split(".", 2)[2]] = str(value or "")
+        else:
+            return False, {}, f"Unsupported SET target: {target}"
     else:
         return False, {}, f"Unsupported SET target: {target}"
 
     ok, payload, err = _trick_get_value(target, actor)
     return ok, payload, err
+
+
+def _trick_type_value(target, value, actor):
+    target = str(target or "").strip().lower()
+    text = "" if value is None else str(value)
+    session = _trick_session(actor)
+    today = _trick_today_session(actor)
+    terminal = _trick_terminal_session(actor)
+    item_manager = _trick_item_manager_session(actor)
+
+    if target in {
+        "widget.timer.profile_select",
+        "widget.timer.bind_type_input",
+        "widget.timer.bind_name_input",
+        "widget.today.custom_property_key_input",
+        "widget.today.enforcer_environment_scope_select",
+        "widget.today.enforcer_environment_input",
+        "widget.today.enforcer_template_day_input",
+        "widget.today.enforcer_template_input",
+        "widget.today.schedule_state_select",
+        "widget.today.timer_profile_input",
+        "widget.today.template_override_input",
+        "widget.terminal.input_field",
+        "widget.item_manager.type_select",
+        "widget.item_manager.search_input",
+        "widget.item_manager.item_name_input",
+        "widget.item_manager.yaml_input",
+        "widget.goal_tracker.search_input",
+        "widget.milestones.search_input",
+        "widget.milestones.status_filter_select",
+        "widget.milestones.project_filter_select",
+        "widget.milestones.goal_filter_select",
+        "widget.commitments.search_input",
+        "widget.commitments.status_filter_select",
+        "widget.rewards.search_input",
+        "widget.achievements.search_input",
+        "widget.achievements.status_filter_select",
+        "widget.achievements.title_select",
+        "widget.habit_tracker.search_input",
+        "widget.habit_tracker.polarity_select",
+        "widget.review.type_select",
+        "widget.review.period_input",
+        "widget.variables.grid_container",
+        "widget.notes.title_input",
+        "widget.notes.format_select",
+        "widget.notes.category_select",
+        "widget.notes.priority_select",
+        "widget.notes.tags_input",
+        "widget.notes.content_input",
+        "widget.inventory_manager.search_input",
+        "widget.inventory_manager.place_filter_select",
+        "widget.inventory_manager.new_name_input",
+        "widget.inventory_manager.new_places_input",
+        "widget.inventory_manager.new_tags_input",
+        "widget.profile.nickname_input",
+        "widget.profile.title_select",
+        "widget.profile.welcome_line1_input",
+        "widget.profile.welcome_line2_input",
+        "widget.profile.welcome_line3_input",
+        "widget.profile.exit_line1_input",
+        "widget.profile.exit_line2_input",
+        "widget.settings.file_select",
+        "widget.settings.editor_input",
+        "widget.sleep_settings.mode_select",
+        "widget.sleep_settings.template_mode_select",
+        "widget.sleep_settings.template_name_input",
+        "widget.sleep_settings.blocks_container",
+        "widget.link.peer_input",
+        "widget.link.token_input",
+        "widget.link.board_select",
+        "widget.admin.db_select",
+        "widget.admin.registry_select",
+        "widget.debug_console.filter_select",
+        "widget.debug_console.output_text",
+        "widget.clock.mode_select",
+        "widget.journal.type_filter_select",
+        "widget.journal.search_input",
+        "widget.journal.entry_type_select",
+        "widget.journal.date_input",
+        "widget.journal.title_input",
+        "widget.journal.tags_input",
+        "widget.journal.content_input",
+        "widget.mp3_player.playlist_select",
+        "widget.sticky_notes.new_content_input",
+        "widget.sticky_notes.new_color_select",
+    }:
+        if target.startswith("widget.timer."):
+            field = target.split(".", 2)[2]
+            session[field] = f"{session.get(field) or ''}{text}" if target.endswith("_input") else text
+        elif target.startswith("widget.today."):
+            field = target.split(".", 2)[2]
+            today[field] = f"{today.get(field) or ''}{text}" if field.endswith("_input") else text
+        elif target.startswith("widget.terminal."):
+            terminal["input_field"] = f"{terminal.get('input_field') or ''}{text}"
+        elif target.startswith("widget.item_manager."):
+            field = target.split(".", 2)[2]
+            if field in {"search_input", "item_name_input", "yaml_input"}:
+                item_manager[field] = f"{item_manager.get(field) or ''}{text}"
+            else:
+                item_manager[field] = text
+        elif target.startswith("widget.goal_tracker."):
+            field = target.split(".", 2)[2]
+            goal_tracker = _trick_goal_tracker_session(actor)
+            goal_tracker[field] = f"{goal_tracker.get(field) or ''}{text}"
+        elif target.startswith("widget.milestones."):
+            field = target.split(".", 2)[2]
+            milestones_widget = _trick_milestones_session(actor)
+            milestones_widget[field] = f"{milestones_widget.get(field) or ''}{text}" if field == "search_input" else text
+            filtered = _trick_milestones_filtered_rows(milestones_widget)
+            milestones_widget["summary"] = {
+                "total": len(filtered),
+                "completed": len([m for m in filtered if str(m.get("status") or "").lower() == "completed"]),
+                "in_progress": len([m for m in filtered if str(m.get("status") or "").lower() == "in-progress"]),
+            }
+        elif target.startswith("widget.commitments."):
+            field = target.split(".", 2)[2]
+            commitments_widget = _trick_commitments_session(actor)
+            commitments_widget[field] = f"{commitments_widget.get(field) or ''}{text}" if field == "search_input" else text
+            _trick_commitments_recount(commitments_widget)
+        elif target.startswith("widget.rewards."):
+            field = target.split(".", 2)[2]
+            rewards_widget = _trick_rewards_session(actor)
+            rewards_widget[field] = f"{rewards_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.achievements."):
+            field = target.split(".", 2)[2]
+            achievements_widget = _trick_achievements_session(actor)
+            achievements_widget[field] = f"{achievements_widget.get(field) or ''}{text}" if field == "search_input" else text
+        elif target.startswith("widget.habit_tracker."):
+            field = target.split(".", 2)[2]
+            habit_tracker = _trick_habit_tracker_session(actor)
+            habit_tracker[field] = f"{habit_tracker.get(field) or ''}{text}" if field == "search_input" else text
+        elif target.startswith("widget.review."):
+            field = target.split(".", 2)[2]
+            review_widget = _trick_review_session(actor)
+            review_widget[field] = f"{review_widget.get(field) or ''}{text}" if field == "period_input" else text
+        elif target.startswith("widget.variables."):
+            variables_widget = _trick_variables_session(actor)
+            existing = _trick_variables_grid_text(variables_widget.get("rows") if isinstance(variables_widget.get("rows"), dict) else {})
+            variables_widget["rows"] = _trick_parse_grid_text(f"{existing}{text}" if existing else text)
+        elif target.startswith("widget.notes."):
+            field = target.split(".", 2)[2]
+            notes_widget = _trick_notes_session(actor)
+            notes_widget[field] = f"{notes_widget.get(field) or ''}{text}" if field in {"title_input", "tags_input", "content_input"} else text
+            _trick_notes_update_preview(notes_widget)
+        elif target.startswith("widget.inventory_manager."):
+            field = target.split(".", 2)[2]
+            inventory_widget = _trick_inventory_manager_session(actor)
+            inventory_widget[field] = f"{inventory_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.profile."):
+            field = target.split(".", 2)[2]
+            profile_widget = _trick_profile_session(actor)
+            profile_widget[field] = f"{profile_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.settings."):
+            field = target.split(".", 2)[2]
+            settings_widget = _trick_settings_session(actor)
+            settings_widget[field] = f"{settings_widget.get(field) or ''}{text}" if field == "editor_input" else text
+            settings_widget["dynamic_content"] = _trick_settings_summarize(settings_widget.get("editor_input") or "")
+        elif target.startswith("widget.sleep_settings."):
+            field = target.split(".", 2)[2]
+            sleep_widget = _trick_sleep_settings_session(actor)
+            sleep_widget[field if field != "blocks_container" else "blocks_text"] = f"{sleep_widget.get(field if field != 'blocks_container' else 'blocks_text') or ''}{text}"
+            _trick_sleep_settings_refresh_chart(sleep_widget)
+        elif target.startswith("widget.link."):
+            field = target.split(".", 2)[2]
+            link_widget = _trick_link_session(actor)
+            link_widget[field] = f"{link_widget.get(field) or ''}{text}"
+            _trick_link_write_settings(link_widget)
+        elif target.startswith("widget.admin."):
+            field = target.split(".", 2)[2]
+            admin_widget = _trick_admin_session(actor)
+            admin_widget[field] = f"{admin_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.debug_console."):
+            field = target.split(".", 2)[2]
+            debug_widget = _trick_debug_console_session(actor)
+            debug_widget[field] = f"{debug_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.clock."):
+            field = target.split(".", 2)[2]
+            clock_widget = _trick_clock_session(actor)
+            clock_widget[field] = f"{clock_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.journal."):
+            field = target.split(".", 2)[2]
+            journal_widget = _trick_journal_session(actor)
+            journal_widget[field] = f"{journal_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.mp3_player."):
+            field = target.split(".", 2)[2]
+            mp3_widget = _trick_mp3_player_session(actor)
+            mp3_widget[field] = f"{mp3_widget.get(field) or ''}{text}"
+        elif target.startswith("widget.sticky_notes."):
+            field = target.split(".", 2)[2]
+            sticky_widget = _trick_sticky_notes_session(actor)
+            sticky_widget[field] = f"{sticky_widget.get(field) or ''}{text}"
+        return _trick_get_value(target, actor)
+    if target == "widget.status.fields_container":
+        status_widget = _trick_status_session(actor)
+        existing = "\n".join(f"{k}: {v}" for k, v in (status_widget.get("values") or {}).items())
+        merged = f"{existing}{text}" if existing else text
+        status_widget["values"] = _trick_parse_status_text(merged)
+        status_widget["status_text"] = "Status draft updated."
+        return _trick_get_value(target, actor)
+    return False, {}, f"Unsupported TYPE target: {target}"
+
+
+def _trick_copy_value(target, actor):
+    target = str(target or "").strip().lower()
+    session = _trick_session(actor)
+    ok, payload, err = _trick_get_value(target, actor)
+    if not ok:
+        return False, {}, err
+    copied = payload.get("text")
+    if copied is None or copied == "":
+        copied = payload.get("value")
+    session["clipboard"] = "" if copied is None else str(copied)
+    return True, {"clipboard": session["clipboard"], "target": target}, None
+
+
+def _trick_paste_value(target, actor):
+    session = _trick_session(actor)
+    return _trick_type_value(target, session.get("clipboard") or "", actor)
+
+
+def _trick_press_key(target, value, actor):
+    target = str(target or "").strip().lower()
+    key = str(value or "").strip()
+    if not key:
+        return False, {}, "Missing key"
+    key_norm = key.lower()
+
+    session = _trick_session(actor)
+    today = _trick_today_session(actor)
+    terminal = _trick_terminal_session(actor)
+    item_manager = _trick_item_manager_session(actor)
+
+    def _backspace(text):
+        s = str(text or "")
+        return s[:-1] if s else ""
+
+    if target == "widget.terminal.input_field":
+        if key_norm == "enter":
+            return _trick_terminal_run_command(actor)
+        if key_norm == "backspace":
+            terminal["input_field"] = _backspace(terminal.get("input_field"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            terminal["input_field"] = ""
+            terminal["status_text"] = "Ready."
+            return _trick_get_value(target, actor)
+        if key_norm in {"ctrl+l", "ctrl+l"}:
+            terminal["output_text"] = ""
+            terminal["status_text"] = "Cleared."
+            return True, {"target": target, "value": terminal["input_field"], "cleared": True}, None
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.item_manager.search_input":
+        if key_norm == "enter":
+            return _trick_item_manager_refresh(actor)
+        if key_norm == "backspace":
+            item_manager["search_input"] = _backspace(item_manager.get("search_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            item_manager["search_input"] = ""
+            item_manager["status_text"] = "Ready."
+            return _trick_get_value(target, actor)
+    if target.startswith("widget.profile."):
+        profile_widget = _trick_profile_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "enter" and target == "widget.profile.nickname_input":
+            return _trick_profile_save(actor)
+        if key_norm == "backspace":
+            profile_widget[field] = _backspace(profile_widget.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            profile_widget[field] = ""
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+    if target.startswith("widget.settings."):
+        settings_widget = _trick_settings_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "enter" and target == "widget.settings.editor_input":
+            return _trick_settings_save(actor)
+        if key_norm == "backspace":
+            settings_widget[field] = _backspace(settings_widget.get(field))
+            settings_widget["dynamic_content"] = _trick_settings_summarize(settings_widget.get("editor_input") or "")
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            settings_widget[field] = ""
+            settings_widget["dynamic_content"] = _trick_settings_summarize(settings_widget.get("editor_input") or "")
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+    if target.startswith("widget.sleep_settings."):
+        sleep_widget = _trick_sleep_settings_session(actor)
+        field = "blocks_text" if target.endswith("blocks_container") else target.split(".", 2)[2]
+        if key_norm == "enter" and target == "widget.sleep_settings.blocks_container":
+            _trick_sleep_settings_refresh_chart(sleep_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "backspace":
+            sleep_widget[field] = _backspace(sleep_widget.get(field))
+            _trick_sleep_settings_refresh_chart(sleep_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            sleep_widget[field] = ""
+            _trick_sleep_settings_refresh_chart(sleep_widget)
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+    if target.startswith("widget.link."):
+        link_widget = _trick_link_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "enter":
+            if target in {"widget.link.peer_input", "widget.link.token_input", "widget.link.board_select"}:
+                return _trick_link_connect(actor)
+        if key_norm == "backspace":
+            link_widget[field] = _backspace(link_widget.get(field))
+            _trick_link_write_settings(link_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            link_widget[field] = ""
+            _trick_link_write_settings(link_widget)
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.goal_tracker.search_input":
+        goal_tracker = _trick_goal_tracker_session(actor)
+        if key_norm == "enter":
+            ok, result, err = _trick_goal_tracker_refresh(actor)
+            if ok:
+                _trick_goal_tracker_select(actor)
+            return ok, result, err
+        if key_norm == "backspace":
+            goal_tracker["search_input"] = _backspace(goal_tracker.get("search_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            goal_tracker["search_input"] = ""
+            goal_tracker["status_text"] = "Ready."
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.milestones.search_input":
+        milestones_widget = _trick_milestones_session(actor)
+        if key_norm == "enter":
+            return _trick_milestones_refresh(actor)
+        if key_norm == "backspace":
+            milestones_widget["search_input"] = _backspace(milestones_widget.get("search_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            milestones_widget["search_input"] = ""
+            milestones_widget["status_text"] = ""
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target in {
+        "widget.milestones.status_filter_select",
+        "widget.milestones.project_filter_select",
+        "widget.milestones.goal_filter_select",
+    }:
+        milestones_widget = _trick_milestones_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            milestones_widget[field] = _backspace(milestones_widget.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            milestones_widget[field] = "all"
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            filtered = _trick_milestones_filtered_rows(milestones_widget)
+            milestones_widget["summary"] = {
+                "total": len(filtered),
+                "completed": len([m for m in filtered if str(m.get("status") or "").lower() == "completed"]),
+                "in_progress": len([m for m in filtered if str(m.get("status") or "").lower() == "in-progress"]),
+            }
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.commitments.search_input":
+        commitments_widget = _trick_commitments_session(actor)
+        if key_norm == "enter":
+            return _trick_commitments_refresh(actor)
+        if key_norm == "backspace":
+            commitments_widget["search_input"] = _backspace(commitments_widget.get("search_input"))
+            _trick_commitments_recount(commitments_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            commitments_widget["search_input"] = ""
+            commitments_widget["status_text"] = ""
+            _trick_commitments_recount(commitments_widget)
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.commitments.status_filter_select":
+        commitments_widget = _trick_commitments_session(actor)
+        if key_norm == "backspace":
+            commitments_widget["status_filter_select"] = _backspace(commitments_widget.get("status_filter_select"))
+            _trick_commitments_recount(commitments_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            commitments_widget["status_filter_select"] = "all"
+            _trick_commitments_recount(commitments_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            _trick_commitments_recount(commitments_widget)
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.rewards.search_input":
+        rewards_widget = _trick_rewards_session(actor)
+        if key_norm == "enter":
+            return _trick_rewards_refresh(actor)
+        if key_norm == "backspace":
+            rewards_widget["search_input"] = _backspace(rewards_widget.get("search_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            rewards_widget["search_input"] = ""
+            rewards_widget["status_text"] = ""
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.achievements.search_input":
+        achievements_widget = _trick_achievements_session(actor)
+        if key_norm == "enter":
+            return _trick_achievements_refresh(actor)
+        if key_norm == "backspace":
+            achievements_widget["search_input"] = _backspace(achievements_widget.get("search_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            achievements_widget["search_input"] = ""
+            achievements_widget["status_text"] = ""
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target in {"widget.achievements.status_filter_select", "widget.achievements.title_select"}:
+        achievements_widget = _trick_achievements_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            achievements_widget[field] = _backspace(achievements_widget.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            achievements_widget[field] = "" if field == "title_select" else "all"
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.habit_tracker.search_input":
+        habit_tracker = _trick_habit_tracker_session(actor)
+        if key_norm == "enter":
+            return _trick_habit_tracker_refresh(actor)
+        if key_norm == "backspace":
+            habit_tracker["search_input"] = _backspace(habit_tracker.get("search_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            habit_tracker["search_input"] = ""
+            habit_tracker["status_text"] = ""
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.habit_tracker.polarity_select":
+        habit_tracker = _trick_habit_tracker_session(actor)
+        if key_norm == "backspace":
+            habit_tracker["polarity_select"] = _backspace(habit_tracker.get("polarity_select"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            habit_tracker["polarity_select"] = "all"
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.review.period_input":
+        review_widget = _trick_review_session(actor)
+        if key_norm == "backspace":
+            review_widget["period_input"] = _backspace(review_widget.get("period_input"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            review_widget["period_input"] = ""
+            review_widget["status_text"] = ""
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            return _trick_review_open(actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.review.type_select":
+        review_widget = _trick_review_session(actor)
+        if key_norm == "backspace":
+            review_widget["type_select"] = _backspace(review_widget.get("type_select"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            review_widget["type_select"] = "daily"
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            _trick_review_set_this(review_widget)
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.variables.grid_container":
+        variables_widget = _trick_variables_session(actor)
+        if key_norm == "enter":
+            return _trick_variables_save(actor)
+        if key_norm == "escape":
+            variables_widget["rows"] = {}
+            variables_widget["status_text"] = ""
+            return _trick_get_value(target, actor)
+        if key_norm == "backspace":
+            text = _trick_variables_grid_text(variables_widget.get("rows") if isinstance(variables_widget.get("rows"), dict) else {})
+            variables_widget["rows"] = _trick_parse_grid_text(_backspace(text))
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target in {"widget.notes.title_input", "widget.notes.tags_input", "widget.notes.content_input"}:
+        notes_widget = _trick_notes_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            notes_widget[field] = _backspace(notes_widget.get(field))
+            _trick_notes_update_preview(notes_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            notes_widget[field] = ""
+            notes_widget["status_text"] = ""
+            _trick_notes_update_preview(notes_widget)
+            return _trick_get_value(target, actor)
+        if key_norm == "enter" and field == "content_input":
+            notes_widget[field] = f"{notes_widget.get(field) or ''}\n"
+            _trick_notes_update_preview(notes_widget)
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target in {"widget.inventory_manager.search_input", "widget.inventory_manager.new_name_input", "widget.inventory_manager.new_places_input", "widget.inventory_manager.new_tags_input"}:
+        inventory_widget = _trick_inventory_manager_session(actor)
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            inventory_widget[field] = _backspace(inventory_widget.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            inventory_widget[field] = ""
+            if field == "search_input":
+                inventory_widget["status_text"] = ""
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            if field == "search_input":
+                return _trick_inventory_manager_refresh(actor)
+            if field == "new_name_input":
+                return _trick_inventory_manager_create(actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target == "widget.inventory_manager.place_filter_select":
+        inventory_widget = _trick_inventory_manager_session(actor)
+        if key_norm == "backspace":
+            inventory_widget["place_filter_select"] = _backspace(inventory_widget.get("place_filter_select"))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            inventory_widget["place_filter_select"] = ""
+            return _trick_get_value(target, actor)
+        if key_norm == "enter":
+            return _trick_inventory_manager_refresh(actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target in {"widget.item_manager.item_name_input", "widget.item_manager.yaml_input"}:
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            item_manager[field] = _backspace(item_manager.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            item_manager[field] = ""
+            item_manager["status_text"] = "Ready."
+            return _trick_get_value(target, actor)
+        if key_norm == "enter" and target == "widget.item_manager.yaml_input":
+            item_manager[field] = f"{item_manager.get(field) or ''}\n"
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    today_pressable = {
+        "widget.today.custom_property_key_input",
+        "widget.today.enforcer_environment_input",
+        "widget.today.enforcer_template_day_input",
+        "widget.today.enforcer_template_input",
+        "widget.today.timer_profile_input",
+        "widget.today.template_override_input",
+    }
+    if target in today_pressable:
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            today[field] = _backspace(today.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            today[field] = ""
+            today["status_text"] = "Ready."
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    if target in {"widget.timer.bind_type_input", "widget.timer.bind_name_input"}:
+        field = target.split(".", 2)[2]
+        if key_norm == "backspace":
+            session[field] = _backspace(session.get(field))
+            return _trick_get_value(target, actor)
+        if key_norm == "escape":
+            session[field] = ""
+            return _trick_get_value(target, actor)
+        return False, {}, f"Unsupported key for {target}: {key}"
+
+    return False, {}, f"Unsupported PRESS target: {target}"
 
 
 def _trick_eval_predicate(predicate, target, expected, actor):
@@ -411,7 +5747,8 @@ def _trick_eval_predicate(predicate, target, expected, actor):
         return False, {"error": "Missing target"}
 
     surface_id = ".".join(target.split(".")[:2]) if "." in target else target
-    exists = _trick_surface_exists(surface_id) and (target == surface_id or target in _trick_timer_elements(actor))
+    all_elements = _trick_all_elements(actor)
+    exists = _trick_surface_exists(surface_id) and (target == surface_id or target in all_elements)
 
     if predicate == "exists":
         return exists, {"exists": exists}
@@ -4316,7 +9653,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 target = req.get("target") or ""
                 actor = req.get("actor") or "default"
 
-                if cmd not in {"OPEN", "CLOSE", "LIST", "GET", "SET", "CLICK", "WAIT"}:
+                if cmd not in {"OPEN", "CLOSE", "LIST", "GET", "SET", "TYPE", "COPY", "PASTE", "PRESS", "CLICK", "WAIT"}:
                     self._write_json(400, {"ok": False, "error": "Invalid TRICK command"})
                     return
 
@@ -4329,6 +9666,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         self._write_json(404, {"ok": False, "error": f"Unknown TRICK surface: {surface}"})
                         return
                     if cmd == "OPEN":
+                        _trick_note_surface_action(surface, "open", actor)
                         open_req = _trick_open_request_push(surface, "open")
                         self._write_json(200, {
                             "ok": True,
@@ -4343,6 +9681,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         })
                         return
                     if cmd == "CLOSE":
+                        _trick_note_surface_action(surface, "close", actor)
                         close_req = _trick_open_request_push(surface, "close")
                         self._write_json(200, {
                             "ok": True,
@@ -4380,6 +9719,38 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         self._write_json(400, {"ok": False, "error": f"SET not allowed for target: {target}"})
                         return
                     ok, result, err = _trick_set_value(target, req.get("value"), actor)
+                    self._write_json(200 if ok else 400, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "TYPE":
+                    if not _trick_element_allowed(target, "type"):
+                        self._write_json(400, {"ok": False, "error": f"TYPE not allowed for target: {target}"})
+                        return
+                    ok, result, err = _trick_type_value(target, req.get("value"), actor)
+                    self._write_json(200 if ok else 400, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "COPY":
+                    if not _trick_element_allowed(target, "copy"):
+                        self._write_json(400, {"ok": False, "error": f"COPY not allowed for target: {target}"})
+                        return
+                    ok, result, err = _trick_copy_value(target, actor)
+                    self._write_json(200 if ok else 400, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "PASTE":
+                    if not _trick_element_allowed(target, "paste"):
+                        self._write_json(400, {"ok": False, "error": f"PASTE not allowed for target: {target}"})
+                        return
+                    ok, result, err = _trick_paste_value(target, actor)
+                    self._write_json(200 if ok else 400, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "PRESS":
+                    if not _trick_element_allowed(target, "press"):
+                        self._write_json(400, {"ok": False, "error": f"PRESS not allowed for target: {target}"})
+                        return
+                    ok, result, err = _trick_press_key(target, req.get("value"), actor)
                     self._write_json(200 if ok else 400, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
                     return
 
@@ -4752,6 +10123,60 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "name": name, "date": date_key, "state": state})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Commitment override failed: {e}"})
+            return
+
+        if parsed.path in ("/api/habits/complete", "/api/habits/incident"):
+            try:
+                from modules.item_manager import read_item_data, write_item_data
+                name = str(payload.get("name") or "").strip()
+                if not name:
+                    self._write_json(400, {"ok": False, "error": "Missing habit name"})
+                    return
+                data = read_item_data("habit", name)
+                if not isinstance(data, dict):
+                    self._write_json(404, {"ok": False, "error": "Habit not found"})
+                    return
+                today = datetime.now().strftime("%Y-%m-%d")
+                polarity = str(data.get("polarity") or "good").strip().lower()
+                completion_dates = data.get("completion_dates") if isinstance(data.get("completion_dates"), list) else []
+                incident_dates = data.get("incident_dates") if isinstance(data.get("incident_dates"), list) else []
+                previous_last_completed = data.get("last_completed")
+                if today not in completion_dates:
+                    completion_dates.append(today)
+                data["completion_dates"] = completion_dates
+
+                if parsed.path.endswith("/incident") or polarity == "bad":
+                    if today not in incident_dates:
+                        incident_dates.append(today)
+                    data["incident_dates"] = incident_dates
+                    prev_last = data.get("last_incident")
+                    if prev_last:
+                        try:
+                            prev_dt = datetime.strptime(str(prev_last), "%Y-%m-%d").date()
+                            today_dt = datetime.strptime(today, "%Y-%m-%d").date()
+                            just_ended = max(0, (today_dt - prev_dt).days)
+                            if just_ended > int(data.get("clean_longest_streak", 0) or 0):
+                                data["clean_longest_streak"] = just_ended
+                        except Exception:
+                            pass
+                    data["last_incident"] = today
+                    data["clean_current_streak"] = 0
+                    action = "incident"
+                else:
+                    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+                    if previous_last_completed == yesterday:
+                        data["current_streak"] = int(data.get("current_streak", 0) or 0) + 1
+                    else:
+                        data["current_streak"] = 1
+                    if int(data.get("current_streak", 0) or 0) > int(data.get("longest_streak", 0) or 0):
+                        data["longest_streak"] = int(data.get("current_streak", 0) or 0)
+                    action = "complete"
+                data["last_completed"] = today
+
+                write_item_data("habit", name, data)
+                self._write_json(200, {"ok": True, "name": name, "action": action, "date": today})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Habit update failed: {e}"})
             return
 
         if parsed.path == "/api/link/board":

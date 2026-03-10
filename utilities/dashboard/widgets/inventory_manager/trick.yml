@@ -1,0 +1,56 @@
+type: widget
+name: inventory_manager
+label: Inventory Manager
+module: inventory_manager
+root: widget.inventory_manager
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: search_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: place_filter_select
+    kind: select
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: search_button
+    kind: button
+    actions: [click]
+  - name: refresh_button
+    kind: button
+    actions: [click]
+  - name: new_name_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: new_places_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: new_tags_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: create_button
+    kind: button
+    actions: [click]
+  - name: count_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: list_container
+    kind: container
+    actions: [get, wait, copy]
+  - name: detail_container
+    kind: container
+    actions: [get, wait, copy]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

@@ -75,6 +75,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget cockpit-minimap-widget';
+  el.dataset.uiId = 'widget.cockpit_minimap';
 
   injectStyles();
   el.classList.add('cockpit-minimap-widget');
@@ -86,16 +87,16 @@ export function mount(el, context) {
   if (!el.style.height) el.style.height = '220px';
 
   el.innerHTML = `
-    <div class="header">
-      <div class="title">Cockpit Minimap</div>
+    <div class="header" data-ui-id="widget.cockpit_minimap.header">
+      <div class="title" data-ui-id="widget.cockpit_minimap.title">Cockpit Minimap</div>
       <div class="controls">
-        <button class="icon-btn" data-action="collapse" title="Collapse">_</button>
+        <button class="icon-btn" data-action="collapse" title="Collapse" data-ui-id="widget.cockpit_minimap.collapse_button">_</button>
       </div>
     </div>
     <div class="content">
       <div class="cockpit-mini-shell">
-        <div class="cockpit-mini-track" data-track data-no-drag="true"></div>
-        <div class="cockpit-mini-hint" data-hint>Open the Cockpit view to use the minimap.</div>
+        <div class="cockpit-mini-track" data-track data-no-drag="true" data-ui-id="widget.cockpit_minimap.track_container"></div>
+        <div class="cockpit-mini-hint" data-hint data-ui-id="widget.cockpit_minimap.hint_text">Open the Cockpit view to use the minimap.</div>
       </div>
     </div>
   `;

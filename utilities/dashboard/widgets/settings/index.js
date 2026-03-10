@@ -9,38 +9,39 @@ export function mount(el) {
   }
 
   el.className = 'widget settings-widget';
+  el.dataset.uiId = 'widget.settings';
 
   el.innerHTML = `
-    <div class="header" id="settingsHeader">
-      <div class="title">Settings</div>
+    <div class="header" id="settingsHeader" data-ui-id="widget.settings.header">
+      <div class="title" data-ui-id="widget.settings.title">Settings</div>
       <div class="controls">
-        <button class="icon-btn" id="settingsMin" title="Minimize">_</button>
-        <button class="icon-btn" id="settingsClose" title="Close">x</button>
+        <button class="icon-btn" id="settingsMin" title="Minimize" data-ui-id="widget.settings.minimize_button">_</button>
+        <button class="icon-btn" id="settingsClose" title="Close" data-ui-id="widget.settings.close_button">x</button>
       </div>
     </div>
     <div class="content" style="display:flex; flex-direction:column; gap:8px;">
       <div class="row" style="gap:8px; align-items:center;">
         <label for="settingsFile" class="hint">File:</label>
-        <select id="settingsFile" class="input" style="flex:1 1 auto;"></select>
-        <button id="reloadBtn" class="btn btn-secondary">Reload</button>
+        <select id="settingsFile" class="input" style="flex:1 1 auto;" data-ui-id="widget.settings.file_select"></select>
+        <button id="reloadBtn" class="btn btn-secondary" data-ui-id="widget.settings.reload_button">Reload</button>
       </div>
       <!-- Toggle between Form and YAML modes -->
       <div class="row" style="gap:8px; align-items:center;">
         <label class="hint" style="display:flex; align-items:center; gap:6px;">
-          <input type="checkbox" id="formModeToggle" checked />
+          <input type="checkbox" id="formModeToggle" checked data-ui-id="widget.settings.form_mode_checkbox" />
           Smart Form Mode
         </label>
       </div>
       <div class="row" style="gap:8px; align-items:center;">
-        <button id="addSectionBtn" class="btn btn-secondary">Add Section</button>
-        <button id="addFieldBtn" class="btn btn-secondary">Add Field</button>
+        <button id="addSectionBtn" class="btn btn-secondary" data-ui-id="widget.settings.add_section_button">Add Section</button>
+        <button id="addFieldBtn" class="btn btn-secondary" data-ui-id="widget.settings.add_field_button">Add Field</button>
         <span class="hint" style="font-size:11px;">Form mode adds simple keys and sections.</span>
       </div>
       <!-- Dynamic content container (form or YAML editor) -->
-      <div id="dynamicContent" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
+      <div id="dynamicContent" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;" data-ui-id="widget.settings.dynamic_content"></div>
       <div class="row" style="gap:8px; align-items:center; justify-content:flex-end;">
-        <span id="settingsStatus" class="hint" style="flex:1 1 auto;"></span>
-        <button id="saveBtn" class="btn btn-primary">Save</button>
+        <span id="settingsStatus" class="hint" style="flex:1 1 auto;" data-ui-id="widget.settings.status_text"></span>
+        <button id="saveBtn" class="btn btn-primary" data-ui-id="widget.settings.save_button">Save</button>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -153,7 +154,7 @@ export function mount(el) {
   function renderYamlEditor(yamlText) {
     currentMode = 'yaml';
     dynamicContent.innerHTML = `
-      <textarea id="settingsEditor" class="textarea" placeholder="# YAML settings..." style="min-height: 280px;">${yamlText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+      <textarea id="settingsEditor" class="textarea" placeholder="# YAML settings..." style="min-height: 280px;" data-ui-id="widget.settings.editor_input">${yamlText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
     `;
   }
 

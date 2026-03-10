@@ -9,6 +9,7 @@ export function mount(el) {
   }
 
   el.className = 'widget goal-tracker-widget';
+  try { el.dataset.uiId = 'widget.goal_tracker'; } catch { }
 
   const tpl = `
     <style>
@@ -16,35 +17,40 @@ export function mount(el) {
       .gt-list { width:46%; max-height:260px; overflow:auto; border:1px solid var(--border); border-radius:8px; padding:6px; }
       .gt-details { width:54%; display:flex; flex-direction:column; gap:8px; min-height:220px; }
     </style>
-    <div class="header" id="gtHeader">
-      <div class="title">Goals</div>
+    <div class="header" id="gtHeader" data-ui-id="widget.goal_tracker.header">
+      <div class="title" data-ui-id="widget.goal_tracker.title">Goals</div>
       <div class="controls">
-        <button class="icon-btn" id="gtMin" title="Minimize">_</button>
-        <button class="icon-btn" id="gtClose" title="Close">x</button>
+        <button class="icon-btn" id="gtMin" title="Minimize" data-ui-id="widget.goal_tracker.minimize_button">_</button>
+        <button class="icon-btn" id="gtClose" title="Close" data-ui-id="widget.goal_tracker.close_button">x</button>
       </div>
     </div>
-    <div class="content" style="gap:10px;">
+    <div class="content" style="gap:10px;" data-ui-id="widget.goal_tracker.panel">
           <div class="row" style="gap:8px; align-items:center;">
-            <input id="gtSearch" class="input" placeholder="Search goals..." />
-            <button class="btn" id="gtSearchBtn">Search</button>
+            <input id="gtSearch" class="input" placeholder="Search goals..." data-ui-id="widget.goal_tracker.search_input" />
+            <button class="btn" id="gtSearchBtn" data-ui-id="widget.goal_tracker.search_button">Search</button>
             <div class="spacer"></div>
-            <button class="btn" id="gtRecalc">Recalc</button>
-            <button class="btn" id="gtRefresh">Refresh</button>
+            <button class="btn" id="gtRecalc" data-ui-id="widget.goal_tracker.recalc_button">Recalc</button>
+            <button class="btn" id="gtRefresh" data-ui-id="widget.goal_tracker.refresh_button">Refresh</button>
           </div>
       <div class="gt-body">
-        <div class="gt-list">
-          <ul id="gtList" style="list-style:none; padding:0; margin:0;"></ul>
+        <div class="gt-list" data-ui-id="widget.goal_tracker.list_container">
+          <ul id="gtList" style="list-style:none; padding:0; margin:0;" data-ui-id="widget.goal_tracker.goal_list"></ul>
         </div>
         <div class="gt-details">
-          <div id="gtTitle" style="font-weight:800; font-size:16px;">Select a goal</div>
+          <div id="gtTitle" style="font-weight:800; font-size:16px;" data-ui-id="widget.goal_tracker.goal_title_text">Select a goal</div>
           <div style="height:10px; background:#0b0f16; border:1px solid var(--border); border-radius:6px; overflow:hidden;">
-            <div id="gtBar" style="height:100%; width:0%; background:linear-gradient(90deg,#12b886,#69db7c);"></div>
+            <div id="gtBar" style="height:100%; width:0%; background:linear-gradient(90deg,#12b886,#69db7c);" data-ui-id="widget.goal_tracker.goal_progress_bar"></div>
           </div>
           <div class="row" style="gap:8px; align-items:center;">
-            <div class="hint" id="gtMeta"></div>
+            <div class="hint" id="gtMeta" data-ui-id="widget.goal_tracker.goal_meta_text"></div>
             <div class="spacer"></div>
           </div>
-          <div id="gtMilestones"></div>
+          <div class="row" style="gap:8px; align-items:center;">
+            <button class="btn" id="gtPrimaryComplete" data-ui-id="widget.goal_tracker.complete_primary_button">Complete Primary</button>
+            <button class="btn" id="gtPrimaryFocus" data-ui-id="widget.goal_tracker.focus_primary_button">Focus Primary</button>
+          </div>
+          <div id="gtMilestones" data-ui-id="widget.goal_tracker.milestones_container"></div>
+          <div class="hint" id="gtStatus" data-ui-id="widget.goal_tracker.status_text">Ready.</div>
         </div>
       </div>
     </div>
@@ -65,19 +71,41 @@ export function mount(el) {
   const metaEl = el.querySelector('#gtMeta');
   const refreshBtn = el.querySelector('#gtRefresh');
   const msEl = el.querySelector('#gtMilestones');
+  const statusEl = el.querySelector('#gtStatus');
+  const primaryCompleteBtn = el.querySelector('#gtPrimaryComplete');
+  const primaryFocusBtn = el.querySelector('#gtPrimaryFocus');
+
+  function setStatus(text) {
+    if (statusEl) statusEl.textContent = String(text || 'Ready.');
+  }
 
   function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Goals'); } catch { } });
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : 'Ready.'); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; setStatus('Closed.'); try { window?.ChronosBus?.emit?.('widget:closed', 'Goals'); } catch { } });
   searchBtn.addEventListener('click', loadGoals);
   searchEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') loadGoals(); });
-  recalcBtn.addEventListener('click', async () => { await fetch(apiBase() + '/api/milestone/recalc', { method: 'POST' }); await loadGoals(); if (titleEl.__goal) selectGoal(titleEl.__goal); });
-  refreshBtn.addEventListener('click', async () => { await loadGoals(); if (titleEl.__goal) selectGoal(titleEl.__goal); });
+  recalcBtn.addEventListener('click', async () => { setStatus('Recalculating milestones...'); await fetch(apiBase() + '/api/milestone/recalc', { method: 'POST' }); await loadGoals(); if (titleEl.__goal) selectGoal(titleEl.__goal); setStatus('Milestones recalculated.'); });
+  refreshBtn.addEventListener('click', async () => { setStatus('Refreshing goals...'); await loadGoals(); if (titleEl.__goal) selectGoal(titleEl.__goal); setStatus('Goals refreshed.'); });
+  primaryCompleteBtn?.addEventListener('click', async () => {
+    const goalName = titleEl.__goal;
+    if (!goalName) return;
+    const firstBtn = msEl.querySelector('button');
+    if (!firstBtn) return;
+    firstBtn.click();
+  });
+  primaryFocusBtn?.addEventListener('click', async () => {
+    const goalName = titleEl.__goal;
+    if (!goalName) return;
+    const buttons = msEl.querySelectorAll('button');
+    if (buttons.length < 2) return;
+    buttons[1].click();
+  });
 
   async function loadGoals() {
+    setStatus('Loading goals...');
     const resp = await fetch(apiBase() + '/api/goals');
     const data = await resp.json().catch(() => ({}));
     const goals = (data.goals || []).filter(g => {
@@ -102,9 +130,11 @@ export function mount(el) {
       li.addEventListener('mouseleave', () => li.style.background = '');
       listEl.appendChild(li);
     });
+    setStatus(`Loaded ${goals.length} goals.`);
   }
 
   async function selectGoal(name) {
+    setStatus(`Loading "${name}"...`);
     const resp = await fetch(apiBase() + `/api/goal?name=${encodeURIComponent(name)}`);
     const data = await resp.json().catch(() => ({}));
     const g = data.goal || {}; if (!g.name) return;
@@ -127,11 +157,12 @@ export function mount(el) {
       const status = document.createElement('div'); status.className = 'hint'; status.textContent = `Status: ${expandText(m.status || 'unknown')}`;
       const crit = document.createElement('div'); crit.className = 'hint'; crit.textContent = expandText(m.criteria || '');
       const actions = document.createElement('div'); actions.style.display = 'flex'; actions.style.gap = '6px'; actions.style.marginTop = '6px';
-      const btnDone = document.createElement('button'); btnDone.className = 'btn'; btnDone.textContent = 'Mark Complete'; btnDone.addEventListener('click', async () => { await fetch(apiBase() + '/api/milestone/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: m.name }) }); await selectGoal(g.name); });
+      const btnDone = document.createElement('button'); btnDone.className = 'btn'; btnDone.textContent = 'Mark Complete'; btnDone.addEventListener('click', async () => { setStatus(`Completing milestone "${m.name}"...`); await fetch(apiBase() + '/api/milestone/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: m.name }) }); await selectGoal(g.name); setStatus(`Completed milestone "${m.name}".`); });
       const btnFocus = document.createElement('button'); btnFocus.className = 'btn'; btnFocus.textContent = 'Start Focus'; btnFocus.addEventListener('click', async () => {
         const link = (m.links || [])[0] || ({});
         if (!link.type || !link.name) { alert('No linked item to bind'); return; }
         await fetch(apiBase() + '/api/timer/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: 'classic_pomodoro', bind_type: link.type, bind_name: link.name }) });
+        setStatus(`Started focus for "${m.name}".`);
         alert('Timer started');
       });
       actions.append(btnDone, btnFocus);
@@ -144,6 +175,7 @@ export function mount(el) {
       empty.textContent = 'No milestones defined for this goal.';
       msEl.appendChild(empty);
     }
+    setStatus(`Loaded "${g.name}".`);
   }
 
   // apply removed: refresh covers sync

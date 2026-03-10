@@ -1,0 +1,18 @@
+type: widget
+name: cockpit_minimap
+label: Cockpit Minimap
+module: cockpit_minimap
+root: widget.cockpit_minimap
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: collapse_button
+    kind: button
+    actions: [click]
+  - name: track_container
+    kind: container
+    actions: [get, wait, copy]
+  - name: hint_text
+    kind: text
+    actions: [get, wait, copy]

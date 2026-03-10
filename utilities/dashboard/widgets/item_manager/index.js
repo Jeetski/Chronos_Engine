@@ -9,6 +9,7 @@ export function mount(el) {
   }
 
   el.className = 'widget item-manager-widget';
+  try { el.dataset.uiId = 'widget.item_manager'; } catch { }
 
   const tpl = `
     <style>
@@ -49,30 +50,30 @@ export function mount(el) {
       .tok-var { color:#9cdcfe; }
       .tok-prop { color:#4ec9b0; }
     </style>
-    <div class="header" id="imHeader">
-      <div class="title">Item Manager</div>
+    <div class="header" id="imHeader" data-ui-id="widget.item_manager.header">
+      <div class="title" data-ui-id="widget.item_manager.title">Item Manager</div>
       <div class="controls">
-        <button class="icon-btn" id="imMin" title="Minimize">_</button>
-        <button class="icon-btn" id="imClose" title="Close">x</button>
+        <button class="icon-btn" id="imMin" title="Minimize" data-ui-id="widget.item_manager.minimize_button">_</button>
+        <button class="icon-btn" id="imClose" title="Close" data-ui-id="widget.item_manager.close_button">x</button>
       </div>
     </div>
-    <div class="content im-content" id="imContent">
+    <div class="content im-content" id="imContent" data-ui-id="widget.item_manager.panel">
       <div class="row im-toolbar">
-        <select id="imType" class="input" style="max-width:180px; flex:0 0 auto;"></select>
-        <input id="imSearch" class="input" placeholder="Search name or content..." style="flex:1 1 260px; min-width:200px;" />
-        <button class="btn" id="imSearchBtn" style="flex:0 0 auto;">Search</button>
-        <button class="btn" id="imRefresh" style="flex:0 0 auto;">Refresh</button>
+        <select id="imType" class="input" style="max-width:180px; flex:0 0 auto;" data-ui-id="widget.item_manager.type_select"></select>
+        <input id="imSearch" class="input" placeholder="Search name or content..." style="flex:1 1 260px; min-width:200px;" data-ui-id="widget.item_manager.search_input" />
+        <button class="btn" id="imSearchBtn" style="flex:0 0 auto;" data-ui-id="widget.item_manager.search_button">Search</button>
+        <button class="btn" id="imRefresh" style="flex:0 0 auto;" data-ui-id="widget.item_manager.refresh_button">Refresh</button>
         <div class="spacer"></div>
         <button class="btn" id="imExport" style="flex:0 0 auto;">Export</button>
         <input id="imBulkProp" class="input" list="imPropKeys" placeholder="property:value (e.g. status:pending)" style="flex:1 1 260px; min-width:220px;" />
         <datalist id="imPropKeys"></datalist>
         <button class="btn" id="imBulkSet" style="flex:0 0 auto;">Set Property</button>
         <button class="btn btn-secondary" id="imBulkDelete" style="flex:0 0 auto;">Delete Selected</button>
-        <button class="btn btn-primary" id="imNew" style="flex:0 0 auto;">New</button>
+        <button class="btn btn-primary" id="imNew" style="flex:0 0 auto;" data-ui-id="widget.item_manager.new_button">New</button>
       </div>
       <div class="im-body" id="imSplit">
         <div id="imListPane" class="im-list-pane">
-          <div id="imCount" class="hint" style="margin-bottom:6px; color:var(--text-dim);"></div>
+          <div id="imCount" class="hint" style="margin-bottom:6px; color:var(--text-dim);" data-ui-id="widget.item_manager.count_text"></div>
           <div class="im-list-header">
             <label><input type="checkbox" id="imSelectAll" /></label>
             <span data-key="name">Name</span>
@@ -81,22 +82,23 @@ export function mount(el) {
             <span data-key="category">Category</span>
             <span data-key="updated">Updated</span>
           </div>
-          <div class="im-rows" id="imList"></div>
+          <div class="im-rows" id="imList" data-ui-id="widget.item_manager.list_container"></div>
         </div>
         <div id="imRightPane" class="im-right">
           <div class="row" style="gap:6px;">
-            <input id="imItemName" class="input" placeholder="Item name" />
+            <input id="imItemName" class="input" placeholder="Item name" data-ui-id="widget.item_manager.item_name_input" />
           </div>
-          <div class="im-yaml-editor" id="imYamlEditor">
+          <div class="im-yaml-editor" id="imYamlEditor" data-ui-id="widget.item_manager.editor_container">
             <pre id="imYamlHighlight" class="im-yaml-highlight" aria-hidden="true"></pre>
-            <textarea id="imYaml" class="textarea im-yaml-input" placeholder="YAML properties..." spellcheck="false"></textarea>
+            <textarea id="imYaml" class="textarea im-yaml-input" placeholder="YAML properties..." spellcheck="false" data-ui-id="widget.item_manager.yaml_input"></textarea>
           </div>
           <div class="row" style="gap:8px;">
-            <button class="btn" id="imSave">Save</button>
-            <button class="btn" id="imCopy">Copy</button>
-            <button class="btn" id="imRename">Rename</button>
-            <button class="btn btn-secondary" id="imDelete">Delete</button>
+            <button class="btn" id="imSave" data-ui-id="widget.item_manager.save_button">Save</button>
+            <button class="btn" id="imCopy" data-ui-id="widget.item_manager.copy_button">Copy</button>
+            <button class="btn" id="imRename" data-ui-id="widget.item_manager.rename_button">Rename</button>
+            <button class="btn btn-secondary" id="imDelete" data-ui-id="widget.item_manager.delete_button">Delete</button>
           </div>
+          <div class="hint" id="imStatus" data-ui-id="widget.item_manager.status_text">Ready.</div>
         </div>
       </div>
     </div>
@@ -131,10 +133,15 @@ export function mount(el) {
   const deleteBtn = el.querySelector('#imDelete');
   const yamlEditorEl = el.querySelector('#imYamlEditor');
   const yamlHighlightEl = el.querySelector('#imYamlHighlight');
+  const statusEl = el.querySelector('#imStatus');
+
+  function setStatus(txt) {
+    if (statusEl) statusEl.textContent = String(txt || 'Ready.');
+  }
 
   // Minimize/Close (match other widgets)
-  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); });
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'ItemManager'); } catch { } });
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : 'Ready.'); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; setStatus('Closed.'); try { window?.ChronosBus?.emit?.('widget:closed', 'ItemManager'); } catch { } });
 
   function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
   function escapeHtml(s) {
@@ -386,12 +393,15 @@ export function mount(el) {
   }
 
   async function refresh() {
+    setStatus('Loading items...');
     const items = await fetchItems();
     renderItems(items);
+    setStatus(`Loaded ${items.length} items.`);
   }
 
   async function loadItem(name) {
     nameEl.value = name;
+    setStatus(`Loading "${name}"...`);
     try {
       const resp = await fetch(apiBase() + `/api/item?type=${encodeURIComponent(typeSel.value || 'task')}&name=${encodeURIComponent(name)}`);
       const text = await resp.text();
@@ -402,12 +412,14 @@ export function mount(el) {
           yamlEl.value = (typeof raw === 'string') ? raw : toYaml(raw);
           renderYamlHighlight();
           syncYamlScroll();
+          setStatus(`Loaded "${name}".`);
           return;
         }
         if (json && json.text) {
           yamlEl.value = json.text;
           renderYamlHighlight();
           syncYamlScroll();
+          setStatus(`Loaded "${name}".`);
           return;
         }
       } catch { }
@@ -415,10 +427,12 @@ export function mount(el) {
       yamlEl.value = text || '';
       renderYamlHighlight();
       syncYamlScroll();
+      setStatus(`Loaded "${name}".`);
     } catch {
       yamlEl.value = '';
       renderYamlHighlight();
       syncYamlScroll();
+      setStatus('Load failed.');
     }
   }
 
@@ -426,6 +440,7 @@ export function mount(el) {
     console.log('[ItemManager] saveItem called');
     const name = nameEl.value.trim();
     if (!name) { alert('Name required'); return; }
+    setStatus(`Saving "${name}"...`);
     try {
       const type = typeSel.value || 'task';
       const payload = { type, name, content: yamlEl.value };
@@ -436,14 +451,17 @@ export function mount(el) {
       console.log('[ItemManager] Save result:', data);
       if (!resp.ok || data.ok === false) {
         alert(`Save failed: ${data.error || resp.status}`);
+        setStatus('Save failed.');
         return;
       }
       // Show success feedback
       alert(`✅ Saved "${name}" successfully!`);
+      setStatus(`Saved "${name}".`);
       refresh();
     } catch (err) {
       console.error('[ItemManager] Save error:', err);
       alert('Save failed: ' + (err?.message || 'Unknown error'));
+      setStatus('Save failed.');
     }
   }
 
@@ -452,14 +470,16 @@ export function mount(el) {
     if (!src) { alert('Load an item first.'); return; }
     const dest = prompt('Copy as:', `${src} copy`);
     if (!dest) return;
+    setStatus(`Copying "${src}"...`);
     try {
       await fetchJsonChecked(
         apiBase() + `/api/item/copy`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: typeSel.value || 'task', source: src, new_name: dest }) },
         'Copy failed'
       );
+      setStatus(`Copied to "${dest}".`);
       await refresh(); await loadItem(dest);
-    } catch (err) { alert('Copy failed: ' + (err?.message || 'Unknown error')); }
+    } catch (err) { alert('Copy failed: ' + (err?.message || 'Unknown error')); setStatus('Copy failed.'); }
   }
 
   function collectPropertyKeysForType(type) {
@@ -512,6 +532,7 @@ export function mount(el) {
     if (!src) { alert('Load an item first.'); return; }
     const dest = prompt('Rename to:', src);
     if (!dest || dest === src) return;
+    setStatus(`Renaming "${src}"...`);
     try {
       await fetchJsonChecked(
         apiBase() + `/api/item/rename`,
@@ -519,8 +540,9 @@ export function mount(el) {
         'Rename failed'
       );
       nameEl.value = dest;
+      setStatus(`Renamed to "${dest}".`);
       await refresh(); await loadItem(dest);
-    } catch (err) { alert('Rename failed: ' + (err?.message || 'Unknown error')); }
+    } catch (err) { alert('Rename failed: ' + (err?.message || 'Unknown error')); setStatus('Rename failed.'); }
   }
 
   async function deleteItem(name) {
@@ -582,6 +604,7 @@ export function mount(el) {
     nameEl.focus();
     renderYamlHighlight();
     syncYamlScroll();
+    setStatus(`Prepared new ${type}.`);
   }
 
   // Events

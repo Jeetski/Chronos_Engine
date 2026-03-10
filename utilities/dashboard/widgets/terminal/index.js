@@ -9,6 +9,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget terminal-widget';
+  try { el.dataset.uiId = 'widget.terminal'; } catch { }
 
   const css = `
     .term-content { flex: 1 1 auto; min-height: 0; }
@@ -65,25 +66,27 @@ export function mount(el, context) {
   `;
   el.innerHTML = `
     <style>${css}</style>
-    <div class="header" id="tHeader">
-      <div class="title">Terminal</div>
+    <div class="header" id="tHeader" data-ui-id="widget.terminal.header">
+      <div class="title" data-ui-id="widget.terminal.title">Terminal</div>
       <div class="controls">
-        <button class="icon-btn" id="tCopy" title="Copy Output">C</button>
-        <button class="icon-btn" id="tMin" title="Minimize">_</button>
-        <button class="icon-btn" id="tClose" title="Close">x</button>
+        <button class="icon-btn" id="tCopy" title="Copy Output" data-ui-id="widget.terminal.copy_button">C</button>
+        <button class="icon-btn" id="tMin" title="Minimize" data-ui-id="widget.terminal.minimize_button">_</button>
+        <button class="icon-btn" id="tClose" title="Close" data-ui-id="widget.terminal.close_button">x</button>
       </div>
     </div>
     <div class="content term-content">
-      <div class="term">
-        <div class="screen" id="tOut"></div>
-        <div class="prompt">
-          <span class="who" id="tWho">chronos@you</span>
+      <div class="term" data-ui-id="widget.terminal.panel">
+        <div class="screen" id="tOut" data-ui-id="widget.terminal.output_text"></div>
+        <div class="prompt" data-ui-id="widget.terminal.prompt_row">
+          <span class="who" id="tWho" data-ui-id="widget.terminal.identity_text">chronos@you</span>
           <div class="input-wrap">
-            <input id="tInput" class="in" placeholder="Type a command (e.g., help) and press Enter" />
-            <div class="term-ghost" id="tGhost"></div>
+            <input id="tInput" class="in" placeholder="Type a command (e.g., help) and press Enter" data-ui-id="widget.terminal.input_field" />
+            <div class="term-ghost" id="tGhost" data-ui-id="widget.terminal.ghost_text"></div>
           </div>
-          <label class="hint" style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="tExpand" checked />Expand args</label>
+          <button class="btn" id="tRun" type="button" data-ui-id="widget.terminal.run_button">Run</button>
+          <label class="hint" style="display:flex; align-items:center; gap:4px;" data-ui-id="widget.terminal.expand_row"><input type="checkbox" id="tExpand" checked data-ui-id="widget.terminal.expand_checkbox" />Expand args</label>
         </div>
+        <div class="hint" id="tStatus" data-ui-id="widget.terminal.status_text">Ready.</div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -146,7 +149,9 @@ export function mount(el, context) {
   const btnMin = el.querySelector('#tMin');
   const btnClose = el.querySelector('#tClose');
   const btnCopy = el.querySelector('#tCopy');
+  const btnRun = el.querySelector('#tRun');
   const expandChk = el.querySelector('#tExpand');
+  const statusEl = el.querySelector('#tStatus');
   let registry = { commands: {}, aliases: {}, item_types: [], item_names_by_type: {}, properties: {}, status_indicators: [], timer_profiles: [], defaults_keys_by_type: {} };
   let suggestions = [];
   let suggestIndex = -1;
@@ -175,6 +180,7 @@ export function mount(el, context) {
   }
 
   function println(txt) { outEl.textContent += (txt ? String(txt) : '') + '\n'; outEl.scrollTop = outEl.scrollHeight; }
+  function setStatus(txt) { if (statusEl) statusEl.textContent = String(txt || 'Ready.'); }
 
   async function applyConsoleTheme() {
     try {
@@ -531,12 +537,14 @@ export function mount(el, context) {
   });
 
   async function runCli(line) {
-    if (!line.trim()) return;
+    if (!line.trim()) { setStatus('Ready.'); return; }
     println(`${whoEl.textContent}> ${line}`);
+    setStatus('Running...');
     const parts = splitArgs(line.trim());
     const cmd = parts.shift() || '';
     if (cmd.toLowerCase() === 'cls' || cmd.toLowerCase() === 'clear') {
       outEl.textContent = '';
+      setStatus('Cleared.');
       return;
     }
     // vars helper: set/unset
@@ -545,16 +553,17 @@ export function mount(el, context) {
         const r = await fetch(apiBase() + "/api/vars");
         const j = await r.json();
         println(JSON.stringify(j?.vars || {}, null, 2));
-      } catch (e) { println(String(e)); }
+        setStatus('Variables loaded.');
+      } catch (e) { println(String(e)); setStatus('Command failed.'); }
       return;
     }
     if (cmd.toLowerCase() === 'set') {
       const kv = {}; for (const token of parts) { const [k, ...rest] = token.split(':'); if (!k) continue; kv[k] = rest.join(':'); }
-      try { const r = await postYaml(apiBase() + "/api/vars", { set: kv }); const j = await r.json(); println('vars set'); try { context?.bus?.emit('vars:changed'); } catch { } } catch (e) { println(String(e)); }
+      try { const r = await postYaml(apiBase() + "/api/vars", { set: kv }); const j = await r.json(); println('vars set'); setStatus('Variables updated.'); try { context?.bus?.emit('vars:changed'); } catch { } } catch (e) { println(String(e)); setStatus('Command failed.'); }
       return;
     }
     if (cmd.toLowerCase() === 'unset') {
-      try { const r = await postYaml(apiBase() + "/api/vars", { unset: parts }); const j = await r.json(); println('vars unset'); try { context?.bus?.emit('vars:changed'); } catch { } } catch (e) { println(String(e)); }
+      try { const r = await postYaml(apiBase() + "/api/vars", { unset: parts }); const j = await r.json(); println('vars unset'); setStatus('Variables updated.'); try { context?.bus?.emit('vars:changed'); } catch { } } catch (e) { println(String(e)); setStatus('Command failed.'); }
       return;
     }
     if (cmd.toLowerCase() === 'exit') {
@@ -572,6 +581,7 @@ export function mount(el, context) {
         try { await (window.ChronosVars && window.ChronosVars.refresh && window.ChronosVars.refresh(true)); } catch { }
         for (const ln of lines) { const out = (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(ln)) : String(ln); println(out.replace('@nickname', whoEl.textContent.split('@')[1] || 'user')); }
       } catch { println('Goodbye.'); }
+      setStatus('Closed.');
       el.style.display = 'none'; return;
     }
     // Expand arguments if toggle is on (except for vars/set/unset/exit)
@@ -625,12 +635,15 @@ export function mount(el, context) {
         if (out) println(out);
         if (err) println(err);
         if (!out && !err && payload.ok === false) println('Command failed.');
+        setStatus(payload.ok === false ? 'Command failed.' : 'Command completed.');
       } else {
         const text = await r.text();
         if (text) println(text);
+        setStatus('Command completed.');
       }
     } catch (e) {
       println(String(e));
+      setStatus('Command failed.');
     }
   }
 
@@ -677,6 +690,14 @@ export function mount(el, context) {
     setTimeout(() => { suggestEl.style.display = 'none'; ghostEl.textContent = ''; }, 150);
   });
 
+  btnRun?.addEventListener('click', async () => {
+    const line = inEl.value;
+    inEl.value = '';
+    hist.push(line);
+    hi = hist.length;
+    await runCli(line);
+  });
+
   async function loadRegistry() {
     try {
       const [cmdRes, itemRes, propRes] = await Promise.all([
@@ -707,19 +728,22 @@ export function mount(el, context) {
 
   btnClose.addEventListener('click', () => {
     println('Goodbye.');
+    setStatus('Closed.');
     el.style.display = 'none';
     suggestEl.style.display = 'none';
     try { context?.bus?.emit('widget:closed', 'Terminal'); } catch { }
   });
-  btnMin.addEventListener('click', () => { const c = el.querySelector('.content'); if (!c) return; c.style.display = (c.style.display === 'none' ? '' : 'none'); });
+  btnMin.addEventListener('click', () => { const c = el.querySelector('.content'); if (!c) return; c.style.display = (c.style.display === 'none' ? '' : 'none'); setStatus(c.style.display === 'none' ? 'Minimized.' : 'Ready.'); });
   btnCopy.addEventListener('click', () => {
     const text = outEl.innerText;
     navigator.clipboard.writeText(text).then(() => {
       const original = btnCopy.textContent;
       btnCopy.textContent = '✓';
+      setStatus('Output copied.');
       setTimeout(() => btnCopy.textContent = original, 1000);
     }).catch(err => {
       println('Copy failed: ' + err);
+      setStatus('Copy failed.');
     });
   });
 

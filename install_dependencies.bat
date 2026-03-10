@@ -59,6 +59,7 @@ echo Dependencies installed successfully.
 echo.
 call :offer_listener_startup
 call :offer_tray_startup
+call :offer_topos_startup
 goto :end_ok
 
 :find_python
@@ -167,4 +168,47 @@ goto :end_ok
   echo Skipping tray Startup shortcut. You can enable it later by rerunning this script.
 
 :tray_startup_done
+  exit /b 0
+
+:: ----------------------------------------------
+:: Helper: Offer Topos auto-start on login
+:: ----------------------------------------------
+:offer_topos_startup
+  echo.
+  echo Topos is the fullscreen Chronos shell with the bounded workspace interface.
+  echo You can have it start automatically when you sign in to Windows.
+  echo.
+  choice /C YN /N /M "Add 'Chronos Topos' to your Startup folder so it runs on sign-in? [Y/N]: "
+  if errorlevel 2 goto topos_startup_no
+  if errorlevel 1 goto topos_startup_yes
+  goto topos_startup_done
+
+:topos_startup_yes
+  if not exist "%ROOT_DIR%topos_launcher.bat" (
+    echo Warning: topos_launcher.bat not found. Skipping Topos shortcut creation.
+    goto topos_startup_done
+  )
+  echo Creating Startup shortcut for Chronos Topos...
+  powershell -NoProfile -Command ^
+    "$shell = New-Object -ComObject WScript.Shell; " ^
+    "$startup = [Environment]::GetFolderPath('Startup'); " ^
+    "$target = Join-Path -Path '%ROOT_DIR%' -ChildPath 'topos_launcher.bat'; " ^
+    "$shortcutPath = Join-Path -Path $startup -ChildPath 'Chronos Topos.lnk'; " ^
+    "$shortcut = $shell.CreateShortcut($shortcutPath); " ^
+    "$shortcut.TargetPath = $target; " ^
+    "$shortcut.WorkingDirectory = '%ROOT_DIR%'; " ^
+    "$shortcut.WindowStyle = 7; " ^
+    "$shortcut.Save()"
+  if %ERRORLEVEL% EQU 0 (
+    echo Added 'Chronos Topos' shortcut to your Startup folder.
+  ) else (
+    echo Warning: Failed to create Startup shortcut automatically.
+    echo You can still run Topos via topos_launcher.bat.
+  )
+  goto topos_startup_done
+
+:topos_startup_no
+  echo Skipping Topos Startup shortcut. You can enable it later by rerunning this script.
+
+:topos_startup_done
   exit /b 0

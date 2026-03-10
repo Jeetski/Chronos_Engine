@@ -1,0 +1,64 @@
+type: widget
+name: profile
+label: Profile
+module: profile
+root: widget.profile
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: nickname_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: title_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: available_titles_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: welcome_line1_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: welcome_line2_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: welcome_line3_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: exit_line1_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: exit_line2_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: avatar_preview
+    kind: text
+    actions: [get, copy]
+  - name: save_button
+    kind: button
+    actions: [click]
+  - name: edit_preferences_button
+    kind: button
+    actions: [click]
+  - name: edit_preferences_settings_button
+    kind: button
+    actions: [click]
+  - name: edit_pilot_brief_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

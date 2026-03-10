@@ -1,0 +1,61 @@
+type: widget
+name: notes
+label: Notes
+module: notes
+root: widget.notes
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: title_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: format_select
+    kind: select
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: preview_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: category_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: priority_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: tags_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: path_hint_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: content_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: preview_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: load_button
+    kind: button
+    actions: [click]
+  - name: to_sticky_button
+    kind: button
+    actions: [click]
+  - name: create_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

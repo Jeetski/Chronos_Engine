@@ -1,0 +1,54 @@
+type: widget
+name: link
+label: Link
+module: link
+root: widget.link
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: peer_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: token_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: board_select
+    kind: select
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: boards_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: connect_button
+    kind: button
+    actions: [click]
+  - name: sync_button
+    kind: button
+    actions: [click]
+  - name: invite_button
+    kind: button
+    actions: [click]
+  - name: disconnect_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: peer_status_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: last_sync_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: invite_text
+    kind: text
+    actions: [get, wait, copy]

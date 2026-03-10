@@ -19,3 +19,6 @@ prompt_toolkit>=3.0.43
 pystray>=0.19.5
 Pillow>=10.3.0
 
+# Embedded webview windows for Topos
+pywebview
+

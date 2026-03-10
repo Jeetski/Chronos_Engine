@@ -1,0 +1,50 @@
+type: widget
+name: admin
+label: System Admin
+module: admin
+root: widget.admin
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: db_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: dbs_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: registry_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: clear_logs_button
+    kind: button
+    actions: [click]
+  - name: clear_schedules_button
+    kind: button
+    actions: [click]
+  - name: clear_cache_button
+    kind: button
+    actions: [click]
+  - name: clear_temp_button
+    kind: button
+    actions: [click]
+  - name: clear_db_button
+    kind: button
+    actions: [click]
+  - name: clear_registry_button
+    kind: button
+    actions: [click]
+  - name: clear_archives_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

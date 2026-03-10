@@ -1,0 +1,24 @@
+type: widget
+name: status
+label: Status Station
+module: status
+root: widget.status
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: fields_container
+    kind: container
+    actions: [get, set, type, paste, copy, wait]
+  - name: update_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

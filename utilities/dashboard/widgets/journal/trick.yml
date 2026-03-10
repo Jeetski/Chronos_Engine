@@ -1,0 +1,58 @@
+type: widget
+name: journal
+label: Journal
+module: journal
+root: widget.journal
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: type_filter_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: search_input
+    kind: input
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: new_button
+    kind: button
+    actions: [click]
+  - name: save_button
+    kind: button
+    actions: [click]
+  - name: sticky_button
+    kind: button
+    actions: [click]
+  - name: entry_type_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: date_input
+    kind: input
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: title_input
+    kind: input
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: tags_input
+    kind: input
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: content_input
+    kind: input
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: list_container
+    kind: container
+    actions: [get, wait, copy]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

@@ -10,13 +10,14 @@ export function mount(el, context) {
     }
 
     el.className = 'widget admin-widget';
+    el.dataset.uiId = 'widget.admin';
 
     el.innerHTML = `
-    <div class="header" id="adminHeader">
-        <div class="title">System Admin</div>
+    <div class="header" id="adminHeader" data-ui-id="widget.admin.header">
+        <div class="title" data-ui-id="widget.admin.title">System Admin</div>
         <div class="controls">
-            <button class="icon-btn" title="Minimize" id="btnMin">_</button>
-            <button class="icon-btn" title="Close" id="btnClose">x</button>
+            <button class="icon-btn" title="Minimize" id="btnMin" data-ui-id="widget.admin.minimize_button">_</button>
+            <button class="icon-btn" title="Close" id="btnClose" data-ui-id="widget.admin.close_button">x</button>
         </div>
     </div>
     
@@ -56,10 +57,10 @@ export function mount(el, context) {
                 <div class="admin-section">
                     <label class="admin-label">Specific Database</label>
                     <div class="row" style="gap:8px;">
-                        <select id="db-select" class="input" style="flex:1;">
+                        <select id="db-select" class="input" style="flex:1;" data-ui-id="widget.admin.db_select">
                             <option value="">Loading databases...</option>
                         </select>
-                        <button class="btn btn-danger" id="btn-clear-db">Delete DB</button>
+                        <button class="btn btn-danger" id="btn-clear-db" data-ui-id="widget.admin.clear_db_button">Delete DB</button>
                     </div>
                     <span class="hint" style="font-size:10px;">Deletes a single database mirror. System will rebuild on next access.</span>
                 </div>
@@ -67,26 +68,26 @@ export function mount(el, context) {
                 <div class="admin-section">
                     <label class="admin-label">Registry Cache</label>
                     <div class="row" style="gap:8px;">
-                        <select id="registry-select" class="input" style="flex:1;">
+                        <select id="registry-select" class="input" style="flex:1;" data-ui-id="widget.admin.registry_select">
                             <option value="wizards">Wizards</option>
                             <option value="themes">Themes</option>
                             <option value="commands">Commands</option>
                             <option value="item_types">Item Types</option>
                         </select>
-                        <button class="btn btn-danger" id="btn-clear-registry">Clear Cache</button>
+                        <button class="btn btn-danger" id="btn-clear-registry" data-ui-id="widget.admin.clear_registry_button">Clear Cache</button>
                     </div>
                     <span class="hint" style="font-size:10px;">Forces reload of registry from source files.</span>
                 </div>
                 
                 <div class="admin-section">
                     <label class="admin-label">Archives</label>
-                    <button class="btn btn-danger" id="btn-clear-archives" style="width:100%;">Delete All Archives</button>
+                    <button class="btn btn-danger" id="btn-clear-archives" style="width:100%;" data-ui-id="widget.admin.clear_archives_button">Delete All Archives</button>
                     <span class="hint" style="font-size:10px;">Removes all archived items and schedules.</span>
                 </div>
             </div>
         </details>
         
-        <div id="admin-status" class="admin-status-box">Ready.</div>
+        <div id="admin-status" class="admin-status-box" data-ui-id="widget.admin.status_text">Ready.</div>
     </div>
 
     <div class="resizer e"></div>

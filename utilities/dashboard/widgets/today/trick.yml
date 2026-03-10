@@ -1,0 +1,181 @@
+type: widget
+name: today
+label: Scheduler
+module: today
+root: widget.today
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: refresh_button
+    kind: button
+    actions: [click]
+  - name: reschedule_button
+    kind: button
+    actions: [click]
+  - name: scheduling_controls
+    kind: container
+    actions: [get, wait]
+  - name: priority_weights_section
+    kind: container
+    actions: [get, wait]
+  - name: advanced_weights_section
+    kind: container
+    actions: [get, wait]
+  - name: enforcers_section
+    kind: container
+    actions: [get, wait]
+  - name: quick_toggles_section
+    kind: container
+    actions: [get, wait]
+  - name: environment_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: category_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: happiness_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: due_date_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: deadline_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: status_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: priority_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: template_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: custom_property_key_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: custom_property_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: balance_slider
+    kind: slider
+    actions: [get, set]
+    value_type: number
+  - name: enforcer_environment_scope_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: enforcer_environment_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: enforcer_template_day_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: enforcer_template_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: schedule_state_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: buffers_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: timer_breaks_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: sprints_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: ignore_trends_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: repair_trim_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: repair_cut_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: timer_profile_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: template_override_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: quickwins_input
+    kind: input
+    actions: [get, set]
+    value_type: number
+  - name: repair_min_duration_input
+    kind: input
+    actions: [get, set]
+    value_type: number
+  - name: repair_cut_threshold_input
+    kind: input
+    actions: [get, set]
+    value_type: number
+  - name: status_threshold_input
+    kind: input
+    actions: [get, set]
+    value_type: number
+  - name: preset_safe_button
+    kind: button
+    actions: [click]
+  - name: preset_balanced_button
+    kind: button
+    actions: [click]
+  - name: preset_aggressive_button
+    kind: button
+    actions: [click]
+  - name: preset_hint_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: window_filter_rows
+    kind: container
+    actions: [get, wait]
+  - name: add_window_filter_row_button
+    kind: button
+    actions: [click]
+  - name: calendar_context
+    kind: container
+    actions: [get, wait]
+  - name: calendar_day_label
+    kind: text
+    actions: [get, wait, copy]
+  - name: calendar_day_note
+    kind: text
+    actions: [get, wait, copy]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: selection_hint
+    kind: text
+    actions: [get, wait, copy]

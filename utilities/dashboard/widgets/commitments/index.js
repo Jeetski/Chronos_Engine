@@ -9,6 +9,7 @@ export function mount(el) {
   }
 
   el.className = 'widget commitments-widget';
+  try { el.dataset.uiId = 'widget.commitments'; } catch { }
 
   const tpl = `
     <style>
@@ -44,47 +45,53 @@ export function mount(el) {
       .cm-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
       .cm-item.expanded .cm-detail { display:flex; }
     </style>
-    <div class="header">
-      <div class="title">Commitments</div>
+    <div class="header" data-ui-id="widget.commitments.header">
+      <div class="title" data-ui-id="widget.commitments.title">Commitments</div>
       <div class="controls" style="align-items:center; gap:6px;">
-        <button class="btn" id="cmEvaluate" style="padding:4px 10px;">Evaluate</button>
-        <button class="icon-btn" id="cmMin">_</button>
-        <button class="icon-btn" id="cmClose">x</button>
+        <button class="btn" id="cmEvaluate" style="padding:4px 10px;" data-ui-id="widget.commitments.evaluate_button">Evaluate</button>
+        <button class="icon-btn" id="cmMin" data-ui-id="widget.commitments.minimize_button">_</button>
+        <button class="icon-btn" id="cmClose" data-ui-id="widget.commitments.close_button">x</button>
       </div>
     </div>
-    <div class="content cm-content">
+    <div class="content cm-content" data-ui-id="widget.commitments.panel">
       <div class="cm-cards">
         <div class="cm-card">
           <h4>Total</h4>
-          <div class="cm-card-value" id="cmTotal">--</div>
+          <div class="cm-card-value" id="cmTotal" data-ui-id="widget.commitments.total_text">--</div>
           <div class="cm-card-meta">All defined commitments.</div>
         </div>
         <div class="cm-card">
           <h4>On Track</h4>
-          <div class="cm-card-value" id="cmMet">--</div>
+          <div class="cm-card-value" id="cmMet" data-ui-id="widget.commitments.met_text">--</div>
           <div class="cm-card-meta">Met this period.</div>
         </div>
         <div class="cm-card">
           <h4>Violations</h4>
-          <div class="cm-card-value" id="cmViolations">--</div>
+          <div class="cm-card-value" id="cmViolations" data-ui-id="widget.commitments.violations_text">--</div>
           <div class="cm-card-meta">Forbidden rules triggered today.</div>
         </div>
       </div>
-      <button class="btn cm-list-toggle" id="cmListToggle" aria-expanded="false">Show List Section ▾</button>
-      <div id="cmListSection" class="cm-list-section" hidden>
+      <button class="btn cm-list-toggle" id="cmListToggle" aria-expanded="false" data-ui-id="widget.commitments.list_toggle_button">Show List Section ▾</button>
+      <div id="cmListSection" class="cm-list-section" hidden data-ui-id="widget.commitments.list_section">
         <div class="row" style="gap:8px; flex-wrap:wrap;">
-          <input id="cmSearch" class="input" placeholder="Search commitments..." style="flex:1 1 220px; min-width:160px;" />
-          <select id="cmStatusFilter" class="input" style="flex:0 0 180px;">
+          <input id="cmSearch" class="input" placeholder="Search commitments..." style="flex:1 1 220px; min-width:160px;" data-ui-id="widget.commitments.search_input" />
+          <select id="cmStatusFilter" class="input" style="flex:0 0 180px;" data-ui-id="widget.commitments.status_filter_select">
             <option value="all">All states</option>
             <option value="pending">Pending</option>
             <option value="met">Met</option>
             <option value="violation">Violations</option>
           </select>
           <div class="spacer"></div>
-          <button class="btn" id="cmRefresh">Refresh</button>
+          <button class="btn" id="cmRefresh" data-ui-id="widget.commitments.refresh_button">Refresh</button>
         </div>
-        <div id="cmStatus" class="cm-status"></div>
-        <div id="cmList" class="cm-list"></div>
+        <div class="row" style="gap:8px; align-items:center;">
+          <button class="btn btn-secondary" id="cmPrimaryMet" data-ui-id="widget.commitments.met_primary_button">Mark Primary Met</button>
+          <button class="btn btn-secondary" id="cmPrimaryViolation" data-ui-id="widget.commitments.violation_primary_button">Mark Primary Violated</button>
+          <button class="btn btn-secondary" id="cmPrimaryClear" data-ui-id="widget.commitments.clear_primary_button">Clear Primary</button>
+          <div class="spacer"></div>
+        </div>
+        <div id="cmStatus" class="cm-status" data-ui-id="widget.commitments.status_text"></div>
+        <div id="cmList" class="cm-list" data-ui-id="widget.commitments.list_container"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -106,9 +113,12 @@ export function mount(el) {
   const totalEl = el.querySelector('#cmTotal');
   const metEl = el.querySelector('#cmMet');
   const violationEl = el.querySelector('#cmViolations');
+  const primaryMetBtn = el.querySelector('#cmPrimaryMet');
+  const primaryViolationBtn = el.querySelector('#cmPrimaryViolation');
+  const primaryClearBtn = el.querySelector('#cmPrimaryClear');
 
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Commitments'); } catch { } });
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : ''); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { setStatus('Closed.'); window?.ChronosBus?.emit?.('widget:closed', 'Commitments'); } catch { } });
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -329,6 +339,25 @@ export function mount(el) {
     });
   }
 
+  function getPrimaryVisibleCommitment() {
+    const term = (searchEl.value || '').trim().toLowerCase();
+    const wanted = (statusSel.value || 'all').toLowerCase();
+    const filtered = commitments.filter(item => {
+      if (wanted !== 'all' && (item.status || '').toLowerCase() !== wanted) return false;
+      if (!term) return true;
+      const hay = `${item.name || ''} ${item.description || ''} ${item.period || ''} ${(item.targets || []).map(a => a.name || '').join(' ')}`.toLowerCase();
+      return hay.includes(term);
+    });
+    filtered.sort((a, b) => {
+      const rank = { 'violation': 0, 'pending': 1, 'met': 2 };
+      const ar = rank[(a.status || 'pending').toLowerCase()] ?? 1;
+      const br = rank[(b.status || 'pending').toLowerCase()] ?? 1;
+      if (ar !== br) return ar - br;
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    });
+    return filtered[0] || null;
+  }
+
   async function setDailyOverride(name, state) {
     setStatus('Saving daily check-in...');
     try {
@@ -375,6 +404,21 @@ export function mount(el) {
   refreshBtn.addEventListener('click', () => refresh());
   listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
   evaluateBtn.addEventListener('click', () => runEvaluation());
+  primaryMetBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleCommitment();
+    if (!item) return;
+    setDailyOverride(item.name, 'met');
+  });
+  primaryViolationBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleCommitment();
+    if (!item) return;
+    setDailyOverride(item.name, 'violation');
+  });
+  primaryClearBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleCommitment();
+    if (!item) return;
+    setDailyOverride(item.name, 'clear');
+  });
 
   setListOpen(false);
   refresh();

@@ -1,0 +1,37 @@
+type: widget
+name: clock
+label: Chronos Clock
+module: clock
+root: widget.clock
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: mode_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: time_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: date_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: appointment_button
+    kind: button
+    actions: [click]
+  - name: alarm_button
+    kind: button
+    actions: [click]
+  - name: reminder_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

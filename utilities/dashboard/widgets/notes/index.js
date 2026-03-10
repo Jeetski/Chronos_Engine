@@ -9,6 +9,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget notes-widget';
+  try { el.dataset.uiId = 'widget.notes'; } catch { }
 
   const tpl = `
     <style>
@@ -49,53 +50,53 @@ export function mount(el, context) {
       .notes-footer { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
       .notes-actions { margin-left:auto; display:flex; gap:8px; }
     </style>
-    <div class="header" id="notesHeader">
-      <div class="title">Notes</div>
+    <div class="header" id="notesHeader" data-ui-id="widget.notes.header">
+      <div class="title" data-ui-id="widget.notes.title">Notes</div>
       <div class="controls">
-        <button class="icon-btn" id="notesMin" title="Minimize">_</button>
-        <button class="icon-btn" id="notesClose" title="Close">x</button>
+        <button class="icon-btn" id="notesMin" title="Minimize" data-ui-id="widget.notes.minimize_button">_</button>
+        <button class="icon-btn" id="notesClose" title="Close" data-ui-id="widget.notes.close_button">x</button>
       </div>
     </div>
-    <div class="content">
+    <div class="content" data-ui-id="widget.notes.panel">
       <div class="notes-shell">
         <div class="notes-card notes-details">
           <div class="notes-card-title">Details</div>
           <div class="notes-grid">
             <div class="notes-row notes-row-wide">
               <label class="notes-label">Title</label>
-              <input id="noteTitle" class="input" placeholder="Note title" style="flex:2; min-width:220px;" />
+              <input id="noteTitle" class="input" placeholder="Note title" style="flex:2; min-width:220px;" data-ui-id="widget.notes.title_input" />
               <label class="notes-label">Format</label>
-              <select id="noteFormat" class="input" style="width:160px;">
+              <select id="noteFormat" class="input" style="width:160px;" data-ui-id="widget.notes.format_select">
                 <option value="note">Note (.yml via CLI)</option>
                 <option value="markdown">Markdown (.md)</option>
                 <option value="yaml">Raw YAML (.yml)</option>
               </select>
-              <label class="notes-toggle"><input type="checkbox" id="notesPreviewToggle" /> Preview</label>
+              <label class="notes-toggle"><input type="checkbox" id="notesPreviewToggle" data-ui-id="widget.notes.preview_checkbox" /> Preview</label>
             </div>
             <div class="notes-row">
               <label class="notes-label">Category</label>
-              <select id="noteCategory" class="input" style="min-width:140px; flex:1;"></select>
+              <select id="noteCategory" class="input" style="min-width:140px; flex:1;" data-ui-id="widget.notes.category_select"></select>
               <label class="notes-label">Priority</label>
-              <select id="notePriority" class="input" style="min-width:120px; flex:1;"></select>
+              <select id="notePriority" class="input" style="min-width:120px; flex:1;" data-ui-id="widget.notes.priority_select"></select>
               <label class="notes-label">Tags</label>
-              <input id="noteTags" class="input" placeholder="tag1, tag2" style="flex:2; min-width:180px;" />
+              <input id="noteTags" class="input" placeholder="tag1, tag2" style="flex:2; min-width:180px;" data-ui-id="widget.notes.tags_input" />
             </div>
             <div class="notes-row">
-              <div id="notePathHint" class="hint" style="flex:1;"></div>
+              <div id="notePathHint" class="hint" style="flex:1;" data-ui-id="widget.notes.path_hint_text"></div>
             </div>
           </div>
         </div>
         <div class="notes-card notes-editor">
           <div class="notes-card-title">Content</div>
-          <textarea class="textarea" id="noteContent" placeholder="Write note content..."></textarea>
-          <div id="notePreview" class="textarea notes-preview" data-expand="text"></div>
+          <textarea class="textarea" id="noteContent" placeholder="Write note content..." data-ui-id="widget.notes.content_input"></textarea>
+          <div id="notePreview" class="textarea notes-preview" data-expand="text" data-ui-id="widget.notes.preview_text"></div>
         </div>
         <div class="notes-card notes-footer">
-          <span class="hint">Create saves to user/notes (or provided path). Load can open YAML/Markdown files.</span>
+          <span class="hint" data-ui-id="widget.notes.tip_text">Create saves to user/notes (or provided path). Load can open YAML/Markdown files.</span>
           <div class="notes-actions">
-            <button class="btn btn-secondary" id="notesLoad">Load</button>
-            <button class="btn" id="notesToSticky">To Sticky</button>
-            <button class="btn btn-primary" id="notesCreate">Create</button>
+            <button class="btn btn-secondary" id="notesLoad" data-ui-id="widget.notes.load_button">Load</button>
+            <button class="btn" id="notesToSticky" data-ui-id="widget.notes.to_sticky_button">To Sticky</button>
+            <button class="btn btn-primary" id="notesCreate" data-ui-id="widget.notes.create_button">Create</button>
           </div>
           <input type="file" id="notesFile" accept=".yml,.yaml,.md,.markdown" style="display:none;" />
         </div>
@@ -123,13 +124,23 @@ export function mount(el, context) {
   const stickyBtn = el.querySelector('#notesToSticky');
   const createBtn = el.querySelector('#notesCreate');
   const fileInput = el.querySelector('#notesFile');
+  let statusEl = el.querySelector('#notesStatus');
   let currentPath = null;
+
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.id = 'notesStatus';
+    statusEl.className = 'hint';
+    statusEl.setAttribute('data-ui-id', 'widget.notes.status_text');
+    createBtn?.closest('.notes-footer')?.appendChild(statusEl);
+  }
 
   try { if (!el.style.width) el.style.width = '680px'; } catch { }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   function sanitizeNameForPath(name) { return String(name || '').toLowerCase().replace(/&/g, 'and').replace(/:/g, '-').trim(); }
   function setPathHint(path) { if (pathHint) pathHint.textContent = path ? `Path: ${path}` : ''; }
+  function setStatus(msg) { if (statusEl) statusEl.textContent = msg || ''; }
 
   // Minimal YAML parse (flat keys + tags list + content scalar)
   function parseYaml(yaml) {
@@ -189,8 +200,8 @@ export function mount(el, context) {
     function onUp() { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); }
     window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp);
   });
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => el.style.display = 'none');
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : ''); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; setStatus('Closed.'); });
 
   // Create note via API
   createBtn.addEventListener('click', async () => {
@@ -240,7 +251,7 @@ export function mount(el, context) {
         const text = await resp.text();
         let ok = resp.ok, msg = text;
         try { const d = parseYaml(text) || {}; ok = !!d.ok; msg = d.stdout || d.error || text; } catch { }
-        alert((ok ? 'Created note: ' : 'Failed: ') + msg);
+        setStatus((ok ? 'Created note.' : 'Create failed.'));
         currentPath = null; setPathHint('');
       } else {
         const ext = fmt === 'markdown' ? '.md' : '.yml';
@@ -253,11 +264,11 @@ export function mount(el, context) {
         const resp = await fetch(apiBase() + '/api/file/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const ok = resp.ok;
         const msg = await resp.text();
-        alert((ok ? 'Saved: ' : 'Failed: ') + msg);
+        setStatus(ok ? 'Saved.' : 'Save failed.');
         if (ok) { currentPath = target; setPathHint(target); }
       }
     } catch (e) {
-      alert('Failed to reach Chronos dashboard server. Run: dashboard');
+      setStatus('Server unavailable.');
     }
   });
 
@@ -303,9 +314,9 @@ export function mount(el, context) {
       }
       refreshStickyNotes();
       showStickyNotesWidget();
-      alert('Sent to Sticky Notes.');
+      setStatus('Sent to Sticky Notes.');
     } catch (err) {
-      alert(`Failed to send to Sticky Notes: ${err?.message || err}`);
+      setStatus('Sticky export failed.');
     }
   }
 

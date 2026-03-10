@@ -9,17 +9,18 @@ export function mount(el) {
     }
 
     el.className = 'widget trends-widget';
+    el.dataset.uiId = 'widget.trends';
     el.innerHTML = `
-        <div class="header">
-            <span class="title">Performance</span>
+        <div class="header" data-ui-id="widget.trends.header">
+            <span class="title" data-ui-id="widget.trends.title">Performance</span>
             <div class="controls">
-                <button class="icon-btn" title="Refresh" id="trendsRefresh">↻</button>
-                <button class="icon-btn" title="Minimize">−</button>
-                <button class="icon-btn" title="Close">×</button>
+                <button class="icon-btn" title="Refresh" id="trendsRefresh" data-ui-id="widget.trends.refresh_button">↻</button>
+                <button class="icon-btn" title="Minimize" data-ui-id="widget.trends.minimize_button">−</button>
+                <button class="icon-btn" title="Close" data-ui-id="widget.trends.close_button">×</button>
             </div>
         </div>
         <div class="content">
-            <div class="trends-grid" id="trendsGrid">
+            <div class="trends-grid" id="trendsGrid" data-ui-id="widget.trends.metrics_container">
                 <div class="metric-card loading">Loading...</div>
             </div>
         </div>

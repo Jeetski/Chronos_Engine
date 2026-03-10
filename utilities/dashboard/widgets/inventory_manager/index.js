@@ -9,6 +9,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget inventory-manager-widget';
+  try { el.dataset.uiId = 'widget.inventory_manager'; } catch { }
   const tpl = `
     <style>
       .inv-body { display:flex; flex-direction:column; gap:10px; height:100%; min-height:0; }
@@ -40,39 +41,39 @@ export function mount(el, context) {
       .inv-status { font-size:12px; color:var(--text-dim); min-height:18px; }
       .inv-empty { color:var(--text-dim); font-style:italic; }
     </style>
-    <div class="header">
-      <div class="title">Inventory Manager</div>
+    <div class="header" data-ui-id="widget.inventory_manager.header">
+      <div class="title" data-ui-id="widget.inventory_manager.title">Inventory Manager</div>
       <div class="controls">
-        <button class="icon-btn" data-action="minimize" title="Minimize">_</button>
-        <button class="icon-btn" data-action="close" title="Close">x</button>
+        <button class="icon-btn" data-action="minimize" title="Minimize" data-ui-id="widget.inventory_manager.minimize_button">_</button>
+        <button class="icon-btn" data-action="close" title="Close" data-ui-id="widget.inventory_manager.close_button">x</button>
       </div>
     </div>
-    <div class="content inv-body">
+    <div class="content inv-body" data-ui-id="widget.inventory_manager.panel">
       <div class="inv-toolbar">
-        <input id="invSearch" class="input" placeholder="Search inventories..." />
-        <select id="invPlaceFilter" class="input">
+        <input id="invSearch" class="input" placeholder="Search inventories..." data-ui-id="widget.inventory_manager.search_input" />
+        <select id="invPlaceFilter" class="input" data-ui-id="widget.inventory_manager.place_filter_select">
           <option value="">All places</option>
         </select>
-        <button class="btn" id="invSearchBtn">Search</button>
-        <button class="btn" id="invRefresh">Refresh</button>
+        <button class="btn" id="invSearchBtn" data-ui-id="widget.inventory_manager.search_button">Search</button>
+        <button class="btn" id="invRefresh" data-ui-id="widget.inventory_manager.refresh_button">Refresh</button>
         <span class="spacer"></span>
       </div>
       <div class="inv-new">
-        <input id="invNewName" class="input" placeholder="New inventory name" />
-        <input id="invNewPlaces" class="input" placeholder="Places (comma separated)" />
-        <input id="invNewTags" class="input" placeholder="Tags (comma separated)" />
-        <button class="btn btn-primary" id="invCreateBtn">Create</button>
+        <input id="invNewName" class="input" placeholder="New inventory name" data-ui-id="widget.inventory_manager.new_name_input" />
+        <input id="invNewPlaces" class="input" placeholder="Places (comma separated)" data-ui-id="widget.inventory_manager.new_places_input" />
+        <input id="invNewTags" class="input" placeholder="Tags (comma separated)" data-ui-id="widget.inventory_manager.new_tags_input" />
+        <button class="btn btn-primary" id="invCreateBtn" data-ui-id="widget.inventory_manager.create_button">Create</button>
       </div>
       <div class="inv-layout">
         <div class="inv-list">
-          <div id="invCount" class="hint" style="padding:8px 10px; border-bottom:1px solid #222835;"></div>
-          <div class="inv-list-rows" id="invList"></div>
+          <div id="invCount" class="hint" style="padding:8px 10px; border-bottom:1px solid #222835;" data-ui-id="widget.inventory_manager.count_text"></div>
+          <div class="inv-list-rows" id="invList" data-ui-id="widget.inventory_manager.list_container"></div>
         </div>
-        <div class="inv-detail" id="invDetail">
+        <div class="inv-detail" id="invDetail" data-ui-id="widget.inventory_manager.detail_container">
           <div class="inv-empty">Select an inventory to see details.</div>
         </div>
       </div>
-      <div class="inv-status" id="invStatus"></div>
+      <div class="inv-status" id="invStatus" data-ui-id="widget.inventory_manager.status_text"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>

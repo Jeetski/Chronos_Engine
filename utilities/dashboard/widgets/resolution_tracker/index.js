@@ -10,6 +10,7 @@ export async function mount(el, context) {
 
   el.className = 'widget resolution-tracker-widget';
   try {
+    el.dataset.uiId = 'widget.resolution_tracker';
     el.dataset.autoheight = 'off';
     el.dataset.minWidth = '520';
     el.dataset.minHeight = '560';
@@ -17,18 +18,20 @@ export async function mount(el, context) {
   } catch { }
 
   const tpl = `
-    <div class="header" id="resolutionHeader">
-      <div class="title">Resolutions</div>
+    <div class="header" id="resolutionHeader" data-ui-id="widget.resolution_tracker.header">
+      <div class="title" data-ui-id="widget.resolution_tracker.title">Resolutions</div>
       <div class="controls">
-        <button class="icon-btn" id="resolutionMin" title="Minimize">_</button>
-        <button class="icon-btn" id="resolutionClose" title="Close">x</button>
+        <button class="icon-btn" id="resolutionRefresh" title="Refresh" data-ui-id="widget.resolution_tracker.refresh_button">R</button>
+        <button class="icon-btn" id="resolutionMin" title="Minimize" data-ui-id="widget.resolution_tracker.minimize_button">_</button>
+        <button class="icon-btn" id="resolutionClose" title="Close" data-ui-id="widget.resolution_tracker.close_button">x</button>
       </div>
     </div>
-    <div class="content" id="resolutionContent" style="gap:12px; display:flex; flex-direction:column; overflow:hidden;">
+    <div class="content" id="resolutionContent" style="gap:12px; display:flex; flex-direction:column; overflow:hidden;" data-ui-id="widget.resolution_tracker.panel">
       <div class="resolution-tracker-header">
-        <div class="resolution-tracker-stats" id="resolutionStats"></div>
+        <div class="resolution-tracker-stats" id="resolutionStats" data-ui-id="widget.resolution_tracker.stats_text"></div>
       </div>
-      <div id="resolutionList" style="flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column; gap:12px; padding-right:4px;"></div>
+      <div id="resolutionList" style="flex:1; overflow-y:auto; overflow-x:hidden; display:flex; flex-direction:column; gap:12px; padding-right:4px;" data-ui-id="widget.resolution_tracker.list_container"></div>
+      <div class="hint" id="resolutionStatus" data-ui-id="widget.resolution_tracker.status_text"></div>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
@@ -38,10 +41,12 @@ export async function mount(el, context) {
   el.innerHTML = tpl;
 
   const header = el.querySelector('#resolutionHeader');
+  const btnRefresh = el.querySelector('#resolutionRefresh');
   const btnMin = el.querySelector('#resolutionMin');
   const btnClose = el.querySelector('#resolutionClose');
   const statsEl = el.querySelector('#resolutionStats');
   const listEl = el.querySelector('#resolutionList');
+  const statusEl = el.querySelector('#resolutionStatus');
 
   function apiBase() {
     const origin = window.location.origin;
@@ -70,6 +75,12 @@ export async function mount(el, context) {
     return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  function setStatus(msg = '', tone = 'info') {
+    const colors = { info: '#a6adbb', success: '#8ef7c2', error: '#ff9aa2' };
+    statusEl.textContent = msg;
+    statusEl.style.color = colors[tone] || colors.info;
+  }
+
   injectStyles();
 
   // Widget controls
@@ -90,9 +101,11 @@ export async function mount(el, context) {
     window.addEventListener('pointerup', onUp);
   });
 
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
+  btnRefresh?.addEventListener('click', () => render());
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : ''); });
   btnClose.addEventListener('click', () => {
     el.style.display = 'none';
+    setStatus('Closed.');
     try {
       window?.ChronosBus?.emit?.('widget:closed', 'Resolutions');
     } catch { }
@@ -101,11 +114,13 @@ export async function mount(el, context) {
   await render();
 
   async function render() {
+    setStatus('Loading...');
     const items = await loadResolutionItems();
 
     if (!items.length) {
       renderEmpty(listEl);
       statsEl.innerHTML = '';
+      setStatus('No resolutions found.');
       return;
     }
 
@@ -155,6 +170,7 @@ export async function mount(el, context) {
 
       listEl.appendChild(groupEl);
     });
+    setStatus('Loaded.', 'success');
   }
 
   function calculateProgress(item) {
@@ -360,6 +376,7 @@ export async function mount(el, context) {
       return resolutionItems;
     } catch (err) {
       console.error('[ResolutionTracker] Failed to load items:', err);
+      setStatus('Failed to load resolutions.', 'error');
       return [];
     }
   }

@@ -9,8 +9,7 @@
       "meta.json",
       "docs/preferences.md",
       "docs/memories.md",
-      "profile.json",
-      "docs/agents/chronos.md"
+      "profile.json"
     ],
     "dynamic_blocks": [
       "current_date_time",

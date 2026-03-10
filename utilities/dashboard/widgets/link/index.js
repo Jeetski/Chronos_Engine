@@ -44,6 +44,7 @@ export function mount(el) {
   }
 
   el.className = 'widget link-widget';
+  el.dataset.uiId = 'widget.link';
 
   el.innerHTML = `
     <style>
@@ -55,40 +56,40 @@ export function mount(el) {
       .link-pill { padding: 2px 6px; border-radius: 10px; background: rgba(255,255,255,0.08); }
       .link-meta { font-size: 12px; opacity: 0.75; }
     </style>
-    <div class="header" id="linkHeader">
-      <div class="title">Link</div>
+    <div class="header" id="linkHeader" data-ui-id="widget.link.header">
+      <div class="title" data-ui-id="widget.link.title">Link</div>
       <div class="controls">
-        <button class="icon-btn" id="linkMin" title="Minimize">_</button>
-        <button class="icon-btn" id="linkClose" title="Close">x</button>
+        <button class="icon-btn" id="linkMin" title="Minimize" data-ui-id="widget.link.minimize_button">_</button>
+        <button class="icon-btn" id="linkClose" title="Close" data-ui-id="widget.link.close_button">x</button>
       </div>
     </div>
     <div class="content">
       <div class="link-widget">
         <div class="row">
           <label class="link-label">Peer</label>
-          <input class="input" data-peer placeholder="host:port or invite URL" />
+          <input class="input" data-peer data-ui-id="widget.link.peer_input" placeholder="host:port or invite URL" />
         </div>
         <div class="row">
           <label class="link-label">Token</label>
-          <input class="input" data-token placeholder="Bearer token" />
+          <input class="input" data-token data-ui-id="widget.link.token_input" placeholder="Bearer token" />
         </div>
         <div class="row">
           <label class="link-label">Board</label>
-          <select class="input" data-board></select>
+          <select class="input" data-board data-ui-id="widget.link.board_select"></select>
         </div>
         <div class="link-actions">
-          <button class="btn btn-primary" data-connect>Connect</button>
-          <button class="btn" data-sync>Sync Now</button>
-          <button class="btn" data-invite>Invite</button>
-          <button class="btn ghost" data-disconnect disabled>Disconnect</button>
+          <button class="btn btn-primary" data-connect data-ui-id="widget.link.connect_button">Connect</button>
+          <button class="btn" data-sync data-ui-id="widget.link.sync_button">Sync Now</button>
+          <button class="btn" data-invite data-ui-id="widget.link.invite_button">Invite</button>
+          <button class="btn ghost" data-disconnect data-ui-id="widget.link.disconnect_button" disabled>Disconnect</button>
         </div>
         <div class="link-status">
           <span class="hint">Status</span>
-          <span class="link-pill" data-status>offline</span>
+          <span class="link-pill" data-status data-ui-id="widget.link.status_text">offline</span>
           <span class="hint">Peer</span>
-          <span class="link-pill" data-peer-status>unknown</span>
+          <span class="link-pill" data-peer-status data-ui-id="widget.link.peer_status_text">unknown</span>
         </div>
-        <div class="link-meta" data-last-sync>Last sync: never</div>
+        <div class="link-meta" data-last-sync data-ui-id="widget.link.last_sync_text">Last sync: never</div>
       </div>
     </div>
     <div class="resizer e"></div>

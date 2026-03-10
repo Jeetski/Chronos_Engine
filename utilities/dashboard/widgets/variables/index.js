@@ -9,6 +9,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget variables-widget';
+  try { el.dataset.uiId = 'widget.variables'; } catch { }
 
   const css = `
     .vars { display:flex; flex-direction:column; gap:10px; }
@@ -22,23 +23,24 @@ export function mount(el, context) {
   `;
   el.innerHTML = `
     <style>${css}</style>
-    <div class="header" id="vHeader">
-      <div class="title">Variables</div>
+    <div class="header" id="vHeader" data-ui-id="widget.variables.header">
+      <div class="title" data-ui-id="widget.variables.title">Variables</div>
       <div class="controls">
-        <button class="icon-btn" id="vMin" title="Minimize">_</button>
-        <button class="icon-btn" id="vClose" title="Close">x</button>
+        <button class="icon-btn" id="vMin" title="Minimize" data-ui-id="widget.variables.minimize_button">_</button>
+        <button class="icon-btn" id="vClose" title="Close" data-ui-id="widget.variables.close_button">x</button>
       </div>
     </div>
-    <div class="content">
+    <div class="content" data-ui-id="widget.variables.panel">
       <div class="vars">
         <div class="row">
-          <button class="btn" id="vAdd">Add</button>
-          <button class="btn btn-primary" id="vSave">Save</button>
-          <button class="btn" id="vRefresh">Refresh</button>
+          <button class="btn" id="vAdd" data-ui-id="widget.variables.add_button">Add</button>
+          <button class="btn btn-primary" id="vSave" data-ui-id="widget.variables.save_button">Save</button>
+          <button class="btn" id="vRefresh" data-ui-id="widget.variables.refresh_button">Refresh</button>
           <div class="spacer"></div>
-          <span class="hint">These @vars expand in views and (optionally) Terminal args.</span>
+          <span class="hint" data-ui-id="widget.variables.tip_text">These @vars expand in views and (optionally) Terminal args.</span>
         </div>
-        <div id="vGrid" class="grid"></div>
+        <div id="vGrid" class="grid" data-ui-id="widget.variables.grid_container"></div>
+        <div class="hint" id="vStatus" data-ui-id="widget.variables.status_text"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -52,6 +54,7 @@ export function mount(el, context) {
   const btnSave = el.querySelector('#vSave');
   const btnRefresh = el.querySelector('#vRefresh');
   const grid = el.querySelector('#vGrid');
+  const statusEl = el.querySelector('#vStatus');
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   async function fetchVars() { try { const r = await fetch(apiBase() + "/api/vars"); const j = await r.json(); return j?.vars || {}; } catch { return {}; } }
@@ -68,6 +71,8 @@ export function mount(el, context) {
 
   let model = {}; // key -> value
   const rows = new Map(); // key -> { keyEl, valEl, wrap }
+
+  function setStatus(msg) { statusEl.textContent = msg || ''; }
 
   function render() {
     grid.innerHTML = '';
@@ -89,7 +94,7 @@ export function mount(el, context) {
   }
 
   btnAdd.addEventListener('click', () => { addRow('', ''); });
-  btnRefresh.addEventListener('click', async () => { model = await fetchVars(); render(); });
+  btnRefresh.addEventListener('click', async () => { model = await fetchVars(); render(); setStatus('Refreshed.'); });
   btnSave.addEventListener('click', async () => {
     // Read current DOM rows to compute sets/unsets
     const domRows = Array.from(grid.querySelectorAll('.var'));
@@ -107,12 +112,13 @@ export function mount(el, context) {
         model = next; // update local
         // Notify others
         try { context?.bus?.emit('vars:changed'); } catch { }
+        setStatus('Saved.');
       }
-    } catch (e) { console.error('[Chronos][Vars] save failed:', e); }
+    } catch (e) { console.error('[Chronos][Vars] save failed:', e); setStatus('Save failed.'); }
   });
 
-  btnMin.addEventListener('click', () => { const c = el.querySelector('.content'); if (!c) return; c.style.display = (c.style.display === 'none' ? '' : 'none'); });
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; });
+  btnMin.addEventListener('click', () => { const c = el.querySelector('.content'); if (!c) return; c.style.display = (c.style.display === 'none' ? '' : 'none'); setStatus(c.style.display === 'none' ? 'Minimized.' : ''); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; setStatus('Closed.'); });
 
   // Initial load
   (async () => { model = await fetchVars(); render(); })();

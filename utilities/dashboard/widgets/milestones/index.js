@@ -9,6 +9,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget milestones-widget';
+  try { el.dataset.uiId = 'widget.milestones'; } catch { }
 
   const tpl = `
     <style>
@@ -42,52 +43,57 @@ export function mount(el, context) {
       .ms-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
       .ms-item.expanded .ms-detail { display:flex; }
     </style>
-    <div class="header">
-      <div class="title">Milestones</div>
+    <div class="header" data-ui-id="widget.milestones.header">
+      <div class="title" data-ui-id="widget.milestones.title">Milestones</div>
       <div class="controls" style="align-items:center; gap:6px;">
-        <button class="icon-btn" id="msMin">_</button>
-        <button class="icon-btn" id="msClose">x</button>
+        <button class="icon-btn" id="msMin" data-ui-id="widget.milestones.minimize_button">_</button>
+        <button class="icon-btn" id="msClose" data-ui-id="widget.milestones.close_button">x</button>
       </div>
     </div>
-    <div class="content ms-content">
+    <div class="content ms-content" data-ui-id="widget.milestones.panel">
       <div class="ms-cards">
         <div class="ms-card">
           <h4>Total</h4>
-          <div class="ms-card-value" id="msTotal">--</div>
+          <div class="ms-card-value" id="msTotal" data-ui-id="widget.milestones.total_text">--</div>
           <div class="ms-card-meta">All milestones.</div>
         </div>
         <div class="ms-card">
           <h4>Completed</h4>
-          <div class="ms-card-value" id="msCompleted">--</div>
+          <div class="ms-card-value" id="msCompleted" data-ui-id="widget.milestones.completed_text">--</div>
           <div class="ms-card-meta">Finished milestones.</div>
         </div>
         <div class="ms-card">
           <h4>In Progress</h4>
-          <div class="ms-card-value" id="msInProgress">--</div>
+          <div class="ms-card-value" id="msInProgress" data-ui-id="widget.milestones.in_progress_text">--</div>
           <div class="ms-card-meta">Milestones currently active.</div>
         </div>
       </div>
-      <button class="btn ms-list-toggle" id="msListToggle" aria-expanded="false">Show List Section ▾</button>
-      <div id="msListSection" class="ms-list-section" hidden>
+      <button class="btn ms-list-toggle" id="msListToggle" aria-expanded="false" data-ui-id="widget.milestones.list_toggle_button">Show List Section ▾</button>
+      <div id="msListSection" class="ms-list-section" hidden data-ui-id="widget.milestones.list_section">
         <div class="row" style="gap:8px; flex-wrap:wrap;">
-          <input id="msSearch" class="input" placeholder="Search milestones..." style="flex:1 1 220px; min-width:160px;" />
-          <select id="msStatusFilter" class="input" style="flex:0 0 180px;">
+          <input id="msSearch" class="input" placeholder="Search milestones..." style="flex:1 1 220px; min-width:160px;" data-ui-id="widget.milestones.search_input" />
+          <select id="msStatusFilter" class="input" style="flex:0 0 180px;" data-ui-id="widget.milestones.status_filter_select">
             <option value="all">All states</option>
             <option value="pending">Pending</option>
             <option value="in-progress">In Progress</option>
             <option value="completed">Completed</option>
           </select>
-          <select id="msProjectFilter" class="input" style="flex:0 0 200px;">
+          <select id="msProjectFilter" class="input" style="flex:0 0 200px;" data-ui-id="widget.milestones.project_filter_select">
             <option value="all">All projects</option>
           </select>
-          <select id="msGoalFilter" class="input" style="flex:0 0 220px;">
+          <select id="msGoalFilter" class="input" style="flex:0 0 220px;" data-ui-id="widget.milestones.goal_filter_select">
             <option value="all">All goals</option>
           </select>
           <div class="spacer"></div>
-          <button class="btn" id="msRefresh">Refresh</button>
+          <button class="btn" id="msRefresh" data-ui-id="widget.milestones.refresh_button">Refresh</button>
         </div>
-        <div id="msStatus" class="ms-status"></div>
-        <div id="msList" class="ms-list"></div>
+        <div class="row" style="gap:8px; align-items:center;">
+          <button class="btn btn-primary" id="msPrimaryComplete" data-ui-id="widget.milestones.complete_primary_button">Complete Primary</button>
+          <button class="btn btn-secondary" id="msPrimaryReset" data-ui-id="widget.milestones.reset_primary_button">Reset Primary</button>
+          <div class="spacer"></div>
+        </div>
+        <div id="msStatus" class="ms-status" data-ui-id="widget.milestones.status_text"></div>
+        <div id="msList" class="ms-list" data-ui-id="widget.milestones.list_container"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -110,9 +116,11 @@ export function mount(el, context) {
   const totalEl = el.querySelector('#msTotal');
   const completedEl = el.querySelector('#msCompleted');
   const inProgressEl = el.querySelector('#msInProgress');
+  const primaryCompleteBtn = el.querySelector('#msPrimaryComplete');
+  const primaryResetBtn = el.querySelector('#msPrimaryReset');
 
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Milestones'); } catch { } });
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : ''); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { setStatus('Closed.'); window?.ChronosBus?.emit?.('widget:closed', 'Milestones'); } catch { } });
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
 
@@ -411,6 +419,11 @@ export function mount(el, context) {
     });
   }
 
+  function getPrimaryVisibleMilestone() {
+    const filtered = getFilteredMilestones({ includeSearch: true });
+    return filtered[0] || null;
+  }
+
   async function updateMilestone(name, action, button) {
     if (!name) return;
     const original = button?.textContent;
@@ -456,6 +469,16 @@ export function mount(el, context) {
   });
   goalSel?.addEventListener('change', () => { renderSummary(); renderList(); });
   refreshBtn.addEventListener('click', () => refresh());
+  primaryCompleteBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleMilestone();
+    if (!item) return;
+    updateMilestone(item.name, 'complete', primaryCompleteBtn);
+  });
+  primaryResetBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleMilestone();
+    if (!item) return;
+    updateMilestone(item.name, 'reset', primaryResetBtn);
+  });
 
   listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
   setListOpen(false);

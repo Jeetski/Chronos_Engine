@@ -4,11 +4,10 @@
   "enabled_by": ["env:ADUC_EXTERNAL_CONTEXT_FILE"],
   "static_files": [
     "docs/agents/chronos.md",
-    "docs/index.md",
-    "docs/agents/agents.md",
-    "docs/agents/trick.md"
+    "docs/agents/agents.md"
   ],
   "dynamic_blocks": [
+    "trick_runtime_query_guidance",
     "system_context_from:env:ADUC_EXTERNAL_CONTEXT_FILE",
     "chronos_docs_update_note"
   ]

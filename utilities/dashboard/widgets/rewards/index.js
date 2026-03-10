@@ -9,6 +9,7 @@ export function mount(el, context) {
   }
 
   el.className = 'widget rewards-widget';
+  try { el.dataset.uiId = 'widget.rewards'; } catch { }
 
   const tpl = `
     <style>
@@ -45,37 +46,41 @@ export function mount(el, context) {
       .rw-detail { display:none; flex-direction:column; gap:6px; padding-top:4px; border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; }
       .rw-reward.expanded .rw-detail { display:flex; }
     </style>
-    <div class="header">
-      <div class="title">Rewards</div>
+    <div class="header" data-ui-id="widget.rewards.header">
+      <div class="title" data-ui-id="widget.rewards.title">Rewards</div>
       <div class="controls" style="align-items:center; gap:6px;">
-        <button class="icon-btn" id="rwMin" title="Minimize">_</button>
-        <button class="icon-btn" id="rwClose" title="Close">x</button>
+        <button class="icon-btn" id="rwMin" title="Minimize" data-ui-id="widget.rewards.minimize_button">_</button>
+        <button class="icon-btn" id="rwClose" title="Close" data-ui-id="widget.rewards.close_button">x</button>
       </div>
     </div>
-    <div class="content rw-content">
+    <div class="content rw-content" data-ui-id="widget.rewards.panel">
       <div class="rw-summary">
         <div class="rw-card">
           <h4>Balance</h4>
-          <div id="rwBalance" class="rw-balance-value">--</div>
+          <div id="rwBalance" class="rw-balance-value" data-ui-id="widget.rewards.balance_text">--</div>
           <div class="rw-meta">Total Chronos points available.</div>
         </div>
         <div class="rw-card">
           <h4>Recent Activity</h4>
-          <div id="rwLedger" class="rw-ledger"></div>
+          <div id="rwLedger" class="rw-ledger" data-ui-id="widget.rewards.ledger_container"></div>
         </div>
       </div>
-      <button class="btn rw-list-toggle" id="rwListToggle" aria-expanded="false">Show List Section ▾</button>
-      <div id="rwListSection" class="rw-list-section" hidden>
+      <button class="btn rw-list-toggle" id="rwListToggle" aria-expanded="false" data-ui-id="widget.rewards.list_toggle_button">Show List Section ▾</button>
+      <div id="rwListSection" class="rw-list-section" hidden data-ui-id="widget.rewards.list_section">
         <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap;">
-          <input id="rwSearch" class="input" placeholder="Search rewards..." style="flex:1 1 240px; min-width:160px;" />
+          <input id="rwSearch" class="input" placeholder="Search rewards..." style="flex:1 1 240px; min-width:160px;" data-ui-id="widget.rewards.search_input" />
           <label class="hint" style="display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="rwReadyOnly" /> Ready only
+            <input type="checkbox" id="rwReadyOnly" data-ui-id="widget.rewards.ready_only_checkbox" /> Ready only
           </label>
           <div class="spacer"></div>
-          <button class="btn" id="rwRefresh">Refresh</button>
+          <button class="btn" id="rwRefresh" data-ui-id="widget.rewards.refresh_button">Refresh</button>
         </div>
-        <div id="rwStatus" class="rw-status"></div>
-        <div id="rwList" class="rw-list"></div>
+        <div class="row" style="gap:8px; align-items:center;">
+          <button class="btn btn-primary" id="rwRedeemPrimary" data-ui-id="widget.rewards.redeem_primary_button">Redeem Primary</button>
+          <div class="spacer"></div>
+        </div>
+        <div id="rwStatus" class="rw-status" data-ui-id="widget.rewards.status_text"></div>
+        <div id="rwList" class="rw-list" data-ui-id="widget.rewards.list_container"></div>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -95,9 +100,10 @@ export function mount(el, context) {
   const listEl = el.querySelector('#rwList');
   const balanceEl = el.querySelector('#rwBalance');
   const ledgerEl = el.querySelector('#rwLedger');
+  const redeemPrimaryBtn = el.querySelector('#rwRedeemPrimary');
 
-  btnMin.addEventListener('click', () => el.classList.toggle('minimized'));
-  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { window?.ChronosBus?.emit?.('widget:closed', 'Rewards'); } catch { } });
+  btnMin.addEventListener('click', () => { el.classList.toggle('minimized'); setStatus(el.classList.contains('minimized') ? 'Minimized.' : ''); });
+  btnClose.addEventListener('click', () => { el.style.display = 'none'; try { setStatus('Closed.'); window?.ChronosBus?.emit?.('widget:closed', 'Rewards'); } catch { } });
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   function expandText(s) {
@@ -300,6 +306,24 @@ export function mount(el, context) {
     });
   }
 
+  function getPrimaryVisibleReward() {
+    const term = (searchEl.value || '').trim().toLowerCase();
+    const readyOnly = !!readyChk?.checked;
+    const filtered = rewards.filter(r => {
+      if (readyOnly && !r.available) return false;
+      if (!term) return true;
+      const hay = `${r.name || ''} ${r.category || ''} ${r.description || ''}`.toLowerCase();
+      return hay.includes(term);
+    });
+    return filtered.slice().sort((a, b) => {
+      if (a.available !== b.available) return a.available ? -1 : 1;
+      const ap = a.cost_points || 0;
+      const bp = b.cost_points || 0;
+      if (ap !== bp) return ap - bp;
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    })[0] || null;
+  }
+
   async function redeemReward(item, btn) {
     if (!item?.name) return;
     btn.disabled = true;
@@ -332,6 +356,11 @@ export function mount(el, context) {
   searchEl.addEventListener('input', () => renderRewards());
   readyChk?.addEventListener('change', () => renderRewards());
   refreshBtn.addEventListener('click', () => refreshAll());
+  redeemPrimaryBtn?.addEventListener('click', () => {
+    const item = getPrimaryVisibleReward();
+    if (!item) return;
+    redeemReward(item, redeemPrimaryBtn);
+  });
 
   listToggleBtn?.addEventListener('click', () => setListOpen(listSectionEl?.hidden));
   setListOpen(false);

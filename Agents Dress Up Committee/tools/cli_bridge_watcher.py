@@ -249,6 +249,47 @@ def save_familiar_doc_state(fam_id: str, mtimes: dict) -> None:
     write_json_atomic(FAMILIAR_DOCS_CACHE_PATH, cache)
 
 
+def _resolve_merge_file_ref(fam_id: str, ref: str) -> Path | None:
+    raw = str(ref or "").strip().replace("\\", "/")
+    if not raw:
+        return None
+    candidates = [
+        FAMILIARS_DIR / fam_id / raw,
+        fam_docs_dir(fam_id) / raw,
+        BASE_DIR.parent / raw,
+        BASE_DIR / raw,
+    ]
+    seen = set()
+    for cand in candidates:
+        norm = str(cand.resolve()) if cand.exists() else str(cand)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        if cand.exists() and cand.is_file():
+            return cand
+    return None
+
+
+def _load_merge_map(path: Path) -> dict:
+    try:
+        data = json.loads(read_text(path) or "{}")
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _env_signal_enabled(signals) -> bool:
+    if not isinstance(signals, list):
+        return False
+    for sig in signals:
+        token = str(sig or "").strip()
+        if token.lower().startswith("env:"):
+            name = token.split(":", 1)[1].strip()
+            if name and os.environ.get(name):
+                return True
+    return False
+
+
 def load_outfits_with_avatars(fam_id: str) -> str:
     """Load outfits.md and resolve all referenced avatars.md files.
     
@@ -438,9 +479,6 @@ def build_prompt(
     settings = read_json(SETTINGS_PATH, {})
     if bool(settings.get("disable_familiar_cache", False)):
         should_inject_fam = True
-    agent = read_text(fdocs / "agent.md").strip() if should_inject_fam else ""
-    personality = read_text(fdocs / "personality.md").strip() if should_inject_fam else ""
-    coding = read_text(fdocs / "coding.md").strip() if should_inject_fam else ""
     greet = read_text(fdocs / "greet.md").strip() if should_inject_fam else ""
     profile = read_text(fdir / "profile.json").strip() if should_inject_fam else ""
     affection_global = read_text(BASE_DIR / "docs" / "agents" / "affection_system.md").strip() if should_inject_fam else ""
@@ -465,27 +503,51 @@ def build_prompt(
     current_datetime = datetime.now().strftime("%A, %B %d, %Y at %H:%M")
 
     parts = []
-    # Only inject heavy familiar docs when new/changed; otherwise keep a tiny stub.
+    merge_map = _load_merge_map(fdocs / "merge.json")
+    merge_phase = "first_prompt" if should_inject_fam else "per_message"
+    merge_phase_cfg = merge_map.get(merge_phase, {}) if isinstance(merge_map, dict) else {}
     watched_labels = ", ".join(sorted(familiar_docs_targets(fam_id).keys()))
+    injected_static = False
+
+    def _format_static_ref(ref: str, content: str) -> str:
+        low = str(ref or "").strip().replace("\\", "/").lower()
+        if low.endswith("docs/coding.md"):
+            return "[Coding Support]\n" + content
+        if low.endswith("meta.json"):
+            return "[Familiar Identity]\n" + content
+        if low.endswith("docs/locations.md"):
+            return "[Available Locations]\n" + content
+        if low.endswith("profile.json"):
+            return "[User Profile]\n" + content
+        if low.endswith("docs/preferences.md"):
+            return "[User Preferences (Strongly Preferred)]\n" + content
+        if low.endswith("docs/memories.md"):
+            return "[Permanent Memories]\n" + content
+        if low.endswith("docs/agents/chronos.md"):
+            return "[Chronos Protocols]\n" + content
+        if low.endswith("docs/agents/agents.md"):
+            return "[Chronos Agent Guide]\n" + content
+        return content
+
     if should_inject_fam:
-        if agent:
-            parts.append(agent)
-        if personality:
-            parts.append(personality)
-        if coding:
-            parts.append("[Coding Support]\n" + coding)
-        if meta_json:
-            parts.append("[Familiar Identity]\n" + meta_json)
-        if locations_md:
+        for ref in (merge_phase_cfg.get("static_files") or []):
+            path = _resolve_merge_file_ref(fam_id, str(ref))
+            if not path:
+                continue
+            content = read_text(path).strip()
+            if not content:
+                continue
+            parts.append(_format_static_ref(str(ref), content))
+            injected_static = True
+        if locations_md and "docs/locations.md" not in [str(x) for x in (merge_phase_cfg.get("static_files") or [])]:
             parts.append("[Available Locations]\n" + locations_md)
         if fam_note:
             parts.append("[Familiar Docs Update]\n" + fam_note)
-        # Persist mtimes after a successful inject
         try:
             save_familiar_doc_state(fam_id, fam_mtimes)
         except Exception:
             pass
-    else:
+    if not should_inject_fam:
         parts.append("[Familiar Context Cached]\nNo changes since last inject. Watched: " + watched_labels)
     
     # Inject Current Date/Time
@@ -514,47 +576,59 @@ def build_prompt(
     if immersive_on and lore:
         parts.append("[Immersive Lore Enabled]\n" + lore)
 
-    # --- Chronos / External Context Injection ---
-    # Only if ADUC_EXTERNAL_CONTEXT_FILE is set (Chronos Mode)
-    ext_context_path = os.environ.get("ADUC_EXTERNAL_CONTEXT_FILE")
-    if ext_context_path and os.path.isfile(ext_context_path):
-        # 1. ALWAYS inject Chronos Protocol when in Chronos Mode (not cached!)
-        chronos_proto = read_text(BASE_DIR / "docs" / "agents" / "chronos.md").strip()
-        if chronos_proto:
-            parts.append("[Chronos Protocols]\n" + chronos_proto)
-        chronos_index = read_text(BASE_DIR.parent / "docs" / "INDEX.md").strip()
-        if chronos_index:
-            parts.append("[Chronos Docs Index]\n" + chronos_index)
-        trick_protocol = read_text(BASE_DIR.parent / "docs" / "agents" / "trick.md").strip()
-        if trick_protocol:
-            parts.append("[TRICK Protocol]\n" + trick_protocol)
-
-        # 2. Inject External System Context (The Manual) only when first/changed
-        try:
-            should_ext, mtime_val = external_context_should_inject(ext_context_path)
-        except Exception:
-            should_ext, mtime_val = True, None
-        if should_ext:
-            try:
-                sys_ctx = read_text(Path(ext_context_path)).strip()
-                if sys_ctx:
-                    parts.append("[System Context]\n" + sys_ctx)
-            except Exception:
-                pass
-            if mtime_val is not None:
+    # --- Chronos / External Context Injection (declarative) ---
+    optional_cfg = (merge_map.get("optional") or {}) if isinstance(merge_map, dict) else {}
+    chronos_mode_cfg = optional_cfg.get("chronos_mode") if isinstance(optional_cfg, dict) else {}
+    if isinstance(chronos_mode_cfg, dict) and _env_signal_enabled(chronos_mode_cfg.get("enabled_by")):
+        cfg_ref = chronos_mode_cfg.get("config")
+        cfg_path = _resolve_merge_file_ref(fam_id, str(cfg_ref)) if cfg_ref else None
+        chronos_merge = _load_merge_map(cfg_path) if cfg_path else {}
+        for ref in (chronos_merge.get("static_files") or []):
+            path = _resolve_merge_file_ref(fam_id, str(ref))
+            if not path:
+                continue
+            content = read_text(path).strip()
+            if not content:
+                continue
+            parts.append(_format_static_ref(str(ref), content))
+        for block in (chronos_merge.get("dynamic_blocks") or []):
+            token = str(block or "").strip()
+            if token == "trick_runtime_query_guidance":
+                parts.append(
+                    "[TRICK Runtime Guidance]\n"
+                    "TRICK is a runtime UI-control protocol. Do not assume dashboard elements from memory.\n"
+                    "When you need UI capabilities, query them at runtime via the `trick` command or the TRICK registry.\n"
+                    "Use the protocol docs for command syntax, not as a full element inventory."
+                )
+            elif token.startswith("system_context_from:env:"):
+                env_name = token.split(":", 2)[2].strip()
+                ext_context_path = os.environ.get(env_name)
+                if ext_context_path and os.path.isfile(ext_context_path):
+                    try:
+                        should_ext, mtime_val = external_context_should_inject(ext_context_path)
+                    except Exception:
+                        should_ext, mtime_val = True, None
+                    if should_ext:
+                        try:
+                            sys_ctx = read_text(Path(ext_context_path)).strip()
+                            if sys_ctx:
+                                parts.append("[System Context]\n" + sys_ctx)
+                        except Exception:
+                            pass
+                        if mtime_val is not None:
+                            try:
+                                save_external_context_mtime(mtime_val)
+                            except Exception:
+                                pass
+                    else:
+                        parts.append("[System Context Cached]\nUnchanged external context at: " + str(ext_context_path))
+            elif token == "chronos_docs_update_note":
                 try:
-                    save_external_context_mtime(mtime_val)
+                    doc_note = chronos_doc_change_note()
+                    if doc_note:
+                        parts.append("[Chronos Docs Update]\n" + doc_note)
                 except Exception:
                     pass
-        else:
-            parts.append("[System Context Cached]\nUnchanged external context at: " + str(ext_context_path))
-    # Detect Chronos doc changes (avoids re-merging full docs each turn)
-    try:
-        doc_note = chronos_doc_change_note()
-        if doc_note:
-            parts.append("[Chronos Docs Update]\n" + doc_note)
-    except Exception:
-        pass
     # --------------------------------------------
 
     if affection_global:
@@ -663,8 +737,6 @@ def build_prompt(
         "dev_nsfw_override": bool(settings.get("dev_nsfw_override", False)),
     }
     parts.append("[NSFW Policy]\n" + json.dumps(policy, ensure_ascii=False))
-    if profile:
-        parts.append("[User Profile]\n" + profile)
 
     # Affection Style Policy based on hearts + consent + boundaries
     try:
@@ -806,14 +878,6 @@ def build_prompt(
     outfits_txt = load_outfits_with_avatars(fam_id)
     if outfits_txt:
         parts.append("[Available Outfits]\n" + outfits_txt)
-
-    # Inject preferences if present
-    if preferences:
-        parts.append("[User Preferences]\n" + preferences)
-
-    # Inject permanent memories if present
-    if memories:
-        parts.append("[Permanent Memories]\n" + memories)
 
     merged = "\n\n".join(parts)
     instruction = (

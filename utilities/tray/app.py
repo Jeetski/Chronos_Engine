@@ -288,6 +288,7 @@ class ChronosTrayApp:
             pystray.Menu.SEPARATOR,
             Item("Open Console", lambda: self.open_cli()),
             Item("Open Dashboard", lambda: self.open_dashboard()),
+            Item("Open Topos", lambda: self.open_topos()),
             pystray.Menu.SEPARATOR,
             Item("Quit", self.request_quit),
         )
@@ -301,6 +302,9 @@ class ChronosTrayApp:
 
     def open_dashboard(self):
         subprocess.Popen(["cmd", "/c", "dashboard_launcher.bat"], cwd=str(ROOT_DIR))
+
+    def open_topos(self):
+        subprocess.Popen(["cmd", "/c", "topos_launcher.bat"], cwd=str(ROOT_DIR))
 
     def start_day(self):
         try:
@@ -468,7 +472,8 @@ class ChronosTrayApp:
         launch_row = ttk.Frame(frame, style="Chronos.TFrame")
         launch_row.pack(fill=tk.X, pady=(0, 8))
         ttk.Button(launch_row, text="Open Console", command=self.open_cli, style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(launch_row, text="Open Dashboard", command=self.open_dashboard, style="Chronos.TButton").pack(side=tk.LEFT)
+        ttk.Button(launch_row, text="Open Dashboard", command=self.open_dashboard, style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(launch_row, text="Open Topos", command=self.open_topos, style="Chronos.TButton").pack(side=tk.LEFT)
 
         ttk.Label(frame, text="Today's Schedule", style="Chronos.Header.TLabel").pack(anchor=tk.W)
         self.schedule_box = tk.Listbox(

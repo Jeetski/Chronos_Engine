@@ -1,0 +1,42 @@
+type: widget
+name: settings
+label: Settings
+module: settings
+root: widget.settings
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: file_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: files_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: reload_button
+    kind: button
+    actions: [click]
+  - name: form_mode_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: editor_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: dynamic_content
+    kind: container
+    actions: [get, wait, copy]
+  - name: save_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

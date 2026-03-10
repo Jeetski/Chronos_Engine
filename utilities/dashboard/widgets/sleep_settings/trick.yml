@@ -1,0 +1,55 @@
+type: widget
+name: sleep_settings
+label: Sleep Settings
+module: sleep_settings
+root: widget.sleep_settings
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: mode_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: splits_input
+    kind: input
+    actions: [get, set]
+    value_type: integer
+  - name: apply_mode_button
+    kind: button
+    actions: [click]
+  - name: blocks_container
+    kind: container
+    actions: [get, set, type, paste, press, copy]
+  - name: chart_container
+    kind: container
+    actions: [get, wait, copy]
+  - name: template_mode_select
+    kind: select
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: template_name_input
+    kind: input
+    actions: [get, set, type, paste]
+    value_type: string
+  - name: templates_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: add_segment_button
+    kind: button
+    actions: [click]
+  - name: add_sleep_in_button
+    kind: button
+    actions: [click]
+  - name: apply_sleep_button
+    kind: button
+    actions: [click]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]

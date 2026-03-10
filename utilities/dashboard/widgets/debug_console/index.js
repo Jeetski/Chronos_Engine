@@ -9,14 +9,15 @@ export function mount(el, context) {
   }
 
   el.className = 'widget debug-console-widget';
+  el.dataset.uiId = 'widget.debug_console';
 
   const tpl = `
-    <div class="header" id="debugHeader">
-      <div class="title">Debug Console</div>
+    <div class="header" id="debugHeader" data-ui-id="widget.debug_console.header">
+      <div class="title" data-ui-id="widget.debug_console.title">Debug Console</div>
       <div class="controls">
-        <button class="icon-btn" id="debugMin" title="Minimize">_</button>
-        <button class="icon-btn" id="debugClear" title="Clear">⌫</button>
-        <button class="icon-btn" id="debugClose" title="Close">x</button>
+        <button class="icon-btn" id="debugMin" title="Minimize" data-ui-id="widget.debug_console.minimize_button">_</button>
+        <button class="icon-btn" id="debugClear" title="Clear" data-ui-id="widget.debug_console.clear_button">⌫</button>
+        <button class="icon-btn" id="debugClose" title="Close" data-ui-id="widget.debug_console.close_button">x</button>
       </div>
     </div>
     <div class="content" style="gap:8px; display:flex; flex-direction:column; min-height:0;">
@@ -31,7 +32,7 @@ export function mount(el, context) {
         <label class="hint"><input type="checkbox" id="capTrick" checked /> TRICK</label>
         <div class="spacer"></div>
         <label class="hint">Filter:</label>
-        <select id="debugFilter" class="input" style="max-width:170px;">
+        <select id="debugFilter" class="input" style="max-width:170px;" data-ui-id="widget.debug_console.filter_select">
           <option value="all">all</option>
           <option value="aduc_nia">aduc/nia</option>
           <option value="trick">trick</option>
@@ -42,11 +43,11 @@ export function mount(el, context) {
           <option value="log">log</option>
           <option value="onerror">onerror</option>
         </select>
-        <button class="btn" id="debugRefresh">Refresh</button>
-        <button class="btn" id="debugOpenEditor">Open in Editor</button>
-        <button class="btn" id="debugCopy">Copy</button>
+        <button class="btn" id="debugRefresh" data-ui-id="widget.debug_console.refresh_button">Refresh</button>
+        <button class="btn" id="debugOpenEditor" data-ui-id="widget.debug_console.open_editor_button">Open in Editor</button>
+        <button class="btn" id="debugCopy" data-ui-id="widget.debug_console.copy_button">Copy</button>
       </div>
-      <pre id="debugOut" style="flex:1 1 auto; min-height:120px; overflow:auto; background:linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%); color:#e6e8ef; border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:8px; white-space:pre-wrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-family:var(--font-mono); font-size:12px;">(capturing logs...)</pre>
+      <pre id="debugOut" data-ui-id="widget.debug_console.output_text" style="flex:1 1 auto; min-height:120px; overflow:auto; background:linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%); color:#e6e8ef; border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:8px; white-space:pre-wrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-family:var(--font-mono); font-size:12px;">(capturing logs...)</pre>
     </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>

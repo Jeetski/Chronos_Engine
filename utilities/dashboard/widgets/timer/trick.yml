@@ -15,31 +15,31 @@ elements:
     actions: [click]
   - name: phase_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: cycle_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: status_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: clock_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: progress_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: block_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: queue_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: confirmation_banner
     kind: container
     actions: [get, wait]
   - name: confirmation_text
     kind: text
-    actions: [get, wait]
+    actions: [get, wait, copy]
   - name: confirm_yes_button
     kind: button
     actions: [click]
@@ -57,11 +57,11 @@ elements:
     actions: [click]
   - name: profile_select
     kind: select
-    actions: [get, set]
+    actions: [get, set, type, paste]
     value_type: string
   - name: cycles_input
     kind: input
-    actions: [get, set]
+    actions: [get, set, paste]
     value_type: number
   - name: auto_advance_checkbox
     kind: checkbox
@@ -69,11 +69,11 @@ elements:
     value_type: boolean
   - name: bind_type_input
     kind: input
-    actions: [get, set]
+    actions: [get, set, type, paste, press]
     value_type: string
   - name: bind_name_input
     kind: input
-    actions: [get, set]
+    actions: [get, set, type, paste, press]
     value_type: string
   - name: start_button
     kind: button

@@ -1,6 +1,7 @@
 export function mount(el, context) {
     console.log('[Chronos][Today] Mounting Today widget');
     try { el.dataset.autoheight = 'off'; } catch { }
+    try { el.dataset.uiId = 'widget.today'; } catch { }
 
     // Load CSS
     if (!document.getElementById('scheduler-css')) {
@@ -13,104 +14,104 @@ export function mount(el, context) {
 
     el.className = 'widget scheduler-widget';
     el.innerHTML = `
-    <div class="header" id="todayHeader">
-      <div class="title">Scheduler</div>
+    <div class="header" id="todayHeader" data-ui-id="widget.today.header">
+      <div class="title" data-ui-id="widget.today.title">Scheduler</div>
       <div class="controls">
-        <button class="icon-btn" id="todayMin" title="Minimize">−</button>
-        <button class="icon-btn" id="todayClose" title="Close">×</button>
+        <button class="icon-btn" id="todayMin" title="Minimize" data-ui-id="widget.today.minimize_button">−</button>
+        <button class="icon-btn" id="todayClose" title="Close" data-ui-id="widget.today.close_button">×</button>
       </div>
     </div>
     <div class="content">
       <!-- Quick Actions Bar -->
-      <div class="scheduler-actions-bar">
-        <button class="btn-large btn-refresh" id="todayRefresh">↻ Refresh</button>
-        <button class="btn-large btn-reschedule" id="todayReschedule">📅 Generate / Reschedule</button>
+      <div class="scheduler-actions-bar" data-ui-id="widget.today.actions_bar">
+        <button class="btn-large btn-refresh" id="todayRefresh" data-ui-id="widget.today.refresh_button">↻ Refresh</button>
+        <button class="btn-large btn-reschedule" id="todayReschedule" data-ui-id="widget.today.reschedule_button">📅 Generate / Reschedule</button>
       </div>
 
       <!-- Scheduling Controls -->
-      <details class="scheduler-section" id="schedControls">
+      <details class="scheduler-section" id="schedControls" data-ui-id="widget.today.scheduling_controls">
         <summary>⚙️ Scheduling Controls</summary>
         <div class="scheduler-section-content">
-          <details class="scheduler-subsection" open>
+          <details class="scheduler-subsection" open data-ui-id="widget.today.priority_weights_section">
             <summary>Priority Weights (1-10)</summary>
             <div class="action-group">
               <div class="priority-sliders-grid">
                 <div class="slider-row">
                   <label for="sliderEnvironment">Environment</label>
-                  <input type="range" id="sliderEnvironment" min="1" max="10" value="7" />
-                  <span class="slider-value" id="valEnvironment">7</span>
+                  <input type="range" id="sliderEnvironment" min="1" max="10" value="7" data-ui-id="widget.today.environment_slider" />
+                  <span class="slider-value" id="valEnvironment" data-ui-id="widget.today.environment_value">7</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderCategory">Category</label>
-                  <input type="range" id="sliderCategory" min="1" max="10" value="6" />
-                  <span class="slider-value" id="valCategory">6</span>
+                  <input type="range" id="sliderCategory" min="1" max="10" value="6" data-ui-id="widget.today.category_slider" />
+                  <span class="slider-value" id="valCategory" data-ui-id="widget.today.category_value">6</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderHappiness">Happiness</label>
-                  <input type="range" id="sliderHappiness" min="1" max="10" value="5" />
-                  <span class="slider-value" id="valHappiness">5</span>
+                  <input type="range" id="sliderHappiness" min="1" max="10" value="5" data-ui-id="widget.today.happiness_slider" />
+                  <span class="slider-value" id="valHappiness" data-ui-id="widget.today.happiness_value">5</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderDueDate">Due Date</label>
-                  <input type="range" id="sliderDueDate" min="1" max="10" value="4" />
-                  <span class="slider-value" id="valDueDate">4</span>
+                  <input type="range" id="sliderDueDate" min="1" max="10" value="4" data-ui-id="widget.today.due_date_slider" />
+                  <span class="slider-value" id="valDueDate" data-ui-id="widget.today.due_date_value">4</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderDeadline">Deadline</label>
-                  <input type="range" id="sliderDeadline" min="1" max="10" value="5" />
-                  <span class="slider-value" id="valDeadline">5</span>
+                  <input type="range" id="sliderDeadline" min="1" max="10" value="5" data-ui-id="widget.today.deadline_slider" />
+                  <span class="slider-value" id="valDeadline" data-ui-id="widget.today.deadline_value">5</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderStatus">Status Align</label>
-                  <input type="range" id="sliderStatus" min="1" max="10" value="3" />
-                  <span class="slider-value" id="valStatus">3</span>
+                  <input type="range" id="sliderStatus" min="1" max="10" value="3" data-ui-id="widget.today.status_slider" />
+                  <span class="slider-value" id="valStatus" data-ui-id="widget.today.status_value">3</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderPriority">Priority Prop</label>
-                  <input type="range" id="sliderPriority" min="1" max="10" value="2" />
-                  <span class="slider-value" id="valPriority">2</span>
+                  <input type="range" id="sliderPriority" min="1" max="10" value="2" data-ui-id="widget.today.priority_slider" />
+                  <span class="slider-value" id="valPriority" data-ui-id="widget.today.priority_value">2</span>
                 </div>
                 <div class="slider-row">
                   <label for="sliderTemplate">Template</label>
-                  <input type="range" id="sliderTemplate" min="1" max="10" value="1" />
-                  <span class="slider-value" id="valTemplate">1</span>
+                  <input type="range" id="sliderTemplate" min="1" max="10" value="1" data-ui-id="widget.today.template_slider" />
+                  <span class="slider-value" id="valTemplate" data-ui-id="widget.today.template_value">1</span>
                 </div>
               </div>
             </div>
           </details>
-          <details class="scheduler-subsection">
+          <details class="scheduler-subsection" data-ui-id="widget.today.advanced_weights_section">
             <summary>Advanced Weights</summary>
             <div class="action-group">
               <div class="slider-row">
                 <label for="sliderCustomProperty">Custom Property</label>
-                <input class="scheduler-input" id="customPropertyKey" placeholder="Property key (e.g. energy, focus_depth)" style="min-width:160px;" />
-                <input type="range" id="sliderCustomProperty" min="1" max="10" value="5" />
-                <span class="slider-value" id="valCustomProperty">5</span>
+                <input class="scheduler-input" id="customPropertyKey" placeholder="Property key (e.g. energy, focus_depth)" style="min-width:160px;" data-ui-id="widget.today.custom_property_key_input" />
+                <input type="range" id="sliderCustomProperty" min="1" max="10" value="5" data-ui-id="widget.today.custom_property_slider" />
+                <span class="slider-value" id="valCustomProperty" data-ui-id="widget.today.custom_property_value">5</span>
               </div>
               <div class="slider-row">
                 <label for="sliderBalance">Weekly Balance</label>
-                <input type="range" id="sliderBalance" min="1" max="10" value="5" />
-                <span class="slider-value" id="valBalance">5</span>
+                <input type="range" id="sliderBalance" min="1" max="10" value="5" data-ui-id="widget.today.balance_slider" />
+                <span class="slider-value" id="valBalance" data-ui-id="widget.today.balance_value">5</span>
               </div>
             </div>
           </details>
-          <details class="scheduler-subsection">
+          <details class="scheduler-subsection" data-ui-id="widget.today.enforcers_section">
             <summary>Enforcers</summary>
             <div class="action-group">
               <div class="button-row">
-                <select class="scheduler-input" id="enforcerEnvironmentScope" style="min-width:110px;">
+                <select class="scheduler-input" id="enforcerEnvironmentScope" style="min-width:110px;" data-ui-id="widget.today.enforcer_environment_scope_select">
                   <option value="day">Day</option>
                   <option value="week">Week</option>
                   <option value="slot">Slot</option>
                 </select>
-                <input class="scheduler-input" id="enforcerEnvironment" placeholder="Environment (e.g. library)" style="flex:1;" />
+                <input class="scheduler-input" id="enforcerEnvironment" placeholder="Environment (e.g. library)" style="flex:1;" data-ui-id="widget.today.enforcer_environment_input" />
               </div>
               <div class="button-row">
-                <input class="scheduler-input" id="enforcerTemplateDay" type="date" style="min-width:150px;" />
-                <input class="scheduler-input" id="enforcerTemplate" placeholder="Template name" style="flex:1;" />
+                <input class="scheduler-input" id="enforcerTemplateDay" type="date" style="min-width:150px;" data-ui-id="widget.today.enforcer_template_day_input" />
+                <input class="scheduler-input" id="enforcerTemplate" placeholder="Template name" style="flex:1;" data-ui-id="widget.today.enforcer_template_input" />
               </div>
               <div class="button-row">
-                <select class="scheduler-input" id="scheduleState" style="min-width:140px;">
+                <select class="scheduler-input" id="scheduleState" style="min-width:140px;" data-ui-id="widget.today.schedule_state_select">
                   <option value="draft">Draft schedule</option>
                   <option value="committed">Committed schedule</option>
                 </select>
@@ -118,62 +119,62 @@ export function mount(el, context) {
               </div>
             </div>
           </details>
-          <details class="scheduler-subsection">
+          <details class="scheduler-subsection" data-ui-id="widget.today.quick_toggles_section">
             <summary>Quick Toggles</summary>
             <div class="action-group">
               <div class="button-row">
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosBuffers" checked title="Insert buffers between work blocks based on your buffer rules." />
+                  <input type="checkbox" id="toggleKairosBuffers" checked title="Insert buffers between work blocks based on your buffer rules." data-ui-id="widget.today.buffers_checkbox" />
                   Buffers
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosTimerBreaks" title="Use timer-profile break logic instead of plain break handling." />
+                  <input type="checkbox" id="toggleKairosTimerBreaks" title="Use timer-profile break logic instead of plain break handling." data-ui-id="widget.today.timer_breaks_checkbox" />
                   Timer Breaks
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosSprints" title="Enable sprint-style clustering for focused execution blocks." />
+                  <input type="checkbox" id="toggleKairosSprints" title="Enable sprint-style clustering for focused execution blocks." data-ui-id="widget.today.sprints_checkbox" />
                   Sprints
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosIgnoreTrends" title="Ignore historical trend bias when scoring candidates." />
+                  <input type="checkbox" id="toggleKairosIgnoreTrends" title="Ignore historical trend bias when scoring candidates." data-ui-id="widget.today.ignore_trends_checkbox" />
                   Ignore Trends
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleKairosRepairTrim" checked title="Allow repair phase to trim items before stronger conflict actions." />
+                  <input type="checkbox" id="toggleKairosRepairTrim" checked title="Allow repair phase to trim items before stronger conflict actions." data-ui-id="widget.today.repair_trim_checkbox" />
                   Repair Trim
                 </label>
                 <label class="scheduler-check">
-                  <input type="checkbox" id="toggleCutting" title="Allow repair phase to cut low-priority items if conflicts remain." />
+                  <input type="checkbox" id="toggleCutting" title="Allow repair phase to cut low-priority items if conflicts remain." data-ui-id="widget.today.repair_cut_checkbox" />
                   Repair Cut
                 </label>
               </div>
               <div class="button-row">
-                <input class="scheduler-input" id="kairosTimerProfile" placeholder="Timer profile (optional)" style="min-width:180px; flex:1;" />
-                <input class="scheduler-input" id="kairosTemplateOverride" placeholder="Template override (optional)" style="min-width:180px; flex:1;" />
+                <input class="scheduler-input" id="kairosTimerProfile" placeholder="Timer profile (optional)" style="min-width:180px; flex:1;" data-ui-id="widget.today.timer_profile_input" />
+                <input class="scheduler-input" id="kairosTemplateOverride" placeholder="Template override (optional)" style="min-width:180px; flex:1;" data-ui-id="widget.today.template_override_input" />
               </div>
               <div class="button-row">
-                <input class="scheduler-input" id="kairosQuickWins" type="number" min="0" max="240" step="5" placeholder="Quick wins max minutes (optional)" style="min-width:220px;" />
-                <input class="scheduler-input" id="kairosRepairMinDuration" type="number" min="1" max="180" step="1" placeholder="Repair min duration (minutes)" style="min-width:220px;" />
+                <input class="scheduler-input" id="kairosQuickWins" type="number" min="0" max="240" step="5" placeholder="Quick wins max minutes (optional)" style="min-width:220px;" data-ui-id="widget.today.quickwins_input" />
+                <input class="scheduler-input" id="kairosRepairMinDuration" type="number" min="1" max="180" step="1" placeholder="Repair min duration (minutes)" style="min-width:220px;" data-ui-id="widget.today.repair_min_duration_input" />
               </div>
               <div class="button-row">
-                <input class="scheduler-input" id="kairosRepairCutThreshold" type="number" min="0" max="1" step="0.05" placeholder="Repair cut threshold (0.0 - 1.0)" style="min-width:240px;" />
-                <input class="scheduler-input" id="kairosStatusThreshold" type="number" min="0" max="1" step="0.05" placeholder="Status match threshold (0.0 - 1.0)" style="min-width:240px;" />
+                <input class="scheduler-input" id="kairosRepairCutThreshold" type="number" min="0" max="1" step="0.05" placeholder="Repair cut threshold (0.0 - 1.0)" style="min-width:240px;" data-ui-id="widget.today.repair_cut_threshold_input" />
+                <input class="scheduler-input" id="kairosStatusThreshold" type="number" min="0" max="1" step="0.05" placeholder="Status match threshold (0.0 - 1.0)" style="min-width:240px;" data-ui-id="widget.today.status_threshold_input" />
               </div>
               <div class="button-row">
                 <span class="scheduler-hint" style="min-width:120px;">Kairos Presets</span>
-                <button type="button" class="scheduler-btn" id="kairosPresetSafe" title="Trim on, cut off, min duration 20m, cut threshold 0.85.">Safe</button>
-                <button type="button" class="scheduler-btn" id="kairosPresetBalanced" title="Trim on, cut on, min duration 12m, cut threshold 0.60.">Balanced</button>
-                <button type="button" class="scheduler-btn" id="kairosPresetAggressive" title="Trim on, cut on, min duration 8m, cut threshold 0.40.">Aggressive</button>
+                <button type="button" class="scheduler-btn" id="kairosPresetSafe" title="Trim on, cut off, min duration 20m, cut threshold 0.85." data-ui-id="widget.today.preset_safe_button">Safe</button>
+                <button type="button" class="scheduler-btn" id="kairosPresetBalanced" title="Trim on, cut on, min duration 12m, cut threshold 0.60." data-ui-id="widget.today.preset_balanced_button">Balanced</button>
+                <button type="button" class="scheduler-btn" id="kairosPresetAggressive" title="Trim on, cut on, min duration 8m, cut threshold 0.40." data-ui-id="widget.today.preset_aggressive_button">Aggressive</button>
               </div>
               <div class="button-row">
-                <span class="scheduler-hint" id="kairosPresetHint">Safe: trim on, cut off, min 20m, threshold 0.85. Balanced: trim on, cut on, min 12m, threshold 0.60. Aggressive: trim on, cut on, min 8m, threshold 0.40.</span>
+                <span class="scheduler-hint" id="kairosPresetHint" data-ui-id="widget.today.preset_hint_text">Safe: trim on, cut off, min 20m, threshold 0.85. Balanced: trim on, cut on, min 12m, threshold 0.60. Aggressive: trim on, cut on, min 8m, threshold 0.40.</span>
               </div>
               <div class="button-row" style="align-items:flex-start; flex-direction:column; width:100%;">
                 <div class="button-row" style="width:100%; justify-content:space-between;">
                   <span class="scheduler-hint">Window Filter Overrides</span>
-                  <button type="button" class="scheduler-btn" id="addKairosWindowFilterRow" title="Add another window filter override row.">+ Add Override</button>
+                  <button type="button" class="scheduler-btn" id="addKairosWindowFilterRow" title="Add another window filter override row." data-ui-id="widget.today.add_window_filter_row_button">+ Add Override</button>
                 </div>
-                <div id="kairosWindowFilterRows" style="display:flex; flex-direction:column; gap:8px; width:100%;"></div>
+                <div id="kairosWindowFilterRows" style="display:flex; flex-direction:column; gap:8px; width:100%;" data-ui-id="widget.today.window_filter_rows"></div>
               </div>
             </div>
           </details>
@@ -181,17 +182,18 @@ export function mount(el, context) {
       </details>
 
       <!-- Calendar Context (hidden by default) -->
-      <div id="calendarContext" style="display:none; flex-direction:column; gap:10px;">
+      <div id="calendarContext" style="display:none; flex-direction:column; gap:10px;" data-ui-id="widget.today.calendar_context">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span class="scheduler-hint" id="calendarDayLabel">Calendar day selected.</span>
-          <span class="scheduler-hint" id="calendarDayNote"></span>
+          <span class="scheduler-hint" id="calendarDayLabel" data-ui-id="widget.today.calendar_day_label">Calendar day selected.</span>
+          <span class="scheduler-hint" id="calendarDayNote" data-ui-id="widget.today.calendar_day_note"></span>
         </div>
         <div class="scheduler-hint">Scheduler controls apply to this day.</div>
       </div>
 
       <!-- Status Bar -->
       <div class="scheduler-status-bar">
-        <span class="scheduler-hint" id="selHint">Select a day in Calendar to preview the schedule.</span>
+        <span class="scheduler-hint" id="todayStatusText" data-ui-id="widget.today.status_text">Ready.</span>
+        <span class="scheduler-hint" id="selHint" data-ui-id="widget.today.selection_hint">Select a day in Calendar to preview the schedule.</span>
       </div>
     </div>
     <div class="resizer e"></div>
@@ -732,6 +734,7 @@ export function mount(el, context) {
   const content = el.querySelector('.content') || el;
   const btnRefresh = content.querySelector('#todayRefresh');
   const btnResched = content.querySelector('#todayReschedule');
+  const statusText = content.querySelector('#todayStatusText');
   const selHint = content.querySelector('#selHint');
   const calendarContext = content.querySelector('#calendarContext');
   const calendarDayLabel = content.querySelector('#calendarDayLabel');
@@ -829,10 +832,12 @@ export function mount(el, context) {
 
   if (btnRefresh) btnRefresh.addEventListener('click', () => {
     console.log('[Chronos][Today] Refresh clicked');
+    if (statusText) statusText.textContent = 'Refreshing schedule...';
     refreshScheduleForTarget({ force: true });
   });
   if (btnResched) btnResched.addEventListener('click', async () => {
     console.log('[Chronos][Today] Reschedule clicked');
+    if (statusText) statusText.textContent = 'Generating schedule...';
     const targetDate = (calendarDaySelected && calendarDayDate) ? new Date(calendarDayDate) : new Date();
     const props = {};
     if (toggleKairosBuffers) props.buffers = !!toggleKairosBuffers.checked;
@@ -893,7 +898,9 @@ export function mount(el, context) {
       console.log('[Chronos][Today] Reschedule response:', payload);
       if (!resp.ok) throw new Error(payload?.stderr || payload?.error || 'Reschedule failed');
       generated = true;
+      if (statusText) statusText.textContent = 'Schedule generated.';
     } catch (e) { console.error('[Chronos][Today] Reschedule error:', e); }
+    if (!generated && statusText) statusText.textContent = 'Reschedule failed.';
     if (generated) {
       await openCalendarOnDate(targetDate);
     }
@@ -997,15 +1004,18 @@ export function mount(el, context) {
     lastPreviewKey = targetKey;
     if (!targetDate || calendarDayIsToday) {
       await fetchToday({ silent: true });
+      if (statusText) statusText.textContent = 'Showing today.';
       if (selHint) selHint.textContent = 'Select a day in Calendar to preview the schedule.';
       return;
     }
     const preview = await fetchSchedulePreview(targetDate);
     if (!preview.ok) {
+      if (statusText) statusText.textContent = 'Preview unavailable.';
       if (selHint) selHint.textContent = preview.error || 'Preview unavailable for this day.';
       return;
     }
     if (Array.isArray(preview.blocks)) {
+      if (statusText) statusText.textContent = 'Preview loaded.';
       if (selHint) selHint.textContent = `Previewing ${targetDate.toDateString()} (read-only).`;
     }
   }

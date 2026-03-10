@@ -1,0 +1,51 @@
+type: widget
+name: review
+label: Review
+module: review
+root: widget.review
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: type_select
+    kind: select
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: period_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: this_button
+    kind: button
+    actions: [click]
+  - name: generate_button
+    kind: button
+    actions: [click]
+  - name: open_button
+    kind: button
+    actions: [click]
+  - name: export_button
+    kind: button
+    actions: [click]
+  - name: prev_button
+    kind: button
+    actions: [click]
+  - name: next_button
+    kind: button
+    actions: [click]
+  - name: expand_checkbox
+    kind: checkbox
+    actions: [get, set]
+    value_type: boolean
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: log_text
+    kind: container
+    actions: [get, wait, copy]

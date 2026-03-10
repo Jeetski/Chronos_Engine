@@ -16,6 +16,8 @@ set "ADUC_DIR=%CHRONOS_ROOT%\Agents Dress Up Committee"
 set "DOCS_DIR=%CHRONOS_ROOT%\docs"
 set "CTX_FILE=%TEMP%\chronos_full_context.md"
 set "ADUC_TEMP_DIR=%TEMP%\ADUC"
+set "DIGEST_FILE=%CHRONOS_ROOT%\temp\docs_digest.txt"
+set "TRENDS_FILE=%CHRONOS_ROOT%\user\data\trends.md"
 
 if /i "%ADUC_DASHBOARD%"=="1" (
     set "ADUC_NO_BROWSER=1"
@@ -66,23 +68,38 @@ echo. >> "%CTX_FILE%"
 echo You are running inside the Chronos Engine. The following is the reference manual for the system you control. >> "%CTX_FILE%"
 echo. >> "%CTX_FILE%"
 
-:: Loop through docs
-for /r "%DOCS_DIR%" %%f in (*.md) do (
-    set "file_path=%%f"
-    echo Processing: !file_path!
-    
-    :: Check if path contains "\Legal\" - simplistic string check
-    set "is_legal=0"
-    echo "!file_path!" | findstr /i "\\Legal\\" >nul && set "is_legal=1"
-    
-    if "!is_legal!"=="0" (
-        echo. >> "%CTX_FILE%"
-        echo --- FILE: %%~nxf --- >> "%CTX_FILE%"
-        echo. >> "%CTX_FILE%"
-        type "%%f" >> "%CTX_FILE%"
-        echo. >> "%CTX_FILE%"
-    ) else (
-        echo Skipping Legal: %%~nxf
+if exist "%DIGEST_FILE%" (
+    echo [Chronos] Using compact docs digest...
+    type "%DIGEST_FILE%" >> "%CTX_FILE%"
+    echo. >> "%CTX_FILE%"
+) else (
+    :: Loop through docs
+    for /r "%DOCS_DIR%" %%f in (*.md) do (
+        set "file_path=%%f"
+        echo Processing: !file_path!
+        
+        :: Check if path contains "\Legal\" - simplistic string check
+        set "is_legal=0"
+        echo "!file_path!" | findstr /i "\\Legal\\" >nul && set "is_legal=1"
+
+        :: Skip docs that the watcher already injects separately
+        set "is_runtime_injected=0"
+        echo "!file_path!" | findstr /i "\\docs\\index.md" >nul && set "is_runtime_injected=1"
+        echo "!file_path!" | findstr /i "\\docs\\agents\\trick.md" >nul && set "is_runtime_injected=1"
+        
+        if "!is_legal!"=="0" (
+            if "!is_runtime_injected!"=="0" (
+                echo. >> "%CTX_FILE%"
+                echo --- FILE: %%~nxf --- >> "%CTX_FILE%"
+                echo. >> "%CTX_FILE%"
+                type "%%f" >> "%CTX_FILE%"
+                echo. >> "%CTX_FILE%"
+            ) else (
+                echo Skipping Runtime-Injected Doc: %%~nxf
+            )
+        ) else (
+            echo Skipping Legal: %%~nxf
+        )
     )
 )
 
@@ -99,6 +116,15 @@ for %%f in ("%PROFILE_DIR%\*.md") do (
     echo --- FILE: %%~nxf --- >> "%CTX_FILE%"
     echo. >> "%CTX_FILE%"
     type "%%f" >> "%CTX_FILE%"
+    echo. >> "%CTX_FILE%"
+)
+
+if exist "%TRENDS_FILE%" (
+    echo [Chronos] Bundling Trends context...
+    echo. >> "%CTX_FILE%"
+    echo --- FILE: trends.md --- >> "%CTX_FILE%"
+    echo. >> "%CTX_FILE%"
+    type "%TRENDS_FILE%" >> "%CTX_FILE%"
     echo. >> "%CTX_FILE%"
 )
 

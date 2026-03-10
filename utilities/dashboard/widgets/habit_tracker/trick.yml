@@ -1,0 +1,41 @@
+type: widget
+name: habit_tracker
+label: Habits
+module: habit_tracker
+root: widget.habit_tracker
+elements:
+  - name: title
+    kind: text
+    actions: [get]
+  - name: search_input
+    kind: input
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: polarity_select
+    kind: select
+    actions: [get, set, type, paste, press]
+    value_type: string
+  - name: refresh_button
+    kind: button
+    actions: [click]
+  - name: minimize_button
+    kind: button
+    actions: [click]
+  - name: close_button
+    kind: button
+    actions: [click]
+  - name: done_primary_button
+    kind: button
+    actions: [click]
+  - name: incident_primary_button
+    kind: button
+    actions: [click]
+  - name: summary_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: status_text
+    kind: text
+    actions: [get, wait, copy]
+  - name: list_container
+    kind: container
+    actions: [get, wait, copy]
