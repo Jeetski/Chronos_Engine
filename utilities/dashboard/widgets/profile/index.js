@@ -305,9 +305,9 @@ export async function mount(elem, context) {
   setStatus('Ready.');
 }
 
-  const statusEl = el.querySelector('#profile-status');
-  function setStatus(message, isError = false) {
-    if (!statusEl) return;
-    statusEl.textContent = message || '';
-    statusEl.style.color = isError ? '#ef6a6a' : '#a6adbb';
-  }
+function setStatus(message, isError = false) {
+  const statusEl = el?.querySelector?.('#profile-status');
+  if (!statusEl) return;
+  statusEl.textContent = message || '';
+  statusEl.style.color = isError ? '#ef6a6a' : '#a6adbb';
+}
