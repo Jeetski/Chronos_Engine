@@ -127,6 +127,12 @@ Chronos supports console-level output redirection for any command.
 - `today >> temp/today.txt`
 - `today > @out`
 - `today >> @out`
+- `today > temp/@{day_name}.txt`
+
+**Expansion notes:**
+- `@name` or `@{name}` works when the whole target is a variable destination.
+- For file paths, variables inside the path are expanded before writing.
+- If the variable is followed by more filename text, use braces: `@{name}.txt`, not `@name.txt`.
 
 ## Scheduling & Tracking
 

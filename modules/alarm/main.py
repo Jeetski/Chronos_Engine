@@ -128,11 +128,16 @@ def trigger_alarm(alarm, filepath):
         alarm_sound_filename = alarm.get('sound')
         if not alarm_sound_filename:
             settings_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'settings'))
-            alarm_defaults_path = os.path.join(settings_dir, "Alarm_Defaults.yml")
-            if os.path.exists(alarm_defaults_path):
-                with open(alarm_defaults_path, 'r') as f:
-                    defaults = yaml.safe_load(f)
-                    alarm_sound_filename = defaults.get('default_sound')
+            alarm_defaults_paths = [
+                os.path.join(settings_dir, "alarm_defaults.yml"),
+                os.path.join(settings_dir, "Alarm_Defaults.yml"),
+            ]
+            for alarm_defaults_path in alarm_defaults_paths:
+                if os.path.exists(alarm_defaults_path):
+                    with open(alarm_defaults_path, 'r') as f:
+                        defaults = yaml.safe_load(f)
+                        alarm_sound_filename = defaults.get('default_sound')
+                    break
 
         if alarm_sound_filename:
             full_sound_path = _resolve_alarm_sound_path(alarm_sound_filename)

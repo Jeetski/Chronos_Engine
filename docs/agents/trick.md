@@ -1,5 +1,5 @@
 # TRICK Protocol (Tiny Remote Interface Control Kit)
-Last verified: 2026-03-08
+Last verified: 2026-03-13
 
 TRICK is the dashboard UI control protocol for familiars.
 
@@ -42,6 +42,8 @@ Container-only target (no element):
   - Send a small supported key action to an interactive element.
 - `CLICK <type.name.element_name>`
   - Trigger a click interaction.
+- `HIGHLIGHT <target> [spotlight|pulse]`
+  - Visually call out a surface or element for guided UI tours and instruction.
 - `WAIT <predicate> [timeout_ms]`
   - Wait for async UI state changes before continuing.
 
@@ -59,11 +61,18 @@ Typical `PRESS` keys in current rollout:
 - `Escape`
 - `Ctrl+L` (terminal only)
 
+`HIGHLIGHT` modes in current rollout:
+- `spotlight`
+  - Dim the rest of the dashboard and ring the target.
+- `pulse`
+  - Flash and softly pulse the target without dimming the rest of the screen.
+
 ## 3) Behavioral Contract
 
 - Prefer TRICK for dashboard UI actions before fallback paths.
 - Treat IDs as stable API contracts; labels are not stable identifiers.
 - Always `WAIT` after actions that trigger async updates.
+- Use `HIGHLIGHT` when an agent is explaining where to click or what it is talking about.
 - For destructive actions, ask confirmation first unless user explicitly asked.
 - If an action fails, report:
   1. command attempted
@@ -705,3 +714,10 @@ Elements:
 5. `CLICK widget.timer.start_button`
 6. `WAIT text_contains widget.timer.status_text running 5000`
 7. `CLOSE widget.timer`
+
+Tour-style example:
+
+1. `OPEN widget.today`
+2. `WAIT visible widget.today 5000`
+3. `HIGHLIGHT widget.today.reschedule_button spotlight`
+4. `WAIT visible widget.today.reschedule_button 2000`

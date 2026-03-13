@@ -1,0 +1,18 @@
+bindings:
+  reopen_last_closed: "Ctrl+Shift+Space"
+  open_nia: "Ctrl+/"
+  shortcut_help: "?"
+  close_focused_surface: "Escape"
+  focus_next_surface: "Ctrl"
+  focus_previous_surface: "Ctrl+."
+  quick_slots:
+    "0": "view.calendar"
+    "1": "widget.today"
+    "2": "widget.terminal"
+    "3": "widget.notes"
+    "4": "widget.status"
+    "5": "widget.timer"
+    "6": "widget.item_manager"
+    "7": "view.weekly"
+    "8": "view.cockpit"
+    "9": "widget.review"

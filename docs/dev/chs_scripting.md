@@ -36,6 +36,12 @@ Targets:
 - file path (`today > temp/today.txt`)
 - variable (`today > @out`, `today >> @out`)
 
+Expansion rules:
+- `@name` and `@{name}` both work when the entire target token is a variable target (`today > @out`).
+- File targets allow variable expansion inside the path token.
+- When a variable is embedded inside a larger filename/path token, use braces so the suffix is preserved: `today > temp/@{day_name}.txt`
+- Avoid bare embedded forms like `temp/@day_name.txt`; Chronos will treat `@day_name.txt` as one variable name.
+
 This is implemented at the console routing layer, so it works for commands without requiring per-command changes.
 
 ## Optional YAML Variable Bindings (`variable_bindings.yml`)

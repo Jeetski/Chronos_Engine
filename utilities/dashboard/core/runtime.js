@@ -410,7 +410,7 @@ function toModuleName(name) {
 async function importWithNameFallback(basePath, name, withBust = false) {
   const raw = String(name || '').trim();
   const slug = toModuleName(raw);
-  const candidates = Array.from(new Set([raw, slug])).filter(Boolean);
+  const candidates = Array.from(new Set([slug, raw])).filter(Boolean);
   let lastError = null;
   for (const moduleName of candidates) {
     try {

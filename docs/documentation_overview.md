@@ -565,7 +565,7 @@ Chronos aspires to be the operating system for living a deeply lived life—wher
 - Centralized logging (`logs/engine.log`)
 - Live Debug Console in dashboard
 - Test suite foundation
-- Debug hygiene (Debug/ directory)
+- Debug hygiene (debug/ directory)
 - Graceful error handling
 - `/api/logs` endpoint
 

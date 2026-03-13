@@ -8,12 +8,12 @@ from modules.item_manager import list_all_items, read_item_data, write_item_data
 
 def _settings_path() -> str:
     base = get_user_dir()
-    return f"{base}/Settings/achievements_settings.yml"
+    return f"{base}/settings/achievements_settings.yml"
 
 
 def _profile_path() -> str:
     base = get_user_dir()
-    return f"{base}/Profile/profile.yml"
+    return f"{base}/profile/profile.yml"
 
 
 def _now_str() -> str:

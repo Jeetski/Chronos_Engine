@@ -1075,33 +1075,13 @@ def resolve_command_alias(command_name):
 
 def invoke_command(command_name, args, properties):
     """
-    Run a command while triggering MacroEngine hooks before/after when enabled.
-    Suppress by setting env CHRONOS_SUPPRESS_MACROS or passing property no_macros:true.
+    Invoke the canonical command runner.
+
+    Macro hooks live in `run_command()` so every caller shares one execution
+    path and hooks do not fire twice.
     """
     command_name = resolve_command_alias(command_name)
-    suppress = False
-    try:
-        if os.environ.get("CHRONOS_SUPPRESS_MACROS"):
-            suppress = True
-        if str((properties or {}).get("no_macros")).lower() in ("1", "true", "yes"):
-            suppress = True
-    except Exception:
-        pass
-    if not suppress:
-        try:
-            from modules import macro_engine
-            MacroEngine.run_before(command_name, args, properties)
-        except Exception:
-            pass
-    try:
-        run_command(command_name, args, properties)
-    finally:
-        if not suppress:
-            try:
-                from modules import macro_engine
-                MacroEngine.run_after(command_name, args, properties, {"ok": True})
-            except Exception:
-                pass
+    run_command(command_name, args, properties)
 
 def load_module(module_name):
     """

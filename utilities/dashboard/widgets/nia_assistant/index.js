@@ -715,6 +715,15 @@ export function mount(el, context) {
     panel?.classList.remove('is-settings-open');
   };
 
+  const openChat = () => {
+    try { el.style.display = ''; } catch { }
+    try { el.classList.remove('minimized'); } catch { }
+    closeSettings();
+    setOpen(true);
+    try { window.ChronosFocusWidget?.(el); } catch { }
+    try { input?.focus(); } catch { }
+  };
+
   const startThinkingIndicator = () => {
     const bubble = appendMsg('Thinking. (0s)', 'assistant');
 
@@ -899,8 +908,14 @@ export function mount(el, context) {
   });
 
   try {
+    context?.bus?.on('nia:open-chat', () => {
+      openChat();
+    });
+  } catch { }
+
+  try {
     context?.bus?.on('nia:open-settings', () => {
-      setOpen(true);
+      openChat();
       void openSettings();
       try { input?.focus(); } catch { }
     });
@@ -932,6 +947,6 @@ export function mount(el, context) {
   });
 
   try { context?.bus?.emit('nia:mounted'); } catch { }
-  return {};
+  return { openChat };
 }
 

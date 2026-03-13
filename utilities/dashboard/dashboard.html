@@ -45,7 +45,8 @@
       padding: 0 8px;
       background: rgba(15, 17, 21, 0.85);
       border-bottom: 1px solid var(--border);
-      z-index: 7;
+      z-index: 20000;
+      pointer-events: auto;
       backdrop-filter: saturate(120%) blur(8px);
       -webkit-backdrop-filter: saturate(120%) blur(8px);
     }
@@ -59,6 +60,9 @@
       cursor: pointer;
       font-size: 12px;
       font-family: var(--font-stack-base);
+      position: relative;
+      z-index: 20001;
+      pointer-events: auto;
     }
 
     .menubtn:hover {
@@ -69,6 +73,8 @@
 
     .menu {
       position: relative;
+      z-index: 20001;
+      pointer-events: auto;
     }
 
     .dropdown {
@@ -83,7 +89,8 @@
       box-shadow: var(--shadow);
       display: none;
       padding: 8px;
-      z-index: 8;
+      z-index: 20002;
+      pointer-events: auto;
       gap: 12px;
       overflow-x: auto;
       overflow-y: auto;
@@ -404,6 +411,102 @@
       border: 1px dashed var(--border);
       border-radius: 10px;
       background: rgba(15, 17, 21, 0.6);
+    }
+
+    .view-empty-sheet {
+      width: min(860px, calc(100% - 48px));
+      padding: 28px 30px;
+      border-radius: 18px;
+      border: 1px solid rgba(122, 162, 247, 0.18);
+      background:
+        radial-gradient(700px 320px at 100% 0%, rgba(122, 162, 247, 0.12), transparent 60%),
+        linear-gradient(180deg, rgba(19, 24, 36, 0.94), rgba(11, 14, 21, 0.92));
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+    }
+
+    .view-empty-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .view-empty-subtitle {
+      margin: 10px 0 0;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .view-empty-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .view-empty-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .view-empty-section {
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .view-empty-section-title {
+      margin: 0 0 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .shortcut-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .shortcut-item-label {
+      min-width: 0;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .shortcut-kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 8px;
+      border-radius: 9px;
+      border: 1px solid rgba(122, 162, 247, 0.25);
+      background: rgba(122, 162, 247, 0.12);
+      color: #dfe8ff;
+      font-size: 12px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .shortcut-empty-note {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--text-dim);
     }
 
     #backBtn {
@@ -738,8 +841,6 @@
     }
   </style>
   <script src="./generated/settings_bundle.js"></script>
-  <!-- Optional user temp script: served from project Temp/ if present. Use defer so DOM is ready. -->
-  <script src="/temp/tmp_dashboard_script.js" defer></script>
   <script type="module" src="./app.js"></script>
 </head>
 

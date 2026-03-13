@@ -1,4 +1,4 @@
-export function mount(el) {
+export function mount(el, context) {
   // Load CSS
   if (!document.getElementById('settings-css')) {
     const link = document.createElement('link');
@@ -63,9 +63,26 @@ export function mount(el) {
   let parsedData = {};
   let rawYaml = '';
   let autocompleteCache = {}; // Cache for loaded setting options
+  let attentionTimer = null;
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   function setStatus(msg, ok = true) { if (status) { status.textContent = msg; status.style.color = ok ? '#a6adbb' : '#ef6a6a'; } }
+
+  function pulseAttention() {
+    try {
+      if (attentionTimer) {
+        window.clearTimeout(attentionTimer);
+        attentionTimer = null;
+      }
+      el.classList.remove('settings-attention');
+      void el.offsetWidth;
+      el.classList.add('settings-attention');
+      attentionTimer = window.setTimeout(() => {
+        el.classList.remove('settings-attention');
+        attentionTimer = null;
+      }, 1250);
+    } catch { }
+  }
 
   // Mapping: field name -> settings file to fetch options from
   const AUTOCOMPLETE_MAP = {
@@ -121,14 +138,17 @@ export function mount(el) {
     return options;
   }
 
-  async function listFiles() {
+  async function listFiles(preferredFile = '') {
     try {
       const r = await fetch(apiBase() + '/api/settings');
       const data = await r.json();
       if (!data || !Array.isArray(data.files)) throw new Error('Invalid response');
       sel.innerHTML = '';
       for (const f of data.files) { const opt = document.createElement('option'); opt.value = f; opt.textContent = f; sel.appendChild(opt); }
-      if (data.files.length) { await loadFile(data.files[0]); }
+      if (data.files.length) {
+        const targetFile = preferredFile && data.files.includes(preferredFile) ? preferredFile : data.files[0];
+        await loadFile(targetFile);
+      }
       setStatus('Loaded settings files.');
     } catch (e) { setStatus('Failed to list settings files.', false); }
   }
@@ -403,6 +423,26 @@ export function mount(el) {
     } catch (e) { setStatus('Save failed.', false); }
   }
 
+  async function openSettingsFile(request) {
+    const raw = typeof request === 'string' ? request : (request?.file || request?.path || '');
+    const targetFile = String(raw || '').replace(/\\/g, '/').split('/').pop();
+    if (!targetFile) return;
+    try { el.style.display = ''; } catch { }
+    try { el.classList.remove('minimized'); } catch { }
+    try { window.ChronosFocusWidget?.(el); } catch { }
+    pulseAttention();
+    try {
+      const hasOption = Array.from(sel?.options || []).some((opt) => opt.value === targetFile);
+      if (!hasOption) {
+        await listFiles(targetFile);
+        return;
+      }
+      await loadFile(targetFile);
+    } catch {
+      setStatus(`Failed to open ${targetFile}`, false);
+    }
+  }
+
   btnSave?.addEventListener('click', save);
   btnReload?.addEventListener('click', () => { if (sel.value) loadFile(sel.value); else listFiles(); });
   sel?.addEventListener('change', () => { if (sel.value) loadFile(sel.value); });
@@ -445,7 +485,12 @@ export function mount(el) {
   el.querySelector('#settingsMin')?.addEventListener('click', () => el.classList.toggle('minimized'));
   el.querySelector('#settingsClose')?.addEventListener('click', () => el.style.display = 'none');
 
+  try {
+    const bus = context?.bus || window.ChronosBus;
+    bus?.on?.('settings:open', (request) => { void openSettingsFile(request); });
+  } catch { }
+
   listFiles();
-  return {};
+  return { openFile: openSettingsFile };
 }
 

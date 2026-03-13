@@ -1161,7 +1161,7 @@ def _iter_trick_manifest_paths():
 
 def _trick_registry_input_hash(manifest_paths):
     hasher = hashlib.sha256()
-    hasher.update(b"trick_registry_v1\n")
+    hasher.update(b"trick_registry_v2\n")
     for p in manifest_paths:
         rel = os.path.relpath(p, ROOT_DIR).replace("\\", "/")
         hasher.update(rel.encode("utf-8", errors="replace"))
@@ -1225,6 +1225,8 @@ def build_trick_registry(force: bool = False):
             kind = str(row.get("kind") or "unknown").strip().lower() or "unknown"
             actions = row.get("actions") if isinstance(row.get("actions"), list) else []
             actions = [str(a).strip().lower() for a in actions if str(a).strip()]
+            if "highlight" not in actions:
+                actions.append("highlight")
             value_type = str(row.get("value_type") or "").strip().lower() or None
             desc = str(row.get("description") or "").strip() or None
             element_def = {

@@ -28,8 +28,10 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-PID_DIR = ROOT_DIR / "user" / "Temp"
+PID_DIR = ROOT_DIR / "user" / "temp"
+LEGACY_PID_DIR = ROOT_DIR / "user" / "Temp"
 PID_PATH = PID_DIR / "tray.pid"
+LEGACY_PID_PATH = LEGACY_PID_DIR / "tray.pid"
 
 from modules.timer import main as Timer
 from modules.scheduler import get_flattened_schedule, schedule_path_for_date
@@ -314,7 +316,10 @@ class ChronosTrayApp:
         self.refresh_state()
 
     def _default_profile(self):
-        settings_path = ROOT_DIR / "user" / "settings" / "Timer_Settings.yml"
+        settings_path = ROOT_DIR / "user" / "settings" / "timer_settings.yml"
+        legacy_settings_path = ROOT_DIR / "user" / "settings" / "Timer_Settings.yml"
+        if not settings_path.exists() and legacy_settings_path.exists():
+            settings_path = legacy_settings_path
         if not settings_path.exists():
             return "classic_pomodoro"
         try:
@@ -653,11 +658,13 @@ class ChronosTrayApp:
 
 
 def _read_pid_file():
-    try:
-        raw = PID_PATH.read_text(encoding="utf-8").strip()
-        return int(raw) if raw else None
-    except Exception:
-        return None
+    for path in (PID_PATH, LEGACY_PID_PATH):
+        try:
+            raw = path.read_text(encoding="utf-8").strip()
+            return int(raw) if raw else None
+        except Exception:
+            continue
+    return None
 
 
 def _write_pid_file(pid):
@@ -669,11 +676,12 @@ def _write_pid_file(pid):
 
 
 def _clear_pid_file():
-    try:
-        if PID_PATH.exists():
-            PID_PATH.unlink()
-    except Exception:
-        pass
+    for path in (PID_PATH, LEGACY_PID_PATH):
+        try:
+            if path.exists():
+                path.unlink()
+        except Exception:
+            pass
 
 
 def _pid_alive(pid):

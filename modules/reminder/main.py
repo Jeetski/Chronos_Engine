@@ -111,11 +111,16 @@ def trigger_reminder(reminder, filepath):
         reminder_sound_filename = reminder.get('sound')
         if not reminder_sound_filename:
             settings_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'user', 'settings'))
-            reminder_defaults_path = os.path.join(settings_dir, "Reminder_Defaults.yml")
-            if os.path.exists(reminder_defaults_path):
-                with open(reminder_defaults_path, 'r') as f:
-                    defaults = yaml.safe_load(f)
-                    reminder_sound_filename = defaults.get('default_sound')
+            reminder_defaults_paths = [
+                os.path.join(settings_dir, "reminder_defaults.yml"),
+                os.path.join(settings_dir, "Reminder_Defaults.yml"),
+            ]
+            for reminder_defaults_path in reminder_defaults_paths:
+                if os.path.exists(reminder_defaults_path):
+                    with open(reminder_defaults_path, 'r') as f:
+                        defaults = yaml.safe_load(f)
+                        reminder_sound_filename = defaults.get('default_sound')
+                    break
 
         if reminder_sound_filename:
             full_sound_path = _resolve_reminder_sound_path(reminder_sound_filename)

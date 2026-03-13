@@ -67,7 +67,6 @@ This reference lists currently implemented dashboard endpoints. Chronos Dashboar
 - `/api/file/read`
 - `/api/file/write`
 - `/api/file/rename`
-- `/api/file/delete`
 - `/api/open-in-editor`
 - `/api/new/note`
 - `/api/editor`
@@ -408,7 +407,7 @@ Shared timer error shape:
 
 ### `POST /api/trick`
 
-Supported commands: `OPEN`, `CLOSE`, `LIST`, `GET`, `SET`, `CLICK`, `WAIT`.
+Supported commands: `OPEN`, `CLOSE`, `LIST`, `GET`, `SET`, `TYPE`, `COPY`, `PASTE`, `PRESS`, `CLICK`, `HIGHLIGHT`, `WAIT`.
 
 Request:
 ```json
@@ -416,6 +415,18 @@ Request:
   "command": "CLICK",
   "target": "widget.timer.start_button",
   "actor": "nia"
+}
+```
+
+Highlight request example:
+```json
+{
+  "command": "HIGHLIGHT",
+  "target": "widget.today.reschedule_button",
+  "actor": "nia",
+  "mode": "spotlight",
+  "duration_ms": 3000,
+  "message": "Click here to generate the schedule."
 }
 ```
 

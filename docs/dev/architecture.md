@@ -110,7 +110,7 @@ A generic Vanilla JS Single Page Application (SPA).
 - Location: `user/settings/`
 - Conventions:
   - Prefer lowercase filenames, e.g., `points_settings.yml`, `achievement_defaults.yml`, `<item>_defaults.yml`.
-  - Timer files keep legacy names (e.g., `Timer_Settings.yml`) — accessible via Dashboard endpoints.
+- Timer files use lowercase canonical names (for example `timer_settings.yml` and `timer_profiles.yml`).
 - The Settings widget and `/api/settings` simplify editing.
 
 ## Dashboard API (summary)

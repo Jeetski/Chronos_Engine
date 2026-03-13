@@ -3,6 +3,7 @@ import os
 import sys
 import yaml
 import json
+import queue
 import re
 import base64
 import threading
@@ -49,11 +50,21 @@ _ADUC_LOG_PATH = os.path.join(tempfile.gettempdir(), "aduc_launch.log")
 _ADUC_NO_BROWSER_FLAG = os.path.join(tempfile.gettempdir(), "ADUC", "no_browser.flag")
 _ADUC_NO_BROWSER_FLAG_LOCAL = os.path.join(ROOT_DIR, "Agents Dress Up Committee", "temp", "no_browser.flag")
 _LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "link_settings.yml")
-_EDITOR_OPEN_REQUEST_PATH = os.path.join(ROOT_DIR, "Temp", "editor_open_request.json")
+_TEMP_DIR = os.path.join(ROOT_DIR, "temp")
+_LEGACY_TEMP_DIR = os.path.join(ROOT_DIR, "Temp")
+_EDITOR_OPEN_REQUEST_PATH = os.path.join(_TEMP_DIR, "editor_open_request.json")
 _TRICK_SESSION_STATE = {}
 _TRICK_OPEN_REQUESTS = []
 _TRICK_OPEN_LOCK = threading.Lock()
 _TRICK_OPEN_SEQ = 0
+_FILE_API_ALLOWED_ROOTS = [
+    os.path.join(ROOT_DIR, "user"),
+    os.path.join(ROOT_DIR, "Agents Dress Up Committee", "familiars", "nia"),
+]
+_EDITOR_API_ALLOWED_ROOTS = [
+    os.path.join(ROOT_DIR, "user"),
+    _TEMP_DIR,
+]
 
 
 def _aduc_proxy_request(path: str, method: str = "GET", payload: dict | None = None, timeout: float = 8.0):
@@ -87,6 +98,51 @@ def _aduc_proxy_request(path: str, method: str = "GET", payload: dict | None = N
         return int(getattr(e, "code", 502) or 502), body
     except Exception as e:
         return 502, {"ok": False, "error": f"ADUC request failed: {e}"}
+
+
+def _path_within(base_dir: str, target_path: str) -> bool:
+    try:
+        base_real = os.path.normcase(os.path.realpath(base_dir))
+        target_real = os.path.normcase(os.path.realpath(target_path))
+        return os.path.commonpath([base_real, target_real]) == base_real
+    except Exception:
+        return False
+
+
+def _resolve_file_api_target(path_value: str):
+    rel = str(path_value or "").strip().replace("\\", "/")
+    if not rel:
+        return None, "Missing path"
+    target = os.path.abspath(os.path.join(ROOT_DIR, rel))
+    if not _path_within(ROOT_DIR, target):
+        return None, "Forbidden"
+    for allowed_root in _FILE_API_ALLOWED_ROOTS:
+        if _path_within(allowed_root, target):
+            return target, None
+    return None, "Path is outside allowed file API roots"
+
+
+def _resolve_editor_api_target(path_value: str):
+    rel = str(path_value or "").strip().replace("\\", "/")
+    if not rel:
+        return None, "Missing path"
+    target = os.path.abspath(os.path.join(ROOT_DIR, rel))
+    if not _path_within(ROOT_DIR, target):
+        return None, "Forbidden"
+    for allowed_root in _EDITOR_API_ALLOWED_ROOTS:
+        if _path_within(allowed_root, target):
+            return target, None
+    return None, "Path is outside allowed editor roots"
+
+
+def _legacy_or_canonical_temp_path(filename: str) -> str:
+    canonical = os.path.join(_TEMP_DIR, filename)
+    legacy = os.path.join(_LEGACY_TEMP_DIR, filename)
+    if os.path.exists(canonical):
+        return canonical
+    if os.path.exists(legacy):
+        return legacy
+    return canonical
 
 
 def _trick_registry():
@@ -3900,29 +3956,66 @@ def _trick_surface_entry(surface_id):
     return None
 
 
-def _trick_open_request_push(surface_id, action: str = "open"):
+def _trick_ui_request_push(req: dict):
     global _TRICK_OPEN_SEQ
-    entry = _trick_surface_entry(surface_id)
-    if not isinstance(entry, dict):
+    if not isinstance(req, dict) or not req:
         return None
     with _TRICK_OPEN_LOCK:
         _TRICK_OPEN_SEQ += 1
-        req_id = int(_TRICK_OPEN_SEQ)
-    req = {
-        "id": req_id,
+        req = dict(req)
+        req["id"] = int(_TRICK_OPEN_SEQ)
+        req["requested_at"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    with _TRICK_OPEN_LOCK:
+        _TRICK_OPEN_REQUESTS.append(req)
+        if len(_TRICK_OPEN_REQUESTS) > 64:
+            del _TRICK_OPEN_REQUESTS[:-64]
+    return req
+
+
+def _trick_open_request_push(surface_id, action: str = "open"):
+    entry = _trick_surface_entry(surface_id)
+    if not isinstance(entry, dict):
+        return None
+    return _trick_ui_request_push({
         "action": str(action or "open").strip().lower() or "open",
         "surface": str(entry.get("id") or "").strip().lower(),
         "type": str(entry.get("type") or "").strip().lower(),
         "name": str(entry.get("name") or "").strip().lower(),
         "label": str(entry.get("label") or "").strip(),
         "module": str(entry.get("module") or "").strip(),
-        "requested_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-    }
-    with _TRICK_OPEN_LOCK:
-        _TRICK_OPEN_REQUESTS.append(req)
-        if len(_TRICK_OPEN_REQUESTS) > 64:
-            del _TRICK_OPEN_REQUESTS[:-64]
-    return req
+    })
+
+
+def _trick_highlight_request_push(target, actor="default", mode="spotlight", duration_ms=0, message=None):
+    target_id = str(target or "").strip().lower()
+    if not target_id:
+        return None
+    surface_id = ".".join(target_id.split(".")[:2]) if target_id.count(".") >= 1 else target_id
+    entry = _trick_surface_entry(surface_id)
+    if not isinstance(entry, dict):
+        return None
+    mode_value = str(mode or "spotlight").strip().lower() or "spotlight"
+    if mode_value not in {"spotlight", "pulse"}:
+        mode_value = "spotlight"
+    try:
+        duration = int(duration_ms or 0)
+    except Exception:
+        duration = 0
+    duration = max(0, min(60000, duration))
+    note = str(message or "").strip()
+    return _trick_ui_request_push({
+        "action": "highlight",
+        "surface": str(entry.get("id") or "").strip().lower(),
+        "target": target_id,
+        "type": str(entry.get("type") or "").strip().lower(),
+        "name": str(entry.get("name") or "").strip().lower(),
+        "label": str(entry.get("label") or "").strip(),
+        "module": str(entry.get("module") or "").strip(),
+        "actor": _trick_actor_key(actor),
+        "mode": mode_value,
+        "duration_ms": duration,
+        "message": note or None,
+    })
 
 
 def _trick_open_request_latest():
@@ -4621,9 +4714,9 @@ def _trick_click(target, actor):
         return _trick_copy_value("widget.debug_console.output_text", actor)
 
     if target == "widget.debug_console.open_editor_button":
-        ok = _editor_open_request_write("Temp/debug_console_capture.txt", 1)
+        ok = _editor_open_request_write("temp/debug_console_capture.txt", 1)
         debug_widget["status_text"] = "Queued for editor." if ok else "Editor queue failed."
-        return ok, {"path": "Temp/debug_console_capture.txt"}, None if ok else "Failed to queue editor request"
+        return ok, {"path": "temp/debug_console_capture.txt"}, None if ok else "Failed to queue editor request"
 
     if target == "widget.debug_console.minimize_button":
         debug_widget["minimized"] = not bool(debug_widget.get("minimized"))
@@ -5783,6 +5876,9 @@ def _trick_parse_request(payload):
         "predicate": None,
         "expected": None,
         "timeout_ms": 5000,
+        "mode": "spotlight",
+        "duration_ms": 0,
+        "message": None,
     }
     if isinstance(payload, dict):
         req["actor"] = payload.get("actor") or payload.get("familiar") or "default"
@@ -5790,10 +5886,16 @@ def _trick_parse_request(payload):
         req["value"] = payload.get("value")
         req["predicate"] = payload.get("predicate")
         req["expected"] = payload.get("expected")
+        req["mode"] = payload.get("mode") or "spotlight"
+        req["message"] = payload.get("message")
         try:
             req["timeout_ms"] = int(payload.get("timeout_ms") or 5000)
         except Exception:
             req["timeout_ms"] = 5000
+        try:
+            req["duration_ms"] = int(payload.get("duration_ms") or 0)
+        except Exception:
+            req["duration_ms"] = 0
 
         raw = str(payload.get("input") or payload.get("command") or "").strip()
         if raw:
@@ -5818,6 +5920,18 @@ def _trick_parse_request(payload):
                         tail = tail[:-1]
                     if tail:
                         req["expected"] = " ".join(tail)
+            elif req["command"] == "HIGHLIGHT":
+                if len(toks) >= 2 and not req["target"]:
+                    req["target"] = toks[1]
+                tail = toks[2:]
+                if tail and (payload.get("mode") in (None, "")):
+                    req["mode"] = tail[0]
+                    tail = tail[1:]
+                if tail and re.fullmatch(r"\d+", str(tail[0])) and not payload.get("duration_ms"):
+                    req["duration_ms"] = int(tail[0])
+                    tail = tail[1:]
+                if tail and req.get("message") in (None, ""):
+                    req["message"] = " ".join(str(part) for part in tail)
             else:
                 if len(toks) >= 2 and not req["target"]:
                     req["target"] = toks[1]
@@ -5829,6 +5943,10 @@ def _trick_parse_request(payload):
     req["command"] = str(req["command"] or "").strip().upper()
     req["target"] = str(req["target"] or "").strip().lower()
     req["timeout_ms"] = max(100, min(20000, int(req["timeout_ms"] or 5000)))
+    req["mode"] = str(req.get("mode") or "spotlight").strip().lower() or "spotlight"
+    req["duration_ms"] = max(0, min(60000, int(req.get("duration_ms") or 0)))
+    if req.get("message") is not None:
+        req["message"] = str(req.get("message") or "").strip() or None
     return req
 
 def _load_link_settings():
@@ -5869,8 +5987,8 @@ def _editor_open_request_write(path_value: str, line_value=None) -> bool:
         rel = str(path_value or "").strip().replace("\\", "/")
         if not rel:
             return False
-        abs_target = os.path.abspath(os.path.join(ROOT_DIR, rel))
-        if not abs_target.startswith(ROOT_DIR):
+        abs_target, err = _resolve_editor_api_target(rel)
+        if err:
             return False
         payload = {"path": os.path.relpath(abs_target, ROOT_DIR).replace("\\", "/")}
         if line_value is not None:
@@ -5887,12 +6005,13 @@ def _editor_open_request_write(path_value: str, line_value=None) -> bool:
 
 def _editor_open_request_pop():
     try:
-        if not os.path.exists(_EDITOR_OPEN_REQUEST_PATH):
+        request_path = _legacy_or_canonical_temp_path("editor_open_request.json")
+        if not os.path.exists(request_path):
             return None
-        with open(_EDITOR_OPEN_REQUEST_PATH, "r", encoding="utf-8") as fh:
+        with open(request_path, "r", encoding="utf-8") as fh:
             payload = json.load(fh) or {}
         try:
-            os.remove(_EDITOR_OPEN_REQUEST_PATH)
+            os.remove(request_path)
         except Exception:
             pass
         if not isinstance(payload, dict):
@@ -5900,8 +6019,8 @@ def _editor_open_request_pop():
         path_value = str(payload.get("path") or "").strip().replace("\\", "/")
         if not path_value:
             return None
-        abs_target = os.path.abspath(os.path.join(ROOT_DIR, path_value))
-        if not abs_target.startswith(ROOT_DIR):
+        abs_target, err = _resolve_editor_api_target(path_value)
+        if err:
             return None
         out = {"path": os.path.relpath(abs_target, ROOT_DIR).replace("\\", "/")}
         if payload.get("line") is not None:
@@ -6010,28 +6129,91 @@ try:
 except Exception:
     pass
 
+_CONSOLE_JOB_QUEUE = queue.Queue()
+_CONSOLE_WORKER_READY = threading.Event()
+_CONSOLE_WORKER_THREAD = None
+
+
+def _run_console_command_in_process(command_name, args_list, properties=None):
+    from modules import console as ConsoleModule  # type: ignore
+
+    old_out, old_err = sys.stdout, sys.stderr
+    out_buf, err_buf = io.StringIO(), io.StringIO()
+    sys.stdout, sys.stderr = out_buf, err_buf
+    ok = True
+    try:
+        ConsoleModule.run_command(command_name, args_list, properties or {})
+    except Exception as e:
+        ok = False
+        print(f"Error: {e}")
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    return ok, out_buf.getvalue().strip(), err_buf.getvalue().strip()
+
+
+def _console_command_worker():
+    _CONSOLE_WORKER_READY.set()
+    while True:
+        job = _CONSOLE_JOB_QUEUE.get()
+        try:
+            if job is None:
+                return
+            command_name = job.get("command_name")
+            args_list = job.get("args_list") or []
+            properties = job.get("properties") or {}
+            event = job.get("event")
+            try:
+                result = _run_console_command_in_process(command_name, args_list, properties)
+            except Exception as e:
+                result = (False, "", f"Worker execution failed: {e}")
+            job["result"] = result
+            if event:
+                event.set()
+        finally:
+            _CONSOLE_JOB_QUEUE.task_done()
+
+
+def _ensure_console_worker():
+    global _CONSOLE_WORKER_THREAD
+    thr = _CONSOLE_WORKER_THREAD
+    if thr is not None and thr.is_alive():
+        return thr
+    _CONSOLE_WORKER_READY.clear()
+    thr = threading.Thread(
+        target=_console_command_worker,
+        name="chronos-dashboard-console-worker",
+        daemon=True,
+    )
+    thr.start()
+    _CONSOLE_WORKER_READY.wait(timeout=5)
+    _CONSOLE_WORKER_THREAD = thr
+    return thr
+
+
 def run_console_command(command_name, args_list, properties=None):
     """
     Invoke the Console command pipeline.
-    Preferred: in-process import of modules.console.run_command.
+    Preferred: in-process execution through a single-worker queue.
     Fallback: subprocess execution of Console via Python.
     Returns (ok, stdout, stderr).
     """
-    # Try in-process
+    # Try in-process via single worker to avoid shared stdout/stderr races.
     try:
-        from modules import console as ConsoleModule# type: ignore
-        old_out, old_err = sys.stdout, sys.stderr
-        out_buf, err_buf = io.StringIO(), io.StringIO()
-        sys.stdout, sys.stderr = out_buf, err_buf
-        ok = True
-        try:
-            ConsoleModule.run_command(command_name, args_list, properties or {})
-        except Exception as e:
-            ok = False
-            print(f"Error: {e}")
-        finally:
-            sys.stdout, sys.stderr = old_out, old_err
-        return ok, out_buf.getvalue().strip(), err_buf.getvalue().strip()
+        _ensure_console_worker()
+        done = threading.Event()
+        job = {
+            "command_name": command_name,
+            "args_list": list(args_list or []),
+            "properties": dict(properties or {}),
+            "event": done,
+        }
+        _CONSOLE_JOB_QUEUE.put(job)
+        if not done.wait(timeout=120):
+            return False, "", "Command queue timed out after 120 seconds."
+        result = job.get("result")
+        if isinstance(result, tuple) and len(result) == 3:
+            return result
+        return False, "", "Command queue returned no result."
     except Exception:
         # Fallback: subprocess
         import subprocess
@@ -6680,11 +6862,77 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DASHBOARD_DIR, **kwargs)
 
+    @staticmethod
+    def _to_module_name(value):
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+        raw = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", raw)
+        raw = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", raw)
+        raw = re.sub(r"[-\s]+", "_", raw)
+        return raw.lower()
+
+    def translate_path(self, path):
+        translated = super().translate_path(path)
+        try:
+            parsed = urlparse(path)
+            rel_path = parsed.path or ""
+            for prefix in ("/widgets/", "/views/", "/cockpit/panels/"):
+                if not rel_path.startswith(prefix):
+                    continue
+                head = rel_path[len(prefix):]
+                tail = ""
+                if "/" in head:
+                    head, tail = head.split("/", 1)
+                    tail = "/" + tail
+                normalized = self._to_module_name(head)
+                if not normalized or normalized == head:
+                    break
+                candidate = super().translate_path(f"{prefix}{normalized}{tail}")
+                if os.path.exists(candidate):
+                    return candidate
+                break
+        except Exception:
+            pass
+        return translated
+
+    def _safe_stderr(self, message):
+        try:
+            stream = getattr(sys, "__stderr__", None) or getattr(sys, "stderr", None)
+            if stream is None or getattr(stream, "closed", False):
+                return
+            stream.write(message)
+            stream.flush()
+        except Exception:
+            return
+
+    def log_message(self, format, *args):
+        try:
+            message = "%s - - [%s] %s\n" % (
+                self.address_string(),
+                self.log_date_time_string(),
+                format % args,
+            )
+        except Exception:
+            return
+        self._safe_stderr(message)
+
     def _set_cors(self):
         # Allow same-origin and file:// usage; relax for localhost development
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+    def end_headers(self):
+        # Keep dashboard assets uncached during development so stale JS/CSS/modules
+        # do not survive interpreter changes or refactors.
+        try:
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        except Exception:
+            pass
+        super().end_headers()
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -6693,8 +6941,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
-        sys.stderr.write(f"DEBUG: GET request path: {parsed.path}\n") # DEBUG
-        sys.stderr.flush()
+        self._safe_stderr(f"DEBUG: GET request path: {parsed.path}\n")
 
         if parsed.path == "/api/trick/registry":
             try:
@@ -6752,8 +6999,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(500, {"ok": False, "error": f"Registry error: {e}"})
             return
 
-        sys.stderr.write(f"DEBUG: Checking path for /api/profile: {parsed.path}\n") # TEMP DEBUG
-        sys.stderr.flush()
+        if parsed.path == "/api/system/databases":
+            try:
+                databases = _list_system_databases()
+                self._write_json(200, {"ok": True, "databases": databases})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": str(e)})
+            return
+
         # Lazy import ItemManager helpers when API endpoints are hit
         def im():
             from modules.item_manager import list_all_items, read_item_data, write_item_data, delete_item, get_item_path
@@ -8073,47 +8326,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Milestones error: {e}"})
             return
-        if parsed.path == "/api/items":
-            # Return all items across all types (opt filterable by type query param)
-            sys.stderr.write(f"DEBUG: /api/items handler (line 1170) hit\n")
-            sys.stderr.flush()
-            try:
-                from modules.item_manager import list_all_items
-                qs = parse_qs(parsed.query or '')
-                filter_type = (qs.get('type') or [''])[0].strip().lower()
-                sys.stderr.write(f"DEBUG: filter_type={filter_type}\n")
-                sys.stderr.flush()
-                
-                # List of all known item types
-                item_types = ['goal', 'habit', 'commitment', 'task', 'project', 'routine', 'subroutine', 'microroutine', 'note', 'milestone', 'achievement', 'reward', 'canvas_board']
-                
-                all_items = []
-                for itype in item_types:
-                    if filter_type and itype != filter_type:
-                        continue
-                    try:
-                        rows = list_all_items(itype) or []
-                        sys.stderr.write(f"DEBUG: list_all_items({itype}) returned {len(rows)} items\n")
-                        sys.stderr.flush()
-                        for row in rows:
-                            if isinstance(row, dict):
-                                # Add type field if not present
-                                if 'type' not in row:
-                                    row['type'] = itype
-                                all_items.append(row)
-                    except Exception as ex:
-                        sys.stderr.write(f"DEBUG: list_all_items({itype}) exception: {ex}\n")
-                        sys.stderr.flush()
-                        continue
-                
-                sys.stderr.write(f"DEBUG: /api/items returning {len(all_items)} items total\n")
-                sys.stderr.flush()
-                self._write_json(200, {"ok": True, "items": all_items, "count": len(all_items)})
-            except Exception as e:
-                sys.stderr.write(f"DEBUG: /api/items exception: {e}\n")
-                sys.stderr.flush()
-                self._write_json(500, {"ok": False, "error": f"Items error: {e}"})
-            return
         if parsed.path == "/api/goal":
             try:
                 from modules.milestone import main as MilestoneModule  # type: ignore
@@ -8422,75 +8634,88 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 q = (qs.get('q') or [''])[0].strip().lower()
                 props_csv = (qs.get('props') or [''])[0]
                 props = {}
+                default_item_types = [
+                    'goal', 'habit', 'commitment', 'task', 'project', 'routine',
+                    'subroutine', 'microroutine', 'note', 'milestone',
+                    'achievement', 'reward', 'canvas_board', 'inventory',
+                    'journal_entry', 'dream_diary_entry',
+                ]
                 if props_csv:
                     for part in str(props_csv).split(','):
                         if ':' in part:
                             k, v = part.split(':', 1)
                             props[k.strip().lower()] = v.strip().lower()
                 list_all_items, _, _, _, get_item_path = im()
-                items = list_all_items(item_type) if item_type else []
                 out = []
-                for d in items:
-                    if not isinstance(d, dict):
-                        continue
-                    # Normalize keys
-                    dn = {str(k).lower(): v for k, v in d.items()}
-                    name = dn.get('name') or ''
-                    if q and q not in str(name).lower() and q not in str(dn.get('content','')).lower():
-                        continue
-                    ok = True
-                    for pk, pv in props.items():
-                        dv = dn.get(pk)
-                        if dv is None or str(dv).lower() != pv:
-                            ok = False; break
-                    if not ok:
-                        continue
-                    # Determine updated timestamp from file mtime
-                    upd = None
-                    try:
-                        fpath = get_item_path(item_type, name)
-                        if fpath and os.path.exists(fpath):
-                            from datetime import datetime as _dt
-                            upd = _dt.fromtimestamp(os.path.getmtime(fpath)).strftime('%Y-%m-%d %H:%M')
-                    except Exception:
+                item_types = [item_type] if item_type else list(default_item_types)
+                for current_type in item_types:
+                    items = list_all_items(current_type) or []
+                    for d in items:
+                        if not isinstance(d, dict):
+                            continue
+                        # Normalize keys
+                        dn = {str(k).lower(): v for k, v in d.items()}
+                        name = dn.get('name') or ''
+                        haystacks = [name, dn.get('content', ''), dn.get('description', ''), dn.get('summary', ''), dn.get('notes', '')]
+                        if q and not any(q in str(value).lower() for value in haystacks):
+                            continue
+                        ok = True
+                        for pk, pv in props.items():
+                            dv = dn.get(pk)
+                            if isinstance(dv, list):
+                                if not any(str(part).lower() == pv for part in dv):
+                                    ok = False
+                                    break
+                            elif dv is None or str(dv).lower() != pv:
+                                ok = False
+                                break
+                        if not ok:
+                            continue
+                        # Determine updated timestamp from file mtime
                         upd = None
-                    entry = {
-                        'name': name,
-                        'type': item_type,
-                        'category': dn.get('category'),
-                        'priority': dn.get('priority'),
-                        'status': dn.get('status'),
-                        'description': dn.get('description'),
-                        'summary': dn.get('summary'),
-                        'notes': dn.get('notes'),
-                        'tags': dn.get('tags'),
-                        'due_date': dn.get('due_date') or dn.get('due') or dn.get('deadline'),
-                        'deadline': dn.get('deadline'),
-                        'due': dn.get('due'),
-                        'date': dn.get('date'),
-                        'template': dn.get('template'),
-                        'template_name': dn.get('template_name'),
-                        'template_type': dn.get('template_type'),
-                        'template_id': dn.get('template_id'),
-                        'template_membership': dn.get('template_membership'),
-                        'is_template': bool(dn.get('is_template')),
-                        'updated': upd,
-                    }
-                    if item_type == 'project':
-                        entry['state'] = dn.get('state') or dn.get('status')
-                        entry['stage'] = dn.get('stage')
-                        entry['owner'] = dn.get('owner')
-                    elif item_type == 'inventory':
-                        # Surface placement metadata and linked entries so dashboards can show counts
-                        entry['places'] = dn.get('places') or dn.get('location')
-                        entry['tags'] = dn.get('tags')
-                        inv_items = dn.get('inventory_items')
-                        if not isinstance(inv_items, list):
-                            inv_items = dn.get('items') if isinstance(dn.get('items'), list) else []
-                        entry['inventory_items'] = inv_items if isinstance(inv_items, list) else []
-                        tools = dn.get('tools')
-                        entry['tools'] = tools if isinstance(tools, list) else []
-                    out.append(entry)
+                        try:
+                            fpath = get_item_path(current_type, name)
+                            if fpath and os.path.exists(fpath):
+                                from datetime import datetime as _dt
+                                upd = _dt.fromtimestamp(os.path.getmtime(fpath)).strftime('%Y-%m-%d %H:%M')
+                        except Exception:
+                            upd = None
+                        entry = {
+                            'name': name,
+                            'type': dn.get('type') or current_type,
+                            'category': dn.get('category'),
+                            'priority': dn.get('priority'),
+                            'status': dn.get('status'),
+                            'description': dn.get('description'),
+                            'summary': dn.get('summary'),
+                            'notes': dn.get('notes'),
+                            'tags': dn.get('tags'),
+                            'due_date': dn.get('due_date') or dn.get('due') or dn.get('deadline'),
+                            'deadline': dn.get('deadline'),
+                            'due': dn.get('due'),
+                            'date': dn.get('date'),
+                            'template': dn.get('template'),
+                            'template_name': dn.get('template_name'),
+                            'template_type': dn.get('template_type'),
+                            'template_id': dn.get('template_id'),
+                            'template_membership': dn.get('template_membership'),
+                            'is_template': bool(dn.get('is_template')),
+                            'updated': upd,
+                        }
+                        if current_type == 'project':
+                            entry['state'] = dn.get('state') or dn.get('status')
+                            entry['stage'] = dn.get('stage')
+                            entry['owner'] = dn.get('owner')
+                        elif current_type == 'inventory':
+                            entry['places'] = dn.get('places') or dn.get('location')
+                            entry['tags'] = dn.get('tags')
+                            inv_items = dn.get('inventory_items')
+                            if not isinstance(inv_items, list):
+                                inv_items = dn.get('items') if isinstance(dn.get('items'), list) else []
+                            entry['inventory_items'] = inv_items if isinstance(inv_items, list) else []
+                            tools = dn.get('tools')
+                            entry['tools'] = tools if isinstance(tools, list) else []
+                        out.append(entry)
                 self._write_json(200, {"ok": True, "items": out})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to list items: {e}"})
@@ -9419,15 +9644,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         # Serve project Assets under /assets/ (case-insensitive URL segment)
         path_l = parsed.path.lower()
-        # Serve project Temp files under /temp/ (case-insensitive URL segment)
+        # Serve project temp files under /temp/ (case-insensitive URL segment)
         if path_l.startswith("/temp/"):
             try:
                 _first, _second, rel = parsed.path.split('/', 2)
             except ValueError:
                 rel = ''
-            temp_root = os.path.join(ROOT_DIR, 'Temp')
+            temp_root = _legacy_or_canonical_temp_path("")
             fpath = os.path.abspath(os.path.join(temp_root, rel))
-            if not fpath.startswith(os.path.abspath(temp_root)):
+            if not _path_within(temp_root, fpath):
                 self.send_response(403)
                 self.end_headers()
                 return
@@ -9494,19 +9719,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         
         # /api/items - List items by type (for Item Manager widget)
         if parsed.path == "/api/items":
-            sys.stderr.write(f"DEBUG: /api/items handler hit, query={parsed.query}\n")
-            sys.stderr.flush()
+            self._safe_stderr(f"DEBUG: /api/items handler hit, query={parsed.query}\n")
             try:
                 qs = parse_qs(parsed.query or "")
                 item_type = (qs.get("type") or ["task"])[0]
                 search_q = (qs.get("q") or [""])[0].lower()
-                sys.stderr.write(f"DEBUG: /api/items type={item_type}, search={search_q}\n")
-                sys.stderr.flush()
+                self._safe_stderr(f"DEBUG: /api/items type={item_type}, search={search_q}\n")
                 
                 list_all_items, read_item_data, write_item_data, delete_item, get_item_path = im()
                 all_items = list_all_items(item_type) or []
-                sys.stderr.write(f"DEBUG: /api/items list_all_items returned {len(all_items)} items\n")
-                sys.stderr.flush()
+                self._safe_stderr(f"DEBUG: /api/items list_all_items returned {len(all_items)} items\n")
                 results = []
                 for raw in all_items:
                     if not isinstance(raw, dict):
@@ -9562,11 +9784,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 qs = parse_qs(parsed.query or "")
                 path_arg = (qs.get("path") or [""])[0].strip()
-                # Security: allow access only to user/, scripts/
-                # Logic: resolve path absolute, check if starts with ROOT_DIR
-                target_path = os.path.abspath(os.path.join(ROOT_DIR, path_arg))
-                if not target_path.startswith(ROOT_DIR):
-                    self._write_json(403, {"ok": False, "error": "Forbidden path"})
+                target_path, err = _resolve_editor_api_target(path_arg)
+                if err:
+                    self._write_json(403 if err != "Missing path" else 400, {"ok": False, "error": err})
                     return
                 
                 if os.path.isdir(target_path):
@@ -9653,7 +9873,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 target = req.get("target") or ""
                 actor = req.get("actor") or "default"
 
-                if cmd not in {"OPEN", "CLOSE", "LIST", "GET", "SET", "TYPE", "COPY", "PASTE", "PRESS", "CLICK", "WAIT"}:
+                if cmd not in {"OPEN", "CLOSE", "LIST", "GET", "SET", "TYPE", "COPY", "PASTE", "PRESS", "CLICK", "HIGHLIGHT", "WAIT"}:
                     self._write_json(400, {"ok": False, "error": "Invalid TRICK command"})
                     return
 
@@ -9760,6 +9980,36 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         return
                     ok, result, err = _trick_click(target, actor)
                     self._write_json(200 if ok else 500, {"ok": ok, "command": cmd, "target": target, "result": result, "error": err})
+                    return
+
+                if cmd == "HIGHLIGHT":
+                    surface = ".".join(target.split(".")[:2]) if target.count(".") >= 1 else target
+                    if not _trick_surface_exists(surface):
+                        self._write_json(404, {"ok": False, "error": f"Unknown TRICK surface: {surface}"})
+                        return
+                    if target.count(".") >= 2 and not _trick_element_allowed(target, "highlight"):
+                        self._write_json(400, {"ok": False, "error": f"HIGHLIGHT not allowed for target: {target}"})
+                        return
+                    req_ui = _trick_highlight_request_push(
+                        target,
+                        actor=actor,
+                        mode=req.get("mode") or req.get("value") or "spotlight",
+                        duration_ms=req.get("duration_ms") or 0,
+                        message=req.get("message"),
+                    )
+                    self._write_json(200 if req_ui else 400, {
+                        "ok": bool(req_ui),
+                        "command": cmd,
+                        "target": target,
+                        "result": {
+                            "highlighted": bool(req_ui),
+                            "mode": str(req.get("mode") or req.get("value") or "spotlight").strip().lower() or "spotlight",
+                            "duration_ms": int(req.get("duration_ms") or 0),
+                            "request": req_ui,
+                            "note": "Highlight request queued for dashboard UI.",
+                        },
+                        "error": None if req_ui else "Failed to queue highlight request",
+                    })
                     return
 
                 if cmd == "WAIT":
@@ -10342,9 +10592,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 if not path_arg:
                     self._write_json(400, {"ok": False, "error": "Missing path"}); return
                 
-                target_path = os.path.abspath(os.path.join(ROOT_DIR, path_arg))
-                if not target_path.startswith(ROOT_DIR):
-                    self._write_json(403, {"ok": False, "error": "Forbidden path"}); return
+                target_path, err = _resolve_editor_api_target(path_arg)
+                if err:
+                    self._write_json(403 if err != "Missing path" else 400, {"ok": False, "error": err}); return
                 
                 # Check for directory traversal or critical files if needed
                 # For now just save
@@ -10784,9 +11034,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     path = (qs.get('path') or [''])[0].strip()
                 if not path:
                     self._write_json(400, {"ok": False, "error": "Missing path"}); return
-                target = os.path.abspath(os.path.join(ROOT_DIR, path))
-                if not target.startswith(ROOT_DIR):
-                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
+                target, err = _resolve_file_api_target(path)
+                if err:
+                    self._write_json(403 if err != "Missing path" else 400, {"ok": False, "error": err}); return
                 if not os.path.isfile(target):
                     self._write_json(404, {"ok": False, "error": "File not found"}); return
                 with open(target, 'r', encoding='utf-8') as fh:
@@ -10803,10 +11053,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 content = payload.get('content') or ''
                 if not path:
                     self._write_json(400, {"ok": False, "error": "Missing path"}); return
-                target = os.path.abspath(os.path.join(ROOT_DIR, path))
-                if not target.startswith(ROOT_DIR):
-                    self._write_json(403, {"ok": False, "error": "Forbidden"}); return
-                allowed_ext = ('.md', '.markdown', '.yml', '.yaml', '.txt')
+                target, err = _resolve_file_api_target(path)
+                if err:
+                    self._write_json(403 if err != "Missing path" else 400, {"ok": False, "error": err}); return
+                allowed_ext = ('.md', '.markdown', '.yml', '.yaml', '.txt', '.json')
                 if not target.lower().endswith(allowed_ext):
                     self._write_json(400, {"ok": False, "error": "Extension not allowed"}); return
                 os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -10825,10 +11075,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 new_path = (payload.get('new_path') or '').strip()
                 if not old_path or not new_path:
                     self._write_json(400, {"ok": False, "error": "Missing old_path or new_path"}); return
-                old_target = os.path.abspath(os.path.join(ROOT_DIR, old_path))
-                new_target = os.path.abspath(os.path.join(ROOT_DIR, new_path))
-                if not old_target.startswith(ROOT_DIR) or not new_target.startswith(ROOT_DIR):
-                    self._write_json(403, {"ok": False, "error": "Forbidden path"}); return
+                old_target, old_err = _resolve_file_api_target(old_path)
+                new_target, new_err = _resolve_file_api_target(new_path)
+                if old_err or new_err:
+                    self._write_json(403, {"ok": False, "error": old_err or new_err}); return
                 if not os.path.exists(old_target):
                     self._write_json(404, {"ok": False, "error": "File not found"}); return
                 if os.path.exists(new_target):
@@ -10837,28 +11087,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "old_path": old_path, "new_path": new_path})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Rename failed: {e}"})
-            return
-
-        if parsed.path == "/api/file/delete":
-            try:
-                if not isinstance(payload, dict):
-                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
-                path = (payload.get('path') or '').strip()
-                if not path:
-                    self._write_json(400, {"ok": False, "error": "Missing path"}); return
-                target = os.path.abspath(os.path.join(ROOT_DIR, path))
-                if not target.startswith(ROOT_DIR):
-                    self._write_json(403, {"ok": False, "error": "Forbidden path"}); return
-                if not os.path.exists(target):
-                    self._write_json(404, {"ok": False, "error": "File not found"}); return
-                if os.path.isdir(target):
-                    import shutil
-                    shutil.rmtree(target)
-                else:
-                    os.remove(target)
-                self._write_json(200, {"ok": True, "path": path})
-            except Exception as e:
-                self._write_json(500, {"ok": False, "error": f"Delete failed: {e}"})
             return
 
         if parsed.path == "/api/status/update":
@@ -11504,14 +11732,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/items/export":
-            # Payload: { type, names: [] } → creates zip under Temp/ and returns temp URL
+            # Payload: { type, names: [] } -> creates zip under temp/ and returns temp URL
             try:
                 item_type = (payload.get('type') or '').strip().lower()
                 names = payload.get('names') or []
                 if not item_type or not isinstance(names, list) or not names:
                     self._write_yaml(400, {"ok": False, "error": "Missing type or names[]"}); return
                 import zipfile, time
-                temp_root = os.path.join(ROOT_DIR, 'Temp')
+                temp_root = _TEMP_DIR
                 os.makedirs(temp_root, exist_ok=True)
                 ts = time.strftime('%Y%m%d_%H%M%S')
                 zip_rel = f"exports_items_{ts}.zip"
@@ -11684,8 +11912,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             import json
             data = json.dumps(obj, ensure_ascii=False, default=str)  # default=str handles non-serializable types
         except Exception as e:
-            sys.stderr.write(f"DEBUG: _write_json json.dumps failed: {e}\n")
-            sys.stderr.flush()
+            self._safe_stderr(f"DEBUG: _write_json json.dumps failed: {e}\n")
             data = '{}'
         self.send_response(code)
         self._set_cors()

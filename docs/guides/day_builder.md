@@ -98,9 +98,9 @@ Template-level metadata editor supports:
 
 - `Auto Buffers/Breaks` (with toggles for buffers and breaks)
   - Reads:
-    - `user/settings/Buffer_Settings.yml`
-    - `user/settings/Timer_Settings.yml`
-    - `user/settings/Timer_Profiles.yml`
+- `user/settings/buffer_settings.yml`
+- `user/settings/timer_settings.yml`
+- `user/settings/timer_profiles.yml`
 - `Snap 5m`
 - `Auto Pack` from a configurable start time
 - `Validate` (time sanity + overlap checks)

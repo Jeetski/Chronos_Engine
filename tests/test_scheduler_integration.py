@@ -24,10 +24,10 @@ class TestSchedulerIntegration(unittest.TestCase):
         # Create a temp directory to act as the User root
         self.test_dir = tempfile.mkdtemp()
         self.user_dir = os.path.join(self.test_dir, "user")
-        os.makedirs(os.path.join(self.user_dir, "Days"))
-        os.makedirs(os.path.join(self.user_dir, "Tasks"))
-        os.makedirs(os.path.join(self.user_dir, "Settings"))
-        os.makedirs(os.path.join(self.user_dir, "Schedules"))
+        os.makedirs(os.path.join(self.user_dir, "days"))
+        os.makedirs(os.path.join(self.user_dir, "tasks"))
+        os.makedirs(os.path.join(self.user_dir, "settings"))
+        os.makedirs(os.path.join(self.user_dir, "schedules"))
 
         # Monkey patch the paths in the modules to point to our temp dir
         # This is "risky" but effective for integration testing specific file logic
@@ -38,15 +38,15 @@ class TestSchedulerIntegration(unittest.TestCase):
         Scheduler.USER_DIR = self.user_dir
         
         # Write clean settings
-        with open(os.path.join(self.user_dir, "Settings", "scheduling_priorities.yml"), "w") as f:
+        with open(os.path.join(self.user_dir, "settings", "scheduling_priorities.yml"), "w") as f:
             yaml.dump({"Scheduling_Priorities": []}, f)
-        with open(os.path.join(self.user_dir, "Settings", "priority_settings.yml"), "w") as f:
+        with open(os.path.join(self.user_dir, "settings", "priority_settings.yml"), "w") as f:
              yaml.dump({"Priority_Settings": {"High": {"value": 1}}}, f)
-        with open(os.path.join(self.user_dir, "Settings", "category_settings.yml"), "w") as f:
+        with open(os.path.join(self.user_dir, "settings", "category_settings.yml"), "w") as f:
              yaml.dump({"Category_Settings": {"Work": {"value": 1}}}, f)
-        with open(os.path.join(self.user_dir, "Settings", "status_settings.yml"), "w") as f:
+        with open(os.path.join(self.user_dir, "settings", "status_settings.yml"), "w") as f:
              yaml.dump({"Status_Settings": []}, f)
-        with open(os.path.join(self.user_dir, "Settings", "buffer_settings.yml"), "w") as f:
+        with open(os.path.join(self.user_dir, "settings", "buffer_settings.yml"), "w") as f:
              yaml.dump({}, f)
 
         # Mock ItemManager.read_item_data to read from our temp dir items
@@ -54,7 +54,7 @@ class TestSchedulerIntegration(unittest.TestCase):
         
         def side_effect_read(item_type, name):
             # Try to read from our temp user dir
-            path = os.path.join(self.user_dir, f"{item_type.title()}s", f"{name}.yml")
+            path = os.path.join(self.user_dir, f"{item_type}s", f"{name}.yml")
             if os.path.exists(path):
                 with open(path, 'r') as f:
                     return yaml.safe_load(f)
@@ -75,7 +75,7 @@ class TestSchedulerIntegration(unittest.TestCase):
         """Test building a schedule from a simple template."""
         
         # 1. Create a dummy task
-        task_path = os.path.join(self.user_dir, "Tasks", "My Task.yml")
+        task_path = os.path.join(self.user_dir, "tasks", "My Task.yml")
         with open(task_path, "w") as f:
             yaml.dump({
                 "name": "My Task",
@@ -86,7 +86,7 @@ class TestSchedulerIntegration(unittest.TestCase):
             }, f)
 
         # 2. Create a day template (e.g. Monday.yml)
-        day_path = os.path.join(self.user_dir, "Days", "Monday.yml")
+        day_path = os.path.join(self.user_dir, "days", "Monday.yml")
         with open(day_path, "w") as f:
             yaml.dump({
                 "sequence": [

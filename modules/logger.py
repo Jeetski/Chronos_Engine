@@ -6,7 +6,8 @@ import traceback
 # Setup paths
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 LOGS_DIR = os.path.join(ROOT_DIR, "logs")
-DEBUG_DIR = os.path.join(ROOT_DIR, "Debug")
+DEBUG_DIR = os.path.join(ROOT_DIR, "debug")
+LEGACY_DEBUG_DIR = os.path.join(ROOT_DIR, "Debug")
 
 if not os.path.exists(LOGS_DIR):
     try:
@@ -69,9 +70,13 @@ class Logger:
 
     @staticmethod
     def debug_to_file(filename, message):
-        """Writes raw debug info to a specific file in the Debug folder."""
+        """Writes raw debug info to a specific file in the debug folder."""
         try:
             path = os.path.join(DEBUG_DIR, filename)
+            if os.path.exists(LEGACY_DEBUG_DIR):
+                legacy_path = os.path.join(LEGACY_DEBUG_DIR, filename)
+                if os.path.exists(legacy_path) and not os.path.exists(path):
+                    path = legacy_path
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             with open(path, "a", encoding="utf-8") as f:
                 f.write(f"[{timestamp}] {message}\n")

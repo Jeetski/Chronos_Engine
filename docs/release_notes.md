@@ -12,7 +12,7 @@ Alpha v0.2 focuses on **stability, observability, and hygiene**. We have introdu
 *   **Test Suite**: We have established a foundational test suite (`tests/`) to ensure core stability covering Item Management and Scheduling basics.
 
 ### 🛠️ Improvements
-*   **Debug Hygiene**: `debug_delete.txt` and other ad-hoc debug files are now neatly contained in the `Debug/` directory, keeping your project root clean.
+*   **Debug Hygiene**: `debug_delete.txt` and other ad-hoc debug files are now neatly contained in the `debug/` directory, keeping your project root clean.
 *   **Error Handling**: `Console` and `ItemManager` now gracefully log errors instead of failing silently or crashing.
 *   **API**: Added `/api/logs` endpoint to the local server.
 

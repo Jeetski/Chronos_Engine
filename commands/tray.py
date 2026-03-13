@@ -5,25 +5,30 @@ import subprocess
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 TRAY_SCRIPT = os.path.join(ROOT_DIR, "utilities", "tray", "app.py")
-PID_DIR = os.path.join(ROOT_DIR, "user", "Temp")
+PID_DIR = os.path.join(ROOT_DIR, "user", "temp")
+LEGACY_PID_DIR = os.path.join(ROOT_DIR, "user", "Temp")
 PID_PATH = os.path.join(PID_DIR, "tray.pid")
+LEGACY_PID_PATH = os.path.join(LEGACY_PID_DIR, "tray.pid")
 
 
 def _read_pid():
-    try:
-        with open(PID_PATH, "r", encoding="utf-8") as fh:
-            raw = fh.read().strip()
-        return int(raw) if raw else None
-    except Exception:
-        return None
+    for path in (PID_PATH, LEGACY_PID_PATH):
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                raw = fh.read().strip()
+            return int(raw) if raw else None
+        except Exception:
+            continue
+    return None
 
 
 def _clear_pid():
-    try:
-        if os.path.exists(PID_PATH):
-            os.remove(PID_PATH)
-    except Exception:
-        pass
+    for path in (PID_PATH, LEGACY_PID_PATH):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
 
 
 def _pid_alive(pid):

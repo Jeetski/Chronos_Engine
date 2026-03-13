@@ -5,12 +5,12 @@ classic_pomodoro:
   points_per_focus: 0
   short_break_minutes: 5
   type: pomodoro
-classic_pomodoro_25_5:
-  focus_minutes: 25
+deep_work_50_10:
+  focus_minutes: 50
   long_break_every: 4
-  long_break_minutes: 15
-  points_per_focus: 0
-  short_break_minutes: 5
+  long_break_minutes: 20
+  points_per_focus: 10
+  short_break_minutes: 10
   type: pomodoro
 deep_work_60_10:
   focus_minutes: 60
@@ -19,12 +19,12 @@ deep_work_60_10:
   points_per_focus: 10
   short_break_minutes: 10
   type: pomodoro
-deep_work_50_10:
-  focus_minutes: 50
-  long_break_every: 4
-  long_break_minutes: 20
-  points_per_focus: 10
-  short_break_minutes: 10
+desk_time_112_26:
+  focus_minutes: 112
+  long_break_every: 2
+  long_break_minutes: 30
+  points_per_focus: 20
+  short_break_minutes: 26
   type: pomodoro
 desk_time_52_17:
   focus_minutes: 52
@@ -32,13 +32,6 @@ desk_time_52_17:
   long_break_minutes: 20
   points_per_focus: 12
   short_break_minutes: 17
-  type: pomodoro
-desk_time_112_26:
-  focus_minutes: 112
-  long_break_every: 2
-  long_break_minutes: 30
-  points_per_focus: 20
-  short_break_minutes: 26
   type: pomodoro
 hourly_55_5:
   focus_minutes: 55
@@ -67,46 +60,4 @@ sprint_90_30:
   long_break_minutes: 30
   points_per_focus: 0
   short_break_minutes: 10
-  type: pomodoro
-reset_1_1:
-  focus_minutes: 1
-  long_break_every: 4
-  long_break_minutes: 2
-  points_per_focus: 0
-  short_break_minutes: 1
-  type: pomodoro
-two_minute_2_1:
-  focus_minutes: 2
-  long_break_every: 4
-  long_break_minutes: 2
-  points_per_focus: 0
-  short_break_minutes: 1
-  type: pomodoro
-starter_5_1:
-  focus_minutes: 5
-  long_break_every: 4
-  long_break_minutes: 3
-  points_per_focus: 0
-  short_break_minutes: 1
-  type: pomodoro
-burst_10_2:
-  focus_minutes: 10
-  long_break_every: 4
-  long_break_minutes: 5
-  points_per_focus: 0
-  short_break_minutes: 2
-  type: pomodoro
-focus_15_3:
-  focus_minutes: 15
-  long_break_every: 4
-  long_break_minutes: 7
-  points_per_focus: 0
-  short_break_minutes: 3
-  type: pomodoro
-ultralight_20_5:
-  focus_minutes: 20
-  long_break_every: 4
-  long_break_minutes: 10
-  points_per_focus: 0
-  short_break_minutes: 5
   type: pomodoro

@@ -8,10 +8,11 @@ echo Chronos Engine Setup
 echo ==============================
 
 REM Locate a usable Python interpreter
-set "PYTHON_CMD="
+set "PYTHON_EXE="
+set "PYTHON_ARGS="
 call :find_python
 
-if not defined PYTHON_CMD (
+if not defined PYTHON_EXE (
   echo Python not found. Attempting installation...
   where winget >nul 2>&1
   if %ERRORLEVEL% EQU 0 (
@@ -25,25 +26,26 @@ if not defined PYTHON_CMD (
 
   REM Refresh environment and try to find Python again
   call :find_python
-  if not defined PYTHON_CMD goto :py_install_fail
+  if not defined PYTHON_EXE goto :py_install_fail
 )
 
-echo Using Python: %PYTHON_CMD%
+echo Using Python: %PYTHON_EXE% %PYTHON_ARGS%
 
 REM Create and use a local virtual environment (.venv)
 if not exist ".venv\Scripts\python.exe" (
   echo Creating virtual environment in .venv ...
-  "%PYTHON_CMD%" -m venv .venv || (
+  "%PYTHON_EXE%" %PYTHON_ARGS% -m venv .venv || (
     echo Failed to create virtual environment.
     goto :end_fail
   )
 )
-set "PYTHON_CMD=.venv\Scripts\python.exe"
-echo Using venv Python: %PYTHON_CMD%
+set "PYTHON_EXE=.venv\Scripts\python.exe"
+set "PYTHON_ARGS="
+echo Using venv Python: %PYTHON_EXE%
 
 REM Ensure pip is present and up to date
-"%PYTHON_CMD%" -m ensurepip --upgrade >nul 2>&1
-"%PYTHON_CMD%" -m pip install --upgrade pip
+"%PYTHON_EXE%" -m ensurepip --upgrade >nul 2>&1
+"%PYTHON_EXE%" -m pip install --upgrade pip
 
 echo Installing Python dependencies from requirements.txt...
 if not exist requirements.txt (
@@ -51,7 +53,7 @@ if not exist requirements.txt (
   echo Please ensure it exists and re-run this script.
   goto :end_fail
 )
-"%PYTHON_CMD%" -m pip install -r requirements.txt
+"%PYTHON_EXE%" -m pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 goto :end_fail
 
 echo.
@@ -65,11 +67,13 @@ goto :end_ok
 :find_python
   REM Prefer the Python launcher if available
   py -3 -V >nul 2>&1 && (
-    set "PYTHON_CMD=py -3"
+    set "PYTHON_EXE=py"
+    set "PYTHON_ARGS=-3"
     goto :eof
   )
   python -V >nul 2>&1 && (
-    set "PYTHON_CMD=python"
+    set "PYTHON_EXE=python"
+    set "PYTHON_ARGS="
     goto :eof
   )
   goto :eof

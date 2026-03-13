@@ -8,7 +8,7 @@ Chronos settings live under `user/settings/`. They configure defaults, points, t
   - `points_settings.yml`
   - `achievement_defaults.yml`
   - `<item>_defaults.yml` (e.g., `task_defaults.yml`, `routine_defaults.yml`)
-- TitleCase files are still supported for backward compatibility (e.g., `Timer_Settings.yml`).
+- Use lowercase canonical filenames for settings and defaults (for example `timer_settings.yml`).
 
 ## Editing Settings
 

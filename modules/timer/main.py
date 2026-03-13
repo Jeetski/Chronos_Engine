@@ -490,11 +490,16 @@ def _phase_sound_name(phase: str) -> str | None:
 
         # Fallback: Alarm/Reminder defaults
         settings_dir = os.path.join(get_user_dir(), 'settings')
-        p = os.path.join(settings_dir, 'Alarm_Defaults.yml') if phase == 'focus_end' else os.path.join(settings_dir, 'Reminder_Defaults.yml')
-        if os.path.exists(p):
-            with open(p, 'r') as f:
-                d = yaml.safe_load(f) or {}
-                return d.get('default_sound')
+        candidates = (
+            [os.path.join(settings_dir, 'alarm_defaults.yml'), os.path.join(settings_dir, 'Alarm_Defaults.yml')]
+            if phase == 'focus_end'
+            else [os.path.join(settings_dir, 'reminder_defaults.yml'), os.path.join(settings_dir, 'Reminder_Defaults.yml')]
+        )
+        for p in candidates:
+            if os.path.exists(p):
+                with open(p, 'r') as f:
+                    d = yaml.safe_load(f) or {}
+                    return d.get('default_sound')
     except Exception:
         return None
     return None

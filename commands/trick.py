@@ -145,7 +145,7 @@ def run(args, properties):
         action = str(kv.get("action") or (rest[0] if rest else "")).strip().lower()
         q = str(kv.get("q") or (" ".join(rest[1:]) if len(rest) > 1 else "")).strip().lower()
         if not action:
-            print("Usage: trick where action:<get|set|click|wait>")
+            print("Usage: trick where action:<get|set|type|copy|paste|press|click|highlight|wait>")
             return
         matches = []
         for row in (_as_elements(registry) or {}).values():
@@ -175,11 +175,10 @@ Usage:
   trick list [q:<text>] [type:<widget|view|panel|popup|gadget|wizard>]
   trick show <type.name>
   trick actions <type.name.element_name>
-  trick where action:<get|set|click|wait> [q:<text>]
+  trick where action:<get|set|type|copy|paste|press|click|highlight|wait> [q:<text>]
   trick refresh
 
 Description:
   Query the TRICK capability registry built from dashboard trick.yml manifests.
   Use this to see what UI surfaces/elements familiars can interact with.
 """
-

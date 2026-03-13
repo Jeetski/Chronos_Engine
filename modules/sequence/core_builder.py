@@ -18,7 +18,6 @@ from utilities.duration_parser import parse_duration_string  # type: ignore
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 USER_DIR = get_user_dir()
-SCHEDULE_PATH = schedule_path_for_date(datetime.now())
 COMPLETIONS_DIR = os.path.join(USER_DIR, "schedules", "completions")
 
 SKIP_DIRS = {
@@ -103,6 +102,43 @@ def _to_serializable(value):
 
 def _safe_json(payload: Any) -> str:
     return json.dumps(_to_serializable(payload), ensure_ascii=False, default=str)
+
+
+def _slug_item_type(slug: str) -> str:
+    raw = str(slug or "")
+    if "::" not in raw:
+        return ""
+    return raw.split("::", 1)[0].split("#", 1)[0]
+
+
+def _resolve_candidate_slug(
+    block_name: str,
+    name_index: Dict[str, List[str]],
+    type_lookup: Dict[str, str],
+    preferred_type: Optional[str] = None,
+) -> Tuple[str, Optional[str], bool]:
+    candidates = list(name_index.get(_slugify(block_name)) or [])
+    if not candidates:
+        return "", None, False
+
+    normalized_type = _slugify(preferred_type or "")
+    if normalized_type:
+        typed = [slug for slug in candidates if _slugify(type_lookup.get(slug) or _slug_item_type(slug)) == normalized_type]
+        if len(typed) == 1:
+            slug = typed[0]
+            return slug, type_lookup.get(slug), False
+        if len(typed) > 1:
+            return "", normalized_type or None, True
+
+    if len(candidates) == 1:
+        slug = candidates[0]
+        return slug, type_lookup.get(slug), False
+
+    candidate_types = {_slugify(type_lookup.get(slug) or _slug_item_type(slug)) for slug in candidates}
+    if len(candidate_types) == 1:
+        only_type = next(iter(candidate_types)) if candidate_types else None
+        return "", only_type or None, True
+    return "", None, True
 
 
 def _walk_item_files() -> Iterable[Tuple[str, str]]:
@@ -204,7 +240,7 @@ def _collect_relations(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return relations
 
 
-def _parse_completion_file(path: str, name_index: Dict[str, str], type_lookup: Dict[str, str]) -> List[Dict[str, Any]]:
+def _parse_completion_file(path: str, name_index: Dict[str, List[str]], type_lookup: Dict[str, str]) -> List[Dict[str, Any]]:
     completions: List[Dict[str, Any]] = []
     try:
         with open(path, "r", encoding="utf-8") as fh:
@@ -225,12 +261,8 @@ def _parse_completion_file(path: str, name_index: Dict[str, str], type_lookup: D
             block_name = block_name or parts[0]
             scheduled_start = scheduled_start or parts[1]
         block_name = block_name or block_key
-        slug = ""
-        matched_type = None
-        candidates = name_index.get(_slugify(block_name))
-        if candidates:
-            slug = candidates
-            matched_type = type_lookup.get(slug)
+        preferred_type = entry.get("type")
+        slug, matched_type, ambiguous = _resolve_candidate_slug(block_name, name_index, type_lookup, preferred_type)
         completions.append(
             {
                 "source_date": source_date,
@@ -238,6 +270,7 @@ def _parse_completion_file(path: str, name_index: Dict[str, str], type_lookup: D
                 "name": block_name,
                 "item_slug": slug,
                 "item_type": matched_type,
+                "match_ambiguous": bool(ambiguous),
                 "status": entry.get("status"),
                 "quality": entry.get("quality"),
                 "scheduled_start": scheduled_start,
@@ -252,7 +285,7 @@ def _parse_completion_file(path: str, name_index: Dict[str, str], type_lookup: D
     return completions
 
 
-def _collect_completions(name_index: Dict[str, str], type_lookup: Dict[str, str]) -> List[Dict[str, Any]]:
+def _collect_completions(name_index: Dict[str, List[str]], type_lookup: Dict[str, str]) -> List[Dict[str, Any]]:
     if not os.path.isdir(COMPLETIONS_DIR):
         return []
     completions: List[Dict[str, Any]] = []
@@ -301,11 +334,12 @@ def _flatten_schedule(items: List[Dict[str, Any]], *, depth=0, parent_slug="") -
             yield from _flatten_schedule(children, depth=depth + 1, parent_slug=slug or parent_slug)
 
 
-def _collect_schedule_entries(name_index: Dict[str, str], type_lookup: Dict[str, str]) -> List[Dict[str, Any]]:
-    if not os.path.exists(SCHEDULE_PATH):
+def _collect_schedule_entries(name_index: Dict[str, List[str]], type_lookup: Dict[str, str]) -> List[Dict[str, Any]]:
+    schedule_path = schedule_path_for_date(datetime.now())
+    if not os.path.exists(schedule_path):
         return []
     try:
-        with open(SCHEDULE_PATH, "r", encoding="utf-8") as fh:
+        with open(schedule_path, "r", encoding="utf-8") as fh:
             schedule = yaml.safe_load(fh) or []
     except Exception:
         return []
@@ -316,9 +350,13 @@ def _collect_schedule_entries(name_index: Dict[str, str], type_lookup: Dict[str,
     for record in _flatten_schedule(schedule):
         slug = record["item_slug"]
         if not slug and record["name"]:
-            candidate = name_index.get(_slugify(record["name"]))
+            candidate, matched_type, ambiguous = _resolve_candidate_slug(record["name"], name_index, type_lookup, record.get("type"))
             if candidate:
                 slug = candidate
+            if ambiguous:
+                record["match_ambiguous"] = True
+            if matched_type and not record.get("item_type"):
+                record["item_type"] = matched_type
         record["item_slug"] = slug
         record["item_type"] = type_lookup.get(slug) if slug else record.get("type")
         record["schedule_date"] = record["schedule_date"] or fallback_date
@@ -562,13 +600,9 @@ def build_core_db(registry: Dict[str, Any]) -> None:
         if key:
             name_map[key].append(slug)
 
-    unique_name_index = {
-        name: slugs[0] for name, slugs in name_map.items() if len(slugs) == 1
-    }
-
     relations = _collect_relations(records)
-    completions = _collect_completions(unique_name_index, type_lookup)
-    schedules = _collect_schedule_entries(unique_name_index, type_lookup)
+    completions = _collect_completions(name_map, type_lookup)
+    schedules = _collect_schedule_entries(name_map, type_lookup)
 
     conn = sqlite3.connect(tmp_path)
     try:

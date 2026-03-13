@@ -4,7 +4,9 @@ import json
 import subprocess
 import time
 import sys
+import socket
 from datetime import datetime
+from urllib import request as urlrequest, error as urlerror
 from modules.scheduler import status_current_path
 
 try:
@@ -13,6 +15,130 @@ except Exception:
     yaml = None
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def _dashboard_health_url(host, port):
+    return f"http://{host}:{port}/health"
+
+
+def _as_bool(value, default=False):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    raw = str(value).strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def _dashboard_server_healthy(host, port, timeout=1.5):
+    try:
+        with urlrequest.urlopen(_dashboard_health_url(host, port), timeout=timeout) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+        return getattr(resp, "status", 0) == 200 and "chronos-dashboard" in body
+    except Exception:
+        return False
+
+
+def _port_listening(host, port, timeout=0.75):
+    try:
+        with socket.create_connection((host, int(port)), timeout=timeout):
+            return True
+    except Exception:
+        return False
+
+
+def _find_listening_pids(port):
+    try:
+        proc = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"],
+            cwd=ROOT_DIR,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return []
+    needle = f":{int(port)}"
+    pids = []
+    for raw_line in (proc.stdout or "").splitlines():
+        line = raw_line.strip()
+        if not line or "LISTENING" not in line:
+            continue
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        local_addr = parts[1]
+        state = parts[3]
+        pid = parts[4]
+        if state != "LISTENING" or not local_addr.endswith(needle):
+            continue
+        try:
+            pids.append(int(pid))
+        except Exception:
+            continue
+    return sorted(set(pids))
+
+
+def _kill_processes(pids):
+    for pid in pids:
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                cwd=ROOT_DIR,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+        except Exception:
+            continue
+
+
+def _start_dashboard_server(server_script, env, visible_console=False):
+    kwargs = {
+        "cwd": ROOT_DIR,
+        "env": env,
+    }
+    if os.name == "nt":
+        flags = 0
+        if visible_console:
+            flags |= getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+        if flags:
+            kwargs["creationflags"] = flags
+    try:
+        subprocess.Popen([sys.executable, server_script], **kwargs)
+        return True
+    except Exception as e:
+        print(f"Warning: Could not start dashboard server: {e}")
+        return False
+
+
+def _ensure_dashboard_server(host, port, env, server_script, *, visible_console=False, restart=False):
+    if _dashboard_server_healthy(host, port) and not restart:
+        return True
+
+    pids = _find_listening_pids(port)
+    if pids:
+        _kill_processes(pids)
+        time.sleep(0.75)
+
+    if not _start_dashboard_server(server_script, env, visible_console=visible_console):
+        return False
+
+    deadline = time.time() + 8.0
+    while time.time() < deadline:
+        if _dashboard_server_healthy(host, port):
+            return True
+        if not _port_listening(host, port):
+            time.sleep(0.2)
+            continue
+        time.sleep(0.25)
+    return False
 
 def _read_dashboard_browser_setting():
     """Optional browser override from user/settings config."""
@@ -75,6 +201,7 @@ def run(args, properties):
     Bundles settings into a generated manifest and opens the dashboard HTML.
     Looks for utilities/dashboard/dashboard.html first; falls back to Chronos_Engine_Dashboard.html.
     """
+    print(f"[dashboard] Interpreter: {sys.executable}")
     try:
         bundle_settings_for_dashboard()
     except Exception as e:
@@ -95,23 +222,6 @@ def run(args, properties):
         print("No dashboard HTML found at 'utilities/dashboard/dashboard.html'.")
         return
 
-    # Ensure temp dashboard script lives under Temp/ if present at project root
-    try:
-        tmp_root_js = os.path.join(ROOT_DIR, 'tmp_dashboard_script.js')
-        if os.path.exists(tmp_root_js):
-            temp_dir = os.path.join(ROOT_DIR, 'Temp')
-            os.makedirs(temp_dir, exist_ok=True)
-            dest = os.path.join(temp_dir, 'tmp_dashboard_script.js')
-            if os.path.abspath(tmp_root_js) != os.path.abspath(dest):
-                try:
-                    # Move to Temp/ so the dashboard can load it from /temp/
-                    os.replace(tmp_root_js, dest)
-                    print("Relocated tmp_dashboard_script.js to Temp/.")
-                except Exception:
-                    pass
-    except Exception:
-        pass
-
     # Launch local YAML API + static server
     host = properties.get('host', '127.0.0.1') if isinstance(properties, dict) else '127.0.0.1'
     port = str(properties.get('port', '7357')) if isinstance(properties, dict) else '7357'
@@ -120,13 +230,21 @@ def run(args, properties):
     env['CHRONOS_DASH_PORT'] = port
 
     server_script = os.path.join(ROOT_DIR, 'utilities', 'dashboard', 'server.py')
-    try:
-        # Start detached process
-        subprocess.Popen([sys.executable, server_script], cwd=ROOT_DIR, env=env)
-        # Give server a moment to bind
-        time.sleep(1.0)
-    except Exception as e:
-        print(f"Warning: Could not start dashboard server: {e}")
+    visible_console = _as_bool(properties.get("server_console"), False) if isinstance(properties, dict) else False
+    restart_server = _as_bool(properties.get("restart_server"), False) if isinstance(properties, dict) else False
+    no_server = _as_bool(properties.get("browser_only"), False) if isinstance(properties, dict) else False
+    server_ready = True
+    if not no_server:
+        server_ready = _ensure_dashboard_server(
+            host,
+            port,
+            env,
+            server_script,
+            visible_console=visible_console,
+            restart=restart_server,
+        )
+    if not server_ready:
+        print(f"Warning: Dashboard server on {host}:{port} did not pass health checks.")
 
     url = f"http://{host}:{port}/dashboard.html"
     browser_from_props = ""
@@ -185,6 +303,7 @@ def bundle_settings_for_dashboard():
     alarm_defaults = read_yaml_first('alarm_defaults.yml', 'Alarm_Defaults.yml')
     status_cfg = read_yaml_first('status_settings.yml', 'status_settings.yml')
     profile_cfg = read_yaml_first('profile.yml', 'Profile.yml') # Read profile.yml
+    dashboard_key_bindings_cfg = read_yaml_first('dashboard_key_bindings.yml', 'Dashboard_Key_Bindings.yml')
 
     # Status option files (attempt common variants)
     status_files = {
@@ -242,6 +361,7 @@ def bundle_settings_for_dashboard():
                 'dashboard_widgets.yml',
                 'note_defaults.yml',
                 'profile.yml', # Add profile.yml to the list of source files
+                'dashboard_key_bindings.yml',
             ]
         },
         'priorities': priorities or ['low', 'medium', 'high'],
@@ -254,6 +374,7 @@ def bundle_settings_for_dashboard():
             'alarm': alarm_defaults or {},
         },
         'profile': profile_cfg or {}, # Include profile data in the bundle
+        'dashboard_key_bindings': dashboard_key_bindings_cfg or {},
     }
 
     # Build status payload

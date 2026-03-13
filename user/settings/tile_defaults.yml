@@ -1,0 +1,13 @@
+type: tile
+tile_type: url
+icon: globe
+icon_path: ""
+target: ""
+targets: []
+linked_item_type: ""
+linked_item_name: ""
+ring: 1
+slot: 0
+pinned: false
+enabled: true
+notes: ""

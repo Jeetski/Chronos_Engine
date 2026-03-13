@@ -7,11 +7,12 @@ cd /d "%~dp0"
 
 echo Synchronizing chronometers...
 
-REM Prefer local virtualenv Python if available; fallback to system python
+REM Use system Python for environment debugging
 set "PYTHON_EXE=python"
-if exist ".venv\Scripts\python.exe" set "PYTHON_EXE=.venv\Scripts\python.exe"
 
-REM Run the dashboard command through the console
-%PYTHON_EXE% modules/console.py dashboard
+echo [dashboard] Python: %PYTHON_EXE%
+
+REM Run the dashboard command through the console and keep server logs in this same window
+%PYTHON_EXE% modules/console.py dashboard restart_server:true
 
 exit /b

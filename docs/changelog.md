@@ -7,6 +7,7 @@
 - Supports:
   - file targets: `today > temp/today.txt`, `today >> temp/today.txt`
   - variable targets: `today > @out`, `today >> @out`
+- Embedded filename variables should use braces, for example `today > temp/@{day_name}.txt` rather than `temp/@day_name.txt`.
 - Redirection is parsed in the console after command parsing and routes captured command stdout to the selected destination.
 
 ### CLI - Persistent Variable Write-Through
@@ -128,7 +129,7 @@
   - `Auto Pack` from configurable start time
 - Added auto insertion from settings:
   - `Auto Buffers/Breaks` with toggles for buffers and breaks
-  - uses `Buffer_Settings.yml`, `Timer_Settings.yml`, `Timer_Profiles.yml`
+- uses `buffer_settings.yml`, `timer_settings.yml`, `timer_profiles.yml`
 
 ### Inspector + Data Model Enhancements
 - Added `Pinned Anchor` behavior in block inspector.

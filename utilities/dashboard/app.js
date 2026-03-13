@@ -348,6 +348,54 @@ try { window.ChronosStartDay = startChronosDay; } catch { }
 
 ready(async () => {
   console.log('[Chronos][app] Booting dashboard app');
+  let bootOverlay = null;
+  let bootMessage = null;
+  let bootFailed = false;
+  const ensureBootOverlay = () => {
+    if (bootOverlay) return;
+    try {
+      bootOverlay = document.createElement('div');
+      bootOverlay.style.position = 'fixed';
+      bootOverlay.style.top = '34px';
+      bootOverlay.style.left = '12px';
+      bootOverlay.style.zIndex = '30000';
+      bootOverlay.style.maxWidth = '560px';
+      bootOverlay.style.padding = '8px 12px';
+      bootOverlay.style.borderRadius = '10px';
+      bootOverlay.style.border = '1px solid rgba(122,162,247,0.35)';
+      bootOverlay.style.background = 'rgba(10,14,22,0.9)';
+      bootOverlay.style.color = '#dbe7ff';
+      bootOverlay.style.font = '12px/1.35 Consolas, Menlo, monospace';
+      bootOverlay.style.whiteSpace = 'pre-wrap';
+      bootOverlay.style.pointerEvents = 'none';
+      bootOverlay.style.boxShadow = '0 14px 40px rgba(0,0,0,0.35)';
+      bootMessage = document.createElement('div');
+      bootOverlay.appendChild(bootMessage);
+      document.body.appendChild(bootOverlay);
+    } catch { }
+  };
+  const bootStep = (message) => {
+    console.log(`[Chronos][boot] ${message}`);
+    if (bootFailed) return;
+    ensureBootOverlay();
+    if (bootMessage) bootMessage.textContent = String(message || '');
+  };
+  const bootFail = (message, error) => {
+    bootFailed = true;
+    console.error(`[Chronos][boot] ${message}`, error);
+    ensureBootOverlay();
+    if (bootOverlay) {
+      bootOverlay.style.borderColor = 'rgba(255,120,120,0.55)';
+      bootOverlay.style.color = '#ffd5d5';
+    }
+    if (bootMessage) {
+      bootMessage.textContent = `${message}\n${String(error?.stack || error || '')}`.trim();
+    }
+  };
+  const bootDone = () => {
+    if (bootFailed) return;
+    try { bootOverlay?.remove(); } catch { }
+  };
 
   // Ensure logo loads when opened via file:// by pointing to API base
   try {
@@ -376,6 +424,41 @@ ready(async () => {
   const UI_SCALE_BASE = 0.84;
   const UI_SCALE_MIN = 60;
   const UI_SCALE_MAX = 140;
+  const DASHBOARD_SETTINGS = window.CHRONOS_SETTINGS || {};
+  const DEFAULT_SHORTCUT_BINDINGS = Object.freeze({
+    reopen_last_closed: 'Ctrl+Shift+Space',
+    open_nia: 'Ctrl+/',
+    shortcut_help: '?',
+    close_focused_surface: 'Escape',
+    focus_next_surface: 'Ctrl',
+    focus_previous_surface: 'Ctrl+.',
+    quick_slots: {
+      '0': 'view.calendar',
+      '1': 'widget.today',
+      '2': 'widget.terminal',
+      '3': 'widget.notes',
+      '4': 'widget.status',
+      '5': 'widget.timer',
+      '6': 'widget.item_manager',
+      '7': 'view.weekly',
+      '8': 'view.cockpit',
+      '9': 'widget.review',
+    },
+  });
+  const SHORTCUT_ACTION_ORDER = [
+    'reopen_last_closed',
+    'open_nia',
+    'shortcut_help',
+    'close_focused_surface',
+    'focus_next_surface',
+    'focus_previous_surface',
+  ];
+  const SHORTCUT_ACTIONS_ALLOWED_IN_EDITORS = new Set([
+    'shortcut_help',
+    'open_nia',
+    'focus_next_surface',
+    'focus_previous_surface',
+  ]);
 
   function resolveTheme(themeId) {
     if (!themeOptions.length) return null;
@@ -451,6 +534,17 @@ ready(async () => {
   let viewEmpty = null;
   const VIEW_STATE_KEY = 'chronos_view_state_v1';
   const MIN_PANE_PX = 220;
+  const closedSurfaceHistory = [];
+  let focusedSurface = null;
+  let shortcutBindings = {
+    reopen_last_closed: DEFAULT_SHORTCUT_BINDINGS.reopen_last_closed,
+    open_nia: DEFAULT_SHORTCUT_BINDINGS.open_nia,
+    shortcut_help: DEFAULT_SHORTCUT_BINDINGS.shortcut_help,
+    close_focused_surface: DEFAULT_SHORTCUT_BINDINGS.close_focused_surface,
+    focus_next_surface: DEFAULT_SHORTCUT_BINDINGS.focus_next_surface,
+    focus_previous_surface: DEFAULT_SHORTCUT_BINDINGS.focus_previous_surface,
+    quick_slots: { ...DEFAULT_SHORTCUT_BINDINGS.quick_slots },
+  };
 
   function ensureViewShell() {
     if (!viewRoot) return;
@@ -460,14 +554,15 @@ ready(async () => {
     viewPanes.className = 'view-panes';
     viewEmpty = document.createElement('div');
     viewEmpty.className = 'view-empty';
-    viewEmpty.textContent = 'Open a view from the Views menu';
     viewRoot.append(viewPanes, viewEmpty);
+    renderEmptyStateContents();
   }
   ensureViewShell();
 
   function updateEmptyState() {
     if (!viewEmpty) return;
     viewEmpty.style.display = openPanes.length ? 'none' : '';
+    if (!openPanes.length) renderEmptyStateContents();
   }
 
   function persistViewState() {
@@ -600,6 +695,7 @@ ready(async () => {
     }
     const pane = document.createElement('div');
     pane.className = 'view-pane';
+    pane.dataset.viewName = name;
     const tab = document.createElement('div');
     tab.className = 'pane-tab';
     const title = document.createElement('span');
@@ -720,6 +816,7 @@ ready(async () => {
         } catch { }
       }
       openPanes.push({ name, label: label || name, pane, content, viewport });
+      setFocusedSurface({ type: 'view', name, label: label || name });
       window.__currentView = name;
       try { window.ChronosBus?.emit?.('view:changed', { current: name, open: openPanes.map(p => p.name) }); } catch { }
       updateEmptyState();
@@ -752,6 +849,21 @@ ready(async () => {
         }, 120);
       } catch { }
     };
+    window.ChronosOpenSettingsFile = async (path) => {
+      const req = {
+        path: String(path || '').replace(/\\/g, '/'),
+      };
+      req.file = req.path.split('/').pop();
+      if (!req.file) return;
+      try { window.__chronosSettingsOpenRequest = req; } catch { }
+      try { window.ChronosBus?.emit?.('widget:show', 'Settings'); } catch { }
+      try { window.ChronosBus?.emit?.('settings:open', req); } catch { }
+      try {
+        setTimeout(() => {
+          try { window.ChronosBus?.emit?.('settings:open', req); } catch { }
+        }, 120);
+      } catch { }
+    };
     window.ChronosOpenDoc = async (path, line) => {
       const req = { path: String(path || ''), line: Number.isFinite(Number(line)) ? Number(line) : undefined };
       try { window.__chronosDocsOpenRequest = req; } catch { }
@@ -777,6 +889,7 @@ ready(async () => {
     const idx = openPanes.findIndex(v => v.name === name);
     if (idx === -1) return;
     const pane = openPanes[idx];
+    rememberClosedSurface({ type: 'view', name: pane.name, label: pane.label || pane.name });
     try {
       const viewApi = pane.viewport?.__view?.api;
       if (viewApi && typeof viewApi.dispose === 'function') {
@@ -805,9 +918,147 @@ ready(async () => {
   // Mount widgets found by data-widget attribute
   const widgetEls = Array.from(document.querySelectorAll('[data-widget]'));
   console.log(`[Chronos][app] Found ${widgetEls.length} widget container(s)`);
+  bootStep(`Mounting ${widgetEls.length} widgets`);
   for (const el of widgetEls) {
     const name = el.getAttribute('data-widget');
     try { await mountWidget(el, name); } catch (e) { console.error('[Chronos][app] Widget mount error:', name, e); }
+  }
+  bootStep('Widgets mounted');
+
+  function setFocusedSurface(surface) {
+    if (!surface || !surface.type || !surface.name) return;
+    focusedSurface = { type: surface.type, name: surface.name };
+  }
+
+  function rememberClosedSurface(surface) {
+    if (!surface || !surface.type || !surface.name) return;
+    const normalized = {
+      type: String(surface.type).toLowerCase(),
+      name: String(surface.name).trim(),
+      label: String(surface.label || '').trim(),
+    };
+    if (!normalized.name) return;
+    const top = closedSurfaceHistory[closedSurfaceHistory.length - 1];
+    if (top && top.type === normalized.type && normalizeActionToken(top.name) === normalizeActionToken(normalized.name)) return;
+    closedSurfaceHistory.push(normalized);
+    if (closedSurfaceHistory.length > 24) closedSurfaceHistory.shift();
+  }
+
+  function isWidgetVisibleByElement(el) {
+    return !!el && el.style.display !== 'none';
+  }
+
+  function setWidgetVisibility(el, visible, { recordHistory = true, focus = true } = {}) {
+    if (!el) return false;
+    const wasVisible = isWidgetVisibleByElement(el);
+    if (visible) {
+      el.style.display = '';
+      el.classList.remove('minimized');
+      if (focus) {
+        try { window.ChronosFocusWidget?.(el); } catch { }
+        setFocusedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
+      }
+    } else {
+      if (recordHistory && wasVisible) {
+        rememberClosedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
+      }
+      el.style.display = 'none';
+    }
+    return true;
+  }
+
+  function toggleWidgetVisibility(el) {
+    if (!el) return false;
+    return setWidgetVisibility(el, !isWidgetVisibleByElement(el));
+  }
+
+  function minimizeWidgetElement(el) {
+    if (!el || !isWidgetVisibleByElement(el)) return false;
+    el.classList.toggle('minimized');
+    if (!el.classList.contains('minimized')) {
+      try { window.ChronosFocusWidget?.(el); } catch { }
+    }
+    setFocusedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
+    return true;
+  }
+
+  function openWidgetByName(name) {
+    const el = findWidgetElementByName(name);
+    return setWidgetVisibility(el, true);
+  }
+
+  function closeWidgetByName(name) {
+    const el = findWidgetElementByName(name);
+    return setWidgetVisibility(el, false);
+  }
+
+  function getSurfaceElements() {
+    const out = [];
+    widgetEls.forEach((el) => {
+      if (!isWidgetVisibleByElement(el)) return;
+      out.push({
+        type: 'widget',
+        name: el.getAttribute('data-widget') || el.id || '',
+        label: el.getAttribute('data-label') || el.getAttribute('data-widget') || '',
+        element: el,
+      });
+    });
+    openPanes.forEach((pane) => {
+      out.push({
+        type: 'view',
+        name: pane.name,
+        label: pane.label || pane.name,
+        element: pane.pane,
+      });
+    });
+    return out;
+  }
+
+  function getCurrentFocusedSurface() {
+    const active = document.activeElement;
+    const surfaceNode = active?.closest?.('.widget, .view-pane');
+    if (surfaceNode?.classList?.contains('widget')) {
+      return {
+        type: 'widget',
+        name: surfaceNode.getAttribute('data-widget') || surfaceNode.id || '',
+        element: surfaceNode,
+      };
+    }
+    if (surfaceNode?.classList?.contains('view-pane')) {
+      const pane = openPanes.find((entry) => entry.pane === surfaceNode);
+      if (pane) return { type: 'view', name: pane.name, element: pane.pane };
+    }
+    if (focusedSurface?.type === 'widget') {
+      const widget = findWidgetElementByName(focusedSurface.name);
+      if (widget && isWidgetVisibleByElement(widget)) {
+        return { type: 'widget', name: widget.getAttribute('data-widget') || widget.id || '', element: widget };
+      }
+    }
+    if (focusedSurface?.type === 'view') {
+      const pane = openPanes.find((entry) => normalizeActionToken(entry.name) === normalizeActionToken(focusedSurface.name));
+      if (pane) return { type: 'view', name: pane.name, element: pane.pane };
+    }
+    const surfaces = getSurfaceElements();
+    return surfaces.length ? surfaces[surfaces.length - 1] : null;
+  }
+
+  function isEditableTarget(target) {
+    if (!target) return false;
+    return !!target.closest('input, textarea, select, [contenteditable="true"], .cm-editor, .monaco-editor');
+  }
+
+  function renderShortcutOverlayText() {
+    return getShortcutSummaryGroups()
+      .map((group) => {
+        const lines = [group.title];
+        group.items.forEach((item) => lines.push(`  ${item.combo}  ${item.label}`));
+        return lines.join('\n');
+      })
+      .join('\n\n');
+  }
+
+  function showShortcutHelpOverlay() {
+    showTextOverlay('Dashboard Shortcuts', renderShortcutOverlayText());
   }
 
   let editorOpenPollBusy = false;
@@ -867,18 +1118,377 @@ ready(async () => {
     return null;
   }
 
-  function applyTrickOpenRequest(req) {
-    if (!req || String(req.type || '').toLowerCase() !== 'widget') return false;
+  function normalizeActionToken(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '');
+  }
+
+  function normalizeShortcutCombo(raw) {
+    const source = String(raw || '').trim();
+    if (!source) return '';
+    const explicit = source.replace(/\s+/g, '');
+    if (explicit === '?') return '?';
+    const parts = source
+      .split('+')
+      .map((part) => String(part || '').trim())
+      .filter(Boolean);
+    if (!parts.length) return '';
+    const modifiers = [];
+    let key = '';
+    parts.forEach((part) => {
+      const rawPart = String(part || '').trim();
+      if (!rawPart) return;
+      if (rawPart === '/') { key = '/'; return; }
+      if (rawPart === '?') { key = '?'; return; }
+      if (rawPart === '.') { key = '.'; return; }
+      if (rawPart === ',') { key = ','; return; }
+      const token = normalizeActionToken(part);
+      if (!token) return;
+      if (token === 'control' || token === 'ctrl') modifiers.push('Ctrl');
+      else if (token === 'alt' || token === 'option') modifiers.push('Alt');
+      else if (token === 'shift') modifiers.push('Shift');
+      else if (token === 'meta' || token === 'cmd' || token === 'command' || token === 'super' || token === 'win') modifiers.push('Meta');
+      else if (token === 'escape' || token === 'esc') key = 'Escape';
+      else if (token === 'space' || token === 'spacebar') key = 'Space';
+      else if (token === 'period') key = '.';
+      else if (token === 'comma') key = ',';
+      else if (token === 'slash') key = '/';
+      else if (token === 'question') key = '?';
+      else if (/^digit[0-9]$/.test(token)) key = token.slice(-1);
+      else if (/^key[a-z]$/.test(token)) key = token.slice(-1).toUpperCase();
+      else if (token.length === 1) key = /[a-z]/.test(token) ? token.toUpperCase() : token;
+      else key = part.length <= 1 ? part : part.charAt(0).toUpperCase() + part.slice(1);
+    });
+    const ordered = ['Ctrl', 'Alt', 'Shift', 'Meta'].filter((mod) => modifiers.includes(mod));
+    return [...ordered, key].filter(Boolean).join('+');
+  }
+
+  function eventToShortcutCombo(ev) {
+    if (!ev.ctrlKey && !ev.altKey && !ev.metaKey && String(ev.key || '') === '?') return '?';
+    const modifiers = [];
+    if (ev.ctrlKey) modifiers.push('Ctrl');
+    if (ev.altKey) modifiers.push('Alt');
+    if (ev.shiftKey) modifiers.push('Shift');
+    if (ev.metaKey) modifiers.push('Meta');
+    let key = String(ev.key || '');
+    if (key === ' ') key = 'Space';
+    else if (key.length === 1) key = /[a-z]/i.test(key) ? key.toUpperCase() : key;
+    else if (key === 'Esc') key = 'Escape';
+    return normalizeShortcutCombo([...modifiers, key].join('+'));
+  }
+
+  function readShortcutBindings() {
+    const configured = DASHBOARD_SETTINGS.dashboard_key_bindings;
+    const source = (configured && typeof configured === 'object' && configured.bindings && typeof configured.bindings === 'object')
+      ? configured.bindings
+      : {};
+    const next = {
+      quick_slots: { ...DEFAULT_SHORTCUT_BINDINGS.quick_slots },
+    };
+    SHORTCUT_ACTION_ORDER.forEach((action) => {
+      const configuredValue = source[action];
+      next[action] = normalizeShortcutCombo(configuredValue || DEFAULT_SHORTCUT_BINDINGS[action] || '');
+    });
+    const configuredSlots = (source.quick_slots && typeof source.quick_slots === 'object') ? source.quick_slots : {};
+    Object.keys(DEFAULT_SHORTCUT_BINDINGS.quick_slots).forEach((slot) => {
+      const candidate = configuredSlots[slot];
+      next.quick_slots[slot] = String(candidate || DEFAULT_SHORTCUT_BINDINGS.quick_slots[slot] || '').trim();
+    });
+    return next;
+  }
+
+  shortcutBindings = readShortcutBindings();
+  try {
+    if (!openPanes.length) renderEmptyStateContents();
+  } catch { }
+
+  function prettifyTargetLabel(raw) {
+    const source = String(raw || '').trim();
+    if (!source) return 'Unknown';
+    return source
+      .replace(/[_-]+/g, ' ')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .map((part) => {
+        const lower = String(part || '').toLowerCase();
+        if (!lower) return '';
+        if (['mp3', 'api', 'ai', 'ui', 'ux'].includes(lower)) return lower.toUpperCase();
+        if (lower === 'nia') return 'Nia';
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      })
+      .join(' ');
+  }
+
+  function findWidgetElementByName(name) {
+    const wanted = normalizeActionToken(name);
+    if (!wanted) return null;
+    const widgets = Array.from(document.querySelectorAll('[data-widget]'));
+    return widgets.find((el) => normalizeActionToken(el.getAttribute('data-widget') || el.id || '') === wanted) || null;
+  }
+
+  function findViewByName(name) {
+    const wanted = normalizeActionToken(name);
+    if (!wanted) return null;
+    return availableViews.find((view) => normalizeActionToken(view?.name || view?.label || '') === wanted) || null;
+  }
+
+  function getTargetLabel(target) {
+    const raw = String(target || '').trim();
+    if (!raw) return 'Unknown';
+    const [kind, name] = raw.split('.', 2);
+    const token = normalizeActionToken(name);
+    if (String(kind || '').toLowerCase() === 'widget') {
+      const el = findWidgetElementByName(token);
+      return el?.getAttribute('data-label') || el?.getAttribute('data-widget') || prettifyTargetLabel(name);
+    }
+    if (String(kind || '').toLowerCase() === 'view') {
+      const view = findViewByName(token);
+      return view?.label || view?.name || prettifyTargetLabel(name);
+    }
+    return prettifyTargetLabel(raw);
+  }
+
+  function getShortcutSummaryGroups() {
+    const primary = [
+      { label: 'Reopen last closed surface', combo: shortcutBindings.reopen_last_closed },
+      { label: 'Open Nia', combo: shortcutBindings.open_nia },
+      { label: 'Show shortcut help', combo: shortcutBindings.shortcut_help },
+      { label: 'Close focused surface', combo: shortcutBindings.close_focused_surface },
+      { label: 'Focus next surface', combo: shortcutBindings.focus_next_surface },
+      { label: 'Focus previous surface', combo: shortcutBindings.focus_previous_surface },
+    ].filter((item) => item.combo);
+    const quickSlots = Object.keys(shortcutBindings.quick_slots || {})
+      .sort((a, b) => Number(a) - Number(b))
+      .map((slot) => {
+        const target = shortcutBindings.quick_slots[slot];
+        return {
+          label: getTargetLabel(target),
+          combo: normalizeShortcutCombo(`Ctrl+${slot}`),
+        };
+      })
+      .filter((item) => item.combo && item.label);
+    return [
+      { title: 'Workspace', items: primary },
+      { title: 'Quick Slots', items: quickSlots },
+    ].filter((group) => group.items.length);
+  }
+
+  function renderEmptyStateContents() {
+    if (!viewEmpty) return;
+    const sheet = document.createElement('div');
+    sheet.className = 'view-empty-sheet';
+
+    const title = document.createElement('h2');
+    title.className = 'view-empty-title';
+    title.textContent = 'No view open';
+    const subtitle = document.createElement('p');
+    subtitle.className = 'view-empty-subtitle';
+    subtitle.textContent = 'Use the Views menu or jump straight to a surface with your configured dashboard shortcuts.';
+    sheet.append(title, subtitle);
+
+    const grid = document.createElement('div');
+    grid.className = 'view-empty-grid';
+    getShortcutSummaryGroups().forEach((group) => {
+      const section = document.createElement('section');
+      section.className = 'view-empty-section';
+      const heading = document.createElement('h3');
+      heading.className = 'view-empty-section-title';
+      heading.textContent = group.title;
+      const list = document.createElement('ul');
+      list.className = 'shortcut-list';
+      group.items.forEach((item) => {
+        const row = document.createElement('li');
+        row.className = 'shortcut-item';
+        const label = document.createElement('span');
+        label.className = 'shortcut-item-label';
+        label.textContent = item.label;
+        const kbd = document.createElement('kbd');
+        kbd.className = 'shortcut-kbd';
+        kbd.textContent = item.combo;
+        row.append(label, kbd);
+        list.appendChild(row);
+      });
+      section.append(heading, list);
+      grid.appendChild(section);
+    });
+    sheet.appendChild(grid);
+
+    const actions = document.createElement('div');
+    actions.className = 'view-empty-actions';
+
+    const editBindingsBtn = document.createElement('button');
+    editBindingsBtn.type = 'button';
+    editBindingsBtn.className = 'btn btn-primary';
+    editBindingsBtn.textContent = 'Edit Key Bindings';
+    editBindingsBtn.addEventListener('click', () => {
+      try {
+        void window.ChronosOpenSettingsFile?.('user/settings/dashboard_key_bindings.yml');
+      } catch { }
+    });
+    actions.appendChild(editBindingsBtn);
+    sheet.appendChild(actions);
+
+    const note = document.createElement('div');
+    note.className = 'shortcut-empty-note';
+    note.textContent = 'Edit user/settings/dashboard_key_bindings.yml to remap shortcuts and quick slots.';
+    sheet.appendChild(note);
+
+    viewEmpty.replaceChildren(sheet);
+  }
+
+  let trickHighlightState = null;
+
+  function ensureTrickHighlightStyles() {
+    if (document.getElementById('chronos-trick-highlight-style')) return;
+    const style = document.createElement('style');
+    style.id = 'chronos-trick-highlight-style';
+    style.textContent = `
+      .chronos-trick-highlight-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 25000;
+        pointer-events: none;
+      }
+      .chronos-trick-highlight-ring {
+        position: fixed;
+        border-radius: 18px;
+        border: 2px solid rgba(122, 162, 247, 0.98);
+        box-shadow: 0 0 0 9999px rgba(4, 7, 12, 0.68), 0 0 0 1px rgba(255,255,255,0.2) inset, 0 0 36px rgba(122,162,247,0.35);
+        pointer-events: none;
+        animation: chronos-trick-highlight-ring 1.8s ease-in-out infinite;
+      }
+      .chronos-trick-highlight-layer[data-mode="pulse"] .chronos-trick-highlight-ring {
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset, 0 0 28px rgba(122,162,247,0.38);
+      }
+      .chronos-trick-highlight-label {
+        position: fixed;
+        max-width: min(360px, calc(100vw - 32px));
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(122, 162, 247, 0.32);
+        background: rgba(9, 13, 20, 0.94);
+        color: #e6ecff;
+        font: 12px/1.4 var(--font-stack-mono, Consolas, monospace);
+        box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+        pointer-events: none;
+      }
+      .chronos-trick-highlight-target {
+        position: relative !important;
+        z-index: 25001 !important;
+        animation: chronos-trick-highlight-target 1.8s ease-in-out infinite;
+      }
+      @keyframes chronos-trick-highlight-ring {
+        0% { transform: scale(0.985); opacity: 0.92; }
+        35% { transform: scale(1.01); opacity: 1; }
+        100% { transform: scale(0.99); opacity: 0.96; }
+      }
+      @keyframes chronos-trick-highlight-target {
+        0% { filter: brightness(1); }
+        28% { filter: brightness(1.22); }
+        100% { filter: brightness(1.05); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function clearTrickHighlight() {
+    if (!trickHighlightState) return;
+    try { clearTimeout(trickHighlightState.timer); } catch { }
+    try { clearInterval(trickHighlightState.interval); } catch { }
+    try { window.removeEventListener('resize', trickHighlightState.onResize, true); } catch { }
+    try { window.removeEventListener('scroll', trickHighlightState.onResize, true); } catch { }
+    try { trickHighlightState.target?.classList?.remove('chronos-trick-highlight-target'); } catch { }
+    try { trickHighlightState.layer?.remove(); } catch { }
+    trickHighlightState = null;
+  }
+
+  function findTrickElement(target) {
+    const id = String(target || '').trim().toLowerCase();
+    if (!id) return null;
+    try {
+      const direct = document.querySelector(`[data-ui-id="${id.replace(/"/g, '\\"')}"]`);
+      if (direct) return direct;
+    } catch { }
+    const surface = ".".join(id.split(".").slice(0, 2));
+    if (surface && surface !== id) {
+      const widget = _findWidgetByTrick({ surface });
+      if (widget) return widget;
+    }
+    return _findWidgetByTrick({ surface: id }) || null;
+  }
+
+  function placeTrickHighlight(target, layer, ring, labelEl, message) {
+    if (!target || !layer || !ring) return false;
+    const rect = target.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0)) return false;
+    const pad = 10;
+    ring.style.left = `${Math.max(6, rect.left - pad)}px`;
+    ring.style.top = `${Math.max(6, rect.top - pad)}px`;
+    ring.style.width = `${Math.max(16, rect.width + (pad * 2))}px`;
+    ring.style.height = `${Math.max(16, rect.height + (pad * 2))}px`;
+    if (labelEl) {
+      labelEl.textContent = String(message || '').trim();
+      const top = rect.bottom + 14;
+      const fitsBelow = top + 48 < window.innerHeight;
+      labelEl.style.left = `${Math.min(window.innerWidth - 24, Math.max(12, rect.left))}px`;
+      labelEl.style.top = fitsBelow ? `${top}px` : `${Math.max(12, rect.top - 56)}px`;
+    }
+    return true;
+  }
+
+  async function applyTrickHighlightRequest(req) {
+    ensureTrickHighlightStyles();
+    clearTrickHighlight();
+    const surfaceTarget = String(req?.surface || '').trim();
+    if (surfaceTarget) {
+      try { await openSurfaceFromTarget(surfaceTarget); } catch { }
+    }
+    const target = findTrickElement(req?.target || req?.surface);
+    if (!target) return false;
+    const mode = String(req?.mode || 'spotlight').trim().toLowerCase() === 'pulse' ? 'pulse' : 'spotlight';
+    const layer = document.createElement('div');
+    layer.className = 'chronos-trick-highlight-layer';
+    layer.dataset.mode = mode;
+    const ring = document.createElement('div');
+    ring.className = 'chronos-trick-highlight-ring';
+    const label = String(req?.message || '').trim() ? document.createElement('div') : null;
+    if (label) label.className = 'chronos-trick-highlight-label';
+    layer.appendChild(ring);
+    if (label) layer.appendChild(label);
+    document.body.appendChild(layer);
+    target.classList.add('chronos-trick-highlight-target');
+    const update = () => placeTrickHighlight(target, layer, ring, label, req?.message);
+    update();
+    const onResize = () => { update(); };
+    window.addEventListener('resize', onResize, true);
+    window.addEventListener('scroll', onResize, true);
+    const interval = window.setInterval(update, 140);
+    let timer = null;
+    const duration = Math.max(0, Number(req?.duration_ms) || 0);
+    if (duration > 0) {
+      timer = window.setTimeout(() => clearTrickHighlight(), duration);
+    }
+    trickHighlightState = { layer, ring, label, target, onResize, interval, timer };
+    return true;
+  }
+
+  async function applyTrickUiRequest(req) {
+    if (!req) return false;
     const action = String(req.action || 'open').trim().toLowerCase();
+    if (action === 'highlight') return applyTrickHighlightRequest(req);
+    if (String(req.type || '').toLowerCase() !== 'widget') return false;
     const el = _findWidgetByTrick(req);
     if (!el) return false;
     if (action === 'close') {
-      el.style.display = 'none';
-      return true;
+      clearTrickHighlight();
+      return setWidgetVisibility(el, false);
     }
-    el.style.display = '';
-    try { window.ChronosFocusWidget?.(el); } catch { }
-    return true;
+    if (action === 'open') return setWidgetVisibility(el, true);
+    return false;
   }
 
   let trickOpenPollBusy = false;
@@ -892,7 +1502,7 @@ ready(async () => {
       const j = await r.json().catch(() => ({}));
       const req = j?.request;
       if (!req) return;
-      const applied = applyTrickOpenRequest(req);
+      const applied = await applyTrickUiRequest(req);
       const rid = Number(req?.id || 0);
       if (Number.isFinite(rid) && rid > 0) trickOpenSeenId = rid;
       if (!applied) return;
@@ -905,6 +1515,208 @@ ready(async () => {
     window.setTimeout(() => { void consumeTrickOpenRequest(); }, 600);
     window.setInterval(() => { void consumeTrickOpenRequest(); }, 1000);
   } catch { }
+
+  async function openSurfaceFromTarget(target) {
+    const raw = String(target || '').trim();
+    if (!raw) return false;
+    const [kind, name] = raw.split('.', 2);
+    const wanted = normalizeActionToken(name);
+    if (String(kind || '').toLowerCase() === 'widget') {
+      return openWidgetByName(wanted);
+    }
+    if (String(kind || '').toLowerCase() === 'view') {
+      const view = findViewByName(wanted);
+      if (view?.name) {
+        await openPane(view.name, view.label || view.name);
+        return true;
+      }
+      const fallbackLabel = prettifyTargetLabel(name);
+      const fallbackName = fallbackLabel.replace(/\s+/g, '');
+      if (!fallbackName) return false;
+      await openPane(fallbackName, fallbackLabel);
+      return true;
+    }
+    return false;
+  }
+
+  async function reopenLastClosedSurface() {
+    const surface = closedSurfaceHistory.pop();
+    if (!surface) return false;
+    return openSurfaceFromTarget(`${surface.type}.${surface.name}`);
+  }
+
+  function closeFocusedSurface() {
+    const surface = getCurrentFocusedSurface();
+    if (!surface) return false;
+    if (surface.type === 'widget') return closeWidgetByName(surface.name);
+    if (surface.type === 'view') {
+      closePane(surface.name);
+      return true;
+    }
+    return false;
+  }
+
+  function focusSurfaceByIndex(index) {
+    const surfaces = getSurfaceElements();
+    if (!surfaces.length) return false;
+    const bounded = ((index % surfaces.length) + surfaces.length) % surfaces.length;
+    const surface = surfaces[bounded];
+    if (!surface) return false;
+    try {
+      const active = document.activeElement;
+      if (active && active !== document.body && isEditableTarget(active)) {
+        active.blur?.();
+      }
+    } catch { }
+    if (surface.type === 'widget') {
+      try { window.ChronosFocusWidget?.(surface.element); } catch { }
+    } else {
+      try { surface.element?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }); } catch { }
+      try { surface.element?.classList?.add('active'); setTimeout(() => surface.element?.classList?.remove('active'), 180); } catch { }
+    }
+    setFocusedSurface(surface);
+    return true;
+  }
+
+  function cycleSurfaceFocus(direction = 1) {
+    const surfaces = getSurfaceElements();
+    if (!surfaces.length) return false;
+    const current = getCurrentFocusedSurface();
+    const currentIndex = current
+      ? surfaces.findIndex((surface) => surface.type === current.type && normalizeActionToken(surface.name) === normalizeActionToken(current.name))
+      : -1;
+    const start = currentIndex >= 0 ? currentIndex : 0;
+    return focusSurfaceByIndex(start + (direction >= 0 ? 1 : -1));
+  }
+
+  async function runShortcutAction(action) {
+    if (action === 'reopen_last_closed') return reopenLastClosedSurface();
+    if (action === 'open_nia') {
+      openWidgetByName('NiaAssistant');
+      try { window.ChronosBus?.emit?.('nia:open-chat'); } catch { }
+      try {
+        setTimeout(() => {
+          try { window.ChronosBus?.emit?.('nia:open-chat'); } catch { }
+        }, 120);
+      } catch { }
+      return true;
+    }
+    if (action === 'shortcut_help') {
+      showShortcutHelpOverlay();
+      return true;
+    }
+    if (action === 'close_focused_surface') {
+      if (trickHighlightState) {
+        clearTrickHighlight();
+        return true;
+      }
+      const overlays = Array.from(document.querySelectorAll('.chronos-overlay'));
+      const overlay = overlays[overlays.length - 1];
+      if (overlay) {
+        overlay.remove();
+        return true;
+      }
+      const openMenus = Array.from(document.querySelectorAll('#topbar .dropdown.open'));
+      if (openMenus.length) {
+        closeMenus();
+        return true;
+      }
+      return closeFocusedSurface();
+    }
+    if (action === 'focus_next_surface') return cycleSurfaceFocus(1);
+    if (action === 'focus_previous_surface') return cycleSurfaceFocus(-1);
+    return false;
+  }
+
+  function installShortcutHandler() {
+    let pendingModifierOnlyAction = null;
+
+    function clearPendingModifierOnlyAction() {
+      pendingModifierOnlyAction = null;
+    }
+
+    function isModifierOnlyCombo(combo) {
+      return combo === 'Ctrl' || combo === 'Alt' || combo === 'Shift' || combo === 'Meta';
+    }
+
+    document.addEventListener('keydown', (ev) => {
+      const combo = eventToShortcutCombo(ev);
+      if (!combo) return;
+      const editable = isEditableTarget(ev.target);
+      if (pendingModifierOnlyAction) {
+        if (combo !== pendingModifierOnlyAction.combo || ev.key !== pendingModifierOnlyAction.key) {
+          pendingModifierOnlyAction.cancelled = true;
+        }
+      }
+      const slotMatch = combo.match(/^Ctrl\+([0-9])$/);
+      if (slotMatch) {
+        clearPendingModifierOnlyAction();
+        ev.preventDefault();
+        ev.stopPropagation();
+        void openSurfaceFromTarget(shortcutBindings.quick_slots?.[slotMatch[1]]);
+        return;
+      }
+      const action = SHORTCUT_ACTION_ORDER.find((name) => shortcutBindings[name] === combo);
+      if (!action) return;
+      if (editable && !SHORTCUT_ACTIONS_ALLOWED_IN_EDITORS.has(action)) return;
+      if (isModifierOnlyCombo(combo)) {
+        if (ev.repeat) return;
+        pendingModifierOnlyAction = {
+          action,
+          combo,
+          key: ev.key,
+          cancelled: false,
+        };
+        return;
+      }
+      clearPendingModifierOnlyAction();
+      ev.preventDefault();
+      ev.stopPropagation();
+      void runShortcutAction(action);
+    }, true);
+
+    document.addEventListener('keyup', (ev) => {
+      const pending = pendingModifierOnlyAction;
+      if (!pending) return;
+      const combo = eventToShortcutCombo(ev);
+      if (ev.key !== pending.key && combo !== pending.combo) return;
+      clearPendingModifierOnlyAction();
+      if (pending.cancelled) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      void runShortcutAction(pending.action);
+    }, true);
+
+    window.addEventListener('blur', clearPendingModifierOnlyAction);
+  }
+
+  document.addEventListener('pointerdown', (ev) => {
+    const target = ev.target;
+    const widget = target?.closest?.('.widget');
+    if (widget) {
+      setFocusedSurface({ type: 'widget', name: widget.getAttribute('data-widget') || widget.id || '', label: widget.getAttribute('data-label') || '' });
+      return;
+    }
+    const pane = target?.closest?.('.view-pane');
+    if (!pane) return;
+    const entry = openPanes.find((item) => item.pane === pane);
+    if (entry) setFocusedSurface({ type: 'view', name: entry.name, label: entry.label || entry.name });
+  }, true);
+
+  document.addEventListener('focusin', (ev) => {
+    const target = ev.target;
+    const widget = target?.closest?.('.widget');
+    if (widget) {
+      setFocusedSurface({ type: 'widget', name: widget.getAttribute('data-widget') || widget.id || '', label: widget.getAttribute('data-label') || '' });
+      return;
+    }
+    const pane = target?.closest?.('.view-pane');
+    if (!pane) return;
+    const entry = openPanes.find((item) => item.pane === pane);
+    if (entry) setFocusedSurface({ type: 'view', name: entry.name, label: entry.label || entry.name });
+  }, true);
+
+  installShortcutHandler();
 
   // Simple topbar menus
   function closeMenus() { document.querySelectorAll('#topbar .dropdown').forEach(d => d.classList.remove('open')); }
@@ -1003,6 +1815,7 @@ ready(async () => {
     });
   });
   document.addEventListener('click', closeMenus);
+  bootStep('Topbar handlers bound');
 
   // Build/rebuild widgets dropdown based on current visibility
   function buildWidgetsMenu() {
@@ -1064,10 +1877,9 @@ ready(async () => {
         }
       }
       item.addEventListener('click', () => {
-        el.style.display = (el.style.display === 'none' ? '' : 'none');
-        check.textContent = el.style.display === 'none' ? '' : '✓';
+        toggleWidgetVisibility(el);
+        check.textContent = isWidgetVisibleByElement(el) ? '✓' : '';
         closeMenus();
-        try { if (el.style.display !== 'none') window.ChronosFocusWidget?.(el); } catch { }
       });
       return item;
     };
@@ -1086,7 +1898,12 @@ ready(async () => {
     attachDropdownSearch(widgetsMenu, 'Search widgets...');
   }
   // Initial build
-  buildWidgetsMenu();
+  try {
+    buildWidgetsMenu();
+    bootStep('Widget menu built');
+  } catch (e) {
+    bootFail('Widget menu build failed', e);
+  }
 
   function buildGadgetsMenu() {
     const gadgetsMenu = document.getElementById('menu-gadgets');
@@ -1527,86 +2344,82 @@ ready(async () => {
     fetch(apiBase() + '/api/registry?name=popups').then(r => r.json()).then(d => d.registry?.popups || []),
     fetch(apiBase() + '/api/registry?name=gadgets').then(r => r.json()).then(d => d.registry?.gadgets || []),
   ]).then(([wizards, themes, views, panels, popups, gadgets]) => {
-    console.log('[Chronos][app] Registries loaded:', { wizards: wizards.length, themes: themes.length, views: views.length, panels: panels.length, popups: popups.length, gadgets: gadgets.length });
+    try {
+      console.log('[Chronos][app] Registries loaded:', { wizards: wizards.length, themes: themes.length, views: views.length, panels: panels.length, popups: popups.length, gadgets: gadgets.length });
+      bootStep(`Registries loaded: views=${views.length}, panels=${panels.length}, popups=${popups.length}`);
 
-    wizardCatalog = wizards;
-    themeOptions = themes.filter(t => t.id !== 'theme-base'); // Exclude Theme Base
-    popupCatalog = Array.isArray(popups) ? popups : [];
-    gadgetCatalog = Array.isArray(gadgets) ? gadgets : [];
-    availableViews = (views || []).filter(v => {
-      const enabled = v?.enabled;
-      if (enabled === false) return false;
-      const name = String(v?.name || '').trim().toLowerCase();
-      return name !== 'templatebuilder';
-    });
+      wizardCatalog = wizards;
+      themeOptions = themes.filter(t => t.id !== 'theme-base'); // Exclude Theme Base
+      popupCatalog = Array.isArray(popups) ? popups : [];
+      gadgetCatalog = Array.isArray(gadgets) ? gadgets : [];
+      availableViews = (views || []).filter(v => {
+        const enabled = v?.enabled;
+        if (enabled === false) return false;
+        const name = String(v?.name || '').trim().toLowerCase();
+        return name !== 'templatebuilder';
+      });
 
-    // Default Fallback if none
-    if (!themeOptions.length) {
-      themeOptions.push({ id: 'chronos-blue', label: 'Chronos Blue', file: 'chronos-blue.css', accent: '#7aa2f7' });
+      if (!themeOptions.length) {
+        themeOptions.push({ id: 'chronos-blue', label: 'Chronos Blue', file: 'chronos-blue.css', accent: '#7aa2f7' });
+      }
+
+      try { buildWizardsMenu(); } catch (e) { bootFail('Wizard menu build failed', e); }
+      try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        applyTheme(stored, { persist: false });
+      } catch (e) {
+        bootFail('Theme apply failed', e);
+      }
+      try { buildViewsMenu(); } catch (e) { bootFail('View menu build failed', e); }
+      try { buildPopupsMenu(); } catch (e) { bootFail('Popup menu build failed', e); }
+      try { buildGadgetsMenu(); } catch (e) { bootFail('Gadget menu build failed', e); }
+      try { setupDockReveal(gadgetCatalog); } catch (e) { bootFail('Dock setup failed', e); }
+      try { renderEmptyStateContents(); } catch (e) { bootFail('Empty state render failed', e); }
+
+      const panelLoaders = (panels || [])
+        .filter(p => p.enabled !== false)
+        .map(p => () => import(new URL(`./panels/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
+          .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} panel`, err)));
+
+      const popupLoaders = (arePopupsEnabled() ? (popups || []) : [])
+        .filter(p => p.enabled !== false)
+        .sort((a, b) => {
+          const ma = String(a?.module || a?.id || '');
+          const mb = String(b?.module || b?.id || '');
+          const rank = (m) => {
+            if (m === 'Startup') return 0;
+            if (m === 'YesterdayCheckin') return 1;
+            return 2;
+          };
+          const ra = rank(ma);
+          const rb = rank(mb);
+          if (ra !== rb) return ra - rb;
+          if (ra < 2) return ma.localeCompare(mb);
+
+          const pa = Number(a?.priority || 0);
+          const pb = Number(b?.priority || 0);
+          if (pa !== pb) return pb - pa;
+          return ma.localeCompare(mb);
+        })
+        .map(p => () => import(new URL(`./popups/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
+          .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} popup`, err)));
+
+      try { buildPanelsMenu(); } catch (e) { bootFail('Panel menu build failed', e); }
+
+      console.log('[Chronos][app] Loading panels and popups...', { panelCount: panelLoaders.length, popupCount: popupLoaders.length });
+      Promise.all(panelLoaders.map(loader => loader()))
+        .then(async () => {
+          for (const loader of popupLoaders) {
+            await loader();
+          }
+        })
+        .then(() => console.log('[Chronos][app] All components loaded'))
+        .catch(err => console.error('[Chronos][app] Error loading components:', err));
+    } catch (e) {
+      bootFail('Registry bootstrap failed', e);
     }
-
-    buildWizardsMenu();
-
-    // Update theme menu if it exists (not implemented in this file but good to be ready)
-    // Re-apply stored theme if needed since options are now loaded
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    applyTheme(stored, { persist: false });
-
-    // Build views menu now that registry is loaded
-    buildViewsMenu();
-    buildPopupsMenu();
-    buildGadgetsMenu();
-    setupDockReveal(gadgetCatalog);
-
-    // Build panel loaders dynamically from registry
-    const panelLoaders = (panels || [])
-      .filter(p => p.enabled !== false)
-      .map(p => () => import(new URL(`./panels/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
-        .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} panel`, err)));
-
-    // Build popup loaders dynamically from registry (priority first, then module name)
-    const popupLoaders = (arePopupsEnabled() ? (popups || []) : [])
-      .filter(p => p.enabled !== false)
-      .sort((a, b) => {
-        const ma = String(a?.module || a?.id || '');
-        const mb = String(b?.module || b?.id || '');
-        // Hard-order critical startup sequence:
-        // 1) Startup
-        // 2) YesterdayCheckin
-        const rank = (m) => {
-          if (m === 'Startup') return 0;
-          if (m === 'YesterdayCheckin') return 1;
-          return 2;
-        };
-        const ra = rank(ma);
-        const rb = rank(mb);
-        if (ra !== rb) return ra - rb;
-        if (ra < 2) return ma.localeCompare(mb);
-
-        const pa = Number(a?.priority || 0);
-        const pb = Number(b?.priority || 0);
-        if (pa !== pb) return pb - pa;
-        return ma.localeCompare(mb);
-      })
-      .map(p => () => import(new URL(`./popups/${p.module}/index.js?v=${Date.now()}`, import.meta.url))
-        .catch(err => console.error(`[Chronos][app] Failed to load ${p.module} popup`, err)));
-
-    // Load panels and popups
-    buildPanelsMenu();
-
-    console.log('[Chronos][app] Loading panels and popups...', { panelCount: panelLoaders.length, popupCount: popupLoaders.length });
-
-    // Load panels in parallel, then popups in strict sequence (priority order)
-    Promise.all(panelLoaders.map(loader => loader()))
-      .then(async () => {
-        for (const loader of popupLoaders) {
-          await loader();
-        }
-      })
-      .then(() => console.log('[Chronos][app] All components loaded'))
-      .catch(err => console.error('[Chronos][app] Error loading components:', err));
   }).catch(err => {
-    console.error('[Chronos][app] Failed to load registries:', err);
+    bootFail('Failed to load registries', err);
   });
 
   function buildPanelsMenu() {
@@ -1948,18 +2761,13 @@ ready(async () => {
     };
 
     const toggleWidgetByName = (name) => {
-      const el = document.querySelector(`[data-widget="${name}"]`);
-      if (!el) return false;
-      el.style.display = el.style.display === 'none' ? '' : 'none';
-      if (el.style.display !== 'none') {
-        try { window.ChronosFocusWidget?.(el); } catch { }
-      }
-      return true;
+      const el = findWidgetElementByName(name);
+      return toggleWidgetVisibility(el);
     };
 
     const isWidgetVisible = (name) => {
-      const el = document.querySelector(`[data-widget="${name}"]`);
-      return !!el && el.style.display !== 'none';
+      const el = findWidgetElementByName(name);
+      return isWidgetVisibleByElement(el);
     };
 
     const isViewOpen = (name) => openPanes.some(p => p.name === name);
@@ -2239,10 +3047,27 @@ ready(async () => {
     menu.appendChild(col);
     attachDropdownSearch(menu, 'Search popups...');
   }
-  hookWidgetCloseButtons();
+  try {
+    hookWidgetCloseButtons();
+  } catch (e) {
+    bootFail('Widget close hook failed', e);
+  }
   // Also observe visibility changes as a fallback
   try {
-    const mo = new MutationObserver(() => buildWidgetsMenu());
+    const widgetVisibilityState = new Map(widgetEls.map((el) => [el, isWidgetVisibleByElement(el)]));
+    const mo = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        const el = mutation.target;
+        if (!widgetVisibilityState.has(el)) return;
+        const wasVisible = widgetVisibilityState.get(el);
+        const visible = isWidgetVisibleByElement(el);
+        if (wasVisible && !visible) {
+          rememberClosedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
+        }
+        widgetVisibilityState.set(el, visible);
+      });
+      buildWidgetsMenu();
+    });
     widgetEls.forEach(el => mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }));
   } catch { }
 
@@ -2335,26 +3160,26 @@ ready(async () => {
   }
 
   // Restore last view layout (fallback to default Calendar)
+  bootStep('Restoring default view');
   const saved = loadViewState();
   if (saved && saved.length) {
     for (const v of saved.slice(0, MAX_PANES)) {
-      try { await openPane(v.name, v.label); } catch { }
+      try { await openPane(v.name, v.label); } catch (e) { bootFail(`Failed opening saved view '${v?.name || ''}'`, e); }
     }
   }
   if (!openPanes.length) {
-    try { await openPane('Calendar', 'Calendar'); } catch { }
+    try { await openPane('Calendar', 'Calendar'); } catch (e) { bootFail('Failed opening default Calendar view', e); }
   }
   rebuildPaneResizers();
   setupDockReveal(gadgetCatalog);
+  bootStep('Dashboard app ready');
+  bootDone();
 
   console.log('[Chronos][app] Dashboard app ready');
   // Listen for widget:show to reveal/pulse a widget (e.g., ItemManager)
   try {
     (window.__chronosBus = context?.bus)?.on('widget:show', (name) => {
-      const el = document.querySelector(`[data-widget="${name}"]`);
-      if (!el) return;
-      el.style.display = '';
-      try { window.ChronosFocusWidget?.(el); } catch { }
+      void openWidgetByName(name);
     });
   } catch { }
 });

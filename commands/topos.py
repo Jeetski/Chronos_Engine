@@ -26,6 +26,7 @@ def run(args, properties):
         return
 
     py = _pythonw_executable()
+    print(f"[topos] Interpreter: {py}")
     kwargs = {
         "cwd": ROOT_DIR,
         "stdout": subprocess.DEVNULL,

@@ -1,4 +1,5 @@
 import os, sys, time, shlex, subprocess, yaml
+from contextlib import contextmanager
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
@@ -65,6 +66,64 @@ def _set_var(name, val):
     except Exception:
         pass
 
+def _get_var(name):
+    try:
+        from modules import variables as V
+        return V.get_var(name)
+    except Exception:
+        return None
+
+def _unset_var(name):
+    try:
+        from modules import variables as V
+        V.unset_var(name)
+    except Exception:
+        pass
+
+def _stringify_macro_value(value):
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+def _macro_context_entries(cmd, args, props, result=None):
+    entries = [("cmd", _stringify_macro_value(cmd))]
+    argv = list(args or [])
+    entries.append(("arg_count", str(len(argv))))
+    for idx, value in enumerate(argv):
+        entries.append((f"args{idx}", _stringify_macro_value(value)))
+    prop_map = props if isinstance(props, dict) else {}
+    for key, value in prop_map.items():
+        name = str(key or "").strip()
+        if not name:
+            continue
+        entries.append((name, _stringify_macro_value(value)))
+    if result is not None:
+        ok = False
+        if isinstance(result, dict):
+            ok = bool(result.get("ok"))
+        else:
+            ok = bool(result)
+        entries.append(("result_ok", "true" if ok else "false"))
+    return entries
+
+@contextmanager
+def _macro_context(cmd, args, props, result=None):
+    saved = []
+    for name, value in _macro_context_entries(cmd, args, props, result):
+        previous = _get_var(name)
+        saved.append((name, previous))
+        _set_var(name, value)
+    try:
+        yield
+    finally:
+        for name, previous in reversed(saved):
+            if previous is None:
+                _unset_var(name)
+            else:
+                _set_var(name, previous)
+
 def _run_cli(argv, timeout_ms):
     try:
         env = os.environ.copy(); env['CHRONOS_SUPPRESS_MACROS'] = '1'
@@ -127,7 +186,9 @@ def run_before(cmd, args, props):
     steps = _gather(cfg.get('before_command') or {}, cmd)
     if not steps: return
     t = int(cfg.get('default_timeout_ms') or 15000)
-    for st in steps: _run_step(st, cmd, args or [], props or {}, t)
+    with _macro_context(cmd, args or [], props or {}):
+        for st in steps:
+            _run_step(st, cmd, args or [], props or {}, t)
 
 def run_after(cmd, args, props, result):
     cfg = load_config()
@@ -135,6 +196,8 @@ def run_after(cmd, args, props, result):
     steps = _gather(cfg.get('after_command') or {}, cmd)
     if not steps: return
     t = int(cfg.get('default_timeout_ms') or 15000)
-    for st in steps: _run_step(st, cmd, args or [], props or {}, t)
+    with _macro_context(cmd, args or [], props or {}, result):
+        for st in steps:
+            _run_step(st, cmd, args or [], props or {}, t)
 
 

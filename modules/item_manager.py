@@ -24,6 +24,7 @@ SKIP_ITEM_DIRS = {
     "scripts",
     "settings",
 }
+TEMP_DIR = os.path.join(ROOT_DIR, "temp")
 
 def get_user_dir():
     return USER_DIR
@@ -35,6 +36,11 @@ def ensure_dir(path):
     """
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def _editor_request_path():
+    ensure_dir(TEMP_DIR)
+    return os.path.join(TEMP_DIR, "editor_open_request.json")
 
 def _normalize_filename(name, prefer_underscores=False):
     """
@@ -388,12 +394,16 @@ def get_editor_command(properties):
     if 'editor' in properties:
         chosen_editor = properties['editor']
     else:
-        config_path = os.path.join(settings_dir, "Config.yml")
-        if os.path.exists(config_path):
-            with open(config_path, 'r', encoding='utf-8') as f:
+        config_path = os.path.join(settings_dir, "config.yml")
+        legacy_config_path = os.path.join(settings_dir, "Config.yml")
+        for candidate in (config_path, legacy_config_path):
+            if not os.path.exists(candidate):
+                continue
+            with open(candidate, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
                 if config and 'default_editor' in config:
                     chosen_editor = config['default_editor']
+                    break
 
         if not chosen_editor:
             chosen_editor = os.environ.get('EDITOR') or os.environ.get('VISUAL')
@@ -422,9 +432,7 @@ def open_item_in_editor(item_type, name, editor_command):
     if str(editor_command).strip().lower() == "chronos_editor":
         try:
             rel_path = os.path.relpath(path, ROOT_DIR).replace("\\", "/")
-            temp_dir = os.path.join(ROOT_DIR, "Temp")
-            ensure_dir(temp_dir)
-            req_path = os.path.join(temp_dir, "editor_open_request.json")
+            req_path = _editor_request_path()
             with open(req_path, "w", encoding="utf-8") as fh:
                 json.dump({"path": rel_path}, fh, ensure_ascii=False)
             print(f"🧭 Queued for Chronos Editor: {rel_path}")

@@ -12,12 +12,15 @@ import urllib.request
 from datetime import date, datetime, timedelta
 
 from PIL import Image, ImageTk
+from tkinter import messagebox, ttk
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 from modules import sound_fx as SoundFX
+from modules.item_manager import dispatch_command
+from modules.tile import main as TileModule
 from commands import dashboard as dashboard_command
 
 
@@ -31,6 +34,7 @@ LOGO_PATH = os.path.join(ROOT_DIR, "assets", "images", "logo_no_background.png")
 ICON_PATH = os.path.join(ROOT_DIR, "assets", "chronos.ico")
 WEBVIEW_SCRIPT_PATH = os.path.join(ROOT_DIR, "utilities", "topos", "webview_window.py")
 CONSOLE_LAUNCHER_PATH = os.path.join(ROOT_DIR, "console_launcher.bat")
+CUSTOM_TILE_SLOTS = {3, 4, 5}
 
 
 def _load_json(path):
@@ -137,6 +141,7 @@ class ToposApp:
         self._logo_alpha = 1.0
         self._hex_scale = 0.0
         self._tile_regions = []
+        self._tile_photo_refs = []
 
         self._closing = False
         self.root = tk.Tk()
@@ -429,6 +434,147 @@ class ToposApp:
             width=1,
         )
 
+    def _draw_folder_tile(self, cx, cy, radius):
+        self._draw_hex_tile(cx, cy, radius)
+        w = radius * 0.56
+        h = radius * 0.30
+        left = cx - w / 2
+        top = cy - h / 3
+        self.canvas.create_polygon(
+            left,
+            top,
+            left + w * 0.28,
+            top,
+            left + w * 0.38,
+            top - h * 0.30,
+            left + w * 0.62,
+            top - h * 0.30,
+            left + w * 0.72,
+            top,
+            left + w,
+            top,
+            left + w,
+            top + h,
+            left,
+            top + h,
+            outline="#FFFFFF",
+            fill="",
+            width=2,
+        )
+
+    def _draw_file_tile(self, cx, cy, radius):
+        self._draw_hex_tile(cx, cy, radius)
+        w = radius * 0.40
+        h = radius * 0.54
+        left = cx - w / 2
+        top = cy - h / 2
+        right = cx + w / 2
+        bottom = cy + h / 2
+        fold = w * 0.24
+        self.canvas.create_polygon(
+            left,
+            top,
+            right - fold,
+            top,
+            right,
+            top + fold,
+            right,
+            bottom,
+            left,
+            bottom,
+            outline="#FFFFFF",
+            fill="",
+            width=2,
+        )
+        self.canvas.create_line(
+            right - fold,
+            top,
+            right - fold,
+            top + fold,
+            right,
+            top + fold,
+            fill="#FFFFFF",
+            width=1,
+        )
+
+    def _draw_group_tile(self, cx, cy, radius):
+        self._draw_hex_tile(cx, cy, radius)
+        box = radius * 0.18
+        gap = box * 0.45
+        for row in (-1, 1):
+            for col in (-1, 1):
+                x = cx + col * (box / 2 + gap / 2)
+                y = cy + row * (box / 2 + gap / 2)
+                self.canvas.create_rectangle(
+                    x - box / 2,
+                    y - box / 2,
+                    x + box / 2,
+                    y + box / 2,
+                    outline="#FFFFFF",
+                    width=2,
+                )
+
+    def _draw_star_tile(self, cx, cy, radius):
+        self._draw_hex_tile(cx, cy, radius)
+        points = []
+        outer = radius * 0.30
+        inner = outer * 0.45
+        for idx in range(10):
+            angle = math.radians(-90 + idx * 36)
+            r = outer if idx % 2 == 0 else inner
+            points.extend([cx + r * math.cos(angle), cy + r * math.sin(angle)])
+        self.canvas.create_polygon(points, outline="#FFFFFF", fill="", width=2)
+
+    def _draw_link_tile(self, cx, cy, radius):
+        self._draw_hex_tile(cx, cy, radius)
+        r = radius * 0.17
+        offset = radius * 0.12
+        self.canvas.create_oval(cx - r - offset, cy - r, cx + r - offset, cy + r, outline="#FFFFFF", width=2)
+        self.canvas.create_oval(cx - r + offset, cy - r, cx + r + offset, cy + r, outline="#FFFFFF", width=2)
+        self.canvas.create_line(cx - offset * 0.2, cy - r * 0.55, cx + offset * 0.2, cy + r * 0.55, fill="#FFFFFF", width=2)
+
+    def _draw_custom_icon_tile(self, cx, cy, radius, icon_path):
+        self._draw_hex_tile(cx, cy, radius)
+        path = str(icon_path or "").strip()
+        if not path or not os.path.exists(path):
+            return
+        try:
+            image = Image.open(path).convert("RGBA")
+            image.thumbnail((max(18, int(radius * 0.9)), max(18, int(radius * 0.9))), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(image)
+            self._tile_photo_refs.append(photo)
+            self.canvas.create_image(cx, cy, image=photo, anchor="center")
+        except Exception:
+            pass
+
+    def _draw_dynamic_tile(self, cx, cy, radius, tile_data):
+        row = TileModule.normalize_tile_data(tile_data)
+        icon = str(row.get("icon") or "globe").strip().lower()
+        if icon == "custom":
+            self._draw_custom_icon_tile(cx, cy, radius, row.get("icon_path"))
+        elif icon == "folder":
+            self._draw_folder_tile(cx, cy, radius)
+        elif icon == "file":
+            self._draw_file_tile(cx, cy, radius)
+        elif icon == "group":
+            self._draw_group_tile(cx, cy, radius)
+        elif icon == "star":
+            self._draw_star_tile(cx, cy, radius)
+        elif icon == "link":
+            self._draw_link_tile(cx, cy, radius)
+        else:
+            self._draw_globe_tile(cx, cy, radius)
+        label = str(row.get("name") or "").strip()
+        if label:
+            short = label[:14] + "..." if len(label) > 17 else label
+            self.canvas.create_text(
+                cx,
+                cy + radius * 0.48,
+                text=short,
+                fill="#FFFFFF",
+                font=("Segoe UI", max(7, int(radius * 0.10))),
+            )
+
     def _ring_positions(self, cx, cy, radius):
         half_x = 1.5 * radius
         half_y = (math.sqrt(3) / 2.0) * radius
@@ -567,9 +713,185 @@ class ToposApp:
             title="Topos Dashboard",
         )
 
+    def _open_group_tile(self, tile_data):
+        row = TileModule.normalize_tile_data(tile_data)
+        win = tk.Toplevel(self.root)
+        win.title(str(row.get("name") or "Tile Group"))
+        win.geometry("540x420")
+        win.configure(bg="#050505")
+        self._apply_window_icon(win)
+
+        frame = tk.Frame(win, bg="#050505", padx=18, pady=18)
+        frame.pack(fill="both", expand=True)
+        tk.Label(
+            frame,
+            text=str(row.get("name") or "Group"),
+            fg="#FFFFFF",
+            bg="#050505",
+            font=("Segoe UI", 16, "bold"),
+        ).pack(anchor="w")
+
+        linked_type = str(row.get("linked_item_type") or "").strip()
+        linked_name = str(row.get("linked_item_name") or "").strip()
+        if linked_type and linked_name:
+            tk.Label(
+                frame,
+                text=f"Linked to: {linked_type} / {linked_name}",
+                fg="#DADADA",
+                bg="#050505",
+                font=("Segoe UI", 10),
+            ).pack(anchor="w", pady=(6, 10))
+
+        body = tk.Frame(frame, bg="#111111")
+        body.pack(fill="both", expand=True)
+        targets = list(row.get("targets") or [])
+        if row.get("target") and row.get("target") not in targets:
+            targets.insert(0, str(row.get("target")))
+        if not targets:
+            tk.Label(
+                body,
+                text="No targets in this group yet.",
+                fg="#BDBDBD",
+                bg="#111111",
+                font=("Segoe UI", 11),
+            ).place(relx=0.5, rely=0.5, anchor="center")
+            return
+
+        for target in targets:
+            btn = tk.Button(
+                body,
+                text=target,
+                anchor="w",
+                relief="flat",
+                bg="#161616",
+                fg="#FFFFFF",
+                activebackground="#242424",
+                activeforeground="#FFFFFF",
+                command=lambda value=target: self._open_tile_target(TileModule.normalize_tile_data({"tile_type": "url" if value.startswith(("http://", "https://")) else "file", "target": value})),
+            )
+            btn.pack(fill="x", padx=12, pady=8)
+
+    def _open_tile_target(self, tile_data):
+        row = TileModule.normalize_tile_data(tile_data)
+        tile_type = str(row.get("tile_type") or "").lower()
+        if tile_type == "group":
+            self._open_group_tile(row)
+            return
+        target = str(row.get("target") or "").strip()
+        if not target:
+            return
+        if tile_type == "url" or target.startswith(("http://", "https://")):
+            self._open_webview_window(url=target, title=str(row.get("name") or "Topos Webview"))
+            return
+        try:
+            if os.name == "nt":
+                os.startfile(target)  # type: ignore[attr-defined]
+            else:
+                subprocess.Popen(["xdg-open", target], cwd=ROOT_DIR)
+        except Exception:
+            pass
+
+    def _create_tile_for_slot(self, slot_index, payload):
+        name = str(payload.get("name") or "").strip()
+        if not name:
+            raise ValueError("Tile name is required.")
+        if TileModule.get_tile(name):
+            raise ValueError(f"Tile '{name}' already exists.")
+        props = {
+            "tile_type": str(payload.get("tile_type") or "url").strip().lower(),
+            "icon": str(payload.get("icon") or "globe").strip().lower(),
+            "icon_path": str(payload.get("icon_path") or "").strip(),
+            "target": str(payload.get("target") or "").strip(),
+            "targets": payload.get("targets") or [],
+            "linked_item_type": str(payload.get("linked_item_type") or "").strip().lower(),
+            "linked_item_name": str(payload.get("linked_item_name") or "").strip(),
+            "ring": 1,
+            "slot": int(slot_index),
+            "enabled": True,
+        }
+        dispatch_command("new", "tile", name, None, props)
+
+    def _show_create_tile_popup(self, slot_index):
+        win = tk.Toplevel(self.root)
+        win.title("Create Tile")
+        win.geometry("470x540")
+        win.configure(bg="#050505")
+        win.transient(self.root)
+        win.grab_set()
+        self._apply_window_icon(win)
+
+        frame = tk.Frame(win, bg="#050505", padx=18, pady=18)
+        frame.pack(fill="both", expand=True)
+
+        tk.Label(frame, text=f"Create Tile for Slot {slot_index + 1}", fg="#FFFFFF", bg="#050505", font=("Segoe UI", 14, "bold")).pack(anchor="w", pady=(0, 12))
+
+        def add_field(label_text):
+            tk.Label(frame, text=label_text, fg="#D6D6D6", bg="#050505", font=("Segoe UI", 9)).pack(anchor="w")
+
+        name_var = tk.StringVar(value=f"Tile {slot_index + 1}")
+        type_var = tk.StringVar(value="url")
+        icon_var = tk.StringVar(value="globe")
+        target_var = tk.StringVar(value="")
+        icon_path_var = tk.StringVar(value="")
+        linked_type_var = tk.StringVar(value="")
+        linked_name_var = tk.StringVar(value="")
+
+        add_field("Name")
+        name_entry = ttk.Entry(frame, textvariable=name_var)
+        name_entry.pack(fill="x", pady=(0, 10))
+
+        add_field("Tile Type")
+        ttk.OptionMenu(frame, type_var, type_var.get(), *TileModule.TILE_TYPES).pack(fill="x", pady=(0, 10))
+
+        add_field("Target / URL / Path")
+        ttk.Entry(frame, textvariable=target_var).pack(fill="x", pady=(0, 10))
+
+        add_field("Icon")
+        ttk.OptionMenu(frame, icon_var, icon_var.get(), *TileModule.ICON_CHOICES).pack(fill="x", pady=(0, 10))
+
+        add_field("Custom Icon Path (optional)")
+        ttk.Entry(frame, textvariable=icon_path_var).pack(fill="x", pady=(0, 10))
+
+        add_field("Group Targets (optional, one per line)")
+        targets_box = tk.Text(frame, height=7, bg="#111111", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat")
+        targets_box.pack(fill="both", pady=(0, 10))
+
+        add_field("Link to Chronos Item Type (optional)")
+        ttk.Entry(frame, textvariable=linked_type_var).pack(fill="x", pady=(0, 10))
+
+        add_field("Link to Chronos Item Name (optional)")
+        ttk.Entry(frame, textvariable=linked_name_var).pack(fill="x", pady=(0, 14))
+
+        btns = tk.Frame(frame, bg="#050505")
+        btns.pack(fill="x")
+
+        def on_save():
+            payload = {
+                "name": name_var.get().strip(),
+                "tile_type": type_var.get().strip().lower(),
+                "target": target_var.get().strip(),
+                "icon": icon_var.get().strip().lower(),
+                "icon_path": icon_path_var.get().strip(),
+                "targets": [line.strip() for line in targets_box.get("1.0", "end").splitlines() if line.strip()],
+                "linked_item_type": linked_type_var.get().strip().lower(),
+                "linked_item_name": linked_name_var.get().strip(),
+            }
+            try:
+                self._create_tile_for_slot(slot_index, payload)
+            except Exception as exc:
+                messagebox.showerror("Create Tile", str(exc), parent=win)
+                return
+            win.destroy()
+            self._draw_scene()
+
+        ttk.Button(btns, text="Save", command=on_save).pack(side="left")
+        ttk.Button(btns, text="Cancel", command=win.destroy).pack(side="left", padx=(8, 0))
+        name_entry.focus_force()
+
     def _draw_scene(self):
         self.canvas.delete("all")
         self._tile_regions = []
+        self._tile_photo_refs = []
         width = max(self.root.winfo_width(), 1200)
         height = max(self.root.winfo_height(), 700)
         self._draw_background(width, height)
@@ -582,29 +904,43 @@ class ToposApp:
             self._draw_hex_tile(center_x, center_y, scaled_radius)
 
             ring_radius = scaled_radius
-            labels = ["globe", "dashboard", "console", "", "", ""]
-            actions = ["webview", "dashboard", "console", None, None, None]
-            for (tile_x, tile_y), label, action in zip(
-                self._ring_positions(center_x, center_y, scaled_radius),
-                labels,
-                actions,
-            ):
+            slot_tiles = TileModule.get_tiles_by_slot(1)
+            builtins = {
+                0: ("globe", "webview"),
+                1: ("dashboard", "dashboard"),
+                2: ("console", "console"),
+            }
+            for slot_index, (tile_x, tile_y) in enumerate(self._ring_positions(center_x, center_y, scaled_radius)):
                 points_flat = self._flat_top_hex_points(tile_x, tile_y, ring_radius)
                 point_pairs = list(zip(points_flat[0::2], points_flat[1::2]))
+                tile_row = slot_tiles.get(slot_index)
+                action = None
+                kind = None
+                if tile_row:
+                    action = "custom_tile"
+                    kind = "custom"
+                elif slot_index in builtins:
+                    kind, action = builtins[slot_index]
+                elif slot_index in CUSTOM_TILE_SLOTS:
+                    kind = "empty_slot"
                 self._tile_regions.append(
                     {
                         "points": point_pairs,
                         "action": action,
+                        "slot": slot_index,
+                        "tile": tile_row,
                     }
                 )
-                if label == "globe":
+                if tile_row:
+                    self._draw_dynamic_tile(tile_x, tile_y, ring_radius, tile_row)
+                elif kind == "globe":
                     self._draw_globe_tile(tile_x, tile_y, ring_radius)
-                elif label == "dashboard":
+                elif kind == "dashboard":
                     self._draw_dashboard_tile(tile_x, tile_y, ring_radius)
-                elif label == "console":
+                elif kind == "console":
                     self._draw_console_tile(tile_x, tile_y, ring_radius)
-                elif label:
-                    self._draw_labeled_tile(tile_x, tile_y, ring_radius, label)
+                elif kind == "empty_slot":
+                    self._draw_hex_tile(tile_x, tile_y, ring_radius)
                 else:
                     self._draw_hex_tile(tile_x, tile_y, ring_radius)
 
@@ -623,6 +959,10 @@ class ToposApp:
                     self._open_dashboard_in_webview()
                 elif action == "console":
                     self._open_console()
+                elif action == "custom_tile" and region.get("tile"):
+                    self._open_tile_target(region.get("tile"))
+                elif action is None and region.get("slot") in CUSTOM_TILE_SLOTS:
+                    self._show_create_tile_popup(int(region.get("slot")))
                 return
 
     def _start_intro(self):

@@ -34,12 +34,15 @@ after_command: {}
 All step arguments support variable expansion using `modules/variables`:
 
 - Command context:
-  - `@cmd`, `@args0`, `@args1`, …
+  - `@cmd`, `@arg_count`, `@args0`, `@args1`, …
   - Each property is available as `@<prop>` (e.g., `@priority`, `@force`)
 - After-hook result context (summary only):
   - `@result_ok` ("true"/"false")
 
-Note: This uses the same expansion rules as the console (supports `@var` and `@{var}`).
+Notes:
+- This uses the same expansion rules as the console (supports `@var` and `@{var}`).
+- Macro context variables are temporary for the duration of the hook step execution. Any pre-existing user variable with the same name is restored after the hook finishes.
+- Prefer braced expansion when embedding a variable inside other text, especially filenames: `logs/@{cmd}.txt`, not `logs/@cmd.txt`.
 
 ## Example `macros.yml`
 
@@ -53,7 +56,7 @@ before_command:
     - cli: ["echo", "Creating @args0 '@args1'"]
 after_command:
   delete:
-    - cli: ["echo", "Deleted: @args1"]
+    - cli: ["echo", "Deleted: @args1 (ok=@result_ok)"]
 ```
 
 ## Safety & Behavior

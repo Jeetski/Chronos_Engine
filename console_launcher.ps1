@@ -9,6 +9,21 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 # Set the PYTHONIOENCODING environment variable to utf-8
 $env:PYTHONIOENCODING = "utf-8"
 
+# Use system Python for environment debugging.
+$pythonExe = "python"
+
+$pythonDisplay = $pythonExe
+try {
+    if (-not ($pythonExe -like "*\*")) {
+        $resolved = (Get-Command $pythonExe -ErrorAction Stop).Source
+        if ($resolved) { $pythonDisplay = $resolved }
+    } elseif (Test-Path $pythonExe) {
+        $pythonDisplay = (Resolve-Path $pythonExe).Path
+    }
+} catch { }
+
+Write-Host "[console] Python: $pythonDisplay"
+
 # Run the Python script in launcher mode (full interactive startup), passing along all arguments
-python modules/console.py prompt_toolkit:true startup_banner:true startup_sync:true startup_sound:true $args
+& $pythonExe modules/console.py prompt_toolkit:true startup_banner:true startup_sync:true startup_sound:true $args
 

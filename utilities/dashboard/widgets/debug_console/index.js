@@ -4,7 +4,7 @@ export function mount(el, context) {
     const link = document.createElement('link');
     link.id = 'debug-console-css';
     link.rel = 'stylesheet';
-    link.href = './widgets/DebugConsole/debug-console.css';
+    link.href = new URL('./debug-console.css', import.meta.url).href;
     document.head.appendChild(link);
   }
 
@@ -207,7 +207,7 @@ export function mount(el, context) {
     try { await navigator.clipboard.writeText(out.textContent || ''); } catch { }
   });
   btnOpenEditor?.addEventListener('click', async () => {
-    const relPath = 'Temp/debug_console_capture.txt';
+  const relPath = 'temp/debug_console_capture.txt';
     const content = String(out.textContent || '').trim() || '(empty debug output)';
     try {
       await fetch('/api/editor', {
