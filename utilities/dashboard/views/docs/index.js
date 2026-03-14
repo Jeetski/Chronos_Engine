@@ -1,5 +1,7 @@
 const STYLE_ID = 'chronos-docs-view-style';
 
+import { escapeHtml, formatInlineMarkdown, markdownToHtml } from '../../core/markdown.js';
+
 function injectStyles() {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
@@ -83,6 +85,17 @@ function injectStyles() {
       text-decoration: underline;
     }
     .docs-render a:hover { filter: brightness(1.08); }
+    .docs-render img {
+      display: block;
+      max-width: min(100%, 980px);
+      width: auto;
+      height: auto;
+      margin: 14px auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 18px 36px rgba(0,0,0,0.24);
+      background: rgba(255,255,255,0.03);
+    }
     .docs-render .docs-pre {
       white-space: pre-wrap;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -131,150 +144,6 @@ function sortChildren(node) {
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
   });
   return entries;
-}
-
-function escapeHtml(text) {
-  return String(text || '').replace(/[&<>"']/g, (ch) => (
-    ch === '&' ? '&amp;'
-      : ch === '<' ? '&lt;'
-      : ch === '>' ? '&gt;'
-      : ch === '"' ? '&quot;'
-      : '&#39;'
-  ));
-}
-
-function formatInlineMarkdown(text) {
-  let s = escapeHtml(text);
-  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
-  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
-  return s;
-}
-
-function markdownToHtml(md) {
-  const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
-  const out = [];
-  let inCode = false;
-  let code = [];
-  let listType = null;
-  let quoteOpen = false;
-  let para = [];
-
-  const flushPara = () => {
-    if (!para.length) return;
-    out.push(`<p>${formatInlineMarkdown(para.join(' '))}</p>`);
-    para = [];
-  };
-  const closeList = () => {
-    if (!listType) return;
-    out.push(listType === 'ol' ? '</ol>' : '</ul>');
-    listType = null;
-  };
-  const closeQuote = () => {
-    if (!quoteOpen) return;
-    out.push('</blockquote>');
-    quoteOpen = false;
-  };
-
-  for (const lineRaw of lines) {
-    const line = lineRaw || '';
-    const trim = line.trim();
-
-    if (inCode) {
-      if (/^```/.test(trim)) {
-        out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
-        inCode = false;
-        code = [];
-      } else {
-        code.push(line);
-      }
-      continue;
-    }
-
-    if (/^```/.test(trim)) {
-      flushPara();
-      closeList();
-      closeQuote();
-      inCode = true;
-      code = [];
-      continue;
-    }
-
-    if (!trim) {
-      flushPara();
-      closeList();
-      closeQuote();
-      continue;
-    }
-
-    const heading = trim.match(/^(#{1,6})\s+(.+)$/);
-    if (heading) {
-      flushPara();
-      closeList();
-      closeQuote();
-      const level = heading[1].length;
-      out.push(`<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`);
-      continue;
-    }
-
-    if (/^---+$/.test(trim) || /^\*\*\*+$/.test(trim)) {
-      flushPara();
-      closeList();
-      closeQuote();
-      out.push('<hr/>');
-      continue;
-    }
-
-    const quote = trim.match(/^>\s?(.*)$/);
-    if (quote) {
-      flushPara();
-      closeList();
-      if (!quoteOpen) {
-        out.push('<blockquote>');
-        quoteOpen = true;
-      }
-      out.push(`<p>${formatInlineMarkdown(quote[1])}</p>`);
-      continue;
-    }
-
-    const ol = trim.match(/^\d+\.\s+(.+)$/);
-    if (ol) {
-      flushPara();
-      closeQuote();
-      if (listType !== 'ol') {
-        closeList();
-        out.push('<ol>');
-        listType = 'ol';
-      }
-      out.push(`<li>${formatInlineMarkdown(ol[1])}</li>`);
-      continue;
-    }
-
-    const ul = trim.match(/^[-*]\s+(.+)$/);
-    if (ul) {
-      flushPara();
-      closeQuote();
-      if (listType !== 'ul') {
-        closeList();
-        out.push('<ul>');
-        listType = 'ul';
-      }
-      out.push(`<li>${formatInlineMarkdown(ul[1])}</li>`);
-      continue;
-    }
-
-    closeList();
-    closeQuote();
-    para.push(trim);
-  }
-
-  flushPara();
-  closeList();
-  closeQuote();
-
-  if (inCode) out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
-  return out.join('\n');
 }
 
 function isMarkdownPath(path) {

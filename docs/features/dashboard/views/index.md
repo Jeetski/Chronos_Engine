@@ -17,9 +17,11 @@ Expanded feature docs for dashboard views.
 12. `docs/features/dashboard/views/view_editor.md`
 13. `docs/features/dashboard/views/view_docs.md`
 14. `docs/features/dashboard/views/view_aduc.md`
+15. `docs/features/dashboard/views/view_atlas.md`
 
 ## Full List
 - `docs/features/dashboard/views/view_aduc.md`
+- `docs/features/dashboard/views/view_atlas.md`
 - `docs/features/dashboard/views/view_calendar.md`
 - `docs/features/dashboard/views/view_canvas.md`
 - `docs/features/dashboard/views/view_cockpit.md`

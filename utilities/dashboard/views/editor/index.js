@@ -4,6 +4,8 @@ let tabs = [];
 let activeTabIndex = -1;
 let lastSearch = { query: '', options: { matchCase: false, regex: false, wholeWord: false } };
 let lastReplace = { query: '', replace: '' };
+const EDITOR_ROOT = '.';
+const EDITOR_ROOT_LABEL = 'chronos';
 
 // Settings State
 let settings = {
@@ -71,6 +73,35 @@ function apiBase() {
     return o;
 }
 
+function editorRootPath() {
+    return EDITOR_ROOT;
+}
+
+function editorRootLabel() {
+    return EDITOR_ROOT_LABEL;
+}
+
+function isRootPath(path) {
+    const normalized = normalizeEditorPath(path || '');
+    return !normalized || normalized === '.' || normalized === editorRootPath();
+}
+
+function displayEditorPath(path) {
+    const normalized = normalizeEditorPath(path || '');
+    if (isRootPath(normalized)) return `${editorRootLabel()}/`;
+    return `${editorRootLabel()}/${normalized.replace(/^\.\//, '')}`;
+}
+
+function refreshFileTree() {
+    const tree = viewContainer?.querySelector?.('#fileTree');
+    if (!tree) return;
+    const header = tree.previousElementSibling;
+    const currentLabel = String(header?.dataset?.path || editorRootPath());
+    const currentPath = normalizeEditorPath(currentLabel) || editorRootPath();
+    loadFileTree(currentPath, tree);
+    renderBreadcrumbs(currentPath, tree);
+}
+
 // Syntax logic (same as before)
 const SYNTAX = {
     yml: [
@@ -96,6 +127,16 @@ const SYNTAX = {
         { regex: /\*\*[^*]*\*\*/g, token: '<span class="tok-key">$&</span>' }, // bold
         { regex: /\*[^*]*\*/g, token: '<span class="tok-val">$&</span>' }, // italic
         { regex: /\[[^\]]*\]\([^)]*\)/g, token: '<span class="tok-prop">$&</span>' }, // links
+    ],
+    py: [
+        { regex: /^\s*#.*/gm, token: 'tok-comment' },
+        { regex: /("""[\s\S]*?"""|'''[\s\S]*?''')/g, token: '<span class="tok-str">$1</span>' },
+        { regex: /(["'])(?:(?=(\\?))\2.)*?\1/g, token: '<span class="tok-str">$&</span>' },
+        { regex: /\b(False|None|True|and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield|match|case)\b/g, token: '<span class="tok-keyword">$1</span>' },
+        { regex: /\b(self|cls)\b/g, token: '<span class="tok-var">$1</span>' },
+        { regex: /\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()/g, token: '<span class="tok-cmd">$1</span>' },
+        { regex: /(^|\s)(@[A-Za-z_][A-Za-z0-9_.]*)/gm, token: '$1<span class="tok-flag">$2</span>' },
+        { regex: /\b-?(?:0|[1-9]\d*)(?:\.\d+)?\b/g, token: '<span class="tok-num">$&</span>' },
     ]
 };
 
@@ -133,6 +174,15 @@ function highlightCode(code, type) {
         html = html.replace(/^#+ .*/gm, '<span class="tok-cmd">$&</span>');
         html = html.replace(/`[^`]*`/g, '<span class="tok-str">$&</span>');
         html = html.replace(/\*\*[^*]*\*\*/g, '<span class="tok-key">$&</span>');
+    } else if (type === 'py' || type === 'python') {
+        html = html.replace(/^(\s*)(#.*)$/gm, '$1<span class="tok-comment">$2</span>');
+        html = html.replace(/("""[\s\S]*?"""|'''[\s\S]*?''')/g, '<span class="tok-str">$1</span>');
+        html = html.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '<span class="tok-str">$&</span>');
+        html = html.replace(/\b(False|None|True|and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield|match|case)\b/g, '<span class="tok-keyword">$1</span>');
+        html = html.replace(/\b(self|cls)\b/g, '<span class="tok-var">$1</span>');
+        html = html.replace(/(^|\s)(@[A-Za-z_][A-Za-z0-9_.]*)/gm, '$1<span class="tok-flag">$2</span>');
+        html = html.replace(/\b([A-Za-z_][A-Za-z0-9_]*)(?=\s*\()/g, '<span class="tok-cmd">$1</span>');
+        html = html.replace(/\b\d+(?:\.\d+)?\b/g, '<span class="tok-num">$&</span>');
     }
     return html;
 }
@@ -172,14 +222,16 @@ async function loadFileTree(dirPath, parentEl) {
 function renderBreadcrumbs(path, containerEl) {
     let header = containerEl.previousElementSibling;
     if (!header || !header.classList.contains('editor-sidebar-header')) return;
-    header.textContent = path || 'user';
-    if (path && path !== 'user' && path !== '.') {
+    const normalized = normalizeEditorPath(path || '') || editorRootPath();
+    header.dataset.path = normalized;
+    header.textContent = displayEditorPath(normalized);
+    if (!isRootPath(normalized)) {
         const upBtn = document.createElement('button');
         upBtn.textContent = '⬆';
         upBtn.title = 'Up one level';
         upBtn.style.cssText = 'background:none; border:none; color:#ccc; float:right; cursor:pointer; font-size:12px;';
         upBtn.onclick = () => {
-            const up = path.split('/').slice(0, -1).join('/') || 'user';
+            const up = normalized.split('/').slice(0, -1).join('/') || editorRootPath();
             loadFileTree(up, containerEl);
             renderBreadcrumbs(up, containerEl);
         };
@@ -560,7 +612,8 @@ const MENUS = {
         { label: 'CHS', action: () => setLanguage('chs') },
         { label: 'Markdown', action: () => setLanguage('md') },
         { label: 'JSON', action: () => setLanguage('json') },
-        { label: 'YAML', action: () => setLanguage('yml') }
+        { label: 'YAML', action: () => setLanguage('yml') },
+        { label: 'Python', action: () => setLanguage('py') }
     ],
     Encoding: [
         { label: 'UTF-8', action: () => setEncoding('utf-8') },
@@ -1019,7 +1072,7 @@ async function saveAs() {
         tab.name = newPath.split('/').pop();
         tab.unsaved = false;
         renderTabs();
-        loadFileTree('user', viewContainer.querySelector('#fileTree')); // refresh tree
+        refreshFileTree();
         alert('File saved as ' + newPath);
     } catch (e) {
         alert('Save As failed: ' + e.message);
@@ -1041,7 +1094,7 @@ async function saveCopyAs() {
         });
         const d = await r.json();
         if (!d.ok) throw new Error(d.error);
-        loadFileTree('user', viewContainer.querySelector('#fileTree'));
+        refreshFileTree();
         alert('Copy saved to ' + newPath);
     } catch (e) {
         alert('Save Copy failed: ' + e.message);
@@ -1092,7 +1145,7 @@ async function renameFile() {
         tab.path = newPath;
         tab.name = newPath.split('/').pop();
         renderTabs();
-        loadFileTree('user', viewContainer.querySelector('#fileTree'));
+        refreshFileTree();
     } catch (e) {
         alert('Rename failed: ' + e.message);
     }
@@ -1149,7 +1202,18 @@ function promptEncoding() {
 }
 
 function normalizeEditorPath(path) {
-    return String(path || '').trim().replace(/\\/g, '/');
+    let normalized = String(path || '').trim().replace(/\\/g, '/');
+    if (!normalized) return editorRootPath();
+    if (/^[A-Za-z]:\//.test(normalized)) {
+        const marker = '/Chronos Engine/';
+        const idx = normalized.lastIndexOf(marker);
+        if (idx >= 0) {
+            normalized = normalized.slice(idx + marker.length);
+        }
+    }
+    normalized = normalized.replace(/^\/+/, '');
+    if (!normalized || normalized === '.') return editorRootPath();
+    return normalized;
 }
 
 async function runCurrentFile() {
@@ -1363,7 +1427,8 @@ export function mount(el) {
     `;
 
     // Sidebar init
-    loadFileTree('user', el.querySelector('#fileTree'));
+    loadFileTree(editorRootPath(), el.querySelector('#fileTree'));
+    renderBreadcrumbs(editorRootPath(), el.querySelector('#fileTree'));
 
     // Ensure at least one file
     if (tabs.length === 0) {

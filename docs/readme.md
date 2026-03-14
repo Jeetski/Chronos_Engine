@@ -9,6 +9,7 @@ Links
 - Trademark Policy: Legal/TRADEMARK_POLICY.md
 - Agent Guide: Agents/agents.md
 - Common Workflows: Guides/common_workflows.md
+- What Is Chronos?: Guides/what_is_chronos/index.md
 - Day Builder: Guides/DayBuilder.md
 - Routine Builder: Guides/RoutineBuilder.md
 - Status Mapping Wizard: Guides/Dashboard.md

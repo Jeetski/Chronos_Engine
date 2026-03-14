@@ -27,6 +27,7 @@ Both start the local HTTP server (`utilities/dashboard/server.py`) and open the 
   - Completed days are green.
   - Not-done days are red for positive behaviors, and green for negative behaviors (bad habits / negative commitments where abstaining is success).
   - Inspector includes a circular year progress ring (`elapsed days / total days`) and searchable source list.
+- **Atlas** - Structural graph explorer for Chronos items. Opens on the current hub node and places linked items in concentric rings. `Directness` and `Dependency` lenses recolor the graph, while search and property filters narrow the visible neighborhood without turning the view into an editor.
 - **Template Builder** - Drag-and-drop editing for week/day/routine/subroutine/microroutine templates plus goal/project/inventory builders. Includes duration badges, inspector panel, nesting rules, and saves via `POST /api/template`.
 - **Day Builder** - Scheduling-first day composer with drag/drop schedulables, template lifecycle controls (new/load/save/save as/rename/delete), generated schedule loading (today/date), validation, undo/redo, auto buffers/breaks, and apply-to-today flow. See `docs/guides/day_builder.md`.
 - **Routine Builder** - Template-composition editor for `routine`, `subroutine`, and `microroutine` templates with drag/drop schedulables (routines, subroutines, microroutines/habit stacks, habits/chores, tasks, windows, buffers, breaks), hierarchy editing, validation, and template lifecycle controls. See `docs/guides/routine_builder.md`.

@@ -47,6 +47,7 @@ This reference lists currently implemented dashboard endpoints. Chronos Dashboar
 ### GET
 - `/api/items`
 - `/api/item`
+- `/api/graph`
 - `/api/template`
 - `/api/template/list`
 - `/api/file/read`
