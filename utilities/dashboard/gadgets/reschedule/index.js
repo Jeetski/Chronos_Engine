@@ -19,16 +19,27 @@ export function mount(el, context = {}) {
     btn.disabled = true;
     btn.textContent = 'Rescheduling...';
     try {
-      const resp = await fetch(apiBase() + '/api/cli', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          command: 'today',
-          args: ['reschedule'],
-          properties: {},
-        }),
-      });
-      const payload = await resp.json().catch(() => ({}));
+      const result = (typeof window.ChronosRunCliCommand === 'function')
+        ? await window.ChronosRunCliCommand({ command: 'today', args: ['reschedule'], properties: {} })
+        : await (async () => {
+          const resp = await fetch(apiBase() + '/api/cli', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command: 'today',
+              args: ['reschedule'],
+              properties: {},
+            }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          return { response: resp, data };
+        })();
+      if (result?.canceled) {
+        showToast('Reschedule canceled.', 'info');
+        return;
+      }
+      const resp = result?.response;
+      const payload = result?.data || {};
       if (!resp.ok || payload?.ok === false) {
         throw new Error(payload?.stderr || payload?.error || 'today reschedule failed');
       }

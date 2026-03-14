@@ -153,10 +153,32 @@ export function Inspector() {
   }
 
   async function runCli(command, args = [], properties = {}) {
-    const propLines = Object.entries(properties || {})
-      .map(([k, v]) => `  ${k}: ${String(v)}`).join('\n');
-    const body = `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n${propLines ? 'properties:\n' + propLines + '\n' : ''}`;
     try {
+      if (typeof window.ChronosRunCliCommand === 'function') {
+        const result = await window.ChronosRunCliCommand({ command, args, properties });
+        if (result?.canceled) {
+          return {
+            ok: false,
+            text: result?.choice === 'edit_sleep' ? 'Sleep settings opened.' : 'Command canceled.',
+            stdout: '',
+            stderr: '',
+            error: '',
+            canceled: true,
+          };
+        }
+        const payload = result?.data || {};
+        const resp = result?.response;
+        return {
+          ok: !!(resp?.ok && payload?.ok !== false),
+          text: String(payload?.stdout || payload?.stderr || payload?.error || ''),
+          stdout: String(payload?.stdout || ''),
+          stderr: String(payload?.stderr || ''),
+          error: payload?.error ? String(payload.error) : '',
+        };
+      }
+      const propLines = Object.entries(properties || {})
+        .map(([k, v]) => `  ${k}: ${String(v)}`).join('\n');
+      const body = `command: ${command}\nargs:\n${(args || []).map(a => '  - ' + String(a)).join('\n')}\n${propLines ? 'properties:\n' + propLines + '\n' : ''}`;
       const resp = await fetch(apiBase() + '/api/cli', {
         method: 'POST',
         headers: { 'Content-Type': 'text/yaml' },
@@ -1830,12 +1852,13 @@ export function Inspector() {
       const prev = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Starting...';
-      try {
-        if (typeof window.ChronosStartDay === 'function') {
-          await window.ChronosStartDay({ source: 'calendar-inspector', target: 'day' });
-        } else {
-          const resp = await fetch(apiBase() + '/api/day/start', {
-            method: 'POST',
+        try {
+          if (typeof window.ChronosStartDay === 'function') {
+          const result = await window.ChronosStartDay({ source: 'calendar-inspector', target: 'day' });
+          if (result?.canceled) return;
+          } else {
+            const resp = await fetch(apiBase() + '/api/day/start', {
+              method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ target: 'day' }),
           });

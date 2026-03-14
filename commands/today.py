@@ -32,9 +32,50 @@ from modules.scheduler import (
     resolve_variant, scan_and_inject_items, schedule_flexible_items,
     schedule_path_for_date, manual_modifications_path_for_date, status_current_path
 )
+from modules.scheduler.sleep_gate import (
+    SLEEP_POLICY_OPTIONS,
+    build_sleep_interrupt,
+    normalize_sleep_policy,
+)
 
 from utilities.duration_parser import parse_duration_string
 from modules.item_manager import read_item_data
+
+
+def _prompt_sleep_policy(interrupt):
+    print("You're inside a scheduled sleep block. What is happening?")
+    sleep_block = interrupt.get("sleep_block") if isinstance(interrupt, dict) else {}
+    if isinstance(sleep_block, dict):
+        print(
+            f"Current sleep block: {sleep_block.get('name') or 'Sleep'} "
+            f"({sleep_block.get('start_time') or '??:??'}-{sleep_block.get('end_time') or '??:??'})"
+        )
+    for index, (_, label) in enumerate(SLEEP_POLICY_OPTIONS, start=1):
+        print(f"{index}. {label}")
+    try:
+        raw = input("> ").strip()
+    except EOFError:
+        raw = ""
+    if not raw:
+        print("Reschedule canceled.")
+        return None
+    policy = None
+    if raw.isdigit():
+        idx = int(raw) - 1
+        if 0 <= idx < len(SLEEP_POLICY_OPTIONS):
+            policy = SLEEP_POLICY_OPTIONS[idx][0]
+    if not policy:
+        policy = normalize_sleep_policy(raw)
+    if not policy:
+        print("Unrecognized choice. Reschedule canceled.")
+        return None
+    if policy == "go_back_to_sleep":
+        print("Reschedule canceled. Go back to sleep.")
+        return None
+    if policy == "edit_sleep":
+        print("Open the Sleep Settings widget or edit your day template, then try again.")
+        return None
+    return policy
 
 # =============================================================================
 # CONFIGURATION LOADING
@@ -1670,6 +1711,14 @@ def run(args, properties):
         today_completion_data, completion_path = load_completion_payload(today_str)
         completion_entries = normalize_completion_entries(today_completion_data)
         reschedule_requested = "reschedule" in args_lower
+        properties = dict(properties or {})
+
+        interrupt = build_sleep_interrupt("today", args, properties)
+        if interrupt:
+            policy = _prompt_sleep_policy(interrupt)
+            if not policy:
+                return
+            properties["sleep_policy"] = policy
 
         def _to_bool(raw, default=None):
             # Tolerant bool parser for CLI property values.
@@ -1781,6 +1830,12 @@ def run(args, properties):
                         ctx["custom_property"] = prop_name
                     else:
                         warnings.append("Invalid custom_property value: empty")
+                elif low.startswith("sleep_policy:") or low.startswith("sleep-policy:"):
+                    policy = normalize_sleep_policy(token.split(":", 1)[1].strip())
+                    if policy:
+                        ctx["sleep_policy"] = policy
+                    else:
+                        warnings.append(f"Invalid sleep policy value: {token}")
                 elif low.startswith("buffers:"):
                     bv = _to_bool(token.split(":", 1)[1].strip(), None)
                     if bv is None:
@@ -1920,6 +1975,11 @@ def run(args, properties):
             custom_prop = _read("custom-property", "custom_property")
             if custom_prop is not None and str(custom_prop).strip():
                 ctx["custom_property"] = str(custom_prop).strip()
+            sleep_policy = _read("sleep-policy", "sleep_policy")
+            if sleep_policy is not None and str(sleep_policy).strip():
+                normalized_sleep_policy = normalize_sleep_policy(sleep_policy)
+                if normalized_sleep_policy:
+                    ctx["sleep_policy"] = normalized_sleep_policy
             timer_profile = _read("timer-profile", "timer_profile")
             if timer_profile is not None and str(timer_profile).strip():
                 ctx["timer_profile"] = str(timer_profile).strip()

@@ -5,6 +5,7 @@ const POPUPS_ENABLED_STORAGE_KEY = 'chronos_dashboard_popups_enabled_v1';
 const SHOW_POST_RELEASE_STORAGE_KEY = 'chronos_dashboard_show_post_release_v1';
 const SHOW_BADGES_STORAGE_KEY = 'chronos_dashboard_show_badges_v1';
 const DISABLED_GADGETS_STORAGE_KEY = 'chronos_dashboard_disabled_gadgets_v1';
+const DOCK_DOCKED_STORAGE_KEY = 'chronos_dashboard_dock_docked_v1';
 const POST_RELEASE_WIDGETS = ['InventoryManager', 'Link', 'MP3Player', 'ResolutionTracker'];
 const PRIORITY_WIDGETS = new Set(['Terminal', 'Review', 'Rewards']);
 const URGENT_WIDGETS = new Set([
@@ -51,7 +52,7 @@ const URGENT_WIZARDS = new Set([
   'sleep hygiene',
   'sleepsettings',
 ]);
-const DEV_VIEWS = new Set(['calendar', 'cockpit', 'project manager', 'template builder', 'weekly']);
+const DEV_VIEWS = new Set(['atlas', 'calendar', 'cockpit', 'project manager', 'template builder', 'weekly']);
 const PRIORITY_VIEWS = new Set([
   'cockpit',
   'tracker',
@@ -140,6 +141,30 @@ function setDisabledGadgets(disabledKeys) {
   } catch { }
 }
 
+function isDockPinned() {
+  try {
+    if (typeof window !== 'undefined' && typeof window.ChronosDockIsDocked === 'function') {
+      return !!window.ChronosDockIsDocked();
+    }
+  } catch { }
+  try {
+    return localStorage.getItem(DOCK_DOCKED_STORAGE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function setDockPinned(next) {
+  const pinned = !!next;
+  try { localStorage.setItem(DOCK_DOCKED_STORAGE_KEY, pinned ? 'true' : 'false'); } catch { }
+  try {
+    if (typeof window !== 'undefined' && typeof window.ChronosDockSetDocked === 'function') {
+      window.ChronosDockSetDocked(pinned);
+    }
+  } catch { }
+  return pinned;
+}
+
 function ready(fn) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
 
 if (typeof window !== 'undefined' && !window.__cockpitPanelDefinitions) {
@@ -188,7 +213,6 @@ function setupDockReveal(gadgets = []) {
   const hotzone = document.getElementById('dockHotzone');
   const dockShell = document.getElementById('chronosDockShell');
   if (!dock || !hotzone || !dockShell) return;
-  const DOCK_DOCKED_STORAGE_KEY = 'chronos_dashboard_dock_docked_v1';
 
   const showDockToast = (text, tone = 'info', ms = 2000) => {
     const toast = document.createElement('div');
@@ -221,10 +245,7 @@ function setupDockReveal(gadgets = []) {
     let isDocked = true;
     const BOTTOM_TRIGGER_PX = 26;
 
-    try {
-      const raw = localStorage.getItem(DOCK_DOCKED_STORAGE_KEY);
-      if (raw === 'false') isDocked = false;
-    } catch { }
+    isDocked = isDockPinned();
     dock.dataset.docked = isDocked ? 'true' : 'false';
 
     const clearHideTimer = () => {
@@ -326,11 +347,14 @@ function setupDockReveal(gadgets = []) {
 async function startChronosDay(options = {}) {
   const target = options.target || 'day';
   const source = options.source || 'dashboard';
-  const body = JSON.stringify({ target });
-  const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-  const data = await resp.json().catch(() => ({}));
-  if (!resp.ok || data.ok === false) {
-    const msg = data.error || data.stderr || `Start failed (HTTP ${resp.status})`;
+  const result = await requestWithSleepInterrupt('/api/day/start', { target });
+  const data = result?.data || {};
+  if (result?.canceled) {
+    const reason = result?.choice === 'edit_sleep' ? 'Sleep settings opened.' : 'Start canceled.';
+    return { ok: false, canceled: true, reason };
+  }
+  if (!result?.response?.ok || data.ok === false) {
+    const msg = data.error || data.stderr || `Start failed (HTTP ${result?.response?.status || 'unknown'})`;
     throw new Error(msg);
   }
   try { window.ChronosBus?.emit?.('timer:show', { source }); } catch { }
@@ -340,6 +364,70 @@ async function startChronosDay(options = {}) {
 }
 
 try { window.ChronosStartDay = startChronosDay; } catch { }
+try { window.ChronosRunCliCommand = runCliCommandWithSleepInterrupt; } catch { }
+
+async function postJson(path, payload) {
+  const resp = await fetch(apiBase() + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {}),
+  });
+  const data = await resp.json().catch(() => ({}));
+  return { response: resp, data };
+}
+
+async function ensureSleepConflictPopup() {
+  // Sleep conflict is a required command interrupt, not an ambient popup.
+  // It must work even when normal popups are globally disabled.
+  if (typeof window !== 'undefined' && typeof window.ChronosShowSleepConflictPopup === 'function') {
+    return window.ChronosShowSleepConflictPopup;
+  }
+  try {
+    window.__chronosForcePopupQueue = true;
+    await import(new URL(`./popups/sleep_conflict/index.js?v=${Date.now()}&manual=1`, import.meta.url));
+  } finally {
+    window.__chronosForcePopupQueue = false;
+  }
+  if (typeof window !== 'undefined' && typeof window.ChronosShowSleepConflictPopup === 'function') {
+    return window.ChronosShowSleepConflictPopup;
+  }
+  throw new Error('Sleep conflict popup failed to load');
+}
+
+async function resolveSleepInterrupt(interrupt) {
+  const showPopup = await ensureSleepConflictPopup();
+  const choice = await showPopup(interrupt || {});
+  if (choice === 'edit_sleep') {
+    try { window.ChronosBus?.emit?.('widget:show', 'SleepSettings'); } catch { }
+  }
+  return choice;
+}
+
+async function requestWithSleepInterrupt(path, payload, attempt = 0) {
+  const result = await postJson(path, payload);
+  const interrupt = result?.data?.interrupt;
+  if (result?.response?.status !== 409 || interrupt?.type !== 'sleep_conflict') {
+    return result;
+  }
+  if (attempt >= 3) {
+    throw new Error('Sleep conflict resolution exceeded retry limit');
+  }
+  const choice = await resolveSleepInterrupt(interrupt);
+  if (!choice || choice === 'go_back_to_sleep' || choice === 'edit_sleep') {
+    return { ...result, canceled: true, choice };
+  }
+  const nextPayload = { ...(payload || {}) };
+  if (path === '/api/cli') {
+    nextPayload.properties = { ...(nextPayload.properties || {}), sleep_policy: choice };
+  } else {
+    nextPayload.sleep_policy = choice;
+  }
+  return requestWithSleepInterrupt(path, nextPayload, attempt + 1);
+}
+
+async function runCliCommandWithSleepInterrupt({ command, args = [], properties = {} } = {}) {
+  return requestWithSleepInterrupt('/api/cli', { command, args, properties });
+}
 
 
 // Panel loaders will be built dynamically from registry
@@ -703,7 +791,9 @@ ready(async () => {
     title.textContent = label || name;
     let calendarBackBtn = null;
     let calendarRefreshBtn = null;
-    if (name === 'Calendar') {
+    const isCalendarPane = String(name || label || '').trim().toLowerCase() === 'calendar'
+      || String(label || '').trim().toLowerCase() === 'calendar';
+    if (isCalendarPane) {
       calendarBackBtn = document.createElement('button');
       calendarBackBtn.type = 'button';
       calendarBackBtn.className = 'pane-back';
@@ -743,7 +833,7 @@ ready(async () => {
     close.addEventListener('click', (e) => { e.stopPropagation(); closePane(name); });
     try {
       await mountView(viewport, name);
-      if (name === 'Calendar') {
+      if (isCalendarPane) {
         try {
           window.__calendarTitleEl = title;
           window.__calendarHeaderBackBtn = calendarBackBtn || null;
@@ -1610,10 +1700,23 @@ ready(async () => {
         clearTrickHighlight();
         return true;
       }
-      const overlays = Array.from(document.querySelectorAll('.chronos-overlay'));
-      const overlay = overlays[overlays.length - 1];
-      if (overlay) {
-        overlay.remove();
+      const closeTopDismissibleOverlay = () => {
+        const overlays = Array.from(document.querySelectorAll(
+          '.alpha-launch-overlay, .chronos-wizard-overlay, [data-wizard-overlay], .wizard-overlay, .chronos-overlay'
+        )).filter((el) => el && el.isConnected);
+        const overlay = overlays[overlays.length - 1];
+        if (!overlay) return false;
+        const closeBtn = overlay.querySelector(
+          '[data-guide-action="close"], [data-action="close"], .wizard-close, button.close, button[aria-label="Close"], button[title*="Close" i]'
+        );
+        if (closeBtn && typeof closeBtn.click === 'function') {
+          closeBtn.click();
+        } else {
+          overlay.remove();
+        }
+        return true;
+      };
+      if (closeTopDismissibleOverlay()) {
         return true;
       }
       const openMenus = Array.from(document.querySelectorAll('#topbar .dropdown.open'));
@@ -1909,6 +2012,7 @@ ready(async () => {
     const gadgetsMenu = document.getElementById('menu-gadgets');
     if (!gadgetsMenu) return;
     gadgetsMenu.innerHTML = '';
+    const dockPinned = isDockPinned();
 
     const disabled = getDisabledGadgets();
     const entries = [...gadgetCatalog]
@@ -1921,17 +2025,6 @@ ready(async () => {
         const bl = String(b.label || b.module || b.id || '');
         return al.localeCompare(bl, undefined, { sensitivity: 'base' });
       });
-
-    if (!entries.length) {
-      const emptyCol = document.createElement('div');
-      emptyCol.className = 'column';
-      const empty = document.createElement('div');
-      empty.className = 'item disabled';
-      empty.textContent = 'No gadgets discovered.';
-      emptyCol.appendChild(empty);
-      gadgetsMenu.appendChild(emptyCol);
-      return;
-    }
 
     const createItem = (gadget) => {
       const key = getGadgetKey(gadget);
@@ -1973,7 +2066,33 @@ ready(async () => {
     };
 
     const frag = document.createDocumentFragment();
+    const dockColumn = document.createElement('div');
+    dockColumn.className = 'column';
+    const dockItem = document.createElement('div');
+    dockItem.className = 'item';
+    dockItem.setAttribute('data-search', 'pin gadget dock unpin gadget dock dock gadgets');
+    const dockCheck = document.createElement('span');
+    dockCheck.className = 'check';
+    dockCheck.textContent = dockPinned ? '✓' : '';
+    const dockLabel = document.createElement('span');
+    dockLabel.textContent = 'Pin gadget dock';
+    dockItem.append(dockCheck, dockLabel);
+    dockItem.addEventListener('click', () => {
+      const next = !isDockPinned();
+      setDockPinned(next);
+      dockCheck.textContent = next ? '✓' : '';
+      setupDockReveal(gadgetCatalog);
+    });
+    dockColumn.appendChild(dockItem);
+    frag.appendChild(dockColumn);
+
     const chunks = chunkForSearchLayout(entries, 9, 10);
+    if (!entries.length) {
+      const empty = document.createElement('div');
+      empty.className = 'item disabled';
+      empty.textContent = 'No gadgets discovered.';
+      dockColumn.appendChild(empty);
+    }
     for (const group of chunks) {
       const column = document.createElement('div');
       column.className = 'column';

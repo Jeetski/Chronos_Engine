@@ -41,6 +41,9 @@ from utilities.dashboard_matrix import (
     delete_matrix_preset,
 )
 from modules.scheduler import schedule_path_for_date, status_current_path, build_block_key, get_flattened_schedule
+from modules.scheduler.sleep_gate import (
+    build_sleep_interrupt,
+)
 
 # In-memory dashboard-scoped variables (exposed via /api/vars)
 _DASH_VARS = {}
@@ -58,10 +61,12 @@ _TRICK_OPEN_REQUESTS = []
 _TRICK_OPEN_LOCK = threading.Lock()
 _TRICK_OPEN_SEQ = 0
 _FILE_API_ALLOWED_ROOTS = [
+    ROOT_DIR,
     os.path.join(ROOT_DIR, "user"),
     os.path.join(ROOT_DIR, "Agents Dress Up Committee", "familiars", "nia"),
 ]
 _EDITOR_API_ALLOWED_ROOTS = [
+    ROOT_DIR,
     os.path.join(ROOT_DIR, "user"),
     _TEMP_DIR,
 ]
@@ -113,7 +118,10 @@ def _resolve_file_api_target(path_value: str):
     rel = str(path_value or "").strip().replace("\\", "/")
     if not rel:
         return None, "Missing path"
-    target = os.path.abspath(os.path.join(ROOT_DIR, rel))
+    if os.path.isabs(rel):
+        target = os.path.abspath(rel)
+    else:
+        target = os.path.abspath(os.path.join(ROOT_DIR, rel))
     if not _path_within(ROOT_DIR, target):
         return None, "Forbidden"
     for allowed_root in _FILE_API_ALLOWED_ROOTS:
@@ -126,7 +134,10 @@ def _resolve_editor_api_target(path_value: str):
     rel = str(path_value or "").strip().replace("\\", "/")
     if not rel:
         return None, "Missing path"
-    target = os.path.abspath(os.path.join(ROOT_DIR, rel))
+    if os.path.isabs(rel):
+        target = os.path.abspath(rel)
+    else:
+        target = os.path.abspath(os.path.join(ROOT_DIR, rel))
     if not _path_within(ROOT_DIR, target):
         return None, "Forbidden"
     for allowed_root in _EDITOR_API_ALLOWED_ROOTS:
@@ -143,6 +154,314 @@ def _legacy_or_canonical_temp_path(filename: str) -> str:
     if os.path.exists(legacy):
         return legacy
     return canonical
+
+
+def _graph_token(value):
+    text = str(value or "").strip()
+    return re.sub(r"\s+", " ", text)
+
+
+def _graph_key(value):
+    return _graph_token(value).lower()
+
+
+def _graph_node_id(item_type, name):
+    item_type = _graph_key(item_type) or "item"
+    name = _graph_key(name)
+    return f"{item_type}:{name}"
+
+
+def _graph_listify(value):
+    if isinstance(value, list):
+        return value
+    if value in (None, "", []):
+        return []
+    return [value]
+
+
+def _graph_scalar_strings(value):
+    if isinstance(value, list):
+        out = []
+        for part in value:
+            if isinstance(part, (str, int, float, bool)):
+                token = str(part).strip()
+                if token:
+                    out.append(token)
+        return out
+    if isinstance(value, (str, int, float, bool)):
+        token = str(value).strip()
+        return [token] if token else []
+    return []
+
+
+def _graph_extract_targets(value, default_type="item"):
+    targets = []
+    for entry in _graph_listify(value):
+        if isinstance(entry, dict):
+            name = _graph_token(entry.get("name") or entry.get("item") or entry.get("id"))
+            item_type = _graph_token(entry.get("type") or default_type or "item").lower()
+            if name:
+                targets.append({"name": name, "type": item_type or "item"})
+        elif isinstance(entry, str):
+            name = _graph_token(entry)
+            if name:
+                targets.append({"name": name, "type": default_type or "item"})
+    return targets
+
+
+def _graph_build_payload():
+    from modules.item_manager import get_item_path, list_all_items_any
+
+    items = list_all_items_any() or []
+    nodes = []
+    node_index = {}
+    item_lookup = {}
+    query_values = {}
+
+    def register_node(raw):
+        if not isinstance(raw, dict):
+            return None
+        data = {str(k).lower(): v for k, v in raw.items()}
+        name = _graph_token(data.get("name"))
+        item_type = _graph_token(data.get("type") or "item").lower()
+        if not name or not item_type:
+            return None
+
+        node_id = _graph_node_id(item_type, name)
+        path = ""
+        updated_at = None
+        try:
+            fpath = get_item_path(item_type, name)
+            if fpath and os.path.exists(fpath):
+                path = os.path.relpath(fpath, ROOT_DIR).replace("\\", "/")
+                updated_at = datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(timespec="seconds")
+        except Exception:
+            path = ""
+            updated_at = None
+
+        properties = {}
+        query_parts = [name, item_type]
+        for key, value in data.items():
+            if key in {"name", "type"}:
+                continue
+            if isinstance(value, (str, int, float, bool)):
+                text = str(value).strip()
+                if text:
+                    properties[key] = text
+                    query_parts.append(f"{key}:{text}")
+            elif isinstance(value, list):
+                scalar_parts = _graph_scalar_strings(value)
+                if scalar_parts:
+                    properties[key] = scalar_parts
+                    query_parts.extend(f"{key}:{part}" for part in scalar_parts)
+
+        tags = _graph_scalar_strings(data.get("tags"))
+        status_keys = sorted(
+            key for key, value in (data.get("status_requirements") or {}).items()
+            if isinstance(data.get("status_requirements"), dict) and value not in (None, "", [], {})
+        )
+
+        yaml_text = ""
+        try:
+            yaml_text = yaml.safe_dump(raw, sort_keys=False, allow_unicode=False)
+        except Exception:
+            yaml_text = ""
+
+        node = {
+            "id": node_id,
+            "name": name,
+            "type": item_type,
+            "status": _graph_token(data.get("status")),
+            "state": _graph_token(data.get("state")),
+            "priority": _graph_token(data.get("priority")),
+            "category": _graph_token(data.get("category")),
+            "stage": _graph_token(data.get("stage")),
+            "place": _graph_token(data.get("place") or data.get("location")),
+            "tags": tags,
+            "status_keys": status_keys,
+            "path": path,
+            "updated_at": updated_at,
+            "properties": properties,
+            "yaml": yaml_text,
+            "query_blob": " ".join(part for part in query_parts if part).lower(),
+        }
+        node_index[node_id] = node
+        item_lookup[(item_type, _graph_key(name))] = node_id
+        query_values[node_id] = query_parts
+        nodes.append(node)
+        return node
+
+    for item in items:
+        register_node(item)
+
+    edge_map = {}
+    adjacency = {}
+    dependency_adjacency = {}
+
+    def ensure_reference(name, item_type="item"):
+        ref_name = _graph_token(name)
+        ref_type = _graph_token(item_type or "item").lower() or "item"
+        if not ref_name:
+            return None
+        existing_id = item_lookup.get((ref_type, _graph_key(ref_name)))
+        if existing_id:
+            return existing_id
+        node_id = _graph_node_id(ref_type, ref_name)
+        if node_id not in node_index:
+            node = {
+                "id": node_id,
+                "name": ref_name,
+                "type": ref_type,
+                "status": "",
+                "state": "",
+                "priority": "",
+                "category": "",
+                "stage": "",
+                "place": "",
+                "tags": [],
+                "status_keys": [],
+                "path": "",
+                "updated_at": None,
+                "properties": {},
+                "yaml": "",
+                "query_blob": f"{ref_name} {ref_type}".lower(),
+                "ghost": True,
+            }
+            node_index[node_id] = node
+            nodes.append(node)
+        item_lookup[(ref_type, _graph_key(ref_name))] = node_id
+        return node_id
+
+    def add_edge(source_id, target_id, kind, family, weight, directional=True):
+        if not source_id or not target_id or source_id == target_id:
+            return
+        src = node_index.get(source_id)
+        dst = node_index.get(target_id)
+        if not src or not dst:
+            return
+        pair = tuple(sorted((source_id, target_id))) if not directional else (source_id, target_id)
+        key = (pair, kind, family)
+        existing = edge_map.get(key)
+        if existing:
+            existing["weight"] = max(existing.get("weight", 1.0), float(weight))
+            return
+        edge = {
+            "id": f"{kind}:{source_id}:{target_id}" if directional else f"{kind}:{pair[0]}:{pair[1]}",
+            "source": source_id,
+            "target": target_id,
+            "kind": kind,
+            "family": family,
+            "weight": float(weight),
+            "directional": bool(directional),
+        }
+        edge_map[key] = edge
+        adjacency.setdefault(source_id, set()).add(target_id)
+        adjacency.setdefault(target_id, set()).add(source_id)
+        if family == "dependency":
+            dependency_adjacency.setdefault(source_id, set()).add(target_id)
+            dependency_adjacency.setdefault(target_id, set()).add(source_id)
+
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        data = {str(k).lower(): v for k, v in raw.items()}
+        source_name = _graph_token(data.get("name"))
+        source_type = _graph_token(data.get("type") or "item").lower()
+        source_id = item_lookup.get((source_type, _graph_key(source_name)))
+        if not source_id:
+            continue
+
+        for child in _graph_extract_targets(data.get("children") or data.get("items"), default_type="item"):
+            target_id = ensure_reference(child["name"], child["type"])
+            add_edge(source_id, target_id, "contains", "structure", 4.0, directional=True)
+
+        for ref_name in _graph_scalar_strings(data.get("milestones")):
+            target_id = ensure_reference(ref_name, "milestone")
+            add_edge(source_id, target_id, "milestone", "structure", 3.5, directional=True)
+
+        for ref_name in _graph_scalar_strings(data.get("goals")):
+            target_id = ensure_reference(ref_name, "goal")
+            add_edge(source_id, target_id, "goal", "structure", 3.5, directional=True)
+
+        singular_refs = [
+            ("project", data.get("project"), "project", "belongs_to_project", "structure", 4.0),
+            ("goal", data.get("goal"), "goal", "belongs_to_goal", "structure", 4.0),
+            ("resolution_ref", data.get("resolution_ref"), "project", "resolution", "structure", 1.5),
+        ]
+        for _field, value, ref_type, kind, family, weight in singular_refs:
+            name = _graph_token(value)
+            if not name:
+                continue
+            target_id = ensure_reference(name, ref_type)
+            add_edge(source_id, target_id, kind, family, weight, directional=True)
+
+        for dep_name in _graph_scalar_strings(data.get("depends_on")) + _graph_scalar_strings(data.get("dependencies")):
+            target_id = ensure_reference(dep_name, "task")
+            add_edge(source_id, target_id, "depends_on", "dependency", 5.0, directional=True)
+
+        for target in _graph_extract_targets(data.get("targets"), default_type="item"):
+            target_id = ensure_reference(target["name"], target["type"])
+            add_edge(source_id, target_id, "targets", "structure", 3.0, directional=True)
+
+        target_value = data.get("target")
+        if isinstance(target_value, dict):
+            target_name = _graph_token(target_value.get("name"))
+            target_type = _graph_token(target_value.get("type") or "item").lower()
+            if target_name and target_type != "script":
+                target_id = ensure_reference(target_name, target_type)
+                add_edge(source_id, target_id, "target", "structure", 2.5, directional=True)
+
+        for requirement in _graph_extract_targets(data.get("requirements"), default_type="item"):
+            target_id = ensure_reference(requirement["name"], requirement["type"])
+            add_edge(source_id, target_id, "requires", "dependency", 3.5, directional=True)
+
+    for node in nodes:
+        node_id = node["id"]
+        degree = len(adjacency.get(node_id, set()))
+        dep_degree = len(dependency_adjacency.get(node_id, set()))
+        type_weight = {
+            "project": 1.25,
+            "goal": 1.25,
+            "routine": 1.1,
+            "subroutine": 1.0,
+            "microroutine": 0.95,
+            "day": 0.9,
+            "week": 0.85,
+            "timeblock": 0.75,
+            "window": 0.75,
+        }.get(node.get("type"), 1.0)
+        if node.get("ghost"):
+            type_weight = 0.5
+        node["degree"] = degree
+        node["dependency_degree"] = dep_degree
+        node["hub_score"] = round(((degree * 1.0) + (dep_degree * 0.8)) * type_weight, 3)
+
+    best_center = None
+    ranked = sorted(
+        nodes,
+        key=lambda row: (
+            float(row.get("hub_score") or 0.0),
+            int(row.get("degree") or 0),
+            -1 if row.get("ghost") else 0,
+            str(row.get("name") or "").lower(),
+        ),
+        reverse=True,
+    )
+    if ranked:
+        best_center = ranked[0]["id"]
+
+    return {
+        "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "default_center": best_center,
+        "nodes": nodes,
+        "edges": sorted(edge_map.values(), key=lambda edge: (edge["family"], edge["kind"], edge["source"], edge["target"])),
+        "meta": {
+            "node_count": len(nodes),
+            "edge_count": len(edge_map),
+            "dependency_edge_count": sum(1 for edge in edge_map.values() if edge.get("family") == "dependency"),
+            "structure_edge_count": sum(1 for edge in edge_map.values() if edge.get("family") == "structure"),
+        },
+    }
 
 
 def _trick_registry():
@@ -6246,6 +6565,14 @@ def run_console_command(command_name, args_list, properties=None):
         return ok, (out or '').strip(), (err or '').strip()
 
 
+def _prepare_sleep_gate(command_name, args_list, properties=None):
+    props = dict(properties or {})
+    interrupt = build_sleep_interrupt(command_name, args_list, props)
+    if interrupt:
+        return {"interrupt": interrupt, "properties": props}
+    return {"interrupt": None, "properties": props}
+
+
 def _list_system_databases():
     data_dir = os.path.join(ROOT_DIR, "user", "data")
     registry_path = os.path.join(data_dir, "databases.yml")
@@ -9758,6 +10085,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to list items: {e}"})
             return
+
+        if parsed.path == "/api/graph":
+            try:
+                graph_payload = _graph_build_payload()
+                self._write_json(200, {"ok": True, **graph_payload})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Graph build failed: {e}"})
+            return
         
         # /api/item - Get single item content (for Item Manager widget)
         if parsed.path == "/api/item":
@@ -10183,6 +10518,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             if not isinstance(props, dict):
                 self._write_yaml(400, {"ok": False, "error": "'properties' must be a map"})
                 return
+
+            sleep_gate = _prepare_sleep_gate(cmd, args, props)
+            if sleep_gate.get("interrupt"):
+                self._write_json(409, {"ok": False, "interrupt": sleep_gate["interrupt"]})
+                return
+            props = sleep_gate.get("properties") or props
 
             # Pass args and properties separately. Appending property tokens into args
             # breaks commands that parse colon syntax from positional arguments (e.g. mark).
@@ -11133,7 +11474,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
 
         if parsed.path == "/api/today/reschedule":
-            ok, out, err = run_console_command("today", ["reschedule"])
+            sleep_gate = _prepare_sleep_gate("today", ["reschedule"], {})
+            if sleep_gate.get("interrupt"):
+                self._write_yaml(409, {"ok": False, "interrupt": sleep_gate["interrupt"]})
+                return
+            ok, out, err = run_console_command("today", ["reschedule"], sleep_gate.get("properties") or {})
             self._write_yaml(200 if ok else 500, {"ok": ok, "stdout": out, "stderr": err})
             return
 
@@ -11144,7 +11489,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     tgt = str(payload.get('target') or '').strip().lower()
                     if tgt in {'today', 'day'}:
                         target = tgt
-                ok, out, err = run_console_command("start", [target])
+                props = payload if isinstance(payload, dict) else {}
+                sleep_gate = _prepare_sleep_gate("start", [target], props)
+                if sleep_gate.get("interrupt"):
+                    self._write_json(409, {"ok": False, "interrupt": sleep_gate["interrupt"]})
+                    return
+                props = sleep_gate.get("properties") or props
+                ok, out, err = run_console_command("start", [target], props)
                 status_snapshot = None
                 try:
                     from modules.timer import main as Timer

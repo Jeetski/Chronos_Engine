@@ -122,6 +122,7 @@ export function mount(el, context) {
   let lastTimerStatus = 'idle';
   let lastPendingConfirmVisible = null;
   let lastBlockSeconds = 0;
+  let statusRequest = null;
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   function ensureTimerFitsContent() {
@@ -285,88 +286,96 @@ export function mount(el, context) {
   }
 
   async function status() {
+    if (statusRequest) return statusRequest;
+    statusRequest = (async () => {
+      try {
+        const r = await fetch(apiBase() + '/api/timer/status'); const d = await r.json();
+        if (!d || d.ok === false) { return; }
+        const st = d.status || {};
+        statusEl.textContent = `Status: ${st.status || 'idle'}`;
+        phaseEl.textContent = `Phase: ${st.current_phase || '-'}`;
+        cycleEl.textContent = `Cycle: ${st.cycle_index || 0}`;
+        clockEl.textContent = fmt(st.remaining_seconds || 0);
+        const block = st.current_block;
+        if (block && blockMetaEl) {
+          blockMetaEl.textContent = `Block: ${block.name || 'Block'} (${block.minutes || '?'}m)`;
+          blockMetaEl.style.display = '';
+          const minutes = Number(block.minutes || 0);
+          lastBlockSeconds = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes * 60) : 0;
+        } else if (blockMetaEl) {
+          blockMetaEl.textContent = '';
+          blockMetaEl.style.display = 'none';
+          lastBlockSeconds = 0;
+        }
+        if (queueMetaEl) {
+          const sched = st.schedule_state || {};
+          const plan = sched.plan || {};
+          const total = Number(sched.total_blocks ?? (plan.blocks ? plan.blocks.length : 0));
+          const idx = Number(sched.current_index ?? 0);
+          if (total > 0) {
+            queueMetaEl.textContent = `Schedule: block ${Math.min(total, idx + 1)} of ${total}`;
+            queueMetaEl.style.display = '';
+          } else {
+            queueMetaEl.textContent = '';
+            queueMetaEl.style.display = 'none';
+          }
+        }
+        // Progress basis: schedule mode must use current block duration.
+        const prof = st.profile || {};
+        const mode = String(st.mode || '').toLowerCase();
+        let total = 1;
+        if (mode === 'schedule' && block && Number(block.minutes) > 0) {
+          total = Math.max(1, Math.floor(Number(block.minutes) * 60));
+        } else if (st.current_phase === 'focus') {
+          total = (prof.focus_minutes || 25) * 60;
+        } else if (st.current_phase === 'short_break') {
+          total = (prof.short_break_minutes || 5) * 60;
+        } else if (st.current_phase === 'long_break') {
+          total = (prof.long_break_minutes || 15) * 60;
+        }
+        const rem = parseInt(st.remaining_seconds || 0, 10); const pct = Math.max(0, Math.min(100, ((total - rem) / total) * 100));
+        setRingProgress(Number.isFinite(pct) ? pct : 0);
+        if (String(st.status || '').toLowerCase() === 'idle') {
+          // show default focus length for current profile
+          resetDisplayForSelected();
+        }
+        updateButtons(st.status);
+        pendingConfirmation = st.pending_confirmation || null;
+        if (banner && bannerText) {
+          const currentBlock = st.current_block || null;
+          const hasPending = !!(pendingConfirmation && pendingConfirmation.block);
+          const waitingForAnchor = !!st.waiting_for_anchor_start;
+          const hasActionTarget = !!currentBlock && !waitingForAnchor;
+          if (hasPending) {
+            const blk = pendingConfirmation.block;
+            bannerText.textContent = `Finished "${blk.name || 'this block'}"?`;
+          } else if (waitingForAnchor && currentBlock) {
+            const startAt = currentBlock.start ? ` at ${currentBlock.start}` : '';
+            bannerText.textContent = `Waiting for anchor "${currentBlock.name || 'block'}"${startAt}`;
+          } else if (hasActionTarget) {
+            bannerText.textContent = `Block "${currentBlock.name || 'current block'}" actions`;
+          } else {
+            bannerText.textContent = 'No active schedule block right now.';
+          }
+          banner.style.display = (hasPending || hasActionTarget || (waitingForAnchor && currentBlock)) ? '' : 'none';
+          if (bannerYes) bannerYes.disabled = !hasActionTarget;
+          if (bannerSkipToday) bannerSkipToday.disabled = !hasActionTarget;
+          if (bannerSkip) bannerSkip.disabled = !hasActionTarget;
+          if (bannerRestart) bannerRestart.disabled = !hasActionTarget;
+          if (bannerStretch) bannerStretch.disabled = !hasActionTarget;
+          if (lastPendingConfirmVisible === null || lastPendingConfirmVisible !== hasPending) {
+            queueEnsureTimerFits();
+            lastPendingConfirmVisible = hasPending;
+          }
+        }
+        lastTimerStatus = String(st.status || 'idle').toLowerCase();
+      } catch { }
+    })();
     try {
-      const r = await fetch(apiBase() + '/api/timer/status'); const d = await r.json();
-      if (!d || d.ok === false) { return; }
-      const st = d.status || {};
-      statusEl.textContent = `Status: ${st.status || 'idle'}`;
-      phaseEl.textContent = `Phase: ${st.current_phase || '-'}`;
-      cycleEl.textContent = `Cycle: ${st.cycle_index || 0}`;
-      clockEl.textContent = fmt(st.remaining_seconds || 0);
-      const block = st.current_block;
-      if (block && blockMetaEl) {
-        blockMetaEl.textContent = `Block: ${block.name || 'Block'} (${block.minutes || '?'}m)`;
-        blockMetaEl.style.display = '';
-        const minutes = Number(block.minutes || 0);
-        lastBlockSeconds = Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes * 60) : 0;
-      } else if (blockMetaEl) {
-        blockMetaEl.textContent = '';
-        blockMetaEl.style.display = 'none';
-        lastBlockSeconds = 0;
-      }
-      if (queueMetaEl) {
-        const sched = st.schedule_state || {};
-        const plan = sched.plan || {};
-        const total = Number(sched.total_blocks ?? (plan.blocks ? plan.blocks.length : 0));
-        const idx = Number(sched.current_index ?? 0);
-        if (total > 0) {
-          queueMetaEl.textContent = `Schedule: block ${Math.min(total, idx + 1)} of ${total}`;
-          queueMetaEl.style.display = '';
-        } else {
-          queueMetaEl.textContent = '';
-          queueMetaEl.style.display = 'none';
-        }
-      }
-      // Progress basis: schedule mode must use current block duration.
-      const prof = st.profile || {};
-      const mode = String(st.mode || '').toLowerCase();
-      let total = 1;
-      if (mode === 'schedule' && block && Number(block.minutes) > 0) {
-        total = Math.max(1, Math.floor(Number(block.minutes) * 60));
-      } else if (st.current_phase === 'focus') {
-        total = (prof.focus_minutes || 25) * 60;
-      } else if (st.current_phase === 'short_break') {
-        total = (prof.short_break_minutes || 5) * 60;
-      } else if (st.current_phase === 'long_break') {
-        total = (prof.long_break_minutes || 15) * 60;
-      }
-      const rem = parseInt(st.remaining_seconds || 0, 10); const pct = Math.max(0, Math.min(100, ((total - rem) / total) * 100));
-      setRingProgress(Number.isFinite(pct) ? pct : 0);
-      if (String(st.status || '').toLowerCase() === 'idle') {
-        // show default focus length for current profile
-        resetDisplayForSelected();
-      }
-      updateButtons(st.status);
-      pendingConfirmation = st.pending_confirmation || null;
-      if (banner && bannerText) {
-        const currentBlock = st.current_block || null;
-        const hasPending = !!(pendingConfirmation && pendingConfirmation.block);
-        const waitingForAnchor = !!st.waiting_for_anchor_start;
-        const hasActionTarget = !!currentBlock && !waitingForAnchor;
-        if (hasPending) {
-          const blk = pendingConfirmation.block;
-          bannerText.textContent = `Finished "${blk.name || 'this block'}"?`;
-        } else if (waitingForAnchor && currentBlock) {
-          const startAt = currentBlock.start ? ` at ${currentBlock.start}` : '';
-          bannerText.textContent = `Waiting for anchor "${currentBlock.name || 'block'}"${startAt}`;
-        } else if (hasActionTarget) {
-          bannerText.textContent = `Block "${currentBlock.name || 'current block'}" actions`;
-        } else {
-          bannerText.textContent = 'No active schedule block right now.';
-        }
-        banner.style.display = (hasPending || hasActionTarget || (waitingForAnchor && currentBlock)) ? '' : 'none';
-        if (bannerYes) bannerYes.disabled = !hasActionTarget;
-        if (bannerSkipToday) bannerSkipToday.disabled = !hasActionTarget;
-        if (bannerSkip) bannerSkip.disabled = !hasActionTarget;
-        if (bannerRestart) bannerRestart.disabled = !hasActionTarget;
-        if (bannerStretch) bannerStretch.disabled = !hasActionTarget;
-        if (lastPendingConfirmVisible === null || lastPendingConfirmVisible !== hasPending) {
-          queueEnsureTimerFits();
-          lastPendingConfirmVisible = hasPending;
-        }
-      }
-      lastTimerStatus = String(st.status || 'idle').toLowerCase();
-    } catch { }
+      return await statusRequest;
+    } finally {
+      statusRequest = null;
+    }
   }
 
   async function start() {
@@ -439,7 +448,8 @@ export function mount(el, context) {
     startDayBtn.textContent = 'Starting...';
     try {
       if (typeof window.ChronosStartDay === 'function') {
-        await window.ChronosStartDay({ source: 'timer-widget', target: 'day' });
+        const result = await window.ChronosStartDay({ source: 'timer-widget', target: 'day' });
+        if (result?.canceled) return;
       } else {
         const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'day' }) });
         const data = await resp.json().catch(() => ({}));
@@ -447,7 +457,7 @@ export function mount(el, context) {
           throw new Error(data.error || data.stderr || `HTTP ${resp.status}`);
         }
       }
-      status();
+      // ChronosStartDay already emits timer refresh events; avoid a third overlapping status call here.
     } catch (err) {
       console.error('[Chronos][Timer] Start day failed', err);
       alert(`Failed to start day: ${err?.message || err}`);

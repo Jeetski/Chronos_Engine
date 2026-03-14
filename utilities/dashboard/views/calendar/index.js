@@ -199,9 +199,9 @@ function injectDayListStyles() {
       color: #ef6a6a;
       background: rgba(239,106,106,0.14);
     }
-    .calendar-daylist-time--past { --calendar-time-color: #ff6b6b; }
-    .calendar-daylist-time--present { --calendar-time-color: #6bb7ff; }
-    .calendar-daylist-time--future { --calendar-time-color: #6bff95; }
+    .calendar-daylist-time--past { --calendar-time-color: var(--calendar-time-past, #7f8897); }
+    .calendar-daylist-time--present { --calendar-time-color: var(--calendar-time-present, #57d673); }
+    .calendar-daylist-time--future { --calendar-time-color: var(--calendar-time-future, #6bb7ff); }
     .calendar-daylist-node {
       display: flex;
       align-items: center;
@@ -403,7 +403,7 @@ export function mount(el, context) {
   canvas.style.width = '100%';
   canvas.style.height = '100%';
   canvas.style.display = 'block';
-  canvas.style.background = 'repeating-conic-gradient(from 45deg, #0e131c 0% 25%, #0b0f16 0% 50%) 50% / 26px 26px';
+  canvas.style.background = 'radial-gradient(circle at top, var(--chronos-surface-highlight, rgba(32,44,68,0.26)), transparent 42%), linear-gradient(180deg, var(--chronos-surface-strong, rgba(11,16,26,0.96)), var(--chronos-bg, #0b0f16))';
 
   container.appendChild(canvas);
   stage.appendChild(container); // Append to STAGE
@@ -472,6 +472,7 @@ export function mount(el, context) {
     <div class="calendar-daylist-message"></div>
   `;
   container.appendChild(dayList);
+  applyCalendarPaletteVars();
 
   const ctx = canvas.getContext('2d');
 
@@ -784,6 +785,59 @@ export function mount(el, context) {
     const bch = Math.round(_lerp(a.b, b.b, t));
     return `rgb(${r},${g},${bch})`;
   }
+  function _toHue(color) {
+    const rgb = _hexToRgb(color);
+    if (!rgb) return null;
+    const r = rgb.r / 255;
+    const g = rgb.g / 255;
+    const b = rgb.b / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    if (delta === 0) return null;
+    let hue = 0;
+    if (max === r) hue = ((g - b) / delta) % 6;
+    else if (max === g) hue = (b - r) / delta + 2;
+    else hue = (r - g) / delta + 4;
+    hue *= 60;
+    if (hue < 0) hue += 360;
+    return hue;
+  }
+  function isGreenish(color) {
+    const hue = _toHue(color);
+    return hue != null && hue >= 105 && hue <= 175;
+  }
+  function resolveCalendarAccent() {
+    const primary = getCss('--chronos-accent', getCss('--accent', '#7aa2f7'));
+    if (!isGreenish(primary)) return primary;
+    const success = getCss('--chronos-success', '#6bb7ff');
+    if (!isGreenish(success)) return success;
+    const strong = getCss('--chronos-accent-strong', '#6bb7ff');
+    if (!isGreenish(strong)) return strong;
+    return '#6bb7ff';
+  }
+  function calendarPalette() {
+    return {
+      today: '#57d673',
+      accent: resolveCalendarAccent(),
+      past: getCss('--chronos-text-soft', '#7f8897'),
+      mutedText: getCss('--chronos-text-soft', '#8d95a4'),
+      mainText: getCss('--chronos-text', '#e6e8ef'),
+      softText: getCss('--chronos-text-muted', '#a6adbb'),
+      background: getCss('--chronos-surface-strong', '#0b0f16'),
+    };
+  }
+  function applyCalendarPaletteVars() {
+    const palette = calendarPalette();
+    const targets = [container, dayList, canvas];
+    for (const target of targets) {
+      if (!target?.style) continue;
+      target.style.setProperty('--calendar-time-past', palette.past);
+      target.style.setProperty('--calendar-time-present', palette.today);
+      target.style.setProperty('--calendar-time-future', palette.accent);
+    }
+    return palette;
+  }
   function heatmapColor(score) {
     const v = Math.max(0, Math.min(1, Number(score) || 0));
     const stops = [
@@ -817,7 +871,12 @@ export function mount(el, context) {
     ctx.arcTo(x, y, x + ww, y, rr);
     ctx.closePath();
   }
-  function colorForDay(dayDate, today) { if (dayDate < today) return getCss('--danger', '#ef6a6a'); if (sameDay(dayDate, today)) return getCss('--accent', '#7aa2f7'); return getCss('--ok', '#5bdc82'); }
+  function colorForDay(dayDate, today) {
+    const palette = calendarPalette();
+    if (sameDay(dayDate, today)) return palette.today;
+    if (dayDate < today) return palette.past;
+    return palette.accent;
+  }
   function minToHM(min) { const h = Math.floor(min / 60) % 24; const m = min % 60; return String(h).padStart(2, '0') + ":" + String(m).padStart(2, '0'); }
   function formatDayTitle(day) {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1390,6 +1449,7 @@ export function mount(el, context) {
 
   function drawYearGrid() {
     setDayListVisible(false);
+    const palette = applyCalendarPaletteVars();
     const now = new Date();
     const year = selectedYear || now.getFullYear();
     const currentMonth = now.getMonth();
@@ -1398,7 +1458,7 @@ export function mount(el, context) {
     if (!markerMap) requestDateMarkersForYear(year);
     const w = canvas.clientWidth, h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#0b0f16';
+    ctx.fillStyle = palette.background;
     ctx.fillRect(0, 0, w, h);
     const cols = 4, rows = 3, pad = 14;
     const cellW = Math.max(1, (w - pad * (cols + 1)) / cols);
@@ -1413,13 +1473,16 @@ export function mount(el, context) {
       const r = Math.floor(i / cols), c = i % cols;
       const x = pad + c * (cellW + pad), y = pad + r * (cellH + pad);
       let fill;
-      if (year < now.getFullYear() || (year === now.getFullYear() && i < currentMonth)) fill = getCss('--danger', '#ef6a6a');
-      else if (year === now.getFullYear() && i === currentMonth) fill = getCss('--accent', '#7aa2f7');
-      else fill = getCss('--ok', '#5bdc82');
-      ctx.fillStyle = withAlpha(fill, 0.18);
+      const isPastMonth = year < now.getFullYear() || (year === now.getFullYear() && i < currentMonth);
+      const isCurrentMonth = year === now.getFullYear() && i === currentMonth;
+      if (isPastMonth) fill = palette.past;
+      else fill = palette.accent;
+      const monthAlpha = isCurrentMonth ? 0.18 : (isPastMonth ? 0.08 : 0.09);
+      const monthStrokeAlpha = isCurrentMonth ? 0.55 : (isPastMonth ? 0.22 : 0.24);
+      ctx.fillStyle = withAlpha(fill, monthAlpha);
       roundRect(ctx, x, y, cellW, cellH, 10);
       ctx.fill();
-      ctx.strokeStyle = withAlpha(fill, 0.55);
+      ctx.strokeStyle = withAlpha(fill, monthStrokeAlpha);
       roundRect(ctx, x, y, cellW, cellH, 10);
       ctx.stroke();
       const innerPad = 8;
@@ -1432,11 +1495,11 @@ export function mount(el, context) {
       const dayW = Math.max(4, (cellW - innerPad * 2 - colGap * 6) / 7);
       const dayH = Math.max(4, (cellH - (gridTop - y) - innerPad - rowGap * 5) / 6);
 
-      ctx.fillStyle = '#e6e8ef';
+      ctx.fillStyle = palette.mainText;
       ctx.fillText(`${months[i]}`, x + cellW / 2, titleY);
 
       ctx.font = '600 10px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
-      ctx.fillStyle = '#8d95a4';
+      ctx.fillStyle = palette.mutedText;
       for (let dow = 0; dow < 7; dow++) {
         const wx = x + innerPad + dow * (dayW + colGap) + dayW / 2;
         ctx.fillText(weekdayLabels[dow], wx, weekdaysY);
@@ -1454,16 +1517,17 @@ export function mount(el, context) {
           const dx = x + innerPad + col * (dayW + colGap);
           const dy = gridTop + row * (dayH + rowGap);
           const dayColor = colorForDay(dayDate, todayMidnight);
+          const isToday = sameDay(dayDate, todayMidnight);
 
-          ctx.fillStyle = withAlpha(dayColor, inMonth ? 0.2 : 0.08);
+          ctx.fillStyle = withAlpha(dayColor, isToday ? 0.28 : (inMonth ? 0.1 : 0.04));
           roundRect(ctx, dx, dy, dayW, dayH, 3);
           ctx.fill();
-          ctx.strokeStyle = withAlpha(dayColor, inMonth ? 0.45 : 0.2);
+          ctx.strokeStyle = withAlpha(dayColor, isToday ? 0.82 : (inMonth ? 0.24 : 0.1));
           roundRect(ctx, dx, dy, dayW, dayH, 3);
           ctx.stroke();
 
           if (dayW >= 9 && dayH >= 8) {
-            ctx.fillStyle = inMonth ? '#e6e8ef' : '#6b7382';
+            ctx.fillStyle = isToday ? palette.mainText : (inMonth ? palette.mainText : palette.past);
             ctx.textAlign = 'center';
             ctx.fillText(String(dayDate.getDate()), dx + dayW / 2, dy + dayH / 2 + 0.5);
           }
@@ -1485,6 +1549,7 @@ export function mount(el, context) {
 
   function drawMonthGrid(month = (new Date()).getMonth(), year = (new Date()).getFullYear()) {
     setDayListVisible(false);
+    const palette = applyCalendarPaletteVars();
     selectedMonth = month;
     selectedYear = year;
     const markerMap = dateMarkerCache.get(year) || null;
@@ -1500,10 +1565,10 @@ export function mount(el, context) {
     ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial';
     const monthsLong = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const title = `${monthsLong[month]}`;
-    ctx.fillStyle = '#e6e8ef';
+    ctx.fillStyle = palette.mainText;
     ctx.fillText(title, pad, pad + headerH / 2);
     const dows = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    ctx.fillStyle = '#a6adbb';
+    ctx.fillStyle = palette.softText;
     for (let i = 0; i < 7; i++) {
       ctx.fillText(dows[i], pad + i * (colW + pad) + colW / 2, gridTop - 10);
     }
@@ -1525,6 +1590,11 @@ export function mount(el, context) {
         let dayColor = colorForDay(d, today);
         let alpha = inMonth ? 0.18 : 0.06;
         let strokeAlpha = inMonth ? 0.45 : 0.2;
+        const isToday = sameDay(d, today);
+        if (score === null) {
+          alpha = isToday ? 0.28 : (inMonth ? 0.1 : 0.04);
+          strokeAlpha = isToday ? 0.82 : (inMonth ? 0.26 : 0.1);
+        }
 
         if (score !== null) {
           // Heatmap Mode: white -> blue -> white -> yellow -> orange -> red
@@ -1539,7 +1609,7 @@ export function mount(el, context) {
         ctx.strokeStyle = withAlpha(dayColor, strokeAlpha);
         roundRect(ctx, x, y, colW, rowH, 10);
         ctx.stroke();
-        ctx.fillStyle = inMonth ? '#e6e8ef' : '#6b7382';
+        ctx.fillStyle = isToday ? palette.mainText : (inMonth ? palette.mainText : palette.past);
         ctx.textAlign = 'right';
         ctx.fillText(String(d.getDate()), x + colW - 6, y + 14);
         ctx.textAlign = 'left';
@@ -1564,9 +1634,10 @@ export function mount(el, context) {
     notifyDayCleared();
   }
 
-  function drawWeekGrid(weekStart = selectedWeekStart || weekMonday(new Date())) { setDayListVisible(false); selectedWeekStart = new Date(weekStart); const w = canvas.clientWidth, h = canvas.clientHeight; ctx.clearRect(0, 0, w, h); const pad = 14, headerH = 36; const gridTop = pad + headerH + pad; const cols = 7; const cellW = Math.max(1, (w - pad * (cols + 1)) / cols); const cellH = Math.max(1, h - gridTop - pad); ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; const monday = weekMonday(weekStart); const title = `Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}`; ctx.fillStyle = '#e6e8ef'; ctx.fillText(title, pad, pad + headerH / 2); const dows = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; const today = dateAtMidnight(new Date()); dayRects = []; for (let c = 0; c < cols; c++) { const x = pad + c * (cellW + pad); const y = gridTop; const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + c); const dayColor = colorForDay(dayDate, today); ctx.fillStyle = withAlpha(dayColor, 0.18); roundRect(ctx, x, y, cellW, cellH, 10); ctx.fill(); ctx.strokeStyle = withAlpha(dayColor, 0.45); roundRect(ctx, x, y, cellW, cellH, 10); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillStyle = '#a6adbb'; ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x + cellW / 2, y + 14); ctx.textAlign = 'left'; dayRects.push({ x, y, w: cellW, h: cellH, date: dateAtMidnight(dayDate) }); } ctx.restore(); viewMode = 'week'; syncGlobals(); notifyDayCleared(); }
+  function drawWeekGrid(weekStart = selectedWeekStart || weekMonday(new Date())) { setDayListVisible(false); const palette = applyCalendarPaletteVars(); selectedWeekStart = new Date(weekStart); const w = canvas.clientWidth, h = canvas.clientHeight; ctx.clearRect(0, 0, w, h); const pad = 14, headerH = 36; const gridTop = pad + headerH + pad; const cols = 7; const cellW = Math.max(1, (w - pad * (cols + 1)) / cols); const cellH = Math.max(1, h - gridTop - pad); ctx.save(); ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.font = '600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'; const monthsLong = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; const monday = weekMonday(weekStart); const title = `Week of ${monthsLong[monday.getMonth()]} ${monday.getDate()}`; ctx.fillStyle = palette.mainText; ctx.fillText(title, pad, pad + headerH / 2); const dows = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; const today = dateAtMidnight(new Date()); dayRects = []; for (let c = 0; c < cols; c++) { const x = pad + c * (cellW + pad); const y = gridTop; const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + c); const dayColor = colorForDay(dayDate, today); const isToday = sameDay(dayDate, today); ctx.fillStyle = withAlpha(dayColor, isToday ? 0.24 : 0.1); roundRect(ctx, x, y, cellW, cellH, 10); ctx.fill(); ctx.strokeStyle = withAlpha(dayColor, isToday ? 0.82 : 0.28); roundRect(ctx, x, y, cellW, cellH, 10); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillStyle = isToday ? palette.mainText : palette.softText; ctx.fillText(`${dows[c]} ${dayDate.getDate()}`, x + cellW / 2, y + 14); ctx.textAlign = 'left'; dayRects.push({ x, y, w: cellW, h: cellH, date: dateAtMidnight(dayDate) }); } ctx.restore(); viewMode = 'week'; syncGlobals(); notifyDayCleared(); }
 
   function drawDayGrid(day = dateAtMidnight(new Date()), previewDrag = false) {
+    applyCalendarPaletteVars();
     selectedDayDate = new Date(day);
     selectedStartMin = null;
     selectedItem = null;

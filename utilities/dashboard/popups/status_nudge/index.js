@@ -182,11 +182,15 @@ async function maybePrompt(done) {
           btn.disabled = true;
         }
         try {
-          await fetch(apiBase() + '/api/cli', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: 'today', args: ['reschedule'], properties: {} })
-          });
+          if (typeof window.ChronosRunCliCommand === 'function') {
+            await window.ChronosRunCliCommand({ command: 'today', args: ['reschedule'], properties: {} });
+          } else {
+            await fetch(apiBase() + '/api/cli', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ command: 'today', args: ['reschedule'], properties: {} })
+            });
+          }
           snooze(2 * 60 * 60 * 1000);
           el.remove();
           done?.();
@@ -225,11 +229,15 @@ async function maybePrompt(done) {
           btn.disabled = true;
         }
         try {
-          await fetch(apiBase() + '/api/cli', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: 'today', args: ['reschedule'], properties: {} })
-          });
+          if (typeof window.ChronosRunCliCommand === 'function') {
+            await window.ChronosRunCliCommand({ command: 'today', args: ['reschedule'], properties: {} });
+          } else {
+            await fetch(apiBase() + '/api/cli', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ command: 'today', args: ['reschedule'], properties: {} })
+            });
+          }
         snooze(2 * 60 * 60 * 1000);
         el.remove();
         done?.();

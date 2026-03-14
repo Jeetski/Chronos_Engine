@@ -614,6 +614,21 @@ export function mount(el, context) {
       if (endpoint === '/api/shell/exec') {
         // For shell, send raw line less any potential initial spaces
         body = { cmd: line.trim() };
+      } else if (typeof window.ChronosRunCliCommand === 'function') {
+        const result = await window.ChronosRunCliCommand({ command: cmd, args: parts, properties: {} });
+        if (result?.canceled) {
+          println(result?.choice === 'edit_sleep' ? 'Sleep settings opened.' : 'Command canceled.');
+          setStatus('Command canceled.');
+          return;
+        }
+        const payload = result?.data || {};
+        const out = payload.stdout || '';
+        const err = payload.stderr || payload.error || '';
+        if (out) println(out);
+        if (err) println(err);
+        if (!out && !err && payload.ok === false) println('Command failed.');
+        setStatus(payload.ok === false ? 'Command failed.' : 'Command completed.');
+        return;
       } else {
         // For internal CLI
         body = { command: cmd, args: parts, properties: {} };

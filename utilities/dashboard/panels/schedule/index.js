@@ -756,7 +756,12 @@ function mountSchedulePanel(root){
     setMessage('');
     try {
       if (typeof window.ChronosStartDay === 'function') {
-        await window.ChronosStartDay({ source: 'schedule-panel', target: 'day' });
+        const result = await window.ChronosStartDay({ source: 'schedule-panel', target: 'day' });
+        if (result?.canceled) {
+          setMessage(result?.reason || 'Start canceled.');
+          setStatus('Start canceled');
+          return;
+        }
       } else {
         const resp = await fetch(apiBase() + '/api/day/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target: 'day' }) });
         const data = await resp.json().catch(()=> ({}));

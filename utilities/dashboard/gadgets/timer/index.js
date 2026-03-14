@@ -250,6 +250,7 @@ export function mount(el, context = {}) {
   let pollId = null;
   let clickTimer = null;
   let menuDocked = false;
+  let refreshRequest = null;
 
   const setMenuDocked = (next) => {
     menuDocked = !!next;
@@ -332,14 +333,22 @@ export function mount(el, context = {}) {
   };
 
   const refreshDockTimerStatus = async () => {
+    if (refreshRequest) return refreshRequest;
+    refreshRequest = (async () => {
+      try {
+        const resp = await fetch(apiBase() + '/api/timer/status');
+        const payload = await resp.json().catch(() => ({}));
+        dockTimerStatus = payload?.status || {};
+        updateDockTimerUi(dockTimerStatus);
+      } catch {
+        dockTimerStatus = { status: 'idle' };
+        updateDockTimerUi(dockTimerStatus);
+      }
+    })();
     try {
-      const resp = await fetch(apiBase() + '/api/timer/status');
-      const payload = await resp.json().catch(() => ({}));
-      dockTimerStatus = payload?.status || {};
-      updateDockTimerUi(dockTimerStatus);
-    } catch {
-      dockTimerStatus = { status: 'idle' };
-      updateDockTimerUi(dockTimerStatus);
+      return await refreshRequest;
+    } finally {
+      refreshRequest = null;
     }
   };
 

@@ -1,0 +1,24 @@
+enabled: true
+quiet_hours_enabled: true
+quiet_hours_start: "22:00"
+quiet_hours_end: "07:00"
+allow_during_sleep:
+  - critical
+allow_during_quiet_hours:
+  - critical
+anchor_warning_minutes: 10
+start_day_reminder_time: "09:00"
+start_day_reminder_cutoff: "14:00"
+status_nudge_stale_hours: 4
+due_soon_lookahead_days: 3
+yesterday_checkin_start_time: "06:00"
+yesterday_checkin_cutoff: "16:00"
+event_settings:
+  schedule_check_in: true
+  upcoming_anchor: true
+  bedtime_reminder: true
+  waiting_for_anchor: true
+  start_day_reminder: true
+  status_nudge: true
+  due_soon: true
+  yesterday_checkin: true

@@ -885,17 +885,28 @@ export function mount(el, context) {
     }
     let generated = false;
     try {
-      const resp = await fetch(apiBase() + '/api/cli', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          command: 'today',
-          args: ['reschedule'],
-          properties: props,
-        }),
-      });
-      const payload = await resp.json().catch(() => ({}));
+      const result = (typeof window.ChronosRunCliCommand === 'function')
+        ? await window.ChronosRunCliCommand({ command: 'today', args: ['reschedule'], properties: props })
+        : await (async () => {
+          const resp = await fetch(apiBase() + '/api/cli', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command: 'today',
+              args: ['reschedule'],
+              properties: props,
+            }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          return { response: resp, data };
+        })();
+      const resp = result?.response;
+      const payload = result?.data || {};
       console.log('[Chronos][Today] Reschedule response:', payload);
+      if (result?.canceled) {
+        if (statusText) statusText.textContent = payload?.reason || 'Reschedule canceled.';
+        return;
+      }
       if (!resp.ok) throw new Error(payload?.stderr || payload?.error || 'Reschedule failed');
       generated = true;
       if (statusText) statusText.textContent = 'Schedule generated.';

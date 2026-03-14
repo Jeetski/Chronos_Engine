@@ -1,5 +1,8 @@
 import os
+import threading
+import time
 import yaml
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 try:
@@ -26,11 +29,70 @@ from utilities import points as Points
 
 STATE_DIR = os.path.join(get_user_dir(), 'Timers')
 STATE_FILE = os.path.join(STATE_DIR, 'state.yml')
+LOCK_FILE = os.path.join(STATE_DIR, 'state.lock')
 SESSIONS_DIR = os.path.join(STATE_DIR, 'sessions')
 PLAN_FILE = os.path.join(STATE_DIR, 'start_day_plan.yml')
 PROFILES_FILE = os.path.join(get_user_dir(), 'settings', 'timer_profiles.yml')
 SETTINGS_FILE = os.path.join(get_user_dir(), 'settings', 'timer_settings.yml')
 ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'assets'))
+STATE_LOCK = threading.RLock()
+_LOCK_LOCAL = threading.local()
+
+
+@contextmanager
+def _state_guard(timeout: float = 2.0, poll_interval: float = 0.01):
+    with STATE_LOCK:
+        depth = int(getattr(_LOCK_LOCAL, "depth", 0) or 0)
+        if depth > 0:
+            _LOCK_LOCAL.depth = depth + 1
+            try:
+                yield
+            finally:
+                _LOCK_LOCAL.depth = max(0, int(getattr(_LOCK_LOCAL, "depth", 1) or 1) - 1)
+            return
+
+        _ensure_dirs()
+        deadline = time.time() + max(0.1, float(timeout))
+        fd = None
+        while True:
+            try:
+                fd = os.open(LOCK_FILE, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+                break
+            except FileExistsError:
+                try:
+                    age = time.time() - os.path.getmtime(LOCK_FILE)
+                    if age > max(5.0, float(timeout) * 5):
+                        os.remove(LOCK_FILE)
+                        continue
+                except OSError:
+                    pass
+                if time.time() >= deadline:
+                    raise TimeoutError("Timed out acquiring timer state lock")
+                time.sleep(max(0.001, float(poll_interval)))
+
+        _LOCK_LOCAL.depth = 1
+        _LOCK_LOCAL.fd = fd
+        try:
+            yield
+        finally:
+            _LOCK_LOCAL.depth = 0
+            try:
+                if fd is not None:
+                    os.close(fd)
+            except Exception:
+                pass
+            try:
+                if os.path.exists(LOCK_FILE):
+                    os.remove(LOCK_FILE)
+            except OSError:
+                pass
+
+
+def _with_state_lock(fn):
+    def wrapper(*args, **kwargs):
+        with _state_guard():
+            return fn(*args, **kwargs)
+    return wrapper
 
 def _resolve_timer_sound_path(sound_value: str | None):
     if not sound_value:
@@ -208,6 +270,7 @@ def ensure_default_profiles():
         _save_profiles(_default_profiles())
 
 
+@_with_state_lock
 def start_timer(profile_name: str, *, bind_type: str | None = None, bind_name: str | None = None, cycles: int | None = None, auto_advance: bool = True):
     ensure_default_profiles()
     profs = _load_profiles()
@@ -240,6 +303,7 @@ def start_timer(profile_name: str, *, bind_type: str | None = None, bind_name: s
     return st
 
 
+@_with_state_lock
 def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_completion: bool = True):
     ensure_default_profiles()
     if not isinstance(plan, dict) or not plan.get('blocks'):
@@ -288,6 +352,7 @@ def start_schedule_plan(plan: dict, *, profile_name: str | None = None, confirm_
     return _load_state()
 
 
+@_with_state_lock
 def pause_timer():
     st = _load_state()
     if st.get('status') != 'running':
@@ -298,6 +363,7 @@ def pause_timer():
     return st
 
 
+@_with_state_lock
 def resume_timer():
     st = _load_state()
     if st.get('status') != 'paused':
@@ -308,6 +374,7 @@ def resume_timer():
     return st
 
 
+@_with_state_lock
 def stop_timer():
     st = _load_state()
     if st.get('status') in ('running', 'paused'):
@@ -326,6 +393,7 @@ def stop_timer():
     return st
 
 
+@_with_state_lock
 def cancel_timer():
     st = _load_state()
     # do not log/award; just reset
@@ -351,6 +419,7 @@ def cancel_timer():
     return st
 
 
+@_with_state_lock
 def status():
     return auto_tick()
 
@@ -793,6 +862,7 @@ def _stretch_schedule_block(st, minutes: int):
     return st
 
 
+@_with_state_lock
 def confirm_schedule_block(completed: bool | None = None, action: str | None = None, *, stretch_minutes: int | None = None):
     st = _load_state()
     if st.get('mode') != 'schedule':
@@ -885,6 +955,7 @@ def confirm_schedule_block(completed: bool | None = None, action: str | None = N
     return _load_state()
 
 
+@_with_state_lock
 def tick():
     st = _load_state()
     if st.get('status') != 'running':
@@ -1223,6 +1294,7 @@ def _build_schedule_plan_for_date(date_key: str):
     return blocks
 
 
+@_with_state_lock
 def sync_schedule_state():
     st = _load_state()
     if st.get("mode") != "schedule":

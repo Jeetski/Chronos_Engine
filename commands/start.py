@@ -4,6 +4,11 @@ from datetime import datetime, timedelta
 
 from modules.console import invoke_command
 from modules.scheduler import USER_DIR, get_flattened_schedule, schedule_path_for_date
+from modules.scheduler.sleep_gate import (
+    SLEEP_POLICY_OPTIONS,
+    build_sleep_interrupt,
+    normalize_sleep_policy,
+)
 from utilities.duration_parser import parse_duration_string
 from modules.timer import main as Timer
 
@@ -30,9 +35,17 @@ def run(args, properties):
 
 
 def _start_day(properties):
+    props = dict(properties or {})
+    interrupt = build_sleep_interrupt("start", ["day"], props)
+    if interrupt:
+        policy = _prompt_sleep_policy(interrupt)
+        if not policy:
+            return
+        props["sleep_policy"] = policy
+
     print("▶ Building today's schedule...")
     try:
-        invoke_command("today", ["reschedule"], {})
+        invoke_command("today", ["reschedule"], props)
     except Exception as exc:
         print(f"Error running 'today reschedule': {exc}")
         return
@@ -322,4 +335,40 @@ def get_help_message():
 
 Rebuilds today's schedule, extracts sequential blocks (buffers included),
 and launches the timer to run them with completion confirmations."""
+
+
+def _prompt_sleep_policy(interrupt):
+    print("You're inside a scheduled sleep block. What is happening?")
+    sleep_block = interrupt.get("sleep_block") if isinstance(interrupt, dict) else {}
+    if isinstance(sleep_block, dict):
+        print(
+            f"Current sleep block: {sleep_block.get('name') or 'Sleep'} "
+            f"({sleep_block.get('start_time') or '??:??'}-{sleep_block.get('end_time') or '??:??'})"
+        )
+    for index, (_, label) in enumerate(SLEEP_POLICY_OPTIONS, start=1):
+        print(f"{index}. {label}")
+    try:
+        raw = input("> ").strip()
+    except EOFError:
+        raw = ""
+    if not raw:
+        print("Start day canceled.")
+        return None
+    policy = None
+    if raw.isdigit():
+        idx = int(raw) - 1
+        if 0 <= idx < len(SLEEP_POLICY_OPTIONS):
+            policy = SLEEP_POLICY_OPTIONS[idx][0]
+    if not policy:
+        policy = normalize_sleep_policy(raw)
+    if not policy:
+        print("Unrecognized choice. Start day canceled.")
+        return None
+    if policy == "go_back_to_sleep":
+        print("Start day canceled. Go back to sleep.")
+        return None
+    if policy == "edit_sleep":
+        print("Open the Sleep Settings widget or edit your day template, then try again.")
+        return None
+    return policy
 
