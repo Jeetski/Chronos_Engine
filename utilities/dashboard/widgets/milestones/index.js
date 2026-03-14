@@ -9,11 +9,22 @@ export function mount(el, context) {
   }
 
   el.className = 'widget milestones-widget';
-  try { el.dataset.uiId = 'widget.milestones'; } catch { }
+  try {
+    el.dataset.uiId = 'widget.milestones';
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = '520';
+    el.dataset.minHeight = '280';
+    el.style.minWidth = '520px';
+    el.style.minHeight = '280px';
+    if (!el.style.width) el.style.width = '560px';
+    if (!el.style.height) el.style.height = '320px';
+    if ((parseFloat(el.style.width) || 0) < 520) el.style.width = '520px';
+    if ((parseFloat(el.style.height) || 0) < 280) el.style.height = '280px';
+  } catch { }
 
   const tpl = `
     <style>
-      .ms-content { display:flex; flex-direction:column; gap:10px; }
+      .ms-content { display:flex; flex-direction:column; gap:10px; min-height:0; }
       .ms-cards { display:flex; gap:10px; flex-wrap:wrap; }
       .ms-card { flex:1 1 160px; border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); }
       .ms-card h4 { margin:0 0 4px; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); }
@@ -22,10 +33,10 @@ export function mount(el, context) {
       .ms-status { min-height:18px; font-size:13px; color:var(--text-dim); }
       .ms-status.error { color:#ef6a6a; }
       .ms-status.success { color:#5bdc82; }
-      .ms-list { display:flex; flex-direction:column; gap:10px; max-height:420px; overflow:auto; }
+      .ms-list { display:flex; flex-direction:column; gap:10px; flex:1 1 auto; min-height:180px; max-height:420px; overflow:auto; }
       .ms-list-toggle { align-self:flex-start; }
       .ms-list-section[hidden] { display:none !important; }
-      .ms-list-section { display:flex; flex-direction:column; gap:10px; }
+      .ms-list-section { display:flex; flex-direction:column; gap:10px; flex:1 1 auto; min-height:0; }
       .ms-item { border:1px solid var(--border); border-radius:10px; padding:10px; background:#0f141d; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:6px; }
       .ms-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .ms-name { font-size:15px; font-weight:700; }
@@ -129,6 +140,104 @@ export function mount(el, context) {
   let loading = false;
   const expanded = new Set();
   let pendingFilter = null;
+  let layoutQueued = false;
+  let collapsedHeight = 280;
+
+  function measureContainerHeight(container) {
+    if (!container) return 0;
+    try {
+      const cs = getComputedStyle(container);
+      const pt = Number.parseFloat(cs.paddingTop || '0') || 0;
+      const pb = Number.parseFloat(cs.paddingBottom || '0') || 0;
+      const gap = Number.parseFloat(cs.rowGap || cs.gap || '0') || 0;
+      const children = Array.from(container.children || []).filter((node) => {
+        try { return getComputedStyle(node).display !== 'none'; } catch { return true; }
+      });
+      let total = pt + pb;
+      children.forEach((node, idx) => {
+        total += Math.ceil(node.getBoundingClientRect().height || 0);
+        if (idx > 0) total += gap;
+      });
+      return Math.max(0, Math.ceil(total));
+    } catch {
+      return Math.ceil(container.scrollHeight || 0);
+    }
+  }
+
+  function measureDesiredListHeight() {
+    if (!listEl) return 180;
+    try {
+      const cs = getComputedStyle(listEl);
+      const gap = Number.parseFloat(cs.rowGap || cs.gap || '0') || 0;
+      const visibleChildren = Array.from(listEl.children || []).filter((node) => {
+        try { return getComputedStyle(node).display !== 'none'; } catch { return true; }
+      });
+      if (!visibleChildren.length) return 180;
+      let total = 0;
+      visibleChildren.slice(0, 3).forEach((node, idx) => {
+        total += Math.ceil(node.getBoundingClientRect().height || 0);
+        if (idx > 0) total += gap;
+      });
+      return Math.max(180, Math.min(360, total));
+    } catch {
+      return 220;
+    }
+  }
+
+  function applyWidgetHeight(targetHeight, targetMinHeight = collapsedHeight) {
+    const nextMin = Math.max(220, Math.ceil(targetMinHeight || 0));
+    const nextHeight = Math.max(nextMin, Math.ceil(targetHeight || 0));
+    collapsedHeight = nextMin;
+    el.dataset.minHeight = String(nextMin);
+    el.style.minHeight = `${nextMin}px`;
+    el.style.height = `${nextHeight}px`;
+    try {
+      el.__minH = nextMin;
+      window.installWidgetResizers?.(el);
+    } catch { }
+  }
+
+  function syncWidgetHeight() {
+    const headerEl = el.querySelector('.header');
+    const contentEl = el.querySelector('.content');
+    if (!headerEl || !contentEl) return;
+    const headerH = Math.ceil(headerEl.getBoundingClientRect().height || 40);
+    if (listSectionEl?.hidden) {
+      if (listSectionEl) {
+        listSectionEl.style.flex = '';
+        listSectionEl.style.height = '';
+      }
+      if (listEl) {
+        listEl.style.height = '';
+        listEl.style.maxHeight = '420px';
+      }
+      const target = headerH + measureContainerHeight(contentEl) + 8;
+      applyWidgetHeight(target, target);
+      return;
+    }
+    const listHeight = measureDesiredListHeight();
+    if (listSectionEl) {
+      listSectionEl.style.flex = '0 0 auto';
+      listSectionEl.style.height = 'auto';
+    }
+    if (listEl) {
+      listEl.style.height = `${listHeight}px`;
+      listEl.style.maxHeight = `${listHeight}px`;
+    }
+    const target = headerH + measureContainerHeight(contentEl) + 8;
+    applyWidgetHeight(target, collapsedHeight);
+  }
+
+  function queueWidgetHeightSync() {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        layoutQueued = false;
+        syncWidgetHeight();
+      });
+    });
+  }
 
   function setListOpen(isOpen) {
     if (!listToggleBtn || !listSectionEl) return;
@@ -136,6 +245,7 @@ export function mount(el, context) {
     listSectionEl.hidden = !open;
     listToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
     listToggleBtn.textContent = open ? 'Hide List Section ▴' : 'Show List Section ▾';
+    queueWidgetHeightSync();
   }
 
   function setStatus(msg, tone) {
@@ -274,6 +384,7 @@ export function mount(el, context) {
     setListOpen(true);
     renderSummary();
     renderList();
+    queueWidgetHeightSync();
   }
 
   async function refresh(dataOnly = false) {
@@ -317,6 +428,7 @@ export function mount(el, context) {
       empty.style.borderRadius = '8px';
       empty.textContent = milestones.length ? 'No milestones match that filter.' : 'Create milestones via the CLI to see them here.';
       listEl.appendChild(empty);
+      queueWidgetHeightSync();
       return;
     }
     filtered.sort((a, b) => {
@@ -414,9 +526,11 @@ export function mount(el, context) {
           expanded.add(key);
           expander.textContent = '▼';
         }
+        queueWidgetHeightSync();
       });
       listEl.appendChild(card);
     });
+    queueWidgetHeightSync();
   }
 
   function getPrimaryVisibleMilestone() {
@@ -493,6 +607,7 @@ export function mount(el, context) {
   } catch { }
   try { bus?.on?.('milestones:filter', onExternalFilter); } catch { }
   refresh();
+  queueWidgetHeightSync();
 
   return {
     refresh: () => refresh(),

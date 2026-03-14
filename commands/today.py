@@ -2704,9 +2704,42 @@ def run(args, properties):
                         )
                     return out
 
+                def _collect_kairos_manual_adjustments(mods):
+                    out = []
+                    for mod in (mods or []):
+                        if not isinstance(mod, dict):
+                            continue
+                        action = str(mod.get("action") or "").strip().lower()
+                        if action not in ("trim", "cut", "change"):
+                            continue
+                        name = str(mod.get("item_name") or "").strip()
+                        if not name:
+                            continue
+                        normalized = {
+                            "action": action,
+                            "name": name,
+                            "type": str(mod.get("item_type") or "").strip().lower() or None,
+                            "source": str(mod.get("source") or "manual_cli").strip() or "manual_cli",
+                        }
+                        if action == "trim":
+                            try:
+                                normalized["amount"] = int(mod.get("amount"))
+                            except Exception:
+                                continue
+                        elif action == "change":
+                            new_start_time = str(mod.get("new_start_time") or "").strip()
+                            if not new_start_time:
+                                continue
+                            normalized["new_start_time"] = new_start_time
+                        out.append(normalized)
+                    return out
+
                 manual_injections = _collect_kairos_manual_injections(manual_modifications)
                 if manual_injections:
                     kairos_context["manual_injections"] = manual_injections
+                manual_adjustments = _collect_kairos_manual_adjustments(manual_modifications)
+                if manual_adjustments:
+                    kairos_context["manual_adjustments"] = manual_adjustments
                 if reschedule_requested:
                     # `today reschedule` should prioritize remaining-day repair
                     # instead of rebuilding from midnight.
@@ -2753,15 +2786,16 @@ def run(args, properties):
 
                 if manual_modifications:
                     # Manual modifications are still applied post-Kairos so
-                    # existing trim/cut/change workflows remain valid.
+                    # unsupported legacy-only actions still remain valid.
                     print("Applying manual modifications...")
                     try:
-                        non_injection_mods = [
+                        fallback_mods = [
                             m for m in (manual_modifications or [])
-                            if str((m or {}).get("action") or "").strip().lower() != "inject"
+                            if str((m or {}).get("action") or "").strip().lower()
+                            not in ("inject", "trim", "cut", "change")
                         ]
-                        if non_injection_mods:
-                            resolved_schedule = apply_manual_modifications(resolved_schedule, non_injection_mods)
+                        if fallback_mods:
+                            resolved_schedule = apply_manual_modifications(resolved_schedule, fallback_mods)
                     except Exception as mod_err:
                         print(f"Warning: Failed applying manual modifications: {mod_err}")
 

@@ -553,20 +553,29 @@ ready(() => {
 // ---- Generic widget resizers (E, S, SE) ----
 function installWidgetResizers(el) {
   if (!el || !el.classList || !el.classList.contains('widget')) return;
-  // Capture initial size as per-widget minimums (only once)
+  // Recompute minimums on each install pass because widgets often set
+  // dataset-based constraints during mount, after the empty shell exists.
   try {
-    if (!el.__minSizeSet) {
-      const header = el.querySelector('.header');
-      const headerW = header ? Math.ceil(header.scrollWidth) : 0;
-      const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
-      const dataMinW = Number(el.dataset?.minWidth || 0);
-      const dataMinH = Number(el.dataset?.minHeight || 0);
-      const baseMinW = Math.max(160, headerW + 12, dataMinW || 0);
-      const baseMinH = Math.max(80, headerH + 20, dataMinH || 0);
-      el.__minW = baseMinW;
-      el.__minH = baseMinH;
-      el.__minSizeSet = true;
-    }
+    const header = el.querySelector('.header');
+    const headerW = header ? Math.ceil(header.scrollWidth) : 0;
+    const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    const dataMinW = Number(el.dataset?.minWidth || 0);
+    const dataMinH = Number(el.dataset?.minHeight || 0);
+    const baseMinW = Math.max(160, headerW + 12, dataMinW || 0);
+    const baseMinH = Math.max(80, headerH + 20, dataMinH || 0);
+    el.__minW = baseMinW;
+    el.__minH = baseMinH;
+    el.__minSizeSet = true;
+  } catch { }
+  try {
+    const minW = Number(el.__minW || 0);
+    const minH = Number(el.__minH || 0);
+    if (minW) el.style.minWidth = `${minW}px`;
+    if (minH) el.style.minHeight = `${minH}px`;
+    const currentW = el.offsetWidth || parseFloat(el.style.width) || 0;
+    const currentH = el.offsetHeight || parseFloat(el.style.height) || 0;
+    if (minW && currentW && currentW < minW) el.style.width = `${minW}px`;
+    if (minH && currentH && currentH < minH) el.style.height = `${minH}px`;
   } catch { }
   // Avoid duplicate resizers
   const hasResizers = el.querySelector('.resizer.e') || el.querySelector('.resizer.s') || el.querySelector('.resizer.se');

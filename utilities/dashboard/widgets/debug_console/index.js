@@ -9,7 +9,14 @@ export function mount(el, context) {
   }
 
   el.className = 'widget debug-console-widget';
-  el.dataset.uiId = 'widget.debug_console';
+  try {
+    el.dataset.uiId = 'widget.debug_console';
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = '760';
+    el.dataset.minHeight = '360';
+    if (!el.style.width) el.style.width = '900px';
+    if (!el.style.height) el.style.height = '520px';
+  } catch { }
 
   const tpl = `
     <div class="header" id="debugHeader" data-ui-id="widget.debug_console.header">
@@ -17,6 +24,7 @@ export function mount(el, context) {
       <div class="controls">
         <button class="icon-btn" id="debugMin" title="Minimize" data-ui-id="widget.debug_console.minimize_button">_</button>
         <button class="icon-btn" id="debugClear" title="Clear" data-ui-id="widget.debug_console.clear_button">⌫</button>
+        <button class="icon-btn" id="debugCopy" type="button" title="Copy Output" aria-label="Copy Output" data-ui-id="widget.debug_console.copy_button">⧉</button>
         <button class="icon-btn" id="debugClose" title="Close" data-ui-id="widget.debug_console.close_button">x</button>
       </div>
     </div>
@@ -45,7 +53,6 @@ export function mount(el, context) {
         </select>
         <button class="btn" id="debugRefresh" data-ui-id="widget.debug_console.refresh_button">Refresh</button>
         <button class="btn" id="debugOpenEditor" data-ui-id="widget.debug_console.open_editor_button">Open in Editor</button>
-        <button class="btn" id="debugCopy" data-ui-id="widget.debug_console.copy_button">Copy</button>
       </div>
       <pre id="debugOut" data-ui-id="widget.debug_console.output_text" style="flex:1 1 auto; min-height:120px; overflow:auto; background:linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%); color:#e6e8ef; border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:8px; white-space:pre-wrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-family:var(--font-mono); font-size:12px;">(capturing logs...)</pre>
     </div>
@@ -165,13 +172,39 @@ export function mount(el, context) {
     return entry.tags.has(mode);
   }
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+  }
+
+  function lineColor(entry) {
+    const k = String(entry?.kind || 'log').toLowerCase();
+    const tags = entry?.tags instanceof Set ? entry.tags : new Set();
+    if (k === 'error') return '#f87171';
+    if (k === 'onerror' || k === 'unhandledrejection') return '#fb7185';
+    if (k === 'warn') return '#fbbf24';
+    if (tags.has('server') || k === 'server') return '#a78bfa';
+    if (tags.has('trick')) return '#86efac';
+    if (tags.has('aduc_nia')) return '#67e8f9';
+    if (k === 'info') return '#7dd3fc';
+    return '#dfe7f3';
+  }
+
+  function lineMarkup(entry) {
+    const kind = String(entry?.kind || 'log').toLowerCase();
+    const text = `[${entry.ts}] ${kind.toUpperCase()} ${entry.msg}`;
+    return `<span class="debug-line debug-line-${kind}" style="color:${lineColor(entry)};">${escapeHtml(text)}</span>`;
+  }
+
   function renderOutput() {
     const lines = [];
     for (const entry of entries) {
       if (!includeByFilter(entry)) continue;
-      lines.push(`[${entry.ts}] ${entry.kind.toUpperCase()} ${entry.msg}`);
+      lines.push(lineMarkup(entry));
     }
-    out.textContent = lines.join('\n') + (lines.length ? '\n' : '');
+    out.innerHTML = lines.join('');
     out.scrollTop = out.scrollHeight;
   }
 
@@ -189,7 +222,7 @@ export function mount(el, context) {
     entries.push(entry);
     if (entries.length > MAX_ENTRIES) entries.splice(0, entries.length - MAX_ENTRIES);
     if (includeByFilter(entry)) {
-      out.textContent += `[${entry.ts}] ${entry.kind.toUpperCase()} ${entry.msg}\n`;
+      out.insertAdjacentHTML('beforeend', lineMarkup(entry));
       out.scrollTop = out.scrollHeight;
     }
   }
@@ -204,7 +237,16 @@ export function mount(el, context) {
     out.textContent = '';
   });
   btnCopy.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(out.textContent || ''); } catch { }
+    const original = btnCopy.textContent;
+    try {
+      await navigator.clipboard.writeText(out.textContent || '');
+      btnCopy.textContent = '✓';
+      window.setTimeout(() => {
+        btnCopy.textContent = original;
+      }, 900);
+    } catch {
+      btnCopy.textContent = original;
+    }
   });
   btnOpenEditor?.addEventListener('click', async () => {
   const relPath = 'temp/debug_console_capture.txt';
@@ -307,42 +349,6 @@ export function mount(el, context) {
     });
     visibleObserver.observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
   } catch { }
-
-  // Basic resize handles
-  (function enableResize() {
-    const east = el.querySelector('.resizer.e');
-    const south = el.querySelector('.resizer.s');
-    const se = el.querySelector('.resizer.se');
-    function maxHeightPx() {
-      return Math.max(220, window.innerHeight - 16);
-    }
-    function drag(dir) {
-      return (ev) => {
-        ev.preventDefault();
-        const startX = ev.clientX;
-        const startY = ev.clientY;
-        const rect = el.getBoundingClientRect();
-        function onMove(e) {
-          if (dir.includes('e')) {
-            el.style.width = Math.max(280, rect.width + (e.clientX - startX)) + 'px';
-          }
-          if (dir.includes('s')) {
-            const nextH = Math.max(160, rect.height + (e.clientY - startY));
-            el.style.height = Math.min(nextH, maxHeightPx()) + 'px';
-          }
-        }
-        function onUp() {
-          window.removeEventListener('pointermove', onMove);
-          window.removeEventListener('pointerup', onUp);
-        }
-        window.addEventListener('pointermove', onMove);
-        window.addEventListener('pointerup', onUp);
-      };
-    }
-    if (east) east.addEventListener('pointerdown', drag('e'));
-    if (south) south.addEventListener('pointerdown', drag('s'));
-    if (se) se.addEventListener('pointerdown', drag('es'));
-  })();
 
   return {
     unmount() {

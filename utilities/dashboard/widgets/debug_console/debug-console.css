@@ -7,3 +7,36 @@
 .debug-console-widget .content {
     padding: 12px;
 }
+
+.debug-console-widget #debugOut {
+    color: #dfe7f3;
+}
+
+.debug-console-widget .debug-line {
+    display: block;
+}
+
+.debug-console-widget .debug-line-log {
+    color: #dfe7f3;
+}
+
+.debug-console-widget .debug-line-info {
+    color: #7dd3fc;
+}
+
+.debug-console-widget .debug-line-warn {
+    color: #fbbf24;
+}
+
+.debug-console-widget .debug-line-error {
+    color: #f87171;
+}
+
+.debug-console-widget .debug-line-onerror,
+.debug-console-widget .debug-line-unhandledrejection {
+    color: #fb7185;
+}
+
+.debug-console-widget .debug-line-server {
+    color: #a78bfa;
+}

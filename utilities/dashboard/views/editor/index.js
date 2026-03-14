@@ -6,6 +6,13 @@ let lastSearch = { query: '', options: { matchCase: false, regex: false, wholeWo
 let lastReplace = { query: '', replace: '' };
 const EDITOR_ROOT = '.';
 const EDITOR_ROOT_LABEL = 'chronos';
+const EDITOR_DROPDOWN_ID = 'editorDropdown';
+const EDITOR_DROPDOWN_OVERLAY_ID = 'editorDropdownOverlay';
+const TABS_DROPDOWN_ID = 'tabsDropdown';
+const TABS_DROPDOWN_OVERLAY_ID = 'tabsDropdownOverlay';
+const SORT_SUBMENU_ID = 'sortSubmenu';
+const TAB_CONTEXT_MENU_ID = 'editorTabContextMenu';
+const TAB_CONTEXT_MENU_OVERLAY_ID = 'editorTabContextMenuOverlay';
 
 // Settings State
 let settings = {
@@ -245,6 +252,14 @@ function getActiveTab() {
     return tabs[activeTabIndex];
 }
 
+function getSortedTabs() {
+    return [...tabs].sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        return 0;
+    });
+}
+
 async function openFile(path, encoding = null) {
     // Check if open
     const existingIdx = tabs.findIndex(t => t.path === path);
@@ -333,11 +348,7 @@ function renderTabs() {
 
     // Sort logic: Pinned first
     const activeTab = getActiveTab();
-    tabs.sort((a, b) => {
-        if (a.pinned && !b.pinned) return -1;
-        if (!a.pinned && b.pinned) return 1;
-        return 0;
-    });
+    tabs = getSortedTabs();
     if (activeTab) activeTabIndex = tabs.indexOf(activeTab);
 
     tabs.forEach((tab, idx) => {
@@ -362,6 +373,12 @@ function renderTabs() {
             loadTabContent();
         });
 
+        el.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showTabContextMenu(e.clientX, e.clientY, tab);
+        });
+
         el.querySelector('.tab-close').addEventListener('click', (e) => {
             e.stopPropagation();
             closeTab(idx);
@@ -378,85 +395,247 @@ function togglePin(index) {
     }
 }
 
-function showTabsDropdown(anchorEl) {
-    const existing = document.getElementById('tabsDropdown');
-    if (existing) { existing.remove(); return; }
+function closeEditorMenuByIds(...ids) {
+    ids.forEach((id) => document.getElementById(id)?.remove());
+}
 
-    const rect = anchorEl.getBoundingClientRect();
-    const dropdown = document.createElement('div');
-    dropdown.id = 'tabsDropdown';
-    Object.assign(dropdown.style, {
+function createEditorMenuSurface(options = {}) {
+    const menu = document.createElement('div');
+    if (options.id) menu.id = options.id;
+    Object.assign(menu.style, {
         position: 'fixed',
-        top: (rect.bottom + 4) + 'px',
-        right: (window.innerWidth - rect.right) + 'px',
         background: '#252526',
         border: '1px solid #333',
-        zIndex: 9999,
-        minWidth: '150px',
+        zIndex: String(options.zIndex ?? 9999),
+        minWidth: `${options.minWidth ?? 180}px`,
         boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-        maxHeight: '300px',
-        overflowY: 'auto'
+        maxHeight: `${options.maxHeight ?? 300}px`,
+        overflowY: options.overflowY ?? 'auto',
+        padding: options.padding ?? '4px 0',
+        color: '#cccccc',
+        fontFamily: 'sans-serif',
+        fontSize: `${options.fontSize ?? 13}px`
     });
+    if (options.left != null) menu.style.left = `${options.left}px`;
+    if (options.top != null) menu.style.top = `${options.top}px`;
+    if (options.right != null) menu.style.right = `${options.right}px`;
+    return menu;
+}
 
-    // Sort Option (Nested)
-    const sortItem = document.createElement('div');
-    sortItem.style.padding = '8px 12px';
-    sortItem.style.cursor = 'pointer';
-    sortItem.style.fontSize = '12px';
-    sortItem.style.color = '#ccc';
-    sortItem.style.display = 'flex';
-    sortItem.style.justifyContent = 'space-between';
-    sortItem.innerHTML = '<span>Sort Tabs</span> <span>▶</span>';
+function createEditorMenuOverlay(id, zIndex, onClose) {
+    const overlay = document.createElement('div');
+    if (id) overlay.id = id;
+    Object.assign(overlay.style, {
+        position: 'fixed',
+        inset: '0',
+        zIndex: String(zIndex),
+        background: 'transparent'
+    });
+    overlay.addEventListener('click', onClose);
+    overlay.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        onClose();
+    });
+    return overlay;
+}
 
-    sortItem.onmouseover = () => {
-        sortItem.style.background = '#007acc';
-        sortItem.style.color = '#fff';
-        showSortSubmenu(sortItem, dropdown);
-    };
-    sortItem.onmouseout = (e) => {
-        // Logic to keep selection if moving to submenu is tricky without structure
-        // We'll rely on the submenu existence
-        if (!document.getElementById('sortSubmenu')) {
-            sortItem.style.background = 'transparent';
-            sortItem.style.color = '#ccc';
-        }
-    };
-    // Click also opens/toggles
-    sortItem.onclick = (e) => {
-        e.stopPropagation();
-        showSortSubmenu(sortItem, dropdown);
-    };
-
-    dropdown.appendChild(sortItem);
-
+function createEditorMenuSeparator() {
     const sep = document.createElement('div');
     sep.style.borderTop = '1px solid #3e3e42';
     sep.style.margin = '4px 0';
-    dropdown.appendChild(sep);
+    return sep;
+}
+
+function setEditorMenuItemActive(item, active) {
+    item.style.background = active ? '#007acc' : 'transparent';
+    item.style.color = active ? '#fff' : '#ccc';
+}
+
+function createEditorMenuItem(label, onClick, options = {}) {
+    const item = document.createElement('div');
+    item.style.padding = options.padding ?? '8px 12px';
+    item.style.cursor = 'pointer';
+    item.style.fontSize = `${options.fontSize ?? 12}px`;
+    item.style.color = '#ccc';
+    item.style.display = 'flex';
+    item.style.justifyContent = 'space-between';
+    item.style.alignItems = 'center';
+    if (options.fontWeight) item.style.fontWeight = options.fontWeight;
+    if (options.borderBottom) item.style.borderBottom = options.borderBottom;
+
+    const labelEl = document.createElement('span');
+    labelEl.textContent = label;
+    item.appendChild(labelEl);
+
+    if (options.caret) {
+        const caret = document.createElement('span');
+        caret.textContent = '▶';
+        item.appendChild(caret);
+    }
+
+    item.addEventListener('mouseenter', () => {
+        setEditorMenuItemActive(item, true);
+        options.onHoverIn?.(item);
+    });
+    item.addEventListener('mouseleave', () => {
+        if (item.dataset.keepActive !== 'true') setEditorMenuItemActive(item, false);
+        options.onHoverOut?.(item);
+    });
+    item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick?.(e, item);
+    });
+    return item;
+}
+
+function buildEditorMenu(menu, items) {
+    items.forEach((item) => {
+        if (item.separator) {
+            menu.appendChild(createEditorMenuSeparator());
+            return;
+        }
+        menu.appendChild(createEditorMenuItem(item.label, item.action, item.options));
+    });
+    return menu;
+}
+
+function closeEditorTabContextMenu() {
+    closeEditorMenuByIds(TAB_CONTEXT_MENU_ID, TAB_CONTEXT_MENU_OVERLAY_ID, `${TAB_CONTEXT_MENU_ID}Submenu`);
+}
+
+function closeTabsByPredicate(predicate) {
+    for (let i = tabs.length - 1; i >= 0; i -= 1) {
+        if (predicate(tabs[i], i)) closeTab(i);
+    }
+}
+
+function showSubmenu(parentItem, items) {
+    closeEditorMenuByIds(`${TAB_CONTEXT_MENU_ID}Submenu`);
+    const submenu = createEditorMenuSurface({
+        id: `${TAB_CONTEXT_MENU_ID}Submenu`,
+        zIndex: 10021,
+        minWidth: 180
+    });
+    const rect = parentItem.getBoundingClientRect();
+    submenu.style.left = `${Math.min(window.innerWidth - 220, rect.right + 6)}px`;
+    submenu.style.top = `${Math.min(window.innerHeight - 180, rect.top)}px`;
+    parentItem.dataset.keepActive = 'true';
+    submenu.addEventListener('mouseleave', () => {
+        submenu.remove();
+        parentItem.dataset.keepActive = 'false';
+        setEditorMenuItemActive(parentItem, false);
+    });
+    items.forEach((item) => submenu.appendChild(item));
+    document.body.appendChild(submenu);
+    return submenu;
+}
+
+function showTabContextMenu(clientX, clientY, tab) {
+    closeEditorTabContextMenu();
+    const overlay = createEditorMenuOverlay(TAB_CONTEXT_MENU_OVERLAY_ID, 10019, closeEditorTabContextMenu);
+    const menu = createEditorMenuSurface({
+        id: TAB_CONTEXT_MENU_ID,
+        zIndex: 10020,
+        minWidth: 180
+    });
+    menu.style.left = `${Math.min(window.innerWidth - 220, clientX)}px`;
+    menu.style.top = `${Math.min(window.innerHeight - 260, clientY)}px`;
+
+    const tabIndex = tabs.indexOf(tab);
+    const sortedTabs = getSortedTabs();
+    const sortedIndex = sortedTabs.indexOf(tab);
+
+    menu.appendChild(createEditorMenuItem('Close', () => {
+        closeEditorTabContextMenu();
+        if (tabIndex >= 0) closeTab(tabIndex);
+    }));
+
+    const closeMultipleItems = () => ([
+        createEditorMenuItem('All but this', () => {
+            closeEditorTabContextMenu();
+            closeTabsByPredicate((candidate) => candidate !== tab);
+        }),
+        createEditorMenuItem('All but pinned', () => {
+            closeEditorTabContextMenu();
+            closeTabsByPredicate((candidate) => !candidate.pinned);
+        }),
+        createEditorMenuItem('All to the left', () => {
+            closeEditorTabContextMenu();
+            const left = new Set(sortedTabs.slice(0, Math.max(0, sortedIndex)));
+            closeTabsByPredicate((candidate) => left.has(candidate));
+        }),
+        createEditorMenuItem('All to the right', () => {
+            closeEditorTabContextMenu();
+            const right = new Set(sortedTabs.slice(sortedIndex + 1));
+            closeTabsByPredicate((candidate) => right.has(candidate));
+        }),
+        createEditorMenuItem('All unchanged', () => {
+            closeEditorTabContextMenu();
+            closeTabsByPredicate((candidate) => !candidate.unsaved);
+        }),
+    ]);
+
+    const closeMultipleItem = createEditorMenuItem('Close Multiple', null, { caret: true });
+    closeMultipleItem.addEventListener('mouseenter', () => {
+        showSubmenu(closeMultipleItem, closeMultipleItems());
+    });
+    closeMultipleItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showSubmenu(closeMultipleItem, closeMultipleItems());
+    });
+    menu.appendChild(closeMultipleItem);
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(menu);
+}
+
+function showTabsDropdown(anchorEl) {
+    const existing = document.getElementById(TABS_DROPDOWN_ID);
+    if (existing) {
+        closeEditorMenuByIds(TABS_DROPDOWN_ID, TABS_DROPDOWN_OVERLAY_ID, SORT_SUBMENU_ID);
+        return;
+    }
+
+    const rect = anchorEl.getBoundingClientRect();
+    const closeTabsMenu = () => closeEditorMenuByIds(TABS_DROPDOWN_ID, TABS_DROPDOWN_OVERLAY_ID, SORT_SUBMENU_ID);
+    const dropdown = createEditorMenuSurface({
+        id: TABS_DROPDOWN_ID,
+        right: window.innerWidth - rect.right,
+        top: rect.bottom + 4,
+        minWidth: 150
+    });
+
+    // Sort Option (Nested)
+    const sortItem = createEditorMenuItem('Sort Tabs', (e) => {
+        e.stopPropagation();
+        showSortSubmenu(sortItem, dropdown);
+    }, {
+        caret: true,
+        onHoverIn: () => showSortSubmenu(sortItem, dropdown),
+        onHoverOut: () => {
+            if (!document.getElementById(SORT_SUBMENU_ID)) setEditorMenuItemActive(sortItem, false);
+        }
+    });
+
+    dropdown.appendChild(sortItem);
+    dropdown.appendChild(createEditorMenuSeparator());
 
     tabs.forEach((tab, idx) => {
-        const item = document.createElement('div');
-        item.style.padding = '8px 12px';
-        item.style.cursor = 'pointer';
-        item.style.fontSize = '12px';
-        item.style.color = '#ccc';
-        if (idx === activeTabIndex) item.style.fontWeight = 'bold';
-        item.style.borderBottom = '1px solid #333';
-        item.textContent = (tab.pinned ? '📌 ' : '') + tab.name + (tab.unsaved ? ' *' : '');
-        item.onmouseover = () => { item.style.background = '#007acc'; item.style.color = '#fff'; };
-        item.onmouseout = () => { item.style.background = 'transparent'; item.style.color = '#ccc'; };
-        item.onclick = () => {
+        const item = createEditorMenuItem((tab.pinned ? '📌 ' : '') + tab.name + (tab.unsaved ? ' *' : ''), () => {
             activeTabIndex = idx;
             renderTabs();
             loadTabContent();
-            dropdown.remove();
-        };
+            closeTabsMenu();
+        }, {
+            fontWeight: idx === activeTabIndex ? 'bold' : '',
+            borderBottom: '1px solid #333'
+        });
         dropdown.appendChild(item);
     });
 
-    const overlay = document.createElement('div');
-    Object.assign(overlay.style, { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 });
-    overlay.onclick = () => { dropdown.remove(); overlay.remove(); };
+    const overlay = createEditorMenuOverlay(TABS_DROPDOWN_OVERLAY_ID, 9998, closeTabsMenu);
 
     document.body.appendChild(overlay);
     document.body.appendChild(dropdown);
@@ -644,8 +823,12 @@ const MENUS = {
 };
 
 function showMenu(anchorEl, menuName) {
-    const existing = document.getElementById('editorDropdown');
-    if (existing) { existing.remove(); if (existing.dataset.trigger === menuName) return; } // Toggle off
+    const existing = document.getElementById(EDITOR_DROPDOWN_ID);
+    if (existing) {
+        const sameTrigger = existing.dataset.trigger === menuName;
+        closeEditorMenuByIds(EDITOR_DROPDOWN_ID, EDITOR_DROPDOWN_OVERLAY_ID);
+        if (sameTrigger) return;
+    }
 
     const items = [...MENUS[menuName]]; // Shallow copy to append dynamic items
 
@@ -666,50 +849,31 @@ function showMenu(anchorEl, menuName) {
     if (!items) return;
 
     const rect = anchorEl.getBoundingClientRect();
-    const dropdown = document.createElement('div');
-    dropdown.id = 'editorDropdown';
+    const closeMenu = () => closeEditorMenuByIds(EDITOR_DROPDOWN_ID, EDITOR_DROPDOWN_OVERLAY_ID);
+    const dropdown = createEditorMenuSurface({
+        id: EDITOR_DROPDOWN_ID,
+        top: rect.bottom,
+        left: rect.left,
+        minWidth: 200,
+        fontSize: 13
+    });
     dropdown.dataset.trigger = menuName;
-    Object.assign(dropdown.style, {
-        position: 'fixed',
-        top: (rect.bottom) + 'px',
-        left: (rect.left) + 'px',
-        background: '#252526',
-        border: '1px solid #333',
-        zIndex: 9999,
-        minWidth: '200px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-        padding: '4px 0',
-        color: '#cccccc',
-        fontFamily: 'sans-serif',
-        fontSize: '13px'
-    });
-
-    items.forEach(item => {
-        if (item.separator) {
-            const sep = document.createElement('div');
-            sep.style.borderTop = '1px solid #3e3e42';
-            sep.style.margin = '4px 0';
-            dropdown.appendChild(sep);
-            return;
-        }
-
-        const el = document.createElement('div');
-        el.style.padding = '6px 20px';
-        el.style.cursor = 'pointer';
-        el.textContent = item.label;
-        el.onmouseover = () => { el.style.background = '#007acc'; el.style.color = '#fff'; };
-        el.onmouseout = () => { el.style.background = 'transparent'; el.style.color = '#cccccc'; };
-        el.onclick = () => {
-            item.action();
-            dropdown.remove();
-            overlay.remove();
+    buildEditorMenu(dropdown, items.map((item) => {
+        if (item.separator) return item;
+        return {
+            label: item.label,
+            action: () => {
+                item.action();
+                closeMenu();
+            },
+            options: {
+                padding: '6px 20px',
+                fontSize: 13
+            }
         };
-        dropdown.appendChild(el);
-    });
+    }));
 
-    const overlay = document.createElement('div');
-    Object.assign(overlay.style, { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9998 });
-    overlay.onclick = () => { dropdown.remove(); overlay.remove(); };
+    const overlay = createEditorMenuOverlay(EDITOR_DROPDOWN_OVERLAY_ID, 9998, closeMenu);
 
     document.body.appendChild(overlay);
     document.body.appendChild(dropdown);
@@ -1282,23 +1446,18 @@ function toggleFullScreen() {
 }
 
 function showSortSubmenu(anchorItem, parentDropdown) {
-    const existing = document.getElementById('sortSubmenu');
+    const existing = document.getElementById(SORT_SUBMENU_ID);
     if (existing) return; // already open
 
     const rect = anchorItem.getBoundingClientRect();
-    const submenu = document.createElement('div');
-    submenu.id = 'sortSubmenu';
-    Object.assign(submenu.style, {
-        position: 'fixed',
-        top: rect.top + 'px',
-        left: (rect.left - 160) + 'px', // Open to Left
-        background: '#252526',
-        border: '1px solid #333',
+    const submenu = createEditorMenuSurface({
+        id: SORT_SUBMENU_ID,
+        top: rect.top,
+        left: rect.left - 160,
         zIndex: 10000,
-        minWidth: '160px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-        padding: '4px 0'
+        minWidth: 160
     });
+    anchorItem.dataset.keepActive = 'true';
 
     const sortOpts = [
         { label: 'Name (A-Z)', criteria: 'name-asc' },
@@ -1312,34 +1471,21 @@ function showSortSubmenu(anchorItem, parentDropdown) {
     ];
 
     sortOpts.forEach(opt => {
-        const item = document.createElement('div');
-        item.style.padding = '6px 12px';
-        item.style.cursor = 'pointer';
-        item.style.fontSize = '12px';
-        item.style.color = '#ccc';
-        item.textContent = opt.label;
-        item.onmouseover = () => { item.style.background = '#007acc'; item.style.color = '#fff'; };
-        item.onmouseout = () => { item.style.background = 'transparent'; item.style.color = '#ccc'; };
-        item.onclick = () => {
+        const item = createEditorMenuItem(opt.label, () => {
             sortTabs(opt.criteria);
             submenu.remove();
-            parentDropdown.remove(); // Close all
-            // Remove overlay too if we can access it?
-            // The overlay logic in showTabsDropdown relied on a local var 'overlay'
-            // We need to clean that up.
-            // Actually, clicking here triggers nothing on parent, so overlay stays.
-            // We can explicitly remove any 'dropdown-overlay' if we class it, or just use document.elementFromPoint?
-            // Easiest: The overlay has an onclick to close. We can simulate that or find it.
-            // Or just:
-            document.querySelectorAll('#tabsDropdown, #tabsDropdownOverlay').forEach(e => e.remove());
-        };
+            parentDropdown.remove();
+            closeEditorMenuByIds(TABS_DROPDOWN_OVERLAY_ID);
+        }, {
+            padding: '6px 12px'
+        });
         submenu.appendChild(item);
     });
 
     submenu.onmouseleave = () => {
         submenu.remove();
-        anchorItem.style.background = 'transparent';
-        anchorItem.style.color = '#ccc';
+        anchorItem.dataset.keepActive = 'false';
+        setEditorMenuItemActive(anchorItem, false);
     };
 
     document.body.appendChild(submenu);

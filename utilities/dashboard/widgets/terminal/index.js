@@ -9,7 +9,14 @@ export function mount(el, context) {
   }
 
   el.className = 'widget terminal-widget';
-  try { el.dataset.uiId = 'widget.terminal'; } catch { }
+  try {
+    el.dataset.uiId = 'widget.terminal';
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = '620';
+    el.dataset.minHeight = '320';
+    if (!el.style.width) el.style.width = '720px';
+    if (!el.style.height) el.style.height = '420px';
+  } catch { }
 
   const css = `
     .term-content { flex: 1 1 auto; min-height: 0; }
@@ -69,7 +76,7 @@ export function mount(el, context) {
     <div class="header" id="tHeader" data-ui-id="widget.terminal.header">
       <div class="title" data-ui-id="widget.terminal.title">Terminal</div>
       <div class="controls">
-        <button class="icon-btn" id="tCopy" title="Copy Output" data-ui-id="widget.terminal.copy_button">C</button>
+        <button class="icon-btn" id="tCopy" type="button" title="Copy Output" aria-label="Copy Output" data-ui-id="widget.terminal.copy_button">⧉</button>
         <button class="icon-btn" id="tMin" title="Minimize" data-ui-id="widget.terminal.minimize_button">_</button>
         <button class="icon-btn" id="tClose" title="Close" data-ui-id="widget.terminal.close_button">x</button>
       </div>
@@ -761,13 +768,6 @@ export function mount(el, context) {
       setStatus('Copy failed.');
     });
   });
-
-  // Resizers
-  function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
-  const re = el.querySelector('.resizer.e'); const rs = el.querySelector('.resizer.s'); const rse = el.querySelector('.resizer.se');
-  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(360, e.clientX - sr.left) + 'px'; })(ev); });
-  if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(220, e.clientY - sr.top) + 'px'; })(ev); });
-  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(360, e.clientX - sr.left) + 'px'; el.style.height = Math.max(220, e.clientY - sr.top) + 'px'; })(ev); });
 
   applyConsoleTheme();
   loadProfile();

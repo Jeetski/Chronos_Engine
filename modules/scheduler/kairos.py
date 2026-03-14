@@ -50,6 +50,7 @@ class KairosScheduler:
         self.runtime: Dict[str, Any] = {}
         self.windows: List[Dict[str, Any]] = []
         self.template_timeblocks: List[Dict[str, Any]] = []
+        self.template_blueprint_items: List[Dict[str, Any]] = []
 
     def _normalize_key(self, value: Any) -> str:
         """Normalize arbitrary keys into a stable snake-ish token for matching."""
@@ -539,6 +540,7 @@ class KairosScheduler:
         """
         windows: List[Dict[str, Any]] = []
         timeblocks: List[Dict[str, Any]] = []
+        blueprint_items: List[Dict[str, Any]] = []
         day_name = target_date.strftime("%A")
         info: Dict[str, Any] = {}
         try:
@@ -677,6 +679,7 @@ class KairosScheduler:
                 root_name = str(template.get("name") or "").strip()
                 if root_type and root_name:
                     seen_templates.add(_template_key(root_type, root_name))
+                blueprint_items = self._extract_template_blueprint_items(template)
                 _collect_windows_from_template_data(template)
         except Exception as e:
             info = {"error": str(e)}
@@ -716,6 +719,7 @@ class KairosScheduler:
                 )
 
         self.template_timeblocks = timeblocks
+        self.template_blueprint_items = blueprint_items
         self.phase_notes["template"] = {
             "day": day_name,
             "template_path": info.get("path"),
@@ -723,9 +727,100 @@ class KairosScheduler:
             "forced": bool(self.user_context.get("force_template")),
             "windows_found": len(windows),
             "timeblocks_found": len(timeblocks),
+            "blueprint_items_found": len(blueprint_items),
             "window_filter_overrides": override_events,
         }
         return windows
+
+    def _extract_template_blueprint_items(self, template: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Materialize template sequence items into first-class Kairos candidates.
+
+        This preserves the rule that the chosen template is the intended day
+        blueprint, while still letting Kairos use windows/gaps for emergent work.
+        """
+        if not isinstance(template, dict):
+            return []
+        T = self.runtime.get("Today")
+        if not T or not hasattr(T, "build_initial_schedule"):
+            return []
+        try:
+            status_context = self.runtime.get("status_context", {}) if isinstance(self.runtime, dict) else {}
+            current_status = status_context.get("current", {}) if isinstance(status_context, dict) else {}
+            start_dt = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
+            schedule, _ = T.build_initial_schedule(
+                template,
+                current_start_time=start_dt,
+                status_context=current_status if isinstance(current_status, dict) else {},
+            )
+        except Exception as e:
+            self.phase_notes["template_blueprint_error"] = str(e)
+            return []
+
+        out: List[Dict[str, Any]] = []
+        ordinal = 0
+
+        def _time_label(value: Any) -> Optional[str]:
+            if isinstance(value, datetime):
+                return value.strftime("%H:%M")
+            parsed = self._parse_hhmm_flexible(value)
+            return self._to_hhmm(parsed) if parsed is not None else None
+
+        def _walk(nodes: List[Dict[str, Any]], path: List[str]) -> None:
+            nonlocal ordinal
+            for node in nodes or []:
+                if not isinstance(node, dict):
+                    continue
+                name = str(node.get("name") or "").strip()
+                node_type = str(node.get("type") or "").strip().lower()
+                children = node.get("children") if isinstance(node.get("children"), list) else []
+                next_path = list(path)
+                if name:
+                    next_path.append(name)
+                if children:
+                    _walk(children, next_path)
+                    continue
+                if node_type not in EXECUTABLE_TYPES:
+                    continue
+                raw = node.get("original_item_data") if isinstance(node.get("original_item_data"), dict) else {}
+                raw_payload = dict(raw)
+                raw_payload.setdefault("name", name or raw_payload.get("name") or "Unnamed Item")
+                raw_payload.setdefault("type", node_type or raw_payload.get("type") or "task")
+                if node.get("duration") is not None and raw_payload.get("duration") is None:
+                    raw_payload["duration"] = node.get("duration")
+                explicit_time = any(
+                    raw_payload.get(k) not in (None, "")
+                    for k in ("ideal_start_time", "start_time", "ideal_end_time", "end_time")
+                )
+                start_label = _time_label(node.get("start_time"))
+                end_label = _time_label(node.get("end_time"))
+                if explicit_time:
+                    if start_label and raw_payload.get("ideal_start_time") in (None, "") and raw_payload.get("start_time") in (None, ""):
+                        raw_payload["ideal_start_time"] = start_label
+                    if end_label and raw_payload.get("ideal_end_time") in (None, "") and raw_payload.get("end_time") in (None, ""):
+                        raw_payload["ideal_end_time"] = end_label
+                    raw_payload.setdefault("reschedule", "never")
+                    raw_payload.setdefault("essential", True)
+
+                item = {
+                    "name": raw_payload.get("name"),
+                    "type": raw_payload.get("type"),
+                    "duration": raw_payload.get("duration", node.get("duration")),
+                    "_raw": raw_payload,
+                    "_source_kind": "template_blueprint",
+                    "_template_member": True,
+                    "_template_explicit_time": explicit_time,
+                    "_template_sequence_index": ordinal,
+                    "_template_path": list(next_path),
+                }
+                if explicit_time:
+                    item["reschedule"] = raw_payload.get("reschedule", "never")
+                    item["essential"] = raw_payload.get("essential", True)
+                out.append(item)
+                ordinal += 1
+
+        _walk(schedule if isinstance(schedule, list) else [], [])
+        return out
 
     def _template_place_matches(self, template: Dict[str, Any], status_context: Dict[str, Any]) -> bool:
         """Hard gate: template `place` must match current place when both are set."""
@@ -845,12 +940,19 @@ class KairosScheduler:
         telemetry but currently filtered out as observer-only.
         """
         out: List[Dict[str, Any]] = []
+        blueprint_items = [dict(item) for item in (self.template_blueprint_items or []) if isinstance(item, dict)]
+        blueprint_keys = {
+            (self._normalize_key(item.get("type")), self._normalize_key(item.get("name")))
+            for item in blueprint_items
+            if self._normalize_key(item.get("type")) and self._normalize_key(item.get("name"))
+        }
+        skipped_for_template = 0
         try:
             from modules.item_manager import get_user_dir
             db = os.path.join(get_user_dir(), "data", "chronos_core.db")
             if not os.path.exists(db):
-                self.phase_notes["gather"] = {"error": f"missing:{db}", "total": 0}
-                return out
+                self.phase_notes["gather"] = {"error": f"missing:{db}", "total": len(blueprint_items), "template_blueprint": len(blueprint_items)}
+                return blueprint_items
             conn = sqlite3.connect(db)
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
@@ -867,6 +969,10 @@ class KairosScheduler:
                 item = dict(row)
                 item["_source_kind"] = "backlog"
                 item["_raw"] = self._decode_raw(item.get("raw_json"))
+                key = (self._normalize_key(item.get("type")), self._normalize_key(item.get("name")))
+                if key in blueprint_keys:
+                    skipped_for_template += 1
+                    continue
                 out.append(item)
             cur.execute("SELECT * FROM items WHERE type = 'commitment'")
             commitments = cur.fetchall()
@@ -877,14 +983,18 @@ class KairosScheduler:
                 item["_raw"] = self._decode_raw(item.get("raw_json"))
                 out.append(item)
             conn.close()
+            out.extend(blueprint_items)
             self.phase_notes["gather"] = {
                 "source_db": db,
                 "executable_items": len(backlog),
                 "commitments": len(commitments),
+                "template_blueprint": len(blueprint_items),
+                "skipped_backlog_duplicates_for_template": skipped_for_template,
                 "total": len(out),
             }
         except Exception as e:
-            self.phase_notes["gather"] = {"error": str(e), "total": len(out)}
+            out.extend(blueprint_items)
+            self.phase_notes["gather"] = {"error": str(e), "template_blueprint": len(blueprint_items), "total": len(out)}
         return out
 
     def _decode_raw(self, raw: Any) -> Dict[str, Any]:
@@ -898,6 +1008,151 @@ class KairosScheduler:
             return v if isinstance(v, dict) else {}
         except Exception:
             return {}
+
+    def _manual_adjustments(self) -> List[Dict[str, Any]]:
+        """Return normalized per-run manual adjustments passed in from `today`."""
+        raw = (self.user_context or {}).get("manual_adjustments")
+        if not isinstance(raw, list):
+            return []
+        out: List[Dict[str, Any]] = []
+        for row in raw:
+            if not isinstance(row, dict):
+                continue
+            action = str(row.get("action") or "").strip().lower()
+            if action not in ("trim", "cut", "change"):
+                continue
+            name = str(row.get("name") or row.get("item_name") or "").strip()
+            if not name:
+                continue
+            normalized = {
+                "action": action,
+                "name": name,
+                "type": self._normalize_key(row.get("type") or row.get("item_type")),
+                "source": str(row.get("source") or "manual_cli").strip() or "manual_cli",
+            }
+            if action == "trim":
+                try:
+                    normalized["amount"] = max(0, int(row.get("amount") or 0))
+                except Exception:
+                    continue
+            elif action == "change":
+                new_start_time = str(row.get("new_start_time") or "").strip()
+                if not new_start_time:
+                    continue
+                normalized["new_start_time"] = new_start_time
+            out.append(normalized)
+        return out
+
+    def _matching_manual_adjustments(self, item: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Find manual adjustments that target the current candidate."""
+        name_key = self._normalize_key(item.get("name"))
+        type_key = self._normalize_key(item.get("type"))
+        if not name_key:
+            return []
+        out: List[Dict[str, Any]] = []
+        for adj in self._manual_adjustments():
+            adj_name = self._normalize_key(adj.get("name"))
+            if adj_name != name_key:
+                continue
+            adj_type = self._normalize_key(adj.get("type"))
+            if adj_type and type_key and adj_type != type_key:
+                continue
+            out.append(dict(adj))
+        return out
+
+    def _apply_manual_adjustments(self, item: Dict[str, Any]) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]]]:
+        """
+        Apply trim/cut/change directives before scoring and placement.
+
+        Returns `(updated_item_or_none, events)` where `None` means the item was cut.
+        """
+        events: List[Dict[str, Any]] = []
+        target = dict(item or {})
+        raw = dict(target.get("_raw") or {}) if isinstance(target.get("_raw"), dict) else {}
+        if raw:
+            target["_raw"] = raw
+        adjustments = self._matching_manual_adjustments(target)
+        if not adjustments:
+            return target, events
+        for adj in adjustments:
+            action = str(adj.get("action") or "").strip().lower()
+            if action == "cut":
+                events.append(
+                    {
+                        "action": "cut",
+                        "name": target.get("name"),
+                        "type": target.get("type"),
+                        "source": adj.get("source"),
+                    }
+                )
+                return None, events
+            if action == "trim":
+                current_duration = self._duration_minutes(target)
+                amount = max(0, int(adj.get("amount") or 0))
+                trimmed_duration = current_duration - amount
+                if trimmed_duration < 5:
+                    events.append(
+                        {
+                            "action": "trim_skipped",
+                            "name": target.get("name"),
+                            "type": target.get("type"),
+                            "amount": amount,
+                            "reason": "min_duration",
+                            "source": adj.get("source"),
+                        }
+                    )
+                    continue
+                raw["duration"] = f"{trimmed_duration}m"
+                target["duration"] = f"{trimmed_duration}m"
+                target["_effective_duration"] = trimmed_duration
+                events.append(
+                    {
+                        "action": "trim",
+                        "name": target.get("name"),
+                        "type": target.get("type"),
+                        "from_duration": current_duration,
+                        "to_duration": trimmed_duration,
+                        "source": adj.get("source"),
+                    }
+                )
+                continue
+            if action == "change":
+                new_start_time = str(adj.get("new_start_time") or "").strip()
+                start_min = self._parse_hhmm(new_start_time)
+                if start_min is None:
+                    events.append(
+                        {
+                            "action": "change_skipped",
+                            "name": target.get("name"),
+                            "type": target.get("type"),
+                            "new_start_time": new_start_time,
+                            "reason": "invalid_time",
+                            "source": adj.get("source"),
+                        }
+                    )
+                    continue
+                duration = self._duration_minutes(target)
+                end_min = min((24 * 60) - 1, start_min + max(1, duration))
+                raw["start_time"] = self._to_hhmm(start_min)
+                raw["end_time"] = self._to_hhmm(end_min)
+                raw["reschedule"] = "never"
+                raw["essential"] = True
+                target["start_time"] = self._to_hhmm(start_min)
+                target["end_time"] = self._to_hhmm(end_min)
+                target["reschedule"] = "never"
+                target["essential"] = True
+                target["_manual_changed_start"] = True
+                events.append(
+                    {
+                        "action": "change",
+                        "name": target.get("name"),
+                        "type": target.get("type"),
+                        "new_start_time": self._to_hhmm(start_min),
+                        "new_end_time": self._to_hhmm(end_min),
+                        "source": adj.get("source"),
+                    }
+                )
+        return target, events
 
     def filter_candidates(self, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -914,6 +1169,7 @@ class KairosScheduler:
         raw_completed_specs = self.runtime.get("completed_specs")
         completed_specs = raw_completed_specs if isinstance(raw_completed_specs, dict) else {}
         candidate_nt_counts: Dict[Tuple[str, str], int] = {}
+        manual_events: List[Dict[str, Any]] = []
         for item in candidates:
             src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
             tkey = self._normalize_key(item.get("type") or src.get("type"))
@@ -923,6 +1179,12 @@ class KairosScheduler:
                 candidate_nt_counts[key] = int(candidate_nt_counts.get(key, 0) or 0) + 1
         T = self.runtime.get("Today")
         for item in candidates:
+            item, item_manual_events = self._apply_manual_adjustments(item)
+            if item_manual_events:
+                manual_events.extend(item_manual_events)
+            if item is None:
+                rejected.append({"name": None, "type": None, "reason": "manual_cut"})
+                continue
             src = item.get("_raw") if isinstance(item.get("_raw"), dict) else item
             item_type = str(item.get("type") or "").strip().lower()
             name_key = self._normalize_key(item.get("name") or src.get("name"))
@@ -1012,7 +1274,13 @@ class KairosScheduler:
             item["_effective_duration"] = dur
             item["_requirements"] = req
             keep.append(item)
-        self.phase_notes["filter"] = {"input": len(candidates), "kept": len(keep), "rejected": len(rejected), "sample_rejections": rejected[:25]}
+        self.phase_notes["filter"] = {
+            "input": len(candidates),
+            "kept": len(keep),
+            "rejected": len(rejected),
+            "sample_rejections": rejected[:25],
+            "manual_adjustments": manual_events[:50],
+        }
         return keep
 
     def _status_match_threshold(self) -> float:
@@ -1138,6 +1406,10 @@ class KairosScheduler:
                 # arbitrary property without changing schema or code.
                 c = self._custom_property_contribution(src, item, custom_key) * float(weights.get("custom_property", 0.0))
                 score += c; reasons.append(f"custom_property[{custom_key}]={c:.2f}")
+            if bool(item.get("_template_member")):
+                c = 100.0
+                score += c
+                reasons.append(f"template_blueprint={c:.2f}")
             item["kairos_score"] = round(score, 6)
             item["_score_reasons"] = reasons
             scored.append(item)
@@ -1451,8 +1723,50 @@ class KairosScheduler:
             if not self._window_filter_match(item, win_filter):
                 continue
             out.append(item)
+        out = self._restrict_to_next_template_items(out)
         out.sort(key=lambda x: (-float(x.get("kairos_score") or 0), str(x.get("name") or "").lower(), str(x.get("type") or "").lower()))
         return out
+
+    def _restrict_to_next_template_items(self, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Respect ordered template semantics for flexible blueprint items.
+
+        If one or more template blueprint items are eligible in the current
+        scheduling context, only the earliest remaining sequence item(s) may
+        compete. This preserves template order without blocking generic work in
+        contexts where no template item fits.
+        """
+        if not isinstance(candidates, list) or not candidates:
+            return candidates
+        template_candidates = []
+        for item in candidates:
+            if not isinstance(item, dict):
+                continue
+            if not bool(item.get("_template_member")):
+                continue
+            if bool(item.get("_template_explicit_time")):
+                continue
+            template_candidates.append(item)
+        if not template_candidates:
+            return candidates
+        next_seq = None
+        for item in template_candidates:
+            try:
+                seq = int(item.get("_template_sequence_index"))
+            except Exception:
+                continue
+            if next_seq is None or seq < next_seq:
+                next_seq = seq
+        if next_seq is None:
+            return candidates
+        restricted = []
+        for item in template_candidates:
+            try:
+                if int(item.get("_template_sequence_index")) == next_seq:
+                    restricted.append(item)
+            except Exception:
+                continue
+        return restricted or candidates
 
     def _parse_hhmm(self, value: Any) -> Optional[int]:
         """Parse HH:MM-style values into absolute minutes-from-midnight."""
@@ -2472,7 +2786,16 @@ class KairosScheduler:
         deduped = []
         seen = set()
         dropped = 0
+        template_pref_keys = {
+            (self._normalize_key(item.get("type")), self._normalize_key(item.get("name")))
+            for item in ranked_items
+            if isinstance(item, dict) and bool(item.get("_template_member"))
+        }
         for idx, item in enumerate(ranked_items):
+            item_key = (self._normalize_key(item.get("type")), self._normalize_key(item.get("name")))
+            if template_pref_keys and item_key in template_pref_keys and not bool(item.get("_template_member")):
+                dropped += 1
+                continue
             # Assign runtime uid early so downstream `used`/`remaining` maps
             # don't collapse distinct unnamed/duplicate-name rows.
             self._runtime_item_uid(item, ordinal=idx)
@@ -3069,6 +3392,7 @@ class KairosScheduler:
                     if dur > remaining_minutes or dur > gap_max:
                         continue
                     cands.append(item)
+                cands = self._restrict_to_next_template_items(cands)
                 cands.sort(key=lambda x: (-float(x.get("kairos_score") or 0), str(x.get("name") or "").lower(), str(x.get("type") or "").lower()))
                 if not cands:
                     break

@@ -301,6 +301,18 @@ export function mount(el, context) {
   }
 
   el.className = 'widget mp3player-widget';
+  try {
+    el.dataset.uiId = 'widget.mp3_player';
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = '420';
+    el.dataset.minHeight = '250';
+    el.style.minWidth = '420px';
+    el.style.minHeight = '250px';
+    if (!el.style.width) el.style.width = '460px';
+    if (!el.style.height) el.style.height = '300px';
+    if ((parseFloat(el.style.width) || 0) < 420) el.style.width = '420px';
+    if ((parseFloat(el.style.height) || 0) < 250) el.style.height = '250px';
+  } catch { }
 
   injectStyles();
   const tpl = `
@@ -311,6 +323,7 @@ export function mount(el, context) {
         <button class="icon-btn" id="mp3Close" title="Close">x</button>
       </div>
     </div>
+    <div class="content" style="padding:0; min-height:0; overflow:hidden;">
     <div class="mp3-player">
       <div class="mp3-screen">
         <div class="mp3-track-title" id="mp3TrackTitle">No track selected</div>
@@ -357,6 +370,7 @@ export function mount(el, context) {
         <div class="mp3-status" id="mp3Status"></div>
       </div>
     </div>
+    </div>
     <div class="resizer e"></div>
     <div class="resizer s"></div>
     <div class="resizer se"></div>
@@ -389,6 +403,7 @@ export function mount(el, context) {
   const libraryList = el.querySelector('#mp3LibraryList');
   const playlistList = el.querySelector('#mp3PlaylistList');
   const statusEl = el.querySelector('#mp3Status');
+  const playerShell = el.querySelector('.mp3-player');
 
   const audio = new Audio();
   audio.preload = 'metadata';
@@ -404,6 +419,8 @@ export function mount(el, context) {
     shuffle: false,
     repeat: 'off', // off|all|one
   };
+  let layoutQueued = false;
+  let collapsedHeight = 250;
 
   loadState();
 
@@ -440,6 +457,63 @@ export function mount(el, context) {
     statusEl.textContent = msg || '';
     statusEl.style.color = isError ? '#f59f85' : '#9ab4ff';
     if (msg) console.log('[Chronos][MP3]', msg);
+  }
+
+  function measureContainerHeight(container) {
+    if (!container) return 0;
+    try {
+      const cs = getComputedStyle(container);
+      const pt = Number.parseFloat(cs.paddingTop || '0') || 0;
+      const pb = Number.parseFloat(cs.paddingBottom || '0') || 0;
+      const gap = Number.parseFloat(cs.rowGap || cs.gap || '0') || 0;
+      const children = Array.from(container.children || []).filter((node) => {
+        try { return getComputedStyle(node).display !== 'none'; } catch { return true; }
+      });
+      let total = pt + pb;
+      children.forEach((node, idx) => {
+        total += Math.ceil(node.getBoundingClientRect().height || 0);
+        if (idx > 0) total += gap;
+      });
+      return Math.max(0, Math.ceil(total));
+    } catch {
+      return Math.ceil(container.scrollHeight || 0);
+    }
+  }
+
+  function applyWidgetHeight(targetHeight, targetMinHeight = collapsedHeight) {
+    const nextMin = Math.max(220, Math.ceil(targetMinHeight || 0));
+    const nextHeight = Math.max(nextMin, Math.ceil(targetHeight || 0));
+    collapsedHeight = nextMin;
+    el.dataset.minHeight = String(nextMin);
+    el.style.minHeight = `${nextMin}px`;
+    el.style.height = `${nextHeight}px`;
+    try {
+      el.__minH = nextMin;
+      window.installWidgetResizers?.(el);
+    } catch { }
+  }
+
+  function syncWidgetHeight() {
+    const headerEl = el.querySelector('.header');
+    if (!headerEl || !playerShell) return;
+    const headerH = Math.ceil(headerEl.getBoundingClientRect().height || 40);
+    const baseTarget = headerH + measureContainerHeight(playerShell) + 8;
+    if (collapsibleEl?.hidden) {
+      applyWidgetHeight(baseTarget, baseTarget);
+      return;
+    }
+    applyWidgetHeight(baseTarget, collapsedHeight);
+  }
+
+  function queueWidgetHeightSync() {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        layoutQueued = false;
+        syncWidgetHeight();
+      });
+    });
   }
 
   async function loadLibrary() {
@@ -913,6 +987,7 @@ export function mount(el, context) {
     collapseToggleBtn.textContent = open
       ? 'Hide Library & Playlist Tools ▴'
       : 'Show Library & Playlist Tools ▾';
+    queueWidgetHeightSync();
   }
 
   audio.addEventListener('timeupdate', updateProgressUI);
@@ -985,8 +1060,9 @@ export function mount(el, context) {
     }
   });
 
-  loadLibrary().then(loadPlaylists).then(() => updateButtons());
+  loadLibrary().then(loadPlaylists).then(() => { updateButtons(); queueWidgetHeightSync(); });
   setCollapsibleOpen(false);
+  queueWidgetHeightSync();
   updateButtons();
 
   return {

@@ -2,6 +2,7 @@ const SEEN_STORAGE_KEY = 'chronos_achievement_popup_seen_v1';
 const POPUPS_ENABLED_STORAGE_KEY = 'chronos_dashboard_popups_enabled_v1';
 const MAX_SEEN = 300;
 const POLL_MS = 5000;
+let achievementAudio = null;
 
 function apiBase() {
   const o = window.location?.origin;
@@ -273,6 +274,20 @@ function burstConfetti(intensity = 'normal') {
   window.setTimeout(() => layer.remove(), 4600);
 }
 
+function playAchievementSound() {
+  try {
+    if (!achievementAudio) {
+      achievementAudio = new Audio(new URL('../../../../assets/sounds/achievement.mp3', import.meta.url).toString());
+      achievementAudio.preload = 'auto';
+    }
+    achievementAudio.currentTime = 0;
+    const maybePromise = achievementAudio.play();
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => { });
+    }
+  } catch { }
+}
+
 function closePopup(overlay, done, cleanup) {
   cleanup?.();
   try { overlay?.remove(); } catch { }
@@ -346,6 +361,7 @@ function buildPopup(award, done) {
   };
   document.addEventListener('keydown', onEsc);
   document.body.appendChild(overlay);
+  playAchievementSound();
   burstConfetti(award.leveledUp ? 'level_up' : 'normal');
 }
 

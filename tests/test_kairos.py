@@ -374,6 +374,203 @@ class TestKairosEngine(unittest.TestCase):
         filt = windows[0].get("filter") if isinstance(windows[0], dict) else {}
         self.assertEqual((filt or {}).get("energy_mode"), "high")
 
+    def test_resolve_windows_extracts_template_blueprint_items(self):
+        scheduler = KairosScheduler()
+
+        class FakeToday:
+            @staticmethod
+            def build_initial_schedule(template, current_start_time=None, status_context=None):
+                return (
+                    [
+                        {
+                            "name": "Morning Routine",
+                            "type": "routine",
+                            "children": [
+                                {
+                                    "name": "Write",
+                                    "type": "task",
+                                    "duration": 45,
+                                    "start_time": __import__("datetime").datetime.now().replace(hour=9, minute=0, second=0, microsecond=0),
+                                    "end_time": __import__("datetime").datetime.now().replace(hour=9, minute=45, second=0, microsecond=0),
+                                    "original_item_data": {
+                                        "name": "Write",
+                                        "type": "task",
+                                        "duration": "45m",
+                                        "ideal_start_time": "09:00",
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                    [],
+                )
+
+        scheduler.runtime = {"Today": FakeToday(), "status_context": {"current": {}}}
+        forced_template = {
+            "path": "forced://test",
+            "score": "forced",
+            "template": {
+                "type": "day",
+                "name": "Test Day",
+                "sequence": [
+                    {"name": "Morning Window", "window": True, "start": "09:00", "end": "11:00", "filters": {}}
+                ],
+            },
+        }
+        with patch.object(KairosScheduler, "_resolve_forced_template", return_value=forced_template):
+            scheduler.user_context["force_template"] = "Test Day"
+            scheduler._resolve_windows(__import__("datetime").date.today())
+        self.assertEqual(len(scheduler.template_blueprint_items), 1)
+        blueprint = scheduler.template_blueprint_items[0]
+        self.assertEqual(blueprint.get("name"), "Write")
+        self.assertEqual(blueprint.get("_source_kind"), "template_blueprint")
+        self.assertTrue(blueprint.get("_template_member"))
+        self.assertTrue(blueprint.get("_template_explicit_time"))
+        self.assertEqual((scheduler.phase_notes.get("template") or {}).get("blueprint_items_found"), 1)
+
+    def test_score_candidates_boosts_template_blueprint_items(self):
+        scheduler = KairosScheduler()
+        scheduler.runtime = {
+            "weights": {
+                "priority_property": 0.0,
+                "category": 0.0,
+                "environment": 0.0,
+                "due_date": 0.0,
+                "deadline": 0.0,
+                "happiness": 0.0,
+                "status_alignment": 0.0,
+                "trend_reliability": 0.0,
+                "custom_property": 0.0,
+            },
+            "status_context": {"types": {}, "current": {}},
+            "happiness_map": None,
+            "trend_map": {},
+            "Today": None,
+            "options": {},
+        }
+        ranked = scheduler.score_candidates(
+            [
+                {"name": "Backlog Item", "type": "task", "_raw": {}, "duration": "30m"},
+                {"name": "Template Item", "type": "task", "_raw": {}, "duration": "30m", "_template_member": True},
+            ]
+        )
+        self.assertEqual(ranked[0].get("name"), "Template Item")
+        self.assertTrue(any("template_blueprint=" in r for r in ranked[0].get("_score_reasons", [])))
+
+    def test_construct_schedule_drops_backlog_duplicate_when_template_item_exists(self):
+        scheduler = KairosScheduler()
+        scheduler.runtime = {
+            "options": {"use_buffers": False, "use_timer_breaks": False, "use_timer_sprints": False},
+            "timer_settings": {},
+            "timer_profiles": {},
+            "quick_wins_settings": {"max_minutes": 15},
+            "buffer_settings": {},
+        }
+        scheduler.windows = [{"name": "Work", "start": "09:00", "end": "10:00", "filter": {}}]
+        ranked = [
+            {"name": "Write", "type": "task", "duration": "30m", "kairos_score": 50.0, "_raw": {}, "_template_member": True},
+            {"name": "Write", "type": "task", "duration": "30m", "kairos_score": 49.0, "_raw": {}, "_source_kind": "backlog"},
+        ]
+        result = scheduler.construct_schedule(ranked, __import__("datetime").date.today())
+        blocks = [b for b in result.get("blocks", []) if b.get("name") == "Write"]
+        self.assertEqual(len(blocks), 1)
+        self.assertTrue(blocks[0].get("_template_member"))
+
+    def test_window_candidates_only_allow_next_template_sequence_item(self):
+        scheduler = KairosScheduler()
+        ranked = [
+            {"name": "Later Template", "type": "task", "duration": "30m", "kairos_score": 99.0, "_raw": {}, "_template_member": True, "_template_sequence_index": 3},
+            {"name": "Next Template", "type": "task", "duration": "30m", "kairos_score": 10.0, "_raw": {}, "_template_member": True, "_template_sequence_index": 2},
+            {"name": "Backlog", "type": "task", "duration": "30m", "kairos_score": 50.0, "_raw": {}},
+        ]
+        out = scheduler._window_candidates(
+            ranked,
+            used=set(),
+            win={"name": "Work", "filter": {}},
+            fill=0,
+            cap=60,
+            remaining={scheduler._runtime_item_uid(item, ordinal=i): 30 for i, item in enumerate(ranked)},
+            sprint_cap=0,
+        )
+        self.assertEqual([x.get("name") for x in out], ["Next Template"])
+
+    def test_construct_schedule_preserves_template_sequence_over_score(self):
+        scheduler = KairosScheduler()
+        scheduler.runtime = {
+            "options": {"use_buffers": False, "use_timer_breaks": False, "use_timer_sprints": False},
+            "timer_settings": {},
+            "timer_profiles": {},
+            "quick_wins_settings": {"max_minutes": 60},
+            "buffer_settings": {},
+        }
+        scheduler.windows = [{"name": "Work", "start": "09:00", "end": "10:00", "filter": {}}]
+        ranked = [
+            {"name": "Second Template", "type": "task", "duration": "30m", "kairos_score": 200.0, "_raw": {}, "_template_member": True, "_template_sequence_index": 1},
+            {"name": "First Template", "type": "task", "duration": "30m", "kairos_score": 100.0, "_raw": {}, "_template_member": True, "_template_sequence_index": 0},
+        ]
+        result = scheduler.construct_schedule(ranked, __import__("datetime").date.today())
+        blocks = [b for b in result.get("blocks", []) if b.get("window_name") == "Work"]
+        self.assertEqual([b.get("name") for b in blocks], ["First Template", "Second Template"])
+
+    def test_filter_candidates_applies_manual_trim_before_scoring(self):
+        scheduler = KairosScheduler(user_context={"manual_adjustments": [{"action": "trim", "name": "Write", "amount": 10}]})
+        scheduler.runtime = {
+            "status_context": {"types": {}, "current": {}},
+            "completed_specs": {},
+            "Today": None,
+        }
+        kept = scheduler.filter_candidates(
+            [
+                {"name": "Write", "type": "task", "duration": "30m", "_raw": {"duration": "30m"}},
+            ]
+        )
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(int(kept[0].get("_effective_duration") or 0), 20)
+        manual_notes = (scheduler.phase_notes.get("filter") or {}).get("manual_adjustments") or []
+        self.assertTrue(any(str(row.get("action")) == "trim" for row in manual_notes))
+
+    def test_filter_candidates_applies_manual_cut_before_scoring(self):
+        scheduler = KairosScheduler(user_context={"manual_adjustments": [{"action": "cut", "name": "Write"}]})
+        scheduler.runtime = {
+            "status_context": {"types": {}, "current": {}},
+            "completed_specs": {},
+            "Today": None,
+        }
+        kept = scheduler.filter_candidates(
+            [
+                {"name": "Write", "type": "task", "duration": "30m", "_raw": {"duration": "30m"}},
+            ]
+        )
+        self.assertEqual(kept, [])
+        manual_notes = (scheduler.phase_notes.get("filter") or {}).get("manual_adjustments") or []
+        self.assertTrue(any(str(row.get("action")) == "cut" for row in manual_notes))
+
+    def test_manual_change_turns_item_into_fixed_anchor_slot(self):
+        scheduler = KairosScheduler(user_context={"manual_adjustments": [{"action": "change", "name": "Write", "new_start_time": "09:15"}]})
+        scheduler.runtime = {
+            "status_context": {"types": {}, "current": {}},
+            "completed_specs": {},
+            "Today": None,
+            "options": {"use_buffers": False, "use_timer_breaks": False, "use_timer_sprints": False},
+            "timer_settings": {},
+            "timer_profiles": {},
+            "quick_wins_settings": {"max_minutes": 60},
+            "buffer_settings": {},
+        }
+        scheduler.windows = [{"name": "Work", "start": "09:00", "end": "10:00", "filter": {}}]
+        kept = scheduler.filter_candidates(
+            [
+                {"name": "Write", "type": "task", "duration": "30m", "kairos_score": 10.0, "_raw": {"duration": "30m"}},
+            ]
+        )
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(kept[0].get("start_time"), "09:15")
+        self.assertEqual(kept[0].get("reschedule"), "never")
+        result = scheduler.construct_schedule(kept, __import__("datetime").date.today())
+        block = next(b for b in result.get("blocks", []) if b.get("name") == "Write")
+        self.assertEqual(block.get("start_time"), "09:15")
+        self.assertEqual(block.get("end_time"), "09:45")
+
     def test_manual_hard_injection_conflicts_with_anchor_without_override(self):
         scheduler = KairosScheduler(
             user_context={
@@ -652,6 +849,7 @@ class TestKairosCommandParsing(unittest.TestCase):
                             "breaks": "timer",
                             "sprints": True,
                             "ignore-trends": True,
+                            "sleep_policy": "ignore_today",
                             "repair-trim": True,
                             "repair-cut": True,
                             "repair-min-duration": 7,
@@ -696,6 +894,7 @@ class TestKairosCommandParsing(unittest.TestCase):
                     Today.run(
                         ["reschedule"],
                         {
+                            "sleep_policy": "ignore_today",
                             "window_filter_overrides": [
                                 {"window": "Deep Work", "key": "energy_mode", "value": "high"},
                                 {"window": "", "key": "contexts", "value": "quiet,deep"},
@@ -711,6 +910,33 @@ class TestKairosCommandParsing(unittest.TestCase):
         self.assertIsNone(wfo[1].get("window"))
         self.assertEqual(str(wfo[1].get("key")), "contexts")
         self.assertEqual(wfo[1].get("value"), ["quiet", "deep"])
+
+    def test_today_reschedule_maps_manual_adjustments_into_kairos_context(self):
+        captured = {}
+
+        class FakeKairos:
+            def __init__(self, user_context=None):
+                captured["ctx"] = user_context or {}
+                self.phase_notes = {"construct": {"windows": []}}
+
+            def generate_schedule(self, _):
+                return {"date": "2026-02-21", "blocks": [], "stats": {}}
+
+        with _today_user_dir():
+            with patch("commands.today.load_manual_modifications", return_value=[
+                {"action": "trim", "item_name": "Write", "amount": 10},
+                {"action": "cut", "item_name": "Scroll"},
+                {"action": "change", "item_name": "Workout", "new_start_time": "08:30"},
+                {"action": "inject", "item_name": "Inbox Zero", "start_time": "11:00"},
+            ]):
+                with patch("modules.scheduler.kairosScheduler", FakeKairos):
+                    with redirect_stdout(io.StringIO()):
+                        Today.run(["reschedule"], {"sleep_policy": "ignore_today"})
+        adjustments = captured.get("ctx", {}).get("manual_adjustments") or []
+        self.assertEqual([row.get("action") for row in adjustments], ["trim", "cut", "change"])
+        self.assertEqual(adjustments[0].get("name"), "Write")
+        self.assertEqual(adjustments[0].get("amount"), 10)
+        self.assertEqual(adjustments[2].get("new_start_time"), "08:30")
 
 
 class TestWeeklyGenerator(unittest.TestCase):
