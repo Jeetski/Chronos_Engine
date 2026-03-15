@@ -7,6 +7,7 @@ import shlex
 import json
 import re
 import io
+from datetime import datetime
 from contextlib import redirect_stdout
 
 try:
@@ -177,6 +178,128 @@ def _extract_runtime_options(argv_tokens):
             continue
         remaining.append(tok)
     return options, remaining
+
+
+def _parse_hhmm_label(value):
+    text = str(value or "").strip()
+    if not text:
+        return None
+    for fmt in ("%H:%M", "%H:%M:%S"):
+        try:
+            dt = datetime.strptime(text, fmt)
+            return (int(dt.hour) * 60) + int(dt.minute)
+        except Exception:
+            continue
+    return None
+
+
+def _schedule_prompt_lines():
+    now = datetime.now()
+    now_min = (int(now.hour) * 60) + int(now.minute)
+    timer_state = {}
+    blocks = []
+
+    try:
+        from modules.timer import main as Timer
+        timer_state = Timer.status() or {}
+        if not isinstance(timer_state, dict):
+            timer_state = {}
+        sched = timer_state.get("schedule_state") or {}
+        if isinstance(sched, dict):
+            plan = sched.get("plan") or {}
+            plan_blocks = plan.get("blocks") if isinstance(plan, dict) else None
+            if isinstance(plan_blocks, list):
+                blocks = [dict(b) for b in plan_blocks if isinstance(b, dict)]
+        if not blocks and hasattr(Timer, "_build_schedule_plan_for_date"):
+            blocks = Timer._build_schedule_plan_for_date(now.strftime("%Y-%m-%d")) or []
+    except Exception:
+        timer_state = {}
+        blocks = []
+
+    if not isinstance(blocks, list) or not blocks:
+        return []
+
+    visible_blocks = [dict(b) for b in blocks if isinstance(b, dict) and not bool(b.get("is_buffer"))]
+    if not visible_blocks:
+        visible_blocks = [dict(b) for b in blocks if isinstance(b, dict)]
+    if not visible_blocks:
+        return []
+
+    normalized = []
+    for block in visible_blocks:
+        start_min = _parse_hhmm_label(block.get("start"))
+        end_min = _parse_hhmm_label(block.get("end"))
+        if end_min is None and start_min is not None:
+            try:
+                duration = int(block.get("minutes") or 0)
+            except Exception:
+                duration = 0
+            if duration > 0:
+                end_min = start_min + duration
+        normalized.append(
+            {
+                "name": str(block.get("name") or "Unnamed block").strip() or "Unnamed block",
+                "start": str(block.get("start") or "").strip(),
+                "start_min": start_min,
+                "end_min": end_min,
+            }
+        )
+
+    normalized.sort(key=lambda b: (10**9 if b["start_min"] is None else b["start_min"], b["name"].lower()))
+
+    current_block = None
+    for block in normalized:
+        if block["start_min"] is None or block["end_min"] is None:
+            continue
+        if block["start_min"] <= now_min < block["end_min"]:
+            current_block = block
+            break
+
+    waiting_anchor = bool(timer_state.get("waiting_for_anchor_start"))
+    next_block = None
+    for block in normalized:
+        if current_block and block is current_block:
+            continue
+        if block["start_min"] is None:
+            continue
+        if current_block is not None:
+            if block["start_min"] >= (current_block["end_min"] or current_block["start_min"]):
+                next_block = block
+                break
+        elif block["start_min"] >= now_min:
+            next_block = block
+            break
+
+    if current_block is None and not waiting_anchor:
+        for block in normalized:
+            if block["end_min"] is not None and block["end_min"] > now_min:
+                current_block = block
+                break
+
+    lines = []
+    if current_block is not None and not waiting_anchor and current_block.get("start_min") is not None and current_block.get("end_min") is not None and current_block["start_min"] <= now_min < current_block["end_min"]:
+        lines.append(f"Current block: {current_block['name']}")
+    elif next_block is not None:
+        lines.append("No active block")
+
+    if waiting_anchor:
+        queued = timer_state.get("current_block") if isinstance(timer_state.get("current_block"), dict) else {}
+        queued_name = str(queued.get("name") or "").strip()
+        queued_start = str(queued.get("start") or "").strip()
+        if queued_name:
+            next_text = f"Next block: {queued_name}"
+            if queued_start:
+                next_text += f" ({queued_start})"
+            lines.append(next_text)
+            return lines
+
+    if next_block is not None:
+        next_text = f"Next block: {next_block['name']}"
+        if next_block.get("start"):
+            next_text += f" ({next_block['start']})"
+        lines.append(next_text)
+
+    return lines
 
 
 def _normalize_plugin_id(raw_id):
@@ -1797,7 +1920,6 @@ if __name__ == "__main__":
             ]
         for _ln in _wl:
             console_style.print_role(_ln, "info")
-        console_style.print_role("", "info")
 
     if startup_sync_enabled:
         _run_startup_core_sync_with_macro_hook()
@@ -1854,6 +1976,7 @@ if __name__ == "__main__":
         autocomplete_enabled = runtime_options.get("autocomplete")
         if autocomplete_enabled is None:
             autocomplete_enabled = bool(_to_bool_token(console_cfg.get("autocomplete_enabled")))
+        first_prompt_hint_shown = False
 
         if PromptSession and prompt_toolkit_enabled:
             history = InMemoryHistory()
@@ -1896,7 +2019,12 @@ if __name__ == "__main__":
                     if autocomplete_enabled:
                         completer.registry = _load_registry_bundle()
                         autosuggest.registry = completer.registry
-                    user_input = session.prompt([("class:prompt", "> ")])
+                    if not first_prompt_hint_shown:
+                        console_style.print_role("Type 'help' to see commands.", "info")
+                        for _line in _schedule_prompt_lines():
+                            console_style.print_role(_line, "info")
+                        first_prompt_hint_shown = True
+                    user_input = session.prompt([("class:prompt", "chronos> ")])
                     if user_input is None:
                         continue
                     user_input = user_input.strip()
@@ -1931,7 +2059,12 @@ if __name__ == "__main__":
             while True:
                 try:
                     _apply_console_theme()
-                    user_input = input("> ").strip()
+                    if not first_prompt_hint_shown:
+                        console_style.print_role("Type 'help' to see commands.", "info")
+                        for _line in _schedule_prompt_lines():
+                            console_style.print_role(_line, "info")
+                        first_prompt_hint_shown = True
+                    user_input = input("chronos> ").strip()
                     if not user_input:
                         continue
                     if user_input.lower() in {"exit", "quit"}:

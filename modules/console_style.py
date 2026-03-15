@@ -225,11 +225,12 @@ def _to_ansi_name(value: str) -> str:
 
 def _pad_line(text: str) -> str:
     width = shutil.get_terminal_size((80, 20)).columns
-    if width <= 0:
+    if width <= 1:
         return text
-    if len(text) >= width:
+    target_width = width - 1
+    if len(text) >= target_width:
         return text
-    return text + (" " * (width - len(text)))
+    return text + (" " * (target_width - len(text)))
 
 
 def build_style() -> "Style | None":
