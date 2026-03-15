@@ -615,7 +615,10 @@ def _load_registry_bundle():
 
 def _split_args_safe(text: str):
     try:
-        return shlex.split(text)
+        lexer = shlex.shlex(str(text or ""), posix=True)
+        lexer.whitespace_split = True
+        lexer.commenters = "#"
+        return list(lexer)
     except Exception:
         return [t for t in text.split() if t]
 
@@ -1494,7 +1497,7 @@ def execute_script(script_path):
         ln = raw_line.strip()
         if not ln or ln.startswith('#'):
             return
-        parts = shlex.split(ln)
+        parts = _split_args_safe(ln)
         command, args, properties = parse_input(parts)
         if command:
             # Set context line for single-line 'if' error reporting
@@ -1578,7 +1581,7 @@ def execute_script(script_path):
             return count_int
 
         def _parse_for_header(header_raw):
-            raw_tokens = shlex.split(header_raw)
+            raw_tokens = _split_args_safe(header_raw)
             if not raw_tokens:
                 return None
             var_name = raw_tokens[0]
@@ -1605,7 +1608,7 @@ def execute_script(script_path):
             return var_name, item_type, props
 
         def _parse_while_header(header_raw):
-            raw_tokens = shlex.split(header_raw)
+            raw_tokens = _split_args_safe(header_raw)
             max_raw = None
             cond_tokens = []
             for tok in raw_tokens:
@@ -1676,7 +1679,7 @@ def execute_script(script_path):
             if sl.startswith('repeat ') and sl.endswith(' then'):
                 block, i = collect_block(i)
                 header = stripped[7:-5].strip()
-                header_tokens = _V.expand_list(shlex.split(header))
+                header_tokens = _V.expand_list(_split_args_safe(header))
                 count = _parse_repeat_count(header_tokens)
                 if not count:
                     print("❌ Invalid repeat count. Use: repeat count:<n> then")
@@ -1770,7 +1773,7 @@ def execute_script(script_path):
 
             if sl.startswith('if ') and sl.endswith(' then'):
                 header = stripped[3:-5].strip()
-                header_parts = shlex.split(header)
+                header_parts = _split_args_safe(header)
                 cond_tokens = _V.expand_list(header_parts)
                 cond_line_no = i + 1
                 blocks = [(cond_tokens, [], cond_line_no)]
@@ -1783,7 +1786,7 @@ def execute_script(script_path):
                     sl2 = s.lower()
                     if sl2.startswith('elseif ') and sl2.endswith(' then'):
                         elif_header = s[7:-5].strip()
-                        parts2 = shlex.split(elif_header)
+                        parts2 = _split_args_safe(elif_header)
                         cond2 = _V.expand_list(parts2)
                         elif_line_no = i + 1
                         i += 1
@@ -1938,7 +1941,7 @@ if __name__ == "__main__":
         # Join all arguments into a single string to handle quotes correctly
         user_input_str = ' '.join(cli_args)
         # Use shlex.split to parse the string, respecting quotes
-        parts = shlex.split(user_input_str)
+        parts = _split_args_safe(user_input_str)
         command, args, properties = parse_input(parts)
         if command:
             if command.lower() in {"exit", "quit"}:
@@ -2037,7 +2040,7 @@ if __name__ == "__main__":
                             time.sleep(1)
                         _play_cli_sound("exit", wait=True)
                         break
-                    parts = shlex.split(user_input)
+                    parts = _split_args_safe(user_input)
                     command, args, properties = parse_input(parts)
                     if command:
                         invoke_command(command, args, properties.copy())
@@ -2076,7 +2079,7 @@ if __name__ == "__main__":
                         break
 
                     # Use shlex.split for interactive input to handle quotes
-                    parts = shlex.split(user_input)
+                    parts = _split_args_safe(user_input)
                     command, args, properties = parse_input(parts)
 
                     if command:

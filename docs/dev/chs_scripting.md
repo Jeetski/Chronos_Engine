@@ -2,6 +2,13 @@
 
 Chronos executes `.chs` scripts with one command per line. Lines support quoted arguments, key:value properties, and variable expansion.
 
+## Comments
+
+- `#` starts a comment.
+- Full-line comments are allowed: `# this line is ignored`
+- Inline comments are also allowed: `echo Hello # this part is ignored`
+- If you need a literal `#`, quote it: `echo "#not-a-comment"`
+
 ## Variables
 
 - Set a variable: `set var name:World`
