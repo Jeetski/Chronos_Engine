@@ -29,6 +29,8 @@ if not defined PYTHON_EXE (
   call :find_python
   if not defined PYTHON_EXE goto :py_install_fail
 )
+call :ensure_python_310_plus
+if %ERRORLEVEL% NEQ 0 goto :py_install_fail
 
 echo Using Python: %PYTHON_EXE% %PYTHON_ARGS%
 
@@ -79,6 +81,15 @@ goto :end_ok
     goto :eof
   )
   goto :eof
+
+:ensure_python_310_plus
+  "%PYTHON_EXE%" %PYTHON_ARGS% -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+  if %ERRORLEVEL% NEQ 0 (
+    echo Detected Python is older than 3.10.
+    echo Chronos requires Python 3.10 or newer.
+    exit /b 1
+  )
+  exit /b 0
 
 :py_install_fail
   echo Failed to install or detect Python automatically.
@@ -163,7 +174,7 @@ goto :end_ok
   goto tray_startup_done
 
 :tray_startup_yes
-  if not exist "%ROOT_DIR%tray_launcher.bat" (
+  if not exist "%ROOT_DIR%\tray_launcher.bat" (
     echo Warning: tray_launcher.bat not found. Skipping tray shortcut creation.
     goto tray_startup_done
   )
@@ -211,7 +222,7 @@ goto :end_ok
   goto topos_startup_done
 
 :topos_startup_yes
-  if not exist "%ROOT_DIR%topos_launcher.bat" (
+  if not exist "%ROOT_DIR%\topos_launcher.bat" (
     echo Warning: topos_launcher.bat not found. Skipping Topos shortcut creation.
     goto topos_startup_done
   )
@@ -260,7 +271,7 @@ goto :end_ok
   goto cli_path_done
 
 :cli_path_yes
-  if not exist "%ROOT_DIR%console_launcher.bat" (
+  if not exist "%ROOT_DIR%\console_launcher.bat" (
     echo Warning: console_launcher.bat not found. Cannot create Chronos CLI wrapper.
     goto cli_path_done
   )
@@ -297,7 +308,12 @@ goto :end_ok
     set "CHRONOS_CLI_PATH_RESULT=success"
     echo SUCCESS: Added Chronos wrapper at %USERPROFILE%\bin\chronos.cmd
     echo SUCCESS: Confirmed %USERPROFILE%\bin is present in your user PATH.
-    echo Open a new shell or run `chronos today` in this one.
+    echo.
+    echo Chronos installed successfully.
+    echo Try:
+    echo     chronos
+    echo     chronos help
+    echo     chronos dashboard
   ) else (
     set "CHRONOS_CLI_PATH_RESULT=verification_failed"
     echo ERROR: The Chronos PATH setup command ran, but verification failed.
