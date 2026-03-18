@@ -668,7 +668,7 @@ function buildWhatIsChronosGuide(overlay, done, cleanup) {
       return;
     }
     if (action === 'open-docs') {
-      openDocPath('guides/what_is_chronos/index.md');
+      openDocPath('guides/what_is_chronos/what_is_chronos_index.md');
       closePopup(overlay, done, cleanup);
       return;
     }
@@ -693,7 +693,7 @@ function buildWhatIsChronosGuide(overlay, done, cleanup) {
         state.index += 1;
         void renderStep();
       } else {
-        openDocPath('guides/what_is_chronos/index.md');
+        openDocPath('guides/what_is_chronos/what_is_chronos_index.md');
         closePopup(overlay, done, cleanup);
       }
     }

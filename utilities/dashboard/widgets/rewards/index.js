@@ -49,6 +49,7 @@ export function mount(el, context) {
     <div class="header" data-ui-id="widget.rewards.header">
       <div class="title" data-ui-id="widget.rewards.title">Rewards</div>
       <div class="controls" style="align-items:center; gap:6px;">
+        <button class="icon-btn" id="rwRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.rewards.refresh_button">↻</button>
         <button class="icon-btn" id="rwMin" title="Minimize" data-ui-id="widget.rewards.minimize_button">_</button>
         <button class="icon-btn" id="rwClose" title="Close" data-ui-id="widget.rewards.close_button">x</button>
       </div>
@@ -72,8 +73,6 @@ export function mount(el, context) {
           <label class="hint" style="display:flex; align-items:center; gap:6px;">
             <input type="checkbox" id="rwReadyOnly" data-ui-id="widget.rewards.ready_only_checkbox" /> Ready only
           </label>
-          <div class="spacer"></div>
-          <button class="btn" id="rwRefresh" data-ui-id="widget.rewards.refresh_button">Refresh</button>
         </div>
         <div class="row" style="gap:8px; align-items:center;">
           <button class="btn btn-primary" id="rwRedeemPrimary" data-ui-id="widget.rewards.redeem_primary_button">Redeem Primary</button>

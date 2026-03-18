@@ -60,6 +60,7 @@ export function mount(el) {
       <div class="title" data-ui-id="widget.commitments.title">Commitments</div>
       <div class="controls" style="align-items:center; gap:6px;">
         <button class="btn" id="cmEvaluate" style="padding:4px 10px;" data-ui-id="widget.commitments.evaluate_button">Evaluate</button>
+        <button class="icon-btn" id="cmRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.commitments.refresh_button">↻</button>
         <button class="icon-btn" id="cmMin" data-ui-id="widget.commitments.minimize_button">_</button>
         <button class="icon-btn" id="cmClose" data-ui-id="widget.commitments.close_button">x</button>
       </div>
@@ -92,8 +93,6 @@ export function mount(el) {
             <option value="met">Met</option>
             <option value="violation">Violations</option>
           </select>
-          <div class="spacer"></div>
-          <button class="btn" id="cmRefresh" data-ui-id="widget.commitments.refresh_button">Refresh</button>
         </div>
         <div class="row" style="gap:8px; align-items:center;">
           <button class="btn btn-secondary" id="cmPrimaryMet" data-ui-id="widget.commitments.met_primary_button">Mark Primary Met</button>

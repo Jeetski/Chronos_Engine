@@ -14,7 +14,7 @@ export function mount(el) {
         <div class="header" data-ui-id="widget.trends.header">
             <span class="title" data-ui-id="widget.trends.title">Performance</span>
             <div class="controls">
-                <button class="icon-btn" title="Refresh" id="trendsRefresh" data-ui-id="widget.trends.refresh_button">↻</button>
+                <button class="icon-btn" title="Refresh" aria-label="Refresh" id="trendsRefresh" data-ui-id="widget.trends.refresh_button">↻</button>
                 <button class="icon-btn" title="Minimize" data-ui-id="widget.trends.minimize_button">−</button>
                 <button class="icon-btn" title="Close" data-ui-id="widget.trends.close_button">×</button>
             </div>

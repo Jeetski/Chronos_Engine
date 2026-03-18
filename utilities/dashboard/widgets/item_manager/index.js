@@ -53,6 +53,7 @@ export function mount(el) {
     <div class="header" id="imHeader" data-ui-id="widget.item_manager.header">
       <div class="title" data-ui-id="widget.item_manager.title">Item Manager</div>
       <div class="controls">
+        <button class="icon-btn" id="imRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.item_manager.refresh_button">↻</button>
         <button class="icon-btn" id="imMin" title="Minimize" data-ui-id="widget.item_manager.minimize_button">_</button>
         <button class="icon-btn" id="imClose" title="Close" data-ui-id="widget.item_manager.close_button">x</button>
       </div>
@@ -62,7 +63,6 @@ export function mount(el) {
         <select id="imType" class="input" style="max-width:180px; flex:0 0 auto;" data-ui-id="widget.item_manager.type_select"></select>
         <input id="imSearch" class="input" placeholder="Search name or content..." style="flex:1 1 260px; min-width:200px;" data-ui-id="widget.item_manager.search_input" />
         <button class="btn" id="imSearchBtn" style="flex:0 0 auto;" data-ui-id="widget.item_manager.search_button">Search</button>
-        <button class="btn" id="imRefresh" style="flex:0 0 auto;" data-ui-id="widget.item_manager.refresh_button">Refresh</button>
         <div class="spacer"></div>
         <button class="btn" id="imExport" style="flex:0 0 auto;">Export</button>
         <input id="imBulkProp" class="input" list="imPropKeys" placeholder="property:value (e.g. status:pending)" style="flex:1 1 260px; min-width:220px;" />

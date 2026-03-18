@@ -23,6 +23,7 @@ export function mount(el, context) {
   <div class="header" id="twHeader" data-ui-id="widget.timer.header">
       <div class="title" data-ui-id="widget.timer.title">Timer</div>
       <div class="controls">
+        <button class="icon-btn" id="twRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.timer.refresh_button">↻</button>
         <button class="icon-btn" id="twMin" title="Minimize" data-ui-id="widget.timer.minimize_button">_</button>
         <button class="icon-btn" id="twClose" title="Close" data-ui-id="widget.timer.close_button">x</button>
       </div>
@@ -74,8 +75,6 @@ export function mount(el, context) {
         <button class="btn" id="twTray" data-ui-id="widget.timer.open_tray_button">Open Tray</button>
         <button class="btn" id="twPause" data-ui-id="widget.timer.pause_resume_button">Pause</button>
         <button class="btn btn-secondary" id="twCancel" data-ui-id="widget.timer.cancel_button">Cancel</button>
-        <div class="spacer"></div>
-        <button class="btn" id="twRefresh" data-ui-id="widget.timer.refresh_button">Refresh</button>
       </div>
     </div>
     <div class="resizer e"></div>

@@ -797,19 +797,27 @@ ready(async () => {
       calendarBackBtn = document.createElement('button');
       calendarBackBtn.type = 'button';
       calendarBackBtn.className = 'pane-back';
-      calendarBackBtn.textContent = 'Back';
+      calendarBackBtn.textContent = '←';
       calendarBackBtn.title = 'Return to previous calendar level';
-      calendarBackBtn.style.padding = '0 10px';
+      calendarBackBtn.setAttribute('aria-label', 'Back');
+      calendarBackBtn.style.padding = '0';
+      calendarBackBtn.style.width = '28px';
       calendarBackBtn.style.height = '28px';
       calendarBackBtn.style.marginLeft = '8px';
+      calendarBackBtn.style.fontSize = '16px';
+      calendarBackBtn.style.lineHeight = '1';
 
       calendarRefreshBtn = document.createElement('button');
       calendarRefreshBtn.type = 'button';
       calendarRefreshBtn.className = 'pane-back';
-      calendarRefreshBtn.textContent = 'Refresh';
+      calendarRefreshBtn.textContent = '↻';
       calendarRefreshBtn.title = 'Refresh day list';
-      calendarRefreshBtn.style.padding = '0 10px';
+      calendarRefreshBtn.setAttribute('aria-label', 'Refresh');
+      calendarRefreshBtn.style.padding = '0';
+      calendarRefreshBtn.style.width = '28px';
       calendarRefreshBtn.style.height = '28px';
+      calendarRefreshBtn.style.fontSize = '16px';
+      calendarRefreshBtn.style.lineHeight = '1';
     }
     const helpBtn = window.ChronosHelp?.create?.(name, { className: 'icon-btn', fallbackLabel: name });
     const close = document.createElement('button');
@@ -1170,6 +1178,27 @@ ready(async () => {
   try {
     window.setTimeout(() => { void consumeEditorOpenRequest(); }, 450);
     window.setInterval(() => { void consumeEditorOpenRequest(); }, 1500);
+  } catch { }
+
+  let docsOpenPollBusy = false;
+  async function consumeDocsOpenRequest() {
+    if (docsOpenPollBusy) return;
+    docsOpenPollBusy = true;
+    try {
+      const r = await fetch(apiBase() + '/api/docs/open-request');
+      if (!r.ok) return;
+      const j = await r.json().catch(() => ({}));
+      const req = j?.request;
+      if (!req) return;
+      await window.ChronosOpenDoc?.(req.path, req.line);
+    } catch { }
+    finally {
+      docsOpenPollBusy = false;
+    }
+  }
+  try {
+    window.setTimeout(() => { void consumeDocsOpenRequest(); }, 500);
+    window.setInterval(() => { void consumeDocsOpenRequest(); }, 1500);
   } catch { }
 
   function _trickWidgetCandidates(req) {

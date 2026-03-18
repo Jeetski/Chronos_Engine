@@ -21,7 +21,7 @@ export async function mount(el, context) {
     <div class="header" id="resolutionHeader" data-ui-id="widget.resolution_tracker.header">
       <div class="title" data-ui-id="widget.resolution_tracker.title">Resolutions</div>
       <div class="controls">
-        <button class="icon-btn" id="resolutionRefresh" title="Refresh" data-ui-id="widget.resolution_tracker.refresh_button">R</button>
+        <button class="icon-btn" id="resolutionRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.resolution_tracker.refresh_button">↻</button>
         <button class="icon-btn" id="resolutionMin" title="Minimize" data-ui-id="widget.resolution_tracker.minimize_button">_</button>
         <button class="icon-btn" id="resolutionClose" title="Close" data-ui-id="widget.resolution_tracker.close_button">x</button>
       </div>

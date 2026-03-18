@@ -20,7 +20,7 @@ export function mount(el, context) {
           <option value="good">Good</option>
           <option value="bad">Bad</option>
         </select>
-        <button class="icon-btn" id="habitRefresh" title="Refresh" data-ui-id="widget.habit_tracker.refresh_button">R</button>
+        <button class="icon-btn" id="habitRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.habit_tracker.refresh_button">↻</button>
         <button class="icon-btn" id="habitMin" title="Minimize" data-ui-id="widget.habit_tracker.minimize_button">_</button>
         <button class="icon-btn" id="habitClose" title="Close" data-ui-id="widget.habit_tracker.close_button">x</button>
       </div>

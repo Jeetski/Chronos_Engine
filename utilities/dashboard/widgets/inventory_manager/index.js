@@ -44,6 +44,7 @@ export function mount(el, context) {
     <div class="header" data-ui-id="widget.inventory_manager.header">
       <div class="title" data-ui-id="widget.inventory_manager.title">Inventory Manager</div>
       <div class="controls">
+        <button class="icon-btn" id="invRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.inventory_manager.refresh_button">↻</button>
         <button class="icon-btn" data-action="minimize" title="Minimize" data-ui-id="widget.inventory_manager.minimize_button">_</button>
         <button class="icon-btn" data-action="close" title="Close" data-ui-id="widget.inventory_manager.close_button">x</button>
       </div>
@@ -55,7 +56,6 @@ export function mount(el, context) {
           <option value="">All places</option>
         </select>
         <button class="btn" id="invSearchBtn" data-ui-id="widget.inventory_manager.search_button">Search</button>
-        <button class="btn" id="invRefresh" data-ui-id="widget.inventory_manager.refresh_button">Refresh</button>
         <span class="spacer"></span>
       </div>
       <div class="inv-new">

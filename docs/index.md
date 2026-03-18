@@ -27,7 +27,7 @@ This index points to the main documentation entry points in this repo and what e
 
 ## Agents
 - Agent Guide: `docs/agents/agents.md` - operator behavior and pilot directives.
-- Agent Skills Index: `docs/agents/skills/index.md` - task-oriented workflows for agents.
+- Agent Skills Index: `docs/agents/skills/skills_index.md` - task-oriented workflows for agents.
 - ADUC (Familiars): `docs/agents/aduc.md` - local familiars UI and pilot integration.
 - TRICK Protocol: `docs/agents/trick.md` - Tiny Remote Interface Control Kit DSL for dashboard UI control.
 
@@ -43,7 +43,7 @@ This index points to the main documentation entry points in this repo and what e
 - Documentation Audit (2026-03-06): `docs/dev/Documentation_Audit_2026-03-06.md` - freshness findings, resolved drift, and hardening plan.
 
 ## Reference
-- Features Index: `docs/features/index.md` - master map for domain, console, and dashboard feature indexes.
+- Features Index: `docs/features/features_index.md` - master map for domain, console, and dashboard feature indexes.
 - CLI Commands: `docs/reference/cli_commands.md` - full command reference.
 - Dashboard API: `docs/reference/dashboard_api.md` - canonical local dashboard route catalog.
 - Item Properties: `docs/reference/item_properties.md` - standard item fields used by Chronos.

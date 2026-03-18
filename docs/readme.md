@@ -9,7 +9,7 @@ Links
 - Trademark Policy: Legal/TRADEMARK_POLICY.md
 - Agent Guide: Agents/agents.md
 - Common Workflows: Guides/common_workflows.md
-- What Is Chronos?: Guides/what_is_chronos/index.md
+- What Is Chronos?: Guides/what_is_chronos/what_is_chronos_index.md
 - Day Builder: Guides/DayBuilder.md
 - Routine Builder: Guides/RoutineBuilder.md
 - Status Mapping Wizard: Guides/Dashboard.md
@@ -18,7 +18,7 @@ Links
 - Canvas: Guides/Canvas.md
 - Sequence Mirrors: Dev/Sequence.md
 - Dashboard API Reference: Reference/Dashboard_API.md
-- Features Index: Features/INDEX.md
+- Features Index: Features/features_index.md
 - Kairos Elements Reference: Scheduling/Kairos_Elements_Reference.md
 - Docs Freshness Audit (2026-03-06): Dev/Documentation_Audit_2026-03-06.md
 

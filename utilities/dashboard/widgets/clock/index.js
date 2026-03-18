@@ -167,6 +167,7 @@ export function mount(el) {
     <div class="header" id="clockHeader">
       <div class="title">Chronos Clock</div>
       <div class="controls">
+        <button class="icon-btn" id="clockRefresh" title="Refresh" aria-label="Refresh">↻</button>
         <button class="icon-btn" id="clockMin" title="Minimize">_</button>
         <button class="icon-btn" id="clockClose" title="Close">x</button>
       </div>
@@ -210,8 +211,6 @@ export function mount(el) {
               <div id="managePanel" style="display:block;">
                 <div class="row" style="gap:8px; align-items:center; margin-bottom:10px;">
                   <div class="hint">Manage alerts</div>
-                  <div class="spacer"></div>
-                  <button class="btn btn-secondary" id="alertsRefresh">Refresh</button>
                 </div>
                 <div style="margin-bottom:12px;">
                   <div class="hint" style="margin-bottom:6px;">Reminders</div>
@@ -226,7 +225,6 @@ export function mount(el) {
                   <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
                     <select class="input" id="itemReminderType"></select>
                     <select class="input" id="itemReminderName" style="min-width:220px;"></select>
-                    <button class="btn btn-secondary" id="itemReminderRefresh">Refresh</button>
                   </div>
                   <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:6px;">
                     <select class="input" id="itemReminderDateKind" style="min-width:140px;"></select>
@@ -249,6 +247,7 @@ export function mount(el) {
   el.innerHTML = tpl;
 
   const header = el.querySelector('#clockHeader');
+  const widgetRefreshBtn = el.querySelector('#clockRefresh');
   const btnMin = el.querySelector('#clockMin');
   const btnClose = el.querySelector('#clockClose');
   const canvas = el.querySelector('#clockCanvas');
@@ -262,7 +261,6 @@ export function mount(el) {
   const formArea = el.querySelector('#formArea');
   const manageSection = el.querySelector('#clockManageSection');
   const managePanel = el.querySelector('#managePanel');
-  const alertsRefreshBtn = el.querySelector('#alertsRefresh');
   const reminderList = el.querySelector('#reminderList');
   const alarmList = el.querySelector('#alarmList');
   const itemTypeSelect = el.querySelector('#itemReminderType');
@@ -271,7 +269,6 @@ export function mount(el) {
   const itemDateInput = el.querySelector('#itemReminderDate');
   const itemTimeInput = el.querySelector('#itemReminderTime');
   const itemMessageInput = el.querySelector('#itemReminderMessage');
-  const itemRefreshBtn = el.querySelector('#itemReminderRefresh');
   const itemCreateBtn = el.querySelector('#itemReminderCreate');
   const scheduleSection = el.querySelector('#clockScheduleSection');
   const contentEl = el.querySelector('.content');
@@ -863,8 +860,11 @@ export function mount(el) {
   if (remindDef.time) itemTimeInput.value = remindDef.time;
   loadItemsForType();
 
+  widgetRefreshBtn?.addEventListener('click', () => {
+    loadAlerts();
+    loadItemsForType();
+  });
   itemTypeSelect.addEventListener('change', loadItemsForType);
-  itemRefreshBtn.addEventListener('click', loadItemsForType);
   itemNameSelect.addEventListener('change', () => {
     const item = getSelectedItem();
     if (!item) return;
@@ -975,8 +975,6 @@ export function mount(el) {
     }
     queueEnsureClockFits();
   }
-
-  alertsRefreshBtn?.addEventListener('click', loadAlerts);
 
   // Resizers
   function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }

@@ -42,6 +42,7 @@ export function mount(el) {
     <div class="header" id="gtHeader" data-ui-id="widget.goal_tracker.header">
       <div class="title" data-ui-id="widget.goal_tracker.title">Goals</div>
       <div class="controls">
+        <button class="icon-btn" id="gtRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.goal_tracker.refresh_button">↻</button>
         <button class="icon-btn" id="gtMin" title="Minimize" data-ui-id="widget.goal_tracker.minimize_button">_</button>
         <button class="icon-btn" id="gtClose" title="Close" data-ui-id="widget.goal_tracker.close_button">x</button>
       </div>
@@ -53,7 +54,6 @@ export function mount(el) {
             <button class="btn" id="gtSearchBtn" data-ui-id="widget.goal_tracker.search_button">Search</button>
             <div class="spacer"></div>
             <button class="btn" id="gtRecalc" data-ui-id="widget.goal_tracker.recalc_button">Recalc</button>
-            <button class="btn" id="gtRefresh" data-ui-id="widget.goal_tracker.refresh_button">Refresh</button>
           </div>
       <div class="gt-body">
         <div class="gt-pane gt-list-pane" data-ui-id="widget.goal_tracker.list_container">

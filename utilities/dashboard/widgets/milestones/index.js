@@ -57,6 +57,7 @@ export function mount(el, context) {
     <div class="header" data-ui-id="widget.milestones.header">
       <div class="title" data-ui-id="widget.milestones.title">Milestones</div>
       <div class="controls" style="align-items:center; gap:6px;">
+        <button class="icon-btn" id="msRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.milestones.refresh_button">↻</button>
         <button class="icon-btn" id="msMin" data-ui-id="widget.milestones.minimize_button">_</button>
         <button class="icon-btn" id="msClose" data-ui-id="widget.milestones.close_button">x</button>
       </div>
@@ -95,8 +96,6 @@ export function mount(el, context) {
           <select id="msGoalFilter" class="input" style="flex:0 0 220px;" data-ui-id="widget.milestones.goal_filter_select">
             <option value="all">All goals</option>
           </select>
-          <div class="spacer"></div>
-          <button class="btn" id="msRefresh" data-ui-id="widget.milestones.refresh_button">Refresh</button>
         </div>
         <div class="row" style="gap:8px; align-items:center;">
           <button class="btn btn-primary" id="msPrimaryComplete" data-ui-id="widget.milestones.complete_primary_button">Complete Primary</button>

@@ -84,6 +84,7 @@ export function mount(el) {
     <div class="header" data-ui-id="widget.achievements.header">
       <div class="title" data-ui-id="widget.achievements.title">Achievements</div>
       <div class="controls" style="align-items:center; gap:6px;">
+        <button class="icon-btn" id="acRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.achievements.refresh_button">↻</button>
         <button class="icon-btn" id="acMin" data-ui-id="widget.achievements.minimize_button">_</button>
         <button class="icon-btn" id="acClose" data-ui-id="widget.achievements.close_button">x</button>
       </div>
@@ -128,8 +129,6 @@ export function mount(el) {
             <option value="">Select title...</option>
           </select>
           <button class="btn" id="acSetTitle" data-ui-id="widget.achievements.set_title_button">Set Title</button>
-          <div class="spacer"></div>
-          <button class="btn" id="acRefresh" data-ui-id="widget.achievements.refresh_button">Refresh</button>
         </div>
         <div class="row" style="gap:8px; align-items:center;">
           <button class="btn btn-primary" id="acAwardPrimary" data-ui-id="widget.achievements.award_primary_button">Award Primary</button>

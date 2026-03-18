@@ -26,6 +26,7 @@ export function mount(el, context) {
     <div class="header" id="vHeader" data-ui-id="widget.variables.header">
       <div class="title" data-ui-id="widget.variables.title">Variables</div>
       <div class="controls">
+        <button class="icon-btn" id="vRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.variables.refresh_button">↻</button>
         <button class="icon-btn" id="vMin" title="Minimize" data-ui-id="widget.variables.minimize_button">_</button>
         <button class="icon-btn" id="vClose" title="Close" data-ui-id="widget.variables.close_button">x</button>
       </div>
@@ -35,7 +36,6 @@ export function mount(el, context) {
         <div class="row">
           <button class="btn" id="vAdd" data-ui-id="widget.variables.add_button">Add</button>
           <button class="btn btn-primary" id="vSave" data-ui-id="widget.variables.save_button">Save</button>
-          <button class="btn" id="vRefresh" data-ui-id="widget.variables.refresh_button">Refresh</button>
           <div class="spacer"></div>
           <span class="hint" data-ui-id="widget.variables.tip_text">These @vars expand in views and (optionally) Terminal args.</span>
         </div>

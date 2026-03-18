@@ -30,7 +30,7 @@ Operational depth lives in `docs/agents/skills/*`.
 ## 4. Skill Routing (Primary Workflow)
 
 For every user request:
-1. Open `docs/agents/skills/index.md`.
+1. Open `docs/agents/skills/skills_index.md`.
 2. Select primary skill (and supporting skills if needed).
 3. Open selected `SKILL.md` files.
 4. Execute according to those workflows.
@@ -41,7 +41,7 @@ Do not preload all skills. Load only what matches intent.
 
 - "What is Chronos?" -> `Chronos-Orientation`
 - "How do I run Chronos/CLI/.chs?" -> `Agent-Basics`
-- Everything else -> `docs/agents/skills/index.md`
+- Everything else -> `docs/agents/skills/skills_index.md`
 
 ## 6. Output Contract
 
@@ -51,7 +51,7 @@ Do not preload all skills. Load only what matches intent.
 
 ## 7. Canonical References
 
-- Skills index: `docs/agents/skills/index.md`
+- Skills index: `docs/agents/skills/skills_index.md`
 - TRICK protocol: `docs/agents/trick.md`
 - CLI reference: `docs/reference/cli_commands.md`
 - Dashboard API: `docs/reference/dashboard_api.md`

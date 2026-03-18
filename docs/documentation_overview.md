@@ -516,7 +516,7 @@ dashboard
 ### Development
 - Architecture, CHS Scripting, Macros, Sequence
 - DataCards, Extensibility, Autosuggest
-- Agent routing + skills (`docs/agents/agents.md`, `docs/agents/skills/index.md`)
+- Agent routing + skills (`docs/agents/agents.md`, `docs/agents/skills/skills_index.md`)
 
 ### Scheduling
 - Algorithm Overview (importance scoring, conflict resolution)

@@ -28,6 +28,6 @@ Operate the accountability/economy loop: commitments evaluation, reward redempti
 - Avoid duplicate reward or completion effects for same event.
 
 ## References
-- `docs/agents/skills/index.md`
+- `docs/agents/skills/skills_index.md`
 - `docs/reference/cli_commands.md`
 - `docs/features/achievements_progression_system.md`

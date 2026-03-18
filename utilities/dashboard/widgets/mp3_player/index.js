@@ -319,6 +319,7 @@ export function mount(el, context) {
     <div class="header">
       <div class="title">MP3 Player</div>
       <div class="controls">
+        <button class="icon-btn" id="mp3Refresh" title="Refresh" aria-label="Refresh">↻</button>
         <button class="icon-btn" id="mp3Min" title="Minimize">_</button>
         <button class="icon-btn" id="mp3Close" title="Close">x</button>
       </div>
@@ -350,7 +351,6 @@ export function mount(el, context) {
           <button id="mp3NewPlaylist">New</button>
           <button id="mp3SavePlaylist">Save</button>
           <button id="mp3DeletePlaylist">Delete</button>
-          <button id="mp3Refresh">Refresh</button>
         </div>
         <div class="mp3-upload-row">
           <button id="mp3UploadBtn">Upload MP3s</button>

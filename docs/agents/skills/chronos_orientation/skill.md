@@ -24,7 +24,7 @@ Chronos is a YAML-first life management engine with:
 ## Orientation Workflow
 1. Open `docs/readme.md` for high-level architecture and entry points.
 2. Open `docs/index.md` for doc map.
-3. Open `docs/agents/skills/index.md` for intent-to-skill routing.
+3. Open `docs/agents/skills/skills_index.md` for intent-to-skill routing.
 4. Select primary domain skill and continue there.
 
 ## Quick Doc Routing
@@ -44,7 +44,7 @@ Chronos is a YAML-first life management engine with:
 ## References
 - `docs/readme.md`
 - `docs/index.md`
-- `docs/agents/skills/index.md`
+- `docs/agents/skills/skills_index.md`
 - `docs/agents/agents.md`
 
 

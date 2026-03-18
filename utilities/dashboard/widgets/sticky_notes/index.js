@@ -304,7 +304,7 @@ export function mount(el, context) {
     <div class="header">
       <div class="title">Sticky Notes</div>
       <div class="controls">
-        <button class="icon-btn" data-action="refresh" title="Refresh">↺</button>
+        <button class="icon-btn" data-action="refresh" title="Refresh" aria-label="Refresh">↻</button>
         <button class="icon-btn" data-action="minimize" title="Minimize">_</button>
         <button class="icon-btn" data-action="close" title="Close">x</button>
       </div>
@@ -330,8 +330,6 @@ export function mount(el, context) {
         <div class="sticky-section-content">
           <div class="sticky-status-row">
             <div class="sticky-status" id="stickyStatus"></div>
-            <div class="spacer"></div>
-            <button class="btn btn-secondary" id="stickyReloadBtn">Refresh</button>
           </div>
           <div class="sticky-gallery-viewport" id="stickyGalleryViewport">
             <div class="sticky-notes-grid" id="stickyNotesGrid"></div>
@@ -349,7 +347,6 @@ export function mount(el, context) {
   const bodyInput = el.querySelector('#stickyNewBody');
   const colorSelect = el.querySelector('#stickyNewColor');
   const pinnedCheckbox = el.querySelector('#stickyNewPinned');
-  const reloadBtn = el.querySelector('#stickyReloadBtn');
   const grid = el.querySelector('#stickyNotesGrid');
   const statusEl = el.querySelector('#stickyStatus');
 
@@ -870,7 +867,6 @@ export function mount(el, context) {
   }
 
   headerRefresh?.addEventListener('click', () => fetchNotes());
-  reloadBtn?.addEventListener('click', () => fetchNotes());
   createForm?.addEventListener('submit', (ev) => {
     ev.preventDefault();
     createNote();

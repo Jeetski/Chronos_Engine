@@ -56,6 +56,7 @@ _LINK_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "link_settings.
 _TEMP_DIR = os.path.join(ROOT_DIR, "temp")
 _LEGACY_TEMP_DIR = os.path.join(ROOT_DIR, "Temp")
 _EDITOR_OPEN_REQUEST_PATH = os.path.join(_TEMP_DIR, "editor_open_request.json")
+_DOCS_OPEN_REQUEST_PATH = os.path.join(_TEMP_DIR, "docs_open_request.json")
 _TRICK_SESSION_STATE = {}
 _TRICK_OPEN_REQUESTS = []
 _TRICK_OPEN_LOCK = threading.Lock()
@@ -6351,6 +6352,72 @@ def _editor_open_request_pop():
     except Exception:
         return None
 
+
+def _resolve_docs_target(path_value: str):
+    rel = str(path_value or "").strip().replace("\\", "/").replace("/./", "/").lstrip("/")
+    if not rel:
+        return None, "Missing path"
+    docs_root = os.path.abspath(os.path.join(ROOT_DIR, "docs"))
+    target = os.path.abspath(os.path.join(docs_root, rel))
+    if not _path_within(docs_root, target):
+        return None, "Forbidden"
+    if not os.path.isfile(target):
+        return None, "File not found"
+    return target, None
+
+
+def _docs_open_request_write(path_value: str, line_value=None) -> bool:
+    try:
+        docs_root = os.path.abspath(os.path.join(ROOT_DIR, "docs"))
+        payload = {}
+        raw_path = str(path_value or "").strip()
+        if raw_path:
+            abs_target, err = _resolve_docs_target(raw_path)
+            if err:
+                return False
+            payload["path"] = os.path.relpath(abs_target, docs_root).replace("\\", "/")
+        if line_value is not None:
+            try:
+                payload["line"] = int(line_value)
+            except Exception:
+                pass
+        os.makedirs(os.path.dirname(_DOCS_OPEN_REQUEST_PATH), exist_ok=True)
+        with open(_DOCS_OPEN_REQUEST_PATH, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
+
+
+def _docs_open_request_pop():
+    try:
+        request_path = _legacy_or_canonical_temp_path("docs_open_request.json")
+        if not os.path.exists(request_path):
+            return None
+        with open(request_path, "r", encoding="utf-8") as fh:
+            payload = json.load(fh) or {}
+        try:
+            os.remove(request_path)
+        except Exception:
+            pass
+        if not isinstance(payload, dict):
+            return None
+        docs_root = os.path.abspath(os.path.join(ROOT_DIR, "docs"))
+        out = {}
+        if payload.get("path"):
+            abs_target, err = _resolve_docs_target(payload.get("path"))
+            if err:
+                return None
+            out["path"] = os.path.relpath(abs_target, docs_root).replace("\\", "/")
+        if payload.get("line") is not None:
+            try:
+                out["line"] = int(payload.get("line"))
+            except Exception:
+                pass
+        return out
+    except Exception:
+        return None
+
 def _vars_all():
     try:
         from modules import variables as _V
@@ -7674,6 +7741,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200, {"ok": True, "results": results})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to search docs: {e}"})
+            return
+        if parsed.path == "/api/docs/open-request":
+            try:
+                req = _docs_open_request_pop()
+                self._write_json(200, {"ok": True, "request": req})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Docs open request error: {e}"})
             return
         if parsed.path == "/api/theme":
             # Lookup a theme by name in user/settings/theme_settings.yml
@@ -10965,6 +11039,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_json(200 if ok else 400, {"ok": bool(ok)})
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Editor open request write failed: {e}"})
+            return
+        if parsed.path == "/api/docs/open-request":
+            try:
+                if not isinstance(payload, dict):
+                    self._write_json(400, {"ok": False, "error": "Payload must be a map"}); return
+                path_value = str(payload.get("path") or "").strip()
+                line_value = payload.get("line")
+                ok = _docs_open_request_write(path_value, line_value)
+                self._write_json(200 if ok else 400, {"ok": bool(ok)})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Docs open request write failed: {e}"})
             return
 
         if parsed.path == "/api/media/playlists/save":

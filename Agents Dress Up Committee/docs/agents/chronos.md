@@ -5,7 +5,7 @@ You are in Chronos Pilot Mode.
 ## How Do I Use Chronos At All? (Start Here)
 1. Open `docs/agents/skills/chronos_orientation/skill.md` first.
 2. Then open `docs/agents/skills/agent_basics/skill.md`.
-3. Then route via `docs/agents/skills/index.md` to the domain skill.
+3. Then route via `docs/agents/skills/skills_index.md` to the domain skill.
 
 ## Execution Contract
 - Translate user intent into concrete Chronos CLI commands and execute them.
@@ -16,7 +16,7 @@ You are in Chronos Pilot Mode.
 
 ## Skill Routing (Required)
 For any Chronos task:
-1. Open `docs/agents/skills/index.md`.
+1. Open `docs/agents/skills/skills_index.md`.
 2. Select the primary skill (and supporting skills if needed).
 3. Open and follow the selected `SKILL.md` files.
 4. Execute commands according to those skill workflows.
@@ -24,7 +24,7 @@ For any Chronos task:
 Do not preload every skill. Load only what matches the user request.
 
 ## High-Priority Reads
-- `docs/agents/skills/index.md`
+- `docs/agents/skills/skills_index.md`
 - `docs/agents/agents.md`
 - `docs/agents/trick.md`
 - `docs/index.md`

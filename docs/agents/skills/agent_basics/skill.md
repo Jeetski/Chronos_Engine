@@ -85,5 +85,5 @@ Reference:
 - `docs/reference/cli_commands.md`
 - `docs/dev/chs_scripting.md`
 - `docs/guides/conditions_cookbook.md`
-- `docs/agents/skills/index.md`
+- `docs/agents/skills/skills_index.md`
 

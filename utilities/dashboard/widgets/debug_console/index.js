@@ -22,6 +22,7 @@ export function mount(el, context) {
     <div class="header" id="debugHeader" data-ui-id="widget.debug_console.header">
       <div class="title" data-ui-id="widget.debug_console.title">Debug Console</div>
       <div class="controls">
+        <button class="icon-btn" id="debugRefresh" title="Refresh" aria-label="Refresh" data-ui-id="widget.debug_console.refresh_button">↻</button>
         <button class="icon-btn" id="debugMin" title="Minimize" data-ui-id="widget.debug_console.minimize_button">_</button>
         <button class="icon-btn" id="debugClear" title="Clear" data-ui-id="widget.debug_console.clear_button">⌫</button>
         <button class="icon-btn" id="debugCopy" type="button" title="Copy Output" aria-label="Copy Output" data-ui-id="widget.debug_console.copy_button">⧉</button>
@@ -51,7 +52,6 @@ export function mount(el, context) {
           <option value="log">log</option>
           <option value="onerror">onerror</option>
         </select>
-        <button class="btn" id="debugRefresh" data-ui-id="widget.debug_console.refresh_button">Refresh</button>
         <button class="btn" id="debugOpenEditor" data-ui-id="widget.debug_console.open_editor_button">Open in Editor</button>
       </div>
       <pre id="debugOut" data-ui-id="widget.debug_console.output_text" style="flex:1 1 auto; min-height:120px; overflow:auto; background:linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%); color:#e6e8ef; border:1px solid rgba(255, 255, 255, 0.08); border-radius:8px; padding:8px; white-space:pre-wrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-family:var(--font-mono); font-size:12px;">(capturing logs...)</pre>

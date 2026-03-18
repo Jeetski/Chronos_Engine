@@ -31,7 +31,7 @@ Quickstart
 - Scripting: `docs/dev/chs_scripting.md`, `docs/guides/conditions_cookbook.md`
 - Cockpit Panels: `docs/guides/cockpit.md`
 - Sequence Mirrors: `docs/dev/sequence.md`
-- Agent Guides: `docs/agents/agents.md`, `docs/agents/skills/index.md`
+- Agent Guides: `docs/agents/agents.md`, `docs/agents/skills/skills_index.md`
 
 License
 - See `docs/legal/license.md`. Commercial terms in `docs/legal/commercial_license.md`.
