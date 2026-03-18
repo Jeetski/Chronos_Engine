@@ -22,6 +22,7 @@ from modules import sound_fx as SoundFX
 from modules.item_manager import dispatch_command
 from modules.tile import main as TileModule
 from commands import dashboard as dashboard_command
+from utilities.webview_launcher import launch_webview_window, webview_script_exists
 
 
 TOPOS_DATA_DIR = os.path.join(ROOT_DIR, "user", "data", "topos")
@@ -32,7 +33,6 @@ APOD_API_KEY = "DEMO_KEY"
 APOD_FALLBACK_DAYS = 7
 LOGO_PATH = os.path.join(ROOT_DIR, "assets", "images", "logo_no_background.png")
 ICON_PATH = os.path.join(ROOT_DIR, "assets", "chronos.ico")
-WEBVIEW_SCRIPT_PATH = os.path.join(ROOT_DIR, "utilities", "topos", "webview_window.py")
 CONSOLE_LAUNCHER_PATH = os.path.join(ROOT_DIR, "console_launcher.bat")
 CUSTOM_TILE_SLOTS = {3, 4, 5}
 
@@ -604,25 +604,9 @@ class ToposApp:
         return inside
 
     def _open_webview_window(self, url="https://www.google.com", title="Topos Webview"):
-        if not os.path.exists(WEBVIEW_SCRIPT_PATH):
+        if not webview_script_exists():
             return
-        kwargs = {
-            "cwd": ROOT_DIR,
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL,
-        }
-        if os.name == "nt":
-            flags = 0
-            flags |= getattr(subprocess, "DETACHED_PROCESS", 0)
-            flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-            if flags:
-                kwargs["creationflags"] = flags
-        else:
-            kwargs["start_new_session"] = True
-        try:
-            subprocess.Popen([sys.executable, WEBVIEW_SCRIPT_PATH, url, title], **kwargs)
-        except Exception:
-            pass
+        launch_webview_window(url, title)
 
     def _open_console(self):
         if not os.path.exists(CONSOLE_LAUNCHER_PATH):

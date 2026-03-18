@@ -3335,6 +3335,11 @@ ready(async () => {
 window.addEventListener('resize', () => {
   try { applyPaneSizes(); } catch { }
   try { positionOpenDropdowns(); } catch { }
+  try {
+    document.querySelectorAll('.widget[data-maximized="true"]').forEach((el) => {
+      window.ChronosMaximizeWidget?.(el);
+    });
+  } catch { }
 });
 
 export { };

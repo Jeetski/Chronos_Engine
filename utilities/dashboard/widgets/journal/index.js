@@ -9,17 +9,35 @@ export function mount(el, context) {
   }
 
   el.className = 'widget journal-widget';
+  try { el.dataset.minWidth = '280'; } catch { }
+  const TEXT_SIZE_STORAGE_KEY = 'chronos_journal_text_size_v1';
 
   const css = `
     .jr { display:flex; flex-direction:column; gap:10px; }
-    .row { display:flex; gap:8px; align-items:center; }
-    .col { display:flex; flex-direction:column; gap:8px; }
-    .list { max-height: 220px; overflow:auto; border:1px solid var(--border); border-radius:8px; background:#0f141d; padding:6px; }
-    .item { padding:6px 8px; border:1px solid #2b3343; border-radius:6px; margin-bottom:6px; cursor:pointer; background:#101623; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; min-width:0; }
+    .col { display:flex; flex-direction:column; gap:8px; min-width:0; }
+    .jr-toolbar, .jr-preview-row, .jr-editor, .jr-list {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(18, 23, 33, 0.52) 0%, rgba(10, 14, 21, 0.34) 100%);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255,255,255,0.04);
+      backdrop-filter: blur(14px) saturate(125%);
+      -webkit-backdrop-filter: blur(14px) saturate(125%);
+    }
+    .jr-toolbar, .jr-preview-row, .jr-editor { padding: 10px 12px; }
+    .jr-list { max-height: 220px; overflow:auto; padding:6px; }
+    .item { padding:6px 8px; border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; margin-bottom:6px; cursor:pointer; background:linear-gradient(180deg, rgba(14, 19, 28, 0.44) 0%, rgba(9, 13, 20, 0.24) 100%); backdrop-filter: blur(10px) saturate(118%); -webkit-backdrop-filter: blur(10px) saturate(118%); }
     .item.sel { outline: 2px solid #7aa2f7; }
     .tags { color: var(--text-dim); font-size:12px; }
     .hint { color: var(--text-dim); font-size: 12px; }
     .spacer { flex:1; }
+    .jr .input, .jr .textarea, .jr select, .jr input:not([type="checkbox"]) { min-width:0; max-width:100%; background: linear-gradient(180deg, rgba(13, 18, 26, 0.42) 0%, rgba(9, 12, 18, 0.22) 100%); border-color: rgba(255,255,255,0.12); backdrop-filter: blur(12px) saturate(120%); -webkit-backdrop-filter: blur(12px) saturate(120%); }
+    .jr .input:focus, .jr .textarea:focus, .jr select:focus, .jr input:not([type="checkbox"]):focus { background: linear-gradient(180deg, rgba(18, 24, 36, 0.5) 0%, rgba(11, 15, 23, 0.3) 100%); }
+    .journal-widget .icon-btn.danger {
+      color: var(--chronos-danger, #ff9aa2);
+      border-color: var(--chronos-danger-soft, rgba(255, 154, 162, 0.2));
+      background: color-mix(in srgb, var(--chronos-danger-soft, rgba(255, 154, 162, 0.2)) 70%, transparent);
+    }
   `;
   el.innerHTML = `
     <style>${css}</style>
@@ -30,52 +48,52 @@ export function mount(el, context) {
         <button class="icon-btn" id="jrClose" title="Close">x</button>
       </div>
     </div>
-    <div class="content">
+    <div class="content widget-content-glass">
       <div class="jr">
-        <div class="row">
-          <select id="jrType" class="input" style="width:160px;">
+        <div class="row jr-toolbar">
+          <select id="jrType" class="input" style="flex:0 1 120px; min-width:110px;">
             <option value="all">All</option>
             <option value="journal_entry">Journal</option>
             <option value="dream_diary_entry">Dream</option>
           </select>
-          <input id="jrSearch" class="input" style="flex:1;" placeholder="Search title or tags"/>
-          <button class="btn" id="jrNew">New</button>
-          <button class="btn btn-primary" id="jrSave">Save</button>
-          <button class="btn" id="jrSticky">To Sticky</button>
-          <button class="btn" id="jrDelete">Delete</button>
+          <input id="jrSearch" class="input" style="flex:1 1 160px; min-width:120px;" placeholder="Search title or tags"/>
+          <button class="icon-btn" id="jrNew" title="New entry" aria-label="New entry">+</button>
+          <button class="icon-btn" id="jrSave" title="Save entry" aria-label="Save entry">💾</button>
+          <button class="icon-btn" id="jrSticky" title="Send to Sticky Notes" aria-label="Send to Sticky Notes">📌</button>
+          <button class="icon-btn danger" id="jrDelete" title="Delete entry" aria-label="Delete entry">🗑</button>
           <span id="jrStatus" class="hint" style="margin-left:8px;"></span>
         </div>
-        <div class="list" id="jrList"></div>
-        <div class="col" id="jrEditor">
+        <div class="jr-list" id="jrList"></div>
+        <div class="col jr-editor" id="jrEditor">
           <div class="row">
-            <label class="hint" style="min-width:80px;">Type</label>
-            <select id="edType" class="input" style="width:200px;">
+            <label class="hint" style="min-width:64px;">Type</label>
+            <select id="edType" class="input" style="flex:1 1 150px; min-width:120px;">
               <option value="journal_entry">Journal</option>
               <option value="dream_diary_entry">Dream</option>
             </select>
-            <label class="hint" style="min-width:60px;">Date</label>
-            <input id="edDate" class="input" placeholder="YYYY-MM-DD" style="width:150px;"/>
+            <label class="hint" style="min-width:52px;">Date</label>
+            <input id="edDate" class="input" placeholder="YYYY-MM-DD" style="flex:1 1 120px; min-width:110px;"/>
           </div>
           <div class="row">
-            <label class="hint" style="min-width:80px;">Title</label>
-            <input id="edTitle" class="input" placeholder="Entry title" style="flex:1;"/>
+            <label class="hint" style="min-width:64px;">Title</label>
+            <input id="edTitle" class="input" placeholder="Entry title" style="flex:1 1 180px; min-width:140px;"/>
           </div>
           <div class="row">
-            <label class="hint" style="min-width:80px;">Tags</label>
-            <input id="edTags" class="input" placeholder="tag1, tag2" style="flex:1;"/>
+            <label class="hint" style="min-width:64px;">Tags</label>
+            <input id="edTags" class="input" placeholder="tag1, tag2" style="flex:1 1 180px; min-width:140px;"/>
           </div>
           <div class="row" id="dreamRow1" style="display:none;">
-            <label class="hint" style="min-width:80px;">Lucid</label>
+            <label class="hint" style="min-width:64px;">Lucid</label>
             <input type="checkbox" id="edLucid" />
-            <label class="hint" style="min-width:100px; margin-left:12px;">Dream signs</label>
-            <input id="edDreamSigns" class="input" placeholder="comma-separated" style="flex:1;"/>
+            <label class="hint" style="min-width:88px; margin-left:12px;">Dream signs</label>
+            <input id="edDreamSigns" class="input" placeholder="comma-separated" style="flex:1 1 170px; min-width:120px;"/>
           </div>
           <div class="row" id="dreamRow2" style="display:none;">
-            <label class="hint" style="min-width:80px;">Sleep</label>
-            <input id="edSleepStart" class="input" placeholder="start HH:MM" style="width:120px;"/>
-            <input id="edSleepEnd" class="input" placeholder="end HH:MM" style="width:120px;"/>
-            <label class="hint" style="min-width:60px; margin-left:12px;">Rating</label>
-            <input id="edRating" class="input" placeholder="1-5" style="width:80px;"/>
+            <label class="hint" style="min-width:64px;">Sleep</label>
+            <input id="edSleepStart" class="input" placeholder="start HH:MM" style="flex:1 1 105px; min-width:92px;"/>
+            <input id="edSleepEnd" class="input" placeholder="end HH:MM" style="flex:1 1 105px; min-width:92px;"/>
+            <label class="hint" style="min-width:52px; margin-left:12px;">Rating</label>
+            <input id="edRating" class="input" placeholder="1-5" style="flex:0 1 70px; min-width:60px;"/>
           </div>
           <textarea id="edContent" class="textarea" placeholder="Write your entry..." style="min-height:180px;"></textarea>
         </div>
@@ -110,15 +128,23 @@ export function mount(el, context) {
   const dreamRow1 = el.querySelector('#dreamRow1');
   const dreamRow2 = el.querySelector('#dreamRow2');
   // Preview toggle and container
-  const previewWrap = document.createElement('div'); previewWrap.className = 'row'; previewWrap.style.gap = '8px'; previewWrap.style.alignItems = 'center';
+  const previewWrap = document.createElement('div'); previewWrap.className = 'row jr-preview-row'; previewWrap.style.gap = '8px'; previewWrap.style.alignItems = 'center';
   const previewLbl = document.createElement('label'); previewLbl.className = 'hint'; previewLbl.style.minWidth = '80px'; previewLbl.textContent = 'Preview';
   const previewChk = document.createElement('input'); previewChk.type = 'checkbox'; previewChk.id = 'jrPreviewToggle';
   const previewChkLbl = document.createElement('label'); previewChkLbl.className = 'hint'; previewChkLbl.style.display = 'flex'; previewChkLbl.style.alignItems = 'center'; previewChkLbl.style.gap = '6px'; previewChkLbl.append(previewChk, document.createTextNode(' Expanded view'));
-  previewWrap.append(previewLbl, previewChkLbl);
+  const textSizeLbl = document.createElement('label'); textSizeLbl.className = 'hint'; textSizeLbl.style.minWidth = '50px'; textSizeLbl.textContent = 'Text';
+  const textSizeSelect = document.createElement('select'); textSizeSelect.className = 'input'; textSizeSelect.style.flex = '0 1 120px'; textSizeSelect.style.minWidth = '100px';
+  [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32].forEach((size) => {
+    const opt = document.createElement('option');
+    opt.value = String(size);
+    opt.textContent = `${size}px`;
+    textSizeSelect.appendChild(opt);
+  });
+  const readOnlyChk = document.createElement('input'); readOnlyChk.type = 'checkbox'; readOnlyChk.id = 'jrReadOnlyToggle';
+  const readOnlyChkLbl = document.createElement('label'); readOnlyChkLbl.className = 'hint'; readOnlyChkLbl.style.display = 'flex'; readOnlyChkLbl.style.alignItems = 'center'; readOnlyChkLbl.style.gap = '6px'; readOnlyChkLbl.append(readOnlyChk, document.createTextNode(' Read only'));
+  previewWrap.append(previewLbl, previewChkLbl, textSizeLbl, textSizeSelect, readOnlyChkLbl);
   const contentParent = edContent && edContent.parentElement ? edContent.parentElement : null;
   if (contentParent) { contentParent.parentElement.insertBefore(previewWrap, contentParent.nextSibling); }
-  const previewEl = document.createElement('div'); previewEl.id = 'jrPreview'; previewEl.className = 'textarea'; previewEl.style.display = 'none'; previewEl.style.opacity = '.9'; previewEl.style.background = '#0f141d'; previewEl.style.border = '1px dashed #2b3343'; previewEl.style.minHeight = '100px'; previewEl.setAttribute('data-expand', 'text');
-  if (contentParent) { contentParent.parentElement.insertBefore(previewEl, previewWrap.nextSibling); }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   async function fetchJson(url) { const r = await fetch(url); return await r.json(); }
@@ -192,6 +218,22 @@ export function mount(el, context) {
   let current = null; // {type,name}
   let autosaveTimer = null;
   function setStatus(msg) { statusEl.textContent = msg || ''; }
+  function isReadOnly() { return !!readOnlyChk?.checked; }
+  function applyReadOnlyState() {
+    const disabled = isReadOnly();
+    [edType, edDate, edTitle, edTags, edContent, edLucid, edDreamSigns, edSleepStart, edSleepEnd, edRating].forEach((field) => {
+      if (!field) return;
+      try {
+        field.disabled = disabled;
+        if ('readOnly' in field) field.readOnly = disabled;
+      } catch { }
+    });
+    [btnNew, btnSave, btnSticky, btnDelete].forEach((btn) => {
+      if (!btn) return;
+      try { btn.disabled = disabled; } catch { }
+    });
+    try { el.dataset.readonly = disabled ? 'true' : 'false'; } catch { }
+  }
 
   function toggleDreamFields() {
     const isDream = String(edType.value || '') === 'dream_diary_entry';
@@ -223,17 +265,29 @@ export function mount(el, context) {
 
   function expandText(s) { try { return (window.ChronosVars && window.ChronosVars.expand) ? window.ChronosVars.expand(String(s || '')) : String(s || ''); } catch { return String(s || ''); } }
   function updatePreview() {
+    return;
+  }
+
+  function applyTextSize(size, { persist = true } = {}) {
+    const parsed = parseInt(String(size || '15').trim(), 10);
+    const numeric = Number.isFinite(parsed) ? Math.max(11, Math.min(32, parsed)) : 15;
+    const fontSize = `${numeric}px`;
     try {
-      if (!previewChk || !previewEl) return;
-      if (!previewChk.checked) { previewEl.style.display = 'none'; return; }
-      previewEl.style.display = '';
-      const title = expandText(edTitle.value || '');
-      const tags = expandText(edTags.value || '');
-      const body = expandText(edContent.value || '');
-      const head = [title, tags ? ('# ' + tags) : ''].filter(Boolean).join('\n');
-      previewEl.textContent = (head ? (head + '\n\n') : '') + body;
-      try { previewEl.setAttribute('data-raw', (edTitle.value || '') + '\n\n' + (edContent.value || '')); } catch { }
+      textSizeSelect.value = String(numeric);
+      edContent.style.fontSize = fontSize;
+      edContent.style.lineHeight = '1.55';
+      if (persist) localStorage.setItem(TEXT_SIZE_STORAGE_KEY, textSizeSelect.value);
     } catch { }
+  }
+
+  function syncExpandedView() {
+    try {
+      const toggle = window?.ChronosToggleWidgetMaximized;
+      if (typeof toggle === 'function') {
+        toggle(el, !!previewChk.checked);
+      }
+    } catch { }
+    updatePreview();
   }
 
   function showStickyNotesWidget() {
@@ -346,6 +400,7 @@ export function mount(el, context) {
   }
 
   async function saveNow() {
+    if (isReadOnly()) return;
     if (!current) return;
     const t = String(edType.value || current.type);
     const newName = String(edTitle.value || '').trim();
@@ -391,6 +446,7 @@ export function mount(el, context) {
   }
 
   function queueAutosave() {
+    if (isReadOnly()) return;
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(saveNow, 800);
     setStatus('Saving...');
@@ -413,6 +469,7 @@ export function mount(el, context) {
   edLucid.addEventListener('change', queueAutosave);
 
   btnNew.addEventListener('click', async () => {
+    if (isReadOnly()) return;
     const t = prompt('Type (journal|dream) [journal]:', 'journal');
     const isDream = /^d/i.test(String(t || ''));
     const type = isDream ? 'dream_diary_entry' : 'journal_entry';
@@ -434,6 +491,7 @@ export function mount(el, context) {
   btnSave.addEventListener('click', saveNow);
   btnSticky.addEventListener('click', sendToStickyNotes);
   btnDelete.addEventListener('click', async () => {
+    if (isReadOnly()) return;
     if (!current) return;
     if (!confirm(`Delete '${current.name}'?`)) return;
     try { await postYaml(apiBase() + `/api/item/delete`, { type: current.type, name: current.name }); current = null; await refreshList(); setStatus('Deleted'); }
@@ -469,8 +527,18 @@ export function mount(el, context) {
     edTitle?.addEventListener('input', updatePreview);
     edTags?.addEventListener('input', updatePreview);
     edContent?.addEventListener('input', updatePreview);
-    previewChk?.addEventListener('change', updatePreview);
+    previewChk?.addEventListener('change', syncExpandedView);
+    textSizeSelect?.addEventListener('change', () => applyTextSize(textSizeSelect.value));
+    readOnlyChk?.addEventListener('change', applyReadOnlyState);
     context?.bus?.on('vars:changed', () => updatePreview());
+  } catch { }
+  try {
+    requestAnimationFrame(() => {
+      previewChk.checked = el?.dataset?.maximized === 'true';
+      applyTextSize(localStorage.getItem(TEXT_SIZE_STORAGE_KEY) || '15', { persist: false });
+      applyReadOnlyState();
+      updatePreview();
+    });
   } catch { }
 }
 

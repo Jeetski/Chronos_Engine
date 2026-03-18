@@ -10,16 +10,19 @@ export function mount(el, context) {
 
   el.className = 'widget notes-widget';
   try { el.dataset.uiId = 'widget.notes'; } catch { }
+  const TEXT_SIZE_STORAGE_KEY = 'chronos_notes_text_size_v1';
 
   const tpl = `
     <style>
       .notes-shell { display:flex; flex-direction:column; gap:12px; flex:1; min-height:0; }
       .notes-card {
-        border: 1px solid var(--border);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 12px;
-        background: linear-gradient(180deg, rgba(21,25,35,0.92), rgba(13,16,23,0.92));
+        background: linear-gradient(180deg, rgba(18, 23, 33, 0.52) 0%, rgba(10, 14, 21, 0.34) 100%);
         padding: 10px 12px;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(255,255,255,0.04);
+        backdrop-filter: blur(14px) saturate(125%);
+        -webkit-backdrop-filter: blur(14px) saturate(125%);
       }
       .notes-card-title {
         font-size: 11px;
@@ -43,12 +46,32 @@ export function mount(el, context) {
       .notes-preview {
         display: none;
         opacity: 0.92;
-        background: rgba(15, 20, 29, 0.65);
-        border: 1px dashed var(--border);
+        background: linear-gradient(180deg, rgba(14, 19, 28, 0.48) 0%, rgba(9, 13, 20, 0.28) 100%);
+        border: 1px dashed rgba(255, 255, 255, 0.14);
         min-height: 160px;
+        backdrop-filter: blur(12px) saturate(120%);
+        -webkit-backdrop-filter: blur(12px) saturate(120%);
       }
       .notes-footer { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
       .notes-actions { margin-left:auto; display:flex; gap:8px; }
+      .notes-widget .input,
+      .notes-widget .textarea,
+      .notes-widget select {
+        background: linear-gradient(180deg, rgba(13, 18, 26, 0.42) 0%, rgba(9, 12, 18, 0.22) 100%);
+        border-color: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(12px) saturate(120%);
+        -webkit-backdrop-filter: blur(12px) saturate(120%);
+      }
+      .notes-widget .input:focus,
+      .notes-widget .textarea:focus,
+      .notes-widget select:focus {
+        background: linear-gradient(180deg, rgba(18, 24, 36, 0.5) 0%, rgba(11, 15, 23, 0.3) 100%);
+      }
+      .notes-widget .icon-btn.primary {
+        color: var(--chronos-accent, #7aa2f7);
+        border-color: color-mix(in srgb, var(--chronos-accent, #7aa2f7) 35%, var(--border, #2b3343));
+        background: color-mix(in srgb, var(--chronos-accent, #7aa2f7) 12%, transparent);
+      }
     </style>
     <div class="header" id="notesHeader" data-ui-id="widget.notes.header">
       <div class="title" data-ui-id="widget.notes.title">Notes</div>
@@ -57,7 +80,7 @@ export function mount(el, context) {
         <button class="icon-btn" id="notesClose" title="Close" data-ui-id="widget.notes.close_button">x</button>
       </div>
     </div>
-    <div class="content" data-ui-id="widget.notes.panel">
+    <div class="content widget-content-glass" data-ui-id="widget.notes.panel">
       <div class="notes-shell">
         <div class="notes-card notes-details">
           <div class="notes-card-title">Details</div>
@@ -71,7 +94,25 @@ export function mount(el, context) {
                 <option value="markdown">Markdown (.md)</option>
                 <option value="yaml">Raw YAML (.yml)</option>
               </select>
+              <label class="notes-label" style="min-width:42px;">Text</label>
+              <select id="notesTextSize" class="input" style="width:110px;" data-ui-id="widget.notes.text_size_select">
+                <option value="11">11px</option>
+                <option value="12">12px</option>
+                <option value="13">13px</option>
+                <option value="14">14px</option>
+                <option value="15">15px</option>
+                <option value="16">16px</option>
+                <option value="17">17px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+                <option value="22">22px</option>
+                <option value="24">24px</option>
+                <option value="28">28px</option>
+                <option value="32">32px</option>
+              </select>
               <label class="notes-toggle"><input type="checkbox" id="notesPreviewToggle" data-ui-id="widget.notes.preview_checkbox" /> Preview</label>
+              <label class="notes-toggle"><input type="checkbox" id="notesExpandedToggle" data-ui-id="widget.notes.expanded_checkbox" /> Expanded view</label>
+              <label class="notes-toggle"><input type="checkbox" id="notesReadOnlyToggle" data-ui-id="widget.notes.readonly_checkbox" /> Read only</label>
             </div>
             <div class="notes-row">
               <label class="notes-label">Category</label>
@@ -94,9 +135,9 @@ export function mount(el, context) {
         <div class="notes-card notes-footer">
           <span class="hint" data-ui-id="widget.notes.tip_text">Create saves to user/notes (or provided path). Load can open YAML/Markdown files.</span>
           <div class="notes-actions">
-            <button class="btn btn-secondary" id="notesLoad" data-ui-id="widget.notes.load_button">Load</button>
-            <button class="btn" id="notesToSticky" data-ui-id="widget.notes.to_sticky_button">To Sticky</button>
-            <button class="btn btn-primary" id="notesCreate" data-ui-id="widget.notes.create_button">Create</button>
+            <button class="icon-btn" id="notesLoad" title="Load note" aria-label="Load note" data-ui-id="widget.notes.load_button">↥</button>
+            <button class="icon-btn" id="notesToSticky" title="Send to Sticky Notes" aria-label="Send to Sticky Notes" data-ui-id="widget.notes.to_sticky_button">📌</button>
+            <button class="icon-btn primary" id="notesCreate" title="Create or save note" aria-label="Create or save note" data-ui-id="widget.notes.create_button">💾</button>
           </div>
           <input type="file" id="notesFile" accept=".yml,.yaml,.md,.markdown" style="display:none;" />
         </div>
@@ -118,6 +159,9 @@ export function mount(el, context) {
   const contentEl = el.querySelector('#noteContent');
   const previewEl = el.querySelector('#notePreview');
   const previewChk = el.querySelector('#notesPreviewToggle');
+  const expandedChk = el.querySelector('#notesExpandedToggle');
+  const readOnlyChk = el.querySelector('#notesReadOnlyToggle');
+  const textSizeEl = el.querySelector('#notesTextSize');
   const formatEl = el.querySelector('#noteFormat');
   const pathHint = el.querySelector('#notePathHint');
   const loadBtn = el.querySelector('#notesLoad');
@@ -126,6 +170,44 @@ export function mount(el, context) {
   const fileInput = el.querySelector('#notesFile');
   let statusEl = el.querySelector('#notesStatus');
   let currentPath = null;
+  function isReadOnly() { return !!readOnlyChk?.checked; }
+
+  function applyReadOnlyState() {
+    const disabled = isReadOnly();
+    [titleEl, categoryEl, priorityEl, tagsEl, contentEl, formatEl].forEach((field) => {
+      if (!field) return;
+      try {
+        field.disabled = disabled;
+        if ('readOnly' in field) field.readOnly = disabled;
+      } catch { }
+    });
+    [stickyBtn, createBtn].forEach((btn) => {
+      if (!btn) return;
+      try { btn.disabled = disabled; } catch { }
+    });
+    try { el.dataset.readonly = disabled ? 'true' : 'false'; } catch { }
+  }
+
+  function syncExpandedView() {
+    try {
+      const toggle = window?.ChronosToggleWidgetMaximized;
+      if (typeof toggle === 'function') toggle(el, !!expandedChk?.checked);
+    } catch { }
+  }
+
+  function applyTextSize(size, { persist = true } = {}) {
+    const parsed = parseInt(String(size || '15').trim(), 10);
+    const numeric = Number.isFinite(parsed) ? Math.max(11, Math.min(32, parsed)) : 15;
+    const fontSize = `${numeric}px`;
+    try {
+      textSizeEl.value = String(numeric);
+      contentEl.style.fontSize = fontSize;
+      contentEl.style.lineHeight = '1.55';
+      previewEl.style.fontSize = fontSize;
+      previewEl.style.lineHeight = '1.55';
+      if (persist) localStorage.setItem(TEXT_SIZE_STORAGE_KEY, textSizeEl.value);
+    } catch { }
+  }
 
   if (!statusEl) {
     statusEl = document.createElement('div');
@@ -205,6 +287,7 @@ export function mount(el, context) {
 
   // Create note via API
   createBtn.addEventListener('click', async () => {
+    if (isReadOnly()) return;
     const name = (titleEl.value || '').trim();
     if (!name) { alert('Please enter a note title.'); return; }
     const category = (categoryEl.value || '').trim();
@@ -283,6 +366,7 @@ export function mount(el, context) {
   }
 
   async function sendToStickyNotes() {
+    if (isReadOnly()) return;
     const title = (titleEl.value || '').trim();
     const body = String(contentEl.value || '').trim();
     const category = (categoryEl.value || '').trim();
@@ -412,6 +496,9 @@ export function mount(el, context) {
   previewChk?.addEventListener('change', updatePreview);
   contentEl?.addEventListener('input', updatePreview);
   titleEl?.addEventListener('input', updatePreview);
+  textSizeEl?.addEventListener('change', () => applyTextSize(textSizeEl.value));
+  expandedChk?.addEventListener('change', syncExpandedView);
+  readOnlyChk?.addEventListener('change', applyReadOnlyState);
   // Re-expand on vars change
   try { context?.bus?.on('vars:changed', () => updatePreview()); } catch { }
   try {
@@ -464,6 +551,14 @@ export function mount(el, context) {
   } catch { }
 
   // Ensure preview reflects initial state and any programmatic fills
+  try {
+    requestAnimationFrame(() => {
+      if (expandedChk) expandedChk.checked = el?.dataset?.maximized === 'true';
+      applyTextSize(localStorage.getItem(TEXT_SIZE_STORAGE_KEY) || '15', { persist: false });
+      applyReadOnlyState();
+      updatePreview();
+    });
+  } catch { }
   updatePreview();
 
   console.log('[Chronos][Notes] Widget ready');

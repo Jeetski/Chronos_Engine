@@ -303,6 +303,7 @@ function saveWidgetState(el) {
     height: el.style?.height || null,
     display: el.style?.display || '',
     minimized: el.classList?.contains('minimized') || false,
+    maximized: el.dataset?.maximized === 'true',
   };
   _writeStateMap(map);
 }
@@ -330,6 +331,12 @@ function restoreWidgetState(el) {
     if (st.height) el.style.height = st.height;
     if (st.display !== undefined) el.style.display = st.display;
     if (st.minimized) el.classList.add('minimized'); else el.classList.remove('minimized');
+    if (st.maximized) {
+      el.dataset.maximized = 'true';
+      applyMaximizedWidgetBounds(el);
+    } else {
+      delete el.dataset.maximized;
+    }
     return true;
   }
   return false;
@@ -342,6 +349,93 @@ function centerWidget(el) {
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
   } catch { }
+}
+
+function captureWidgetRestoreState(el) {
+  if (!el) return;
+  try {
+    const root = getScaleRoot();
+    const rootRect = root ? root.getBoundingClientRect() : { left: 0, top: 0 };
+    const scale = getScaleFactor(root) || 1;
+    const rect = el.getBoundingClientRect();
+    const computedLeft = `${Math.round((rect.left - rootRect.left) / scale)}px`;
+    const computedTop = `${Math.round((rect.top - rootRect.top) / scale)}px`;
+    const computedWidth = `${Math.round(rect.width / scale)}px`;
+    const computedHeight = `${Math.round(rect.height / scale)}px`;
+    el.dataset.restoreLeft = el.style.left || computedLeft;
+    el.dataset.restoreTop = el.style.top || computedTop;
+    el.dataset.restoreWidth = el.style.width || computedWidth;
+    el.dataset.restoreHeight = el.style.height || computedHeight;
+    el.dataset.restoreRight = el.style.right || '';
+    el.dataset.restoreBottom = el.style.bottom || '';
+  } catch { }
+}
+
+function applyMaximizedWidgetBounds(el) {
+  if (!el) return;
+  try {
+    const root = getScaleRoot();
+    const scale = getScaleFactor(root) || 1;
+    const viewportWidth = Math.max(320, Math.round((window.innerWidth - 24) / scale));
+    const viewportHeight = Math.max(220, Math.round((window.innerHeight - 58) / scale));
+    el.style.left = '12px';
+    el.style.top = '46px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.width = `${viewportWidth}px`;
+    el.style.height = `${viewportHeight}px`;
+  } catch { }
+}
+
+function restoreWidgetBounds(el) {
+  if (!el) return;
+  try {
+    el.style.left = el.dataset.restoreLeft || '';
+    el.style.top = el.dataset.restoreTop || '';
+    el.style.width = el.dataset.restoreWidth || '';
+    el.style.height = el.dataset.restoreHeight || '';
+    el.style.right = el.dataset.restoreRight || '';
+    el.style.bottom = el.dataset.restoreBottom || '';
+  } catch { }
+}
+
+function maximizeWidget(el) {
+  if (!el || isAnchoredWidget(el)) return false;
+  try {
+    if (el.dataset.maximized === 'true') {
+      applyMaximizedWidgetBounds(el);
+      saveWidgetState(el);
+      return true;
+    }
+    captureWidgetRestoreState(el);
+    el.dataset.maximized = 'true';
+    el.classList.remove('minimized');
+    applyMaximizedWidgetBounds(el);
+    focusWidget(el);
+    saveWidgetState(el);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function restoreWidget(el) {
+  if (!el || isAnchoredWidget(el)) return false;
+  try {
+    delete el.dataset.maximized;
+    restoreWidgetBounds(el);
+    ensureInViewport(el);
+    focusWidget(el);
+    saveWidgetState(el);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function toggleWidgetMaximized(el, force) {
+  const next = typeof force === 'boolean' ? force : el?.dataset?.maximized !== 'true';
+  return next ? maximizeWidget(el) : restoreWidget(el);
 }
 function persistOnChanges(el) {
   try {
@@ -557,12 +651,22 @@ function installWidgetResizers(el) {
   // dataset-based constraints during mount, after the empty shell exists.
   try {
     const header = el.querySelector('.header');
-    const headerW = header ? Math.ceil(header.scrollWidth) : 0;
+    const title = header ? header.querySelector('.title') : null;
+    const controls = header ? header.querySelector('.controls') : null;
+    const headerCs = header ? getComputedStyle(header) : null;
+    const padL = headerCs ? (parseFloat(headerCs.paddingLeft || '0') || 0) : 0;
+    const padR = headerCs ? (parseFloat(headerCs.paddingRight || '0') || 0) : 0;
+    const gap = headerCs ? (parseFloat(headerCs.columnGap || headerCs.gap || '0') || 0) : 0;
+    const titleW = title ? Math.ceil(title.scrollWidth || title.getBoundingClientRect().width || 0) : 0;
+    const controlsW = controls ? Math.ceil(controls.scrollWidth || controls.getBoundingClientRect().width || 0) : 0;
+    const headerW = header ? Math.ceil(titleW + controlsW + padL + padR + gap + 12) : 0;
     const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
     const dataMinW = Number(el.dataset?.minWidth || 0);
     const dataMinH = Number(el.dataset?.minHeight || 0);
-    const baseMinW = Math.max(160, headerW + 12, dataMinW || 0);
-    const baseMinH = Math.max(80, headerH + 20, dataMinH || 0);
+    const inlineMinW = parseFloat(el.style.minWidth || '0') || 0;
+    const inlineMinH = parseFloat(el.style.minHeight || '0') || 0;
+    const baseMinW = Math.max(160, headerW, dataMinW || 0, inlineMinW || 0);
+    const baseMinH = Math.max(80, headerH + 20, dataMinH || 0, inlineMinH || 0);
     el.__minW = baseMinW;
     el.__minH = baseMinH;
     el.__minSizeSet = true;
@@ -831,6 +935,9 @@ try {
   window.ensureWidgetInView = focusWidget;
   window.ChronosLaunchWizard = launchWizard;
   window.ChronosFocusWidget = focusWidget;
+  window.ChronosMaximizeWidget = maximizeWidget;
+  window.ChronosRestoreWidget = restoreWidget;
+  window.ChronosToggleWidgetMaximized = toggleWidgetMaximized;
 } catch { }
 
 // ---- Generic widget header dragging ----

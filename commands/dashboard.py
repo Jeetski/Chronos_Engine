@@ -8,6 +8,7 @@ import socket
 from datetime import datetime
 from urllib import request as urlrequest, error as urlerror
 from modules.scheduler import status_current_path
+from utilities.webview_launcher import launch_webview_window
 
 try:
     import yaml
@@ -140,10 +141,10 @@ def _ensure_dashboard_server(host, port, env, server_script, *, visible_console=
         time.sleep(0.25)
     return False
 
-def _read_dashboard_browser_setting():
-    """Optional browser override from user/settings config."""
+def _read_dashboard_config():
+    """Optional dashboard launch settings from user/settings config."""
     if yaml is None:
-        return ""
+        return {}
     settings_dir = os.path.join(ROOT_DIR, "user", "settings")
     for fname in ("config.yml", "Config.yml"):
         path = os.path.join(settings_dir, fname)
@@ -153,13 +154,25 @@ def _read_dashboard_browser_setting():
             with open(path, "r", encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
             if isinstance(cfg, dict):
-                val = cfg.get("dashboard_browser")
-                if not val:
-                    val = cfg.get("browser")
-                return str(val or "").strip()
+                return cfg
         except Exception:
             continue
-    return ""
+    return {}
+
+
+def _read_dashboard_browser_setting():
+    cfg = _read_dashboard_config()
+    val = cfg.get("dashboard_browser") if isinstance(cfg, dict) else ""
+    if not val and isinstance(cfg, dict):
+        val = cfg.get("browser")
+    return str(val or "").strip()
+
+
+def _read_dashboard_mode_setting():
+    cfg = _read_dashboard_config()
+    if not isinstance(cfg, dict):
+        return "browser"
+    return str(cfg.get("dashboard_mode") or "browser").strip().lower() or "browser"
 
 def _normalize_browser_command(raw):
     token = str(raw or "").strip()
@@ -194,6 +207,10 @@ def _open_dashboard_url(url, browser_cmd=""):
         except Exception:
             webbrowser.open_new_tab(url)
             return "default"
+
+
+def _open_dashboard_webview(url, title="Chronos Dashboard"):
+    return launch_webview_window(url, title)
 
 
 def run(args, properties):
@@ -248,15 +265,29 @@ def run(args, properties):
 
     url = f"http://{host}:{port}/dashboard.html"
     browser_from_props = ""
+    mode_from_props = ""
     if isinstance(properties, dict):
         browser_from_props = str(properties.get("browser") or "").strip()
+        mode_from_props = str(properties.get("dashboard_mode") or properties.get("mode") or "").strip().lower()
     browser_setting = browser_from_props or _read_dashboard_browser_setting()
+    dashboard_mode = mode_from_props or _read_dashboard_mode_setting()
     try:
-        opened_with = _open_dashboard_url(url, browser_setting)
-        if opened_with == "default":
-            print(f"Opened dashboard: {url}")
+        if dashboard_mode == "webview":
+            if _open_dashboard_webview(url, "Chronos Dashboard"):
+                print(f"Opened dashboard in webview: {url}")
+            else:
+                print("Warning: pywebview launcher unavailable; falling back to browser.")
+                opened_with = _open_dashboard_url(url, browser_setting)
+                if opened_with == "default":
+                    print(f"Opened dashboard: {url}")
+                else:
+                    print(f"Opened dashboard in '{opened_with}': {url}")
         else:
-            print(f"Opened dashboard in '{opened_with}': {url}")
+            opened_with = _open_dashboard_url(url, browser_setting)
+            if opened_with == "default":
+                print(f"Opened dashboard: {url}")
+            else:
+                print(f"Opened dashboard in '{opened_with}': {url}")
     except Exception as e:
         print(f"Could not open dashboard: {e}\nOpen manually: {url}")
 
@@ -265,6 +296,7 @@ def get_help_message():
     return """
 Usage: dashboard
 Description: Opens the Chronos dashboard UI in your default browser.
+Optional: set `dashboard_mode` to `browser` or `webview` in user/settings/config.yml.
 Optional: set `browser` (or `dashboard_browser`) in user/settings/config.yml, or pass `browser:<cmd>`.
 Also pre-bundles user/settings YAML into generated/settings_bundle.js for the UI to consume.
 """
