@@ -67,6 +67,21 @@ export function mount(el, context) {
       .notes-widget select:focus {
         background: linear-gradient(180deg, rgba(18, 24, 36, 0.5) 0%, rgba(11, 15, 23, 0.3) 100%);
       }
+      .notes-widget select {
+        background: #0f141d;
+        color: var(--text);
+        border-color: var(--border);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      .notes-widget select:focus {
+        background: #111824;
+        border-color: #3a4a6a;
+      }
+      .notes-widget select option {
+        background: #0f141d;
+        color: var(--text);
+      }
       .notes-widget .icon-btn.primary {
         color: var(--chronos-accent, #7aa2f7);
         border-color: color-mix(in srgb, var(--chronos-accent, #7aa2f7) 35%, var(--border, #2b3343));

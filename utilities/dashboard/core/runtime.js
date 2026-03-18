@@ -188,8 +188,10 @@ const HELP_TEXT = {
   HabitTracker: 'Habits: Snapshot of habits, streaks, and today\'s status.',
   DebugConsole: 'Debug: Inspect/debug data and actions.',
   Achievements: 'Achievements: Review milestones you\'ve unlocked and mark awards/archives.',
+  Admin: 'Admin: Run dashboard maintenance and developer-facing actions from one place.',
   Rewards: 'Rewards: Review point balance/history and redeem reward items.',
   MP3Player: 'MP3 Player: Spin up playlists from user/media/mp3, shuffle or repeat tracks, and manage uploads without leaving the dashboard.',
+  NiaAssistant: 'Nia Assistant: Chat with Chronos assistance, ask for guidance, and trigger supported actions from the dashboard.',
   Settings: 'Settings: View and edit YAML files under user/settings via API.',
   Profile: 'Profile: View/Edit profile (nickname, theme, etc.).',
   Journal: 'Journal: Create/edit Journal or Dream entries. Autosaves; use Type/Date/Tags; Dream fields (lucid, signs, sleep) appear for dream type.',
@@ -199,6 +201,7 @@ const HELP_TEXT = {
   ResolutionTracker: 'Resolutions: Track yearly resolutions and link them to Chronos items.',
   Link: 'Link: Connect to a peer and sync a shared Canvas board (polling, last-write-wins).',
   Trends: 'Trends: View performance metrics including habits, goals, focus time, quality, and adherence stats.',
+  SleepSettings: 'Sleep Settings: Tune sleep targets, windows, and related templates used by Chronos scheduling.',
   // Views
   Calendar: 'Calendar View: Timeline of scheduled blocks. Use zoom/level controls and toolstrip to navigate and manage.',
   TemplateBuilder: 'Template Builder: Build templates via drag & drop. Indent/outdent to nest. Toggle Sequential/Parallel; Save to persist.',
@@ -208,6 +211,12 @@ const HELP_TEXT = {
   Tracker: 'Tracker View: Visualize a full-year calendar for a selected habit or commitment with done/not-done states.',
   Docs: 'Docs View: Browse the Docs tree, search content, and read files without leaving the dashboard.',
   ADUC: 'ADUC View: Launches ADUC (Chronos mode) and embeds it in a dashboard iframe.',
+  Atlas: 'Atlas View: Explore the broader Chronos workspace and navigate connected structures visually.',
+  Canvas: 'Canvas View: Freeform spatial workspace for laying out information and references.',
+  DayBuilder: 'Day Builder: Assemble and adjust a day plan by arranging blocks, timing, and sequencing.',
+  GoalPlanner: 'Goal Planner: Shape a goal into milestones, timelines, and supporting structure before saving.',
+  RoutineBuilder: 'Routine Builder: Design reusable routines and sub-steps with timing and nesting.',
+  WeekBuilder: 'Week Builder: Plan a week at a higher level before turning it into concrete daily structure.',
   // Panels
   schedule: 'Schedule Panel: Mirrors today\'s agenda, lets you refresh/reschedule, jump dates, and kick off the Chronos day timer.',
   matrix: 'Matrix Panel: Interactive pivot grid for Chronos data. Choose rows/cols/values/filters, save presets, and spawn additional panels.',
@@ -233,12 +242,20 @@ const HELP_TEXT = {
   RandomPicker: 'Random Picker Panel: Pull a random item from saved pools.',
   Schedule: 'Schedule Panel: Mirrors today\'s agenda inside the cockpit.',
   StatusStrip: 'Status Chart Panel: Live read-only radar chart of current status indicators.',
+  DataCards: 'Data Cards Panel: Summarize selected metrics or item groups in compact card form for the cockpit.',
   // Wizards
   Onboarding: 'Chronos Onboarding Wizard: Guided flow to set nickname, categories, statuses, templates, and starter goals/rewards.',
   GoalPlanning: 'Goal Planning Wizard: Capture intent, milestones, and supporting work to spin up a rich goal file.',
   ProjectLaunch: 'Project Launch Wizard: Draft a project brief, milestones, and kickoff actions before writing YAML.',
   BrainDump: 'Brain Dump Wizard: Rapid task capture, horizon buckets, and light refinement.',
-  LifeSetup: 'Life Setup Wizard: Build a schedule skeleton with anchors like sleep, meals, work, and exercise.'
+  LifeSetup: 'Life Setup Wizard: Build a schedule skeleton with anchors like sleep, meals, work, and exercise.',
+  Big5: 'Big5 Wizard: Run a personality inventory flow and save the resulting trait profile into Chronos.',
+  ChoreSetup: 'Chore Setup Wizard: Define recurring chores, cadence, and defaults without hand-writing templates.',
+  FutureSelfDialogue: 'Future Self Dialogue Wizard: Reflect through a guided conversation with a future-oriented lens.',
+  MapOfHappiness: 'Map of Happiness Wizard: Capture needs, rank them, and map item coverage against what matters most.',
+  NewYearResolutions: 'New Year Resolutions Wizard: Draft yearly resolutions and supporting structure for the coming year.',
+  SelfAuthoring: 'Self Authoring Wizard: Work through structured reflection and planning prompts across life areas.',
+  StatusMapping: 'Status Mapping Wizard: Configure dashboard status axes, labels, and available value options.'
 };
 
 function getHelpTip(name, fallback) {
@@ -247,7 +264,7 @@ function getHelpTip(name, fallback) {
   if (key && HELP_TEXT[key]) return HELP_TEXT[key];
   if (fallbackKey && HELP_TEXT[fallbackKey]) return HELP_TEXT[fallbackKey];
   const label = fallbackKey || key || 'Component';
-  return `${label}: No help available.`;
+  return `${label}: This dashboard surface opens a focused workspace for ${label.toLowerCase()}. Use the main controls in the header or toolbar, and refresh if the data looks stale.`;
 }
 
 function createHelpButton(name, options = {}) {

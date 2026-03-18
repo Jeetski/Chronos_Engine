@@ -167,6 +167,144 @@ function setDockPinned(next) {
 
 function ready(fn) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
 
+function setupDarkTooltips() {
+  if (typeof document === 'undefined') return;
+  if (window.__chronosDarkTooltipsBound) return;
+  window.__chronosDarkTooltipsBound = true;
+
+  const style = document.createElement('style');
+  style.id = 'chronos-dark-tooltips-style';
+  style.textContent = `
+    .chronos-tooltip {
+      position: fixed;
+      z-index: 30000;
+      max-width: min(320px, calc(100vw - 24px));
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(15, 20, 29, 0.98) 0%, rgba(10, 14, 21, 0.98) 100%);
+      color: var(--text, #e6e8ef);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.42);
+      font-size: 12px;
+      line-height: 1.35;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 120ms ease, transform 120ms ease;
+      backdrop-filter: blur(14px) saturate(120%);
+      -webkit-backdrop-filter: blur(14px) saturate(120%);
+      white-space: normal;
+    }
+    .chronos-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  `;
+  document.head.appendChild(style);
+
+  const tooltip = document.createElement('div');
+  tooltip.className = 'chronos-tooltip';
+  tooltip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tooltip);
+
+  let activeEl = null;
+
+  function getTooltipText(el) {
+    if (!el) return '';
+    const explicit = el.getAttribute('data-chronos-tooltip');
+    if (explicit) return explicit;
+    const label = el.getAttribute('title');
+    if (label) return label;
+    return '';
+  }
+
+  function restoreTitle(el) {
+    if (!el) return;
+    const stored = el.getAttribute('data-chronos-tooltip-title');
+    if (stored != null) {
+      el.setAttribute('title', stored);
+      el.removeAttribute('data-chronos-tooltip-title');
+    }
+  }
+
+  function suppressNativeTitle(el) {
+    if (!el) return;
+    if (el.hasAttribute('title')) {
+      el.setAttribute('data-chronos-tooltip-title', el.getAttribute('title') || '');
+      el.removeAttribute('title');
+    }
+  }
+
+  function positionTooltip(el) {
+    if (!el || activeEl !== el) return;
+    const rect = el.getBoundingClientRect();
+    const pad = 10;
+    const tipRect = tooltip.getBoundingClientRect();
+    let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+    left = Math.max(pad, Math.min(left, window.innerWidth - tipRect.width - pad));
+    let top = rect.top - tipRect.height - 10;
+    if (top < pad) top = rect.bottom + 10;
+    if (top + tipRect.height > window.innerHeight - pad) {
+      top = Math.max(pad, window.innerHeight - tipRect.height - pad);
+    }
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.top = `${Math.round(top)}px`;
+  }
+
+  function showTooltip(el) {
+    const text = getTooltipText(el);
+    if (!text) return;
+    activeEl = el;
+    suppressNativeTitle(el);
+    tooltip.textContent = text;
+    tooltip.classList.add('visible');
+    positionTooltip(el);
+  }
+
+  function hideTooltip(el) {
+    if (el) restoreTitle(el);
+    if (activeEl && (!el || activeEl === el)) {
+      restoreTitle(activeEl);
+      activeEl = null;
+    }
+    tooltip.classList.remove('visible');
+  }
+
+  function tooltipTarget(start) {
+    return start?.closest?.('[data-chronos-tooltip], [title]') || null;
+  }
+
+  document.addEventListener('mouseover', (ev) => {
+    const target = tooltipTarget(ev.target);
+    if (!target) return;
+    if (activeEl === target) return;
+    hideTooltip(activeEl);
+    showTooltip(target);
+  }, true);
+
+  document.addEventListener('mouseout', (ev) => {
+    if (!activeEl) return;
+    const related = ev.relatedTarget;
+    if (related && activeEl.contains?.(related)) return;
+    if (ev.target === activeEl || activeEl.contains?.(ev.target)) hideTooltip(activeEl);
+  }, true);
+
+  document.addEventListener('focusin', (ev) => {
+    const target = tooltipTarget(ev.target);
+    if (!target) return;
+    hideTooltip(activeEl);
+    showTooltip(target);
+  }, true);
+
+  document.addEventListener('focusout', (ev) => {
+    if (!activeEl) return;
+    if (ev.target === activeEl || activeEl.contains?.(ev.target)) hideTooltip(activeEl);
+  }, true);
+
+  window.addEventListener('scroll', () => positionTooltip(activeEl), true);
+  window.addEventListener('resize', () => positionTooltip(activeEl));
+}
+
 if (typeof window !== 'undefined' && !window.__cockpitPanelDefinitions) {
   window.__cockpitPanelDefinitions = [];
 }
@@ -436,6 +574,7 @@ async function runCliCommandWithSleepInterrupt({ command, args = [], properties 
 
 ready(async () => {
   console.log('[Chronos][app] Booting dashboard app');
+  try { setupDarkTooltips(); } catch { }
   let bootOverlay = null;
   let bootMessage = null;
   let bootFailed = false;

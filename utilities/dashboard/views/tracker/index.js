@@ -340,20 +340,25 @@ export function mount(el) {
         const known = state.dayStates[key];
         let cls = 'tracker-day';
         let inner = String(day);
+        let tooltip = key;
         if (future) {
           cls += ' future';
         } else if (!known) {
           cls += ' unknown';
           inner = `<span class="tracker-qmark">?</span>`;
+          tooltip = `No data logged for ${key}. This day has not been marked yet.`;
         } else if (known.state === 'done') {
           cls += ` done${badContext ? ' bad' : ''}`;
+          tooltip = `${key}: marked ${badContext ? 'bad' : 'done'}.`;
         } else if (known.state === 'not_done') {
           cls += ` not-done${badContext ? ' good' : ''}`;
+          tooltip = `${key}: marked ${badContext ? 'clean' : 'not done'}.`;
         } else {
           cls += ' unknown';
           inner = `<span class="tracker-qmark">?</span>`;
+          tooltip = `No data logged for ${key}. This day has not been marked yet.`;
         }
-        dayCells.push(`<div class="${cls}" title="${escapeHtml(key)}">${inner}</div>`);
+        dayCells.push(`<div class="${cls}" title="${escapeHtml(tooltip)}">${inner}</div>`);
       }
 
       card.innerHTML = `

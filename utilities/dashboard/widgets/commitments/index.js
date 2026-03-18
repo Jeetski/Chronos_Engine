@@ -41,7 +41,21 @@ export function mount(el) {
       .cm-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .cm-name { font-size:15px; font-weight:700; }
       .cm-pill { padding:2px 10px; border-radius:999px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
-      .cm-pill.pending { background:rgba(122,162,247,0.15); color:#7aa2f7; }
+      .cm-pill.icon {
+        width:28px;
+        height:28px;
+        padding:0;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        font-size:15px;
+        font-weight:700;
+        letter-spacing:0;
+        text-transform:none;
+        border:1px solid rgba(255,255,255,0.08);
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02);
+      }
+      .cm-pill.pending { background:rgba(201,167,75,0.16); color:#f0c96c; }
       .cm-pill.met { background:rgba(91,220,130,0.18); color:#5bdc82; }
       .cm-pill.violation { background:rgba(239,106,106,0.18); color:#ef6a6a; }
       .cm-meta { font-size:12px; color:var(--text-dim); }
@@ -322,7 +336,18 @@ export function mount(el) {
       const pill = document.createElement('div');
       const state = (item.status || 'pending').toLowerCase();
       pill.className = `cm-pill ${state}`;
-      pill.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      const stateLabel = state.charAt(0).toUpperCase() + state.slice(1);
+      pill.setAttribute('aria-label', stateLabel);
+      pill.title = stateLabel;
+      if (state === 'met') {
+        pill.classList.add('icon');
+        pill.textContent = '✓';
+      } else if (state === 'pending') {
+        pill.classList.add('icon');
+        pill.textContent = '⌛';
+      } else {
+        pill.textContent = stateLabel;
+      }
       headLeft.append(expander, name);
       const headActions = document.createElement('div');
       headActions.className = 'cm-head-actions';

@@ -9,7 +9,11 @@ export function mount(el, context) {
   }
 
   el.className = 'widget journal-widget';
-  try { el.dataset.minWidth = '280'; } catch { }
+  try {
+    el.dataset.minWidth = '280';
+    el.dataset.minHeight = '560';
+    if (!el.style.height) el.style.height = '700px';
+  } catch { }
   const TEXT_SIZE_STORAGE_KEY = 'chronos_journal_text_size_v1';
 
   const css = `
@@ -33,6 +37,29 @@ export function mount(el, context) {
     .spacer { flex:1; }
     .jr .input, .jr .textarea, .jr select, .jr input:not([type="checkbox"]) { min-width:0; max-width:100%; background: linear-gradient(180deg, rgba(13, 18, 26, 0.42) 0%, rgba(9, 12, 18, 0.22) 100%); border-color: rgba(255,255,255,0.12); backdrop-filter: blur(12px) saturate(120%); -webkit-backdrop-filter: blur(12px) saturate(120%); }
     .jr .input:focus, .jr .textarea:focus, .jr select:focus, .jr input:not([type="checkbox"]):focus { background: linear-gradient(180deg, rgba(18, 24, 36, 0.5) 0%, rgba(11, 15, 23, 0.3) 100%); }
+    .jr select {
+      background: #0f141d;
+      color: var(--text);
+      border-color: var(--border);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .jr select:focus {
+      background: #111824;
+      border-color: #3a4a6a;
+    }
+    .jr select option {
+      background: #0f141d;
+      color: var(--text);
+    }
+    .jr input[type="date"] {
+      color-scheme: dark;
+    }
+    .jr input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.9) brightness(0.95);
+      opacity: 0.85;
+      cursor: pointer;
+    }
     .journal-widget .icon-btn.danger {
       color: var(--chronos-danger, #ff9aa2);
       border-color: var(--chronos-danger-soft, rgba(255, 154, 162, 0.2));
@@ -72,7 +99,7 @@ export function mount(el, context) {
               <option value="dream_diary_entry">Dream</option>
             </select>
             <label class="hint" style="min-width:52px;">Date</label>
-            <input id="edDate" class="input" placeholder="YYYY-MM-DD" style="flex:1 1 120px; min-width:110px;"/>
+            <input id="edDate" class="input" type="date" style="flex:1 1 120px; min-width:110px;"/>
           </div>
           <div class="row">
             <label class="hint" style="min-width:64px;">Title</label>
@@ -465,6 +492,12 @@ export function mount(el, context) {
   typeFilterEl.addEventListener('change', renderList);
   searchEl.addEventListener('input', renderList);
   edType.addEventListener('change', () => { toggleDreamFields(); queueAutosave(); });
+  edDate.addEventListener('focus', () => {
+    try { if (typeof edDate.showPicker === 'function') edDate.showPicker(); } catch { }
+  });
+  edDate.addEventListener('click', () => {
+    try { if (typeof edDate.showPicker === 'function') edDate.showPicker(); } catch { }
+  });
   ;[edDate, edTitle, edTags, edContent, edDreamSigns, edSleepStart, edSleepEnd, edRating].forEach(inp => inp.addEventListener('input', queueAutosave));
   edLucid.addEventListener('change', queueAutosave);
 

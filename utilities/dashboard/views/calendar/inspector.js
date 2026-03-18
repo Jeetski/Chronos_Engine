@@ -1102,7 +1102,7 @@ export function Inspector() {
     });
 
     return `
-      ${renderCollapsibleSection('Resolutions', `${resolutionSummaries.length ? `
+      ${renderCollapsibleSection('Resolutions <span class="inspector-soon-badge">Coming soon</span>', `${resolutionSummaries.length ? `
           <div class="inspector-goal-rings">
             ${resolutionSummaries.slice(0, 12).map((summary) => {
       const percent = Math.max(0, Math.min(100, Number(summary.percent || 0)));
@@ -2355,6 +2355,20 @@ export function Inspector() {
       .inspector-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--chronos-text-muted, #9aa4b7); margin-bottom: 10px; }
       .inspector-collapsible > .inspector-section-title { margin-bottom: 0; cursor: pointer; list-style: none; user-select: none; }
       .inspector-collapsible > .inspector-section-title::-webkit-details-marker { display: none; }
+      .inspector-soon-badge {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 8px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(122, 162, 247, 0.14);
+        border: 1px solid rgba(122, 162, 247, 0.26);
+        color: var(--chronos-accent, #7aa2f7);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
       .inspector-collapsible > .inspector-section-title::after {
         content: '+';
         float: right;

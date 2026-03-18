@@ -15,6 +15,13 @@
     html,
     body {
       height: 100%;
+      scrollbar-width: thin;
+      scrollbar-color: #293246 #0d1219;
+    }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #293246 #0d1219;
     }
 
     body {
@@ -24,6 +31,31 @@
       font-family: var(--font-stack-base);
       overflow: hidden;
       padding-top: 36px;
+    }
+
+    *::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+      background: #0d1219;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: linear-gradient(180deg, #0d1219 0%, #101722 100%);
+      border-radius: 999px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #2a3446 0%, #1f2837 100%);
+      border: 2px solid #0d1219;
+      border-radius: 999px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #344057 0%, #273244 100%);
+    }
+
+    *::-webkit-scrollbar-corner {
+      background: #0d1219;
     }
 
     #scaleRoot {

@@ -163,6 +163,14 @@ export function mount(el) {
       .clock-section-content {
         padding: 10px;
       }
+      .clock-widget input[type="date"] {
+        color-scheme: dark;
+      }
+      .clock-widget input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.9) brightness(0.95);
+        opacity: 0.85;
+        cursor: pointer;
+      }
     </style>
     <div class="header" id="clockHeader">
       <div class="title">Chronos Clock</div>
@@ -316,11 +324,22 @@ export function mount(el) {
   }
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
+  function enhanceDateInput(input) {
+    if (!input || input.dataset.datePickerBound === 'true') return input;
+    try { input.dataset.datePickerBound = 'true'; } catch { }
+    const openPicker = () => {
+      try { if (typeof input.showPicker === 'function') input.showPicker(); } catch { }
+    };
+    input.addEventListener('focus', openPicker);
+    input.addEventListener('click', openPicker);
+    return input;
+  }
   const defaults = ((window.CHRONOS_SETTINGS || {}).defaults) || {};
   const apptDef = normalize(defaults.appointment || {});
   const alarmDef = normalize(defaults.alarm || {});
   const remindDef = normalize(defaults.reminder || {});
   const defaultsCache = {};
+  enhanceDateInput(itemDateInput);
 
   function normalize(obj) {
     const out = {};
@@ -554,7 +573,7 @@ export function mount(el) {
   async function showAppointmentForm() {
     clearForm();
     const title = document.createElement('input'); title.className = 'input'; title.placeholder = 'Appointment title';
-    const date = document.createElement('input'); date.className = 'input'; date.type = 'date';
+    const date = document.createElement('input'); date.className = 'input'; date.type = 'date'; enhanceDateInput(date);
     const time = document.createElement('input'); time.className = 'input'; time.type = 'time'; time.step = '60';
     const duration = document.createElement('input'); duration.className = 'input'; duration.type = 'number'; duration.min = '0'; duration.placeholder = 'minutes';
     const location = document.createElement('input'); location.className = 'input'; location.placeholder = 'Location (optional)';
@@ -640,7 +659,7 @@ export function mount(el) {
     clearForm();
     const title = document.createElement('input'); title.className = 'input'; title.placeholder = 'Reminder title';
     const time = document.createElement('input'); time.className = 'input'; time.type = 'time'; time.step = '60';
-    const date = document.createElement('input'); date.className = 'input'; date.type = 'date';
+    const date = document.createElement('input'); date.className = 'input'; date.type = 'date'; enhanceDateInput(date);
     const message = document.createElement('input'); message.className = 'input'; message.placeholder = 'Message (optional)';
     const recurrence = document.createElement('input'); recurrence.className = 'input'; recurrence.placeholder = 'Recurrence (e.g. daily, mon, tue)';
     try {

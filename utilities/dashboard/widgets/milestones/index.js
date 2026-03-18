@@ -41,7 +41,21 @@ export function mount(el, context) {
       .ms-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:nowrap; cursor:pointer; }
       .ms-name { font-size:15px; font-weight:700; }
       .ms-pill { padding:2px 10px; border-radius:999px; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
-      .ms-pill.pending { background:rgba(122,162,247,0.15); color:#7aa2f7; }
+      .ms-pill.icon {
+        width:28px;
+        height:28px;
+        padding:0;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        font-size:15px;
+        font-weight:700;
+        letter-spacing:0;
+        text-transform:none;
+        border:1px solid rgba(255,255,255,0.08);
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,0.02);
+      }
+      .ms-pill.pending { background:rgba(201,167,75,0.16); color:#f0c96c; }
       .ms-pill.in-progress { background:rgba(255,190,92,0.18); color:#ffbe5c; }
       .ms-pill.completed { background:rgba(91,220,130,0.18); color:#5bdc82; }
       .ms-progress-bar { height:8px; border-radius:999px; background:#0b0f16; border:1px solid var(--border); overflow:hidden; }
@@ -98,7 +112,7 @@ export function mount(el, context) {
           </select>
         </div>
         <div class="row" style="gap:8px; align-items:center;">
-          <button class="btn btn-primary" id="msPrimaryComplete" data-ui-id="widget.milestones.complete_primary_button">Complete Primary</button>
+          <button class="btn btn-primary" id="msPrimaryComplete" title="Complete primary milestone" aria-label="Complete primary milestone" data-ui-id="widget.milestones.complete_primary_button">✓</button>
           <button class="btn btn-secondary" id="msPrimaryReset" data-ui-id="widget.milestones.reset_primary_button">Reset Primary</button>
           <div class="spacer"></div>
         </div>
@@ -455,15 +469,32 @@ export function mount(el, context) {
       name.className = 'ms-name';
       name.textContent = itemName;
       const pill = document.createElement('div');
-      pill.className = `ms-pill ${(item.status || 'pending').toLowerCase()}`;
-      pill.textContent = (item.status || 'pending').replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const state = (item.status || 'pending').toLowerCase();
+      const stateLabel = state.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase());
+      pill.className = `ms-pill ${state}`;
+      pill.setAttribute('aria-label', stateLabel);
+      pill.title = stateLabel;
+      if (state === 'completed') {
+        pill.classList.add('icon');
+        pill.textContent = '✓';
+      } else if (state === 'pending') {
+        pill.classList.add('icon');
+        pill.textContent = '⌛';
+      } else if (state === 'in-progress') {
+        pill.classList.add('icon');
+        pill.textContent = '◔';
+      } else {
+        pill.textContent = stateLabel;
+      }
       headLeft.append(expander, name);
 
       const actions = document.createElement('div');
       actions.className = 'ms-head-actions';
       const completeBtn = document.createElement('button');
       completeBtn.className = 'btn btn-primary';
-      completeBtn.textContent = (item.status || '').toLowerCase() === 'completed' ? 'Completed' : 'Mark Complete';
+      completeBtn.title = (item.status || '').toLowerCase() === 'completed' ? 'Completed' : 'Mark complete';
+      completeBtn.setAttribute('aria-label', (item.status || '').toLowerCase() === 'completed' ? 'Completed' : 'Mark complete');
+      completeBtn.textContent = '✓';
       completeBtn.disabled = (item.status || '').toLowerCase() === 'completed';
       completeBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
