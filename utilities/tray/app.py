@@ -39,6 +39,8 @@ LEGACY_PID_DIR = ROOT_DIR / "user" / "Temp"
 PID_PATH = PID_DIR / "tray.pid"
 LEGACY_PID_PATH = LEGACY_PID_DIR / "tray.pid"
 NOTIFICATION_ACTIONS_DIR = PID_DIR / "notification_actions" / "inbox"
+NOTIFICATION_HISTORY_PATH = ROOT_DIR / "user" / "data" / "notification_history.json"
+NOTIFICATION_HISTORY_LIMIT = 200
 
 from modules.timer import main as Timer
 from modules.scheduler import get_flattened_schedule, schedule_path_for_date, status_current_path
@@ -97,6 +99,7 @@ class ChronosTrayApp:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         self.window = None
         self.notification_window = None
+        self.notification_history_window = None
         self._theme_ready = False
         self._window_icon_path = self._resolve_window_icon_path()
 
@@ -118,6 +121,9 @@ class ChronosTrayApp:
         self.status_schema = self._load_status_schema()
         self._latest_timer_state = {}
         self._notification_history = {}
+        self._notification_log = self._load_notification_log()
+        self._notification_history_listbox = None
+        self._notification_history_details_var = tk.StringVar(value="Select a notification to inspect it.")
         self._last_icon_key = None
         self._tick_job = None
         self._quitting = False
@@ -199,6 +205,33 @@ class ChronosTrayApp:
             return True
         except Exception:
             return False
+
+    def _load_notification_log(self):
+        try:
+            if NOTIFICATION_HISTORY_PATH.exists():
+                rows = json.loads(NOTIFICATION_HISTORY_PATH.read_text(encoding="utf-8"))
+                if isinstance(rows, list):
+                    return [row for row in rows if isinstance(row, dict)][-NOTIFICATION_HISTORY_LIMIT:]
+        except Exception:
+            return []
+        return []
+
+    def _save_notification_log(self):
+        try:
+            NOTIFICATION_HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+            rows = list(self._notification_log or [])[-NOTIFICATION_HISTORY_LIMIT:]
+            NOTIFICATION_HISTORY_PATH.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+            return True
+        except Exception:
+            return False
+
+    def _append_notification_log(self, entry):
+        if not isinstance(entry, dict):
+            return
+        self._notification_log.append(entry)
+        self._notification_log = self._notification_log[-NOTIFICATION_HISTORY_LIMIT:]
+        self._save_notification_log()
+        self._refresh_notification_history_list()
 
     def _notification_settings(self):
         raw = self._read_yaml(self._settings_path("notification_settings.yml"))
@@ -743,6 +776,17 @@ $notifier.Show($toast)
             sent = self._emit_desktop_notification(title, message)
         if sent:
             self._notification_history[key] = now
+            self._append_notification_log(
+                {
+                    "created_at": now.isoformat(timespec="seconds"),
+                    "event_type": str(event_type or ""),
+                    "title": str(title or ""),
+                    "message": str(message or ""),
+                    "severity": severity_key,
+                    "dedupe_key": key,
+                    "actions": [str(action.get("label") or "").strip() for action in toast_actions if isinstance(action, dict)],
+                }
+            )
         return sent
 
     def _process_notification_actions(self):
@@ -821,6 +865,20 @@ $notifier.Show($toast)
         hh = mins // 60
         mm = mins % 60
         return f"{hh:02d}:{mm:02d}"
+
+    def _history_time_label(self, value):
+        txt = str(value or "").strip()
+        if not txt:
+            return "--:--"
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(txt, fmt).strftime("%m-%d %H:%M")
+            except Exception:
+                continue
+        try:
+            return datetime.fromisoformat(txt.replace("Z", "+00:00")).replace(tzinfo=None).strftime("%m-%d %H:%M")
+        except Exception:
+            return txt
 
     def _parse_date_value(self, value):
         txt = str(value or "").strip()
@@ -1242,6 +1300,7 @@ $notifier.Show($toast)
             Item("Open Dashboard", lambda: self.open_dashboard()),
             Item("Open Topos", lambda: self.open_topos()),
             pystray.Menu.SEPARATOR,
+            Item("Notification History", lambda: self.open_notification_history()),
             Item("Notification Settings", lambda: self.open_notification_settings()),
             Item("Quit", self.request_quit),
         )
@@ -1267,6 +1326,18 @@ $notifier.Show($toast)
         self.notification_window.deiconify()
         self.notification_window.lift()
         self.notification_window.focus_force()
+
+    def open_notification_history(self):
+        if self.notification_history_window and self.notification_history_window.winfo_exists():
+            self._refresh_notification_history_list()
+            self.notification_history_window.deiconify()
+            self.notification_history_window.lift()
+            self.notification_history_window.focus_force()
+            return
+        self.notification_history_window = self._build_notification_history_window()
+        self.notification_history_window.deiconify()
+        self.notification_history_window.lift()
+        self.notification_history_window.focus_force()
 
     def open_topos(self):
         subprocess.Popen(["cmd", "/c", "topos_launcher.bat"], cwd=str(ROOT_DIR))
@@ -1356,6 +1427,150 @@ $notifier.Show($toast)
     def _hide_notification_settings(self):
         if self.notification_window and self.notification_window.winfo_exists():
             self.notification_window.withdraw()
+
+    def _hide_notification_history(self):
+        if self.notification_history_window and self.notification_history_window.winfo_exists():
+            self.notification_history_window.withdraw()
+
+    def _refresh_notification_history_details(self, index=None):
+        rows = list(self._notification_log or [])
+        if not rows:
+            self._notification_history_details_var.set("No notifications yet.")
+            return
+        if index is None:
+            if not self._notification_history_listbox:
+                self._notification_history_details_var.set("Select a notification to inspect it.")
+                return
+            try:
+                selection = self._notification_history_listbox.curselection()
+                index = int(selection[0]) if selection else 0
+            except Exception:
+                index = 0
+        display_rows = list(reversed(rows))
+        if index < 0 or index >= len(display_rows):
+            self._notification_history_details_var.set("Select a notification to inspect it.")
+            return
+        row = display_rows[index]
+        actions = ", ".join([label for label in (row.get("actions") or []) if str(label).strip()]) or "-"
+        details = (
+            f"{row.get('title') or '(untitled)'}\n"
+            f"{row.get('message') or '-'}\n\n"
+            f"Time: {row.get('created_at') or '-'}\n"
+            f"Type: {row.get('event_type') or '-'}\n"
+            f"Severity: {row.get('severity') or '-'}\n"
+            f"Actions: {actions}"
+        )
+        self._notification_history_details_var.set(details)
+
+    def _on_notification_history_select(self, _event=None):
+        self._refresh_notification_history_details()
+
+    def _refresh_notification_history_list(self):
+        if not self._notification_history_listbox:
+            return
+        listbox = self._notification_history_listbox
+        listbox.delete(0, tk.END)
+        rows = list(reversed(self._notification_log or []))
+        if not rows:
+            listbox.insert(tk.END, "No notifications yet.")
+            listbox.itemconfig(0, fg="#6f809b")
+            self._notification_history_details_var.set("No notifications yet.")
+            return
+        for row in rows:
+            timestamp = self._history_time_label(row.get("created_at"))
+            event_type = self._nice_label(row.get("event_type") or "notification")
+            title = str(row.get("title") or "(untitled)").strip() or "(untitled)"
+            if len(title) > 42:
+                title = title[:39] + "..."
+            listbox.insert(tk.END, f"{timestamp}  {event_type}  {title}")
+        try:
+            listbox.selection_clear(0, tk.END)
+            listbox.selection_set(0)
+            listbox.activate(0)
+        except Exception:
+            pass
+        self._refresh_notification_history_details(0)
+
+    def _clear_notification_history(self):
+        self._notification_log = []
+        self._save_notification_log()
+        self._refresh_notification_history_list()
+
+    def _build_notification_history_window(self):
+        self._apply_theme()
+        win = tk.Toplevel(self.root)
+        win.title("Chronos Notification History")
+        win.geometry("700x420")
+        win.minsize(700, 420)
+        win.protocol("WM_DELETE_WINDOW", self._hide_notification_history)
+        win.attributes("-topmost", True)
+        win.configure(bg="#0b1220")
+        self._apply_window_icon(win)
+
+        frame = ttk.Frame(win, padding=10, style="Chronos.TFrame")
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        header = ttk.Frame(frame, style="Chronos.TFrame")
+        header.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(header, text="Notification History", style="Chronos.Header.TLabel").pack(side=tk.LEFT)
+        ttk.Button(header, text="Clear", command=self._clear_notification_history, style="Chronos.TButton").pack(side=tk.RIGHT)
+
+        ttk.Label(
+            frame,
+            text="Recent Chronos tray notifications, newest first.",
+            style="Chronos.TLabel",
+            wraplength=660,
+            justify=tk.LEFT,
+        ).pack(anchor=tk.W, pady=(0, 8))
+
+        content = ttk.Frame(frame, style="Chronos.TFrame")
+        content.pack(fill=tk.BOTH, expand=True)
+
+        list_card = ttk.Frame(content, padding=8, style="Chronos.TFrame")
+        list_card.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 8))
+        ttk.Label(list_card, text="Recent", style="Chronos.Header.TLabel").pack(anchor=tk.W, pady=(0, 6))
+
+        list_frame = ttk.Frame(list_card, style="Chronos.TFrame")
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        list_scroll = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, style="Chronos.Vertical.TScrollbar")
+        self._notification_history_listbox = tk.Listbox(
+            list_frame,
+            bg="#0e1728",
+            fg="#d5e2f7",
+            selectbackground="#1e3a5f",
+            selectforeground="#ecf3ff",
+            highlightthickness=1,
+            highlightbackground="#22314f",
+            highlightcolor="#5aa9ff",
+            borderwidth=0,
+            relief="flat",
+            activestyle="none",
+            font=("Consolas", 8),
+            yscrollcommand=list_scroll.set,
+        )
+        list_scroll.config(command=self._notification_history_listbox.yview)
+        self._notification_history_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        list_scroll.pack(side=tk.RIGHT, fill=tk.Y, padx=(8, 0))
+        self._notification_history_listbox.bind("<<ListboxSelect>>", self._on_notification_history_select)
+
+        detail_card = ttk.Frame(content, padding=8, style="Chronos.TFrame")
+        detail_card.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        ttk.Label(detail_card, text="Details", style="Chronos.Header.TLabel").pack(anchor=tk.W, pady=(0, 6))
+        tk.Label(
+            detail_card,
+            textvariable=self._notification_history_details_var,
+            bg="#0e1728",
+            fg="#d5e2f7",
+            justify=tk.LEFT,
+            anchor="nw",
+            padx=10,
+            pady=10,
+            wraplength=280,
+            font=("Segoe UI", 8),
+        ).pack(fill=tk.BOTH, expand=True)
+
+        self._refresh_notification_history_list()
+        return win
 
     def _build_notification_settings_window(self):
         self._apply_theme()
