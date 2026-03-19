@@ -2,7 +2,7 @@
 Chronos `today` command orchestrator.
 
 This module currently hosts two scheduling engines:
-1) Kairos (active default path)
+1) Kairos v2 (active default path)
 2) Legacy scheduler (opt-in via `today legacy ...`)
 
 Why both exist:
@@ -635,6 +635,250 @@ def persist_kairos_cut_skips(notes, completion_payload, completion_file_path):
         except Exception as write_err:
             print(f"Warning: failed to persist Kairos auto-skip entries: {write_err}")
     return changed
+
+
+def _resolve_today_display_level(args):
+    """
+    Resolve the nested display depth for `today`.
+    """
+    argv = [str(a or "").strip().lower() for a in (args or [])]
+    if "microroutines" in argv:
+        return float("inf")
+    if "subroutines" in argv:
+        return 2
+    if "routines" in argv:
+        return 1
+    return 0
+
+
+def _to_dt_for_day(day_date, hhmm, fallback_dt=None):
+    """
+    Convert HH:MM text into a datetime for the target date.
+    """
+    if isinstance(hhmm, datetime):
+        return hhmm
+    try:
+        text = str(hhmm or "").strip()
+        if not text:
+            return fallback_dt
+        m = re.match(r"^(\d{1,2}):(\d{2})(?::\d{2})?$", text)
+        if not m:
+            return fallback_dt
+        h = int(m.group(1))
+        mm = int(m.group(2))
+        return datetime.combine(day_date, datetime.min.time()).replace(hour=h, minute=mm)
+    except Exception:
+        return fallback_dt
+
+
+def _kairos_v2_conceptual_to_legacy_schedule(conceptual_blocks, day_date, execution_units=None):
+    """
+    Compatibility adapter: Kairos v2 timer/conceptual output -> display rows.
+
+    Prefer conceptual blocks for CLI/display rendering because they preserve
+    more of the authored day shape. Timer execution units remain available as a
+    fallback when conceptual structure is unavailable.
+    """
+
+    def _group_rows_by_parent(rows):
+        grouped = {}
+        standalone = []
+        for row in rows:
+            parent_name = str(row.get("_group_parent_name") or "").strip()
+            if not parent_name:
+                standalone.append(row)
+                continue
+            key = (
+                parent_name.lower(),
+                str(row.get("_group_parent_type") or "routine").strip().lower() or "routine",
+            )
+            grouped.setdefault(
+                key,
+                {
+                    "name": parent_name,
+                    "type": key[1],
+                    "children": [],
+                },
+            )["children"].append(row)
+
+        grouped_rows = []
+        for payload in grouped.values():
+            children = sorted(
+                payload.get("children") or [],
+                key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()),
+            )
+            if not children:
+                continue
+            start_dt = min(child.get("start_time") for child in children if child.get("start_time") is not None)
+            end_dt = max(child.get("end_time") for child in children if child.get("end_time") is not None)
+            grouped_rows.append(
+                {
+                    "name": payload.get("name"),
+                    "type": payload.get("type") or "routine",
+                    "start_time": start_dt,
+                    "end_time": end_dt,
+                    "duration": max(0, int((end_dt - start_dt).total_seconds() / 60)),
+                    "children": children,
+                    "importance": 0,
+                    "status": "active",
+                    "anchored": False,
+                    "reschedule": "auto",
+                    "window_name": "GROUP",
+                }
+            )
+
+        merged = standalone + grouped_rows
+        merged.sort(key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()))
+        return merged
+
+    def _convert_leaf(node, fallback_type="task", window_name=None):
+        start_dt = _to_dt_for_day(day_date, node.get("start_time"))
+        end_dt = _to_dt_for_day(day_date, node.get("end_time"))
+        duration = node.get("duration_minutes")
+        try:
+            duration = int(duration) if duration is not None else None
+        except Exception:
+            duration = None
+        if start_dt is not None and end_dt is None and duration is not None:
+            end_dt = start_dt + timedelta(minutes=max(0, duration))
+        if start_dt is not None and end_dt is not None and end_dt <= start_dt and duration is not None:
+            end_dt = start_dt + timedelta(minutes=max(0, duration))
+        if start_dt is None:
+            return None
+        if end_dt is None:
+            end_dt = start_dt + timedelta(minutes=max(0, int(duration or 0)))
+        if duration is None:
+            duration = max(0, int((end_dt - start_dt).total_seconds() / 60))
+        return {
+            "name": node.get("name") or "Unnamed Item",
+            "type": node.get("type") or fallback_type,
+            "start_time": start_dt,
+            "end_time": end_dt,
+            "duration": duration,
+            "children": [],
+            "importance": node.get("score", 0),
+            "status": node.get("status", "pending"),
+            "anchored": False,
+            "reschedule": node.get("reschedule", "auto"),
+            "window_name": window_name,
+            "_group_parent_name": node.get("top_level_parent_name"),
+            "_group_parent_type": node.get("top_level_parent_type"),
+        }
+
+    rows = []
+    if isinstance(conceptual_blocks, list) and conceptual_blocks:
+        for idx, block in enumerate(conceptual_blocks):
+            if not isinstance(block, dict):
+                continue
+            kind = str(block.get("kind") or "").strip().lower()
+            start_dt = _to_dt_for_day(day_date, block.get("start_time"))
+            end_dt = _to_dt_for_day(day_date, block.get("end_time"))
+            duration = block.get("duration_minutes")
+            try:
+                duration = int(duration) if duration is not None else None
+            except Exception:
+                duration = None
+            if start_dt is not None and end_dt is None and duration is not None:
+                end_dt = start_dt + timedelta(minutes=max(0, duration))
+            if start_dt is not None and end_dt is not None and end_dt <= start_dt and duration is not None:
+                end_dt = start_dt + timedelta(minutes=max(0, duration))
+            if start_dt is None:
+                continue
+            if end_dt is None:
+                end_dt = start_dt + timedelta(minutes=max(0, int(duration or 0)))
+            if duration is None:
+                duration = max(0, int((end_dt - start_dt).total_seconds() / 60))
+
+            children = []
+            for child in (block.get("children") or []):
+                if not isinstance(child, dict):
+                    continue
+                row = _convert_leaf(child, window_name=block.get("name"))
+                if row:
+                    children.append(row)
+
+            if kind == "anchor":
+                row = {
+                    "name": block.get("name") or f"Anchor {idx + 1}",
+                    "type": "timeblock",
+                    "start_time": start_dt,
+                    "end_time": end_dt,
+                    "duration": duration,
+                    "children": [],
+                    "importance": 0,
+                    "status": "active",
+                    "anchored": True,
+                    "reschedule": "never",
+                    "window_name": "ANCHOR",
+                    "_group_parent_name": block.get("top_level_parent_name"),
+                    "_group_parent_type": block.get("top_level_parent_type"),
+                }
+            elif kind == "window":
+                row = {
+                    "name": block.get("name") or f"Window {idx + 1}",
+                    "type": "microroutine",
+                    "start_time": start_dt,
+                    "end_time": end_dt,
+                    "duration": duration,
+                    "children": children,
+                    "importance": 0,
+                    "status": "active",
+                    "anchored": False,
+                    "reschedule": "auto",
+                    "window_name": "WINDOW",
+                    "_group_parent_name": block.get("top_level_parent_name"),
+                    "_group_parent_type": block.get("top_level_parent_type"),
+                }
+            else:
+                row = {
+                    "name": block.get("name") or f"Block {idx + 1}",
+                    "type": block.get("type") or "timeblock",
+                    "start_time": start_dt,
+                    "end_time": end_dt,
+                    "duration": duration,
+                    "children": children,
+                    "importance": 0,
+                    "status": "active",
+                    "anchored": False,
+                    "reschedule": "auto",
+                    "window_name": kind.upper() if kind else None,
+                    "_group_parent_name": block.get("top_level_parent_name"),
+                    "_group_parent_type": block.get("top_level_parent_type"),
+                }
+            rows.append(row)
+
+        rows = _group_rows_by_parent(rows)
+        for row in rows:
+            kids = row.get("children") or []
+            kids.sort(key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()))
+        return rows
+
+    if isinstance(execution_units, list) and execution_units:
+        for idx, unit in enumerate(execution_units):
+            if not isinstance(unit, dict):
+                continue
+            row = _convert_leaf(
+                {
+                    "name": unit.get("name") or f"Unit {idx + 1}",
+                    "type": unit.get("type") or ("timeblock" if unit.get("kind") == "anchor" else "task"),
+                    "start_time": unit.get("start_time"),
+                    "end_time": unit.get("end_time"),
+                    "duration_minutes": unit.get("duration_minutes"),
+                },
+                fallback_type="timeblock" if unit.get("kind") == "anchor" else "task",
+                window_name=unit.get("parent_name"),
+            )
+            if not row:
+                continue
+            row["anchored"] = unit.get("kind") == "anchor"
+            row["reschedule"] = "never" if row["anchored"] else "auto"
+            row["status"] = "active"
+            rows.append(row)
+
+        rows.sort(key=lambda x: (x.get("start_time") or datetime.now(), str(x.get("name") or "").lower()))
+        return rows
+
+    return []
 
 def _should_auto_reschedule(item):
     policy = str(item.get("original_item_data", {}).get("reschedule_policy", "auto")).lower()
@@ -1397,7 +1641,7 @@ def run(args, properties):
        Explicit Kairos shadow/weekly tools (diagnostic-oriented; does not
        always overwrite today's schedule).
     2) `today ...` (without `legacy`):
-       Active Kairos scheduling path used by default for real schedule output.
+        Active Kairos v2 scheduling path used by default for real schedule output.
        Includes bridge conversion from Kairos blocks into legacy display/persist
        shape for downstream compatibility.
     3) `today legacy ...`:
@@ -1458,6 +1702,10 @@ def run(args, properties):
                     continue
                 if low == "week":
                     ctx["_mode_week"] = True
+                elif low == "v2":
+                    ctx["engine_version"] = "v2"
+                elif low.startswith("engine:"):
+                    ctx["engine_version"] = token.split(":", 1)[1].strip().lower()
                 elif low.startswith("template:"):
                     ctx["force_template"] = token.split(":", 1)[1].strip()
                 elif low.startswith("days:"):
@@ -1559,6 +1807,19 @@ def run(args, properties):
                         warnings.append(f"Invalid evaluate-hooks value: {val}")
                     else:
                         ctx["evaluate_hooks"] = bool(bv)
+                elif (
+                    low.startswith("thinking:")
+                    or low.startswith("show-thinking:")
+                    or low.startswith("show_thinking:")
+                ):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid thinking value: {val}")
+                    else:
+                        ctx["show_thinking"] = bool(bv)
+                elif low in {"apply", "live", "write-main", "write_main"}:
+                    ctx["apply_v2"] = True
                 else:
                     warnings.append(f"Unrecognized kairos arg: {token}")
             return ctx, warnings
@@ -1571,10 +1832,12 @@ def run(args, properties):
         kairos_index = next((idx for idx, value in enumerate(args_lower) if value == "kairos"), -1)
         tail_args = args[kairos_index + 1:] if (args and kairos_index >= 0) else []
         kairos_context, parse_warnings = _parse_kairos_context(tail_args)
+        kairos_context.setdefault("show_thinking", True)
         try:
-            from modules.scheduler import kairosScheduler, WeeklyGenerator, save_weekly_skeleton
+            from modules.scheduler import KairosV2Scheduler, kairosScheduler, WeeklyGenerator, save_weekly_skeleton
             is_week_mode = bool(kairos_context.pop("_mode_week", False))
             weekly_days = int(kairos_context.pop("_days", 7) or 7)
+            engine_version = str(kairos_context.pop("engine_version", "v2") or "v2").strip().lower()
             if is_week_mode:
                 # Weekly mode writes a planning scaffold (not today's executable
                 # schedule) so users can inspect load distribution first.
@@ -1608,6 +1871,64 @@ def run(args, properties):
                             f"days={plan.get('recommended_days')}"
                         )
                 print("Main schedule unchanged (weekly skeleton mode).")
+                return
+
+            if engine_version == "v2":
+                v2_shadow_path = os.path.join(USER_DIR, "schedules", f"schedule_{today_str}_kairos_v2_shadow.yml")
+                scheduler = KairosV2Scheduler(user_context=kairos_context)
+                result = scheduler.generate_schedule(today_date) or {}
+                os.makedirs(os.path.dirname(v2_shadow_path), exist_ok=True)
+                with open(v2_shadow_path, "w", encoding="utf-8") as fh:
+                    yaml.dump(result, fh, default_flow_style=False, allow_unicode=True)
+
+                schedule = result.get("schedule", {}) if isinstance(result, dict) else {}
+                conceptual = schedule.get("conceptual_schedule", {}) if isinstance(schedule, dict) else {}
+                decision_log_artifact = schedule.get("decision_log_artifact", {}) if isinstance(schedule, dict) else {}
+                print(f"[Kairos v2] Conceptual schedule generated for {today_str}.")
+                print(f"Saved to: {v2_shadow_path}")
+                if kairos_context:
+                    print(f"Kairos context: {kairos_context}")
+                for warning in parse_warnings[:8]:
+                    print(f"[Kairos Arg] {warning}")
+                print(f"Week Template: {(schedule.get('week_template') or {}).get('name')}")
+                print(f"Day Template: {(schedule.get('day_template') or {}).get('name')}")
+                print(f"Candidates: {(schedule.get('candidate_universe') or {}).get('count')}")
+                print(f"Conceptual Blocks: {len(conceptual.get('conceptual_blocks', [])) if isinstance(conceptual, dict) else 0}")
+                if isinstance(decision_log_artifact, dict) and decision_log_artifact.get("path"):
+                    print(f"Decision Log: {decision_log_artifact.get('path')}")
+                today_completion_data, _ = load_completion_payload(today_str)
+                timer_handoff = schedule.get("timer_handoff", {}) if isinstance(schedule, dict) else {}
+                resolved_schedule = _kairos_v2_conceptual_to_legacy_schedule(
+                    conceptual.get("conceptual_blocks", []) if isinstance(conceptual, dict) else [],
+                    today_date,
+                    timer_handoff.get("execution_units") if isinstance(timer_handoff, dict) else None,
+                )
+                if resolved_schedule:
+                    print("Rendered conceptual schedule:")
+                    display_schedule(
+                        resolved_schedule,
+                        [],
+                        indent=0,
+                        display_level=max(2, _resolve_today_display_level(args)),
+                        today_completion_data=today_completion_data,
+                    )
+                if kairos_context.get("apply_v2") and resolved_schedule:
+                    main_schedule_path = schedule_path_for_date(today_str)
+                    if os.path.exists(main_schedule_path):
+                        try:
+                            archive_dir = os.path.join(USER_DIR, "archive", "schedules")
+                            os.makedirs(archive_dir, exist_ok=True)
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            archive_path = os.path.join(archive_dir, f"schedule_{today_str}_{timestamp}.yml")
+                            from shutil import copy2
+                            copy2(main_schedule_path, archive_path)
+                        except Exception as e:
+                            print(f"Warning: Failed to archive previous schedule: {e}")
+                    with open(main_schedule_path, "w", encoding="utf-8") as f:
+                        yaml.dump(resolved_schedule, f, default_flow_style=False)
+                    print(f"Kairos v2 schedule applied to: {main_schedule_path}")
+                else:
+                    print("Main schedule unchanged (Kairos v2 shadow mode).")
                 return
 
             scheduler = kairosScheduler(user_context=kairos_context)
@@ -1793,7 +2114,7 @@ def run(args, properties):
 
             Notes for maintainers:
             - this parser intentionally ignores display-only flags and `legacy`
-            - parsed values are passed directly to `KairosScheduler(user_context=...)`
+            - parsed values are passed directly to the active Kairos scheduler path
             """
             ctx = {}
             warnings = []
@@ -1805,6 +2126,10 @@ def run(args, properties):
                     continue
                 if low.startswith("template:"):
                     ctx["force_template"] = token.split(":", 1)[1].strip()
+                elif low == "v2":
+                    ctx["engine_version"] = "v2"
+                elif low.startswith("engine:"):
+                    ctx["engine_version"] = token.split(":", 1)[1].strip().lower()
                 elif low.startswith("status:"):
                     kv = _parse_kv_csv(token.split(":", 1)[1].strip())
                     if kv:
@@ -1901,6 +2226,19 @@ def run(args, properties):
                         warnings.append(f"Invalid evaluate-hooks value: {token}")
                     else:
                         ctx["evaluate_hooks"] = bool(bv)
+                elif (
+                    low.startswith("thinking:")
+                    or low.startswith("show-thinking:")
+                    or low.startswith("show_thinking:")
+                ):
+                    val = token.split(":", 1)[1].strip()
+                    bv = _to_bool(val, None)
+                    if bv is None:
+                        warnings.append(f"Invalid thinking value: {token}")
+                    else:
+                        ctx["show_thinking"] = bool(bv)
+                elif low in {"apply", "live", "write-main", "write_main"}:
+                    ctx["apply_v2"] = True
             return ctx, warnings
 
         def _coerce_filter_value(raw):
@@ -1947,6 +2285,9 @@ def run(args, properties):
             t = _read("template", "force-template", "force_template")
             if t is not None and str(t).strip():
                 ctx["force_template"] = str(t).strip()
+            engine_version = _read("engine", "engine-version", "engine_version")
+            if engine_version is not None and str(engine_version).strip():
+                ctx["engine_version"] = str(engine_version).strip().lower()
             status = _read("status", "status-overrides", "status_overrides")
             if isinstance(status, str):
                 kv = _parse_kv_csv(status)
@@ -1983,6 +2324,13 @@ def run(args, properties):
             timer_profile = _read("timer-profile", "timer_profile")
             if timer_profile is not None and str(timer_profile).strip():
                 ctx["timer_profile"] = str(timer_profile).strip()
+            thinking = _read("thinking", "show-thinking", "show_thinking")
+            if thinking is not None and str(thinking).strip() != "":
+                bv = _to_bool(thinking, None)
+                if bv is None:
+                    warnings.append(f"Invalid thinking value: {thinking}")
+                else:
+                    ctx["show_thinking"] = bool(bv)
 
             def _set_bool(ctx_key, *prop_keys):
                 raw = _read(*prop_keys)
@@ -2671,7 +3019,7 @@ def run(args, properties):
         if reschedule_requested or not os.path.exists(schedule_path):
             # Fresh generation path: ask Kairos to build schedule now.
             try:
-                from modules.scheduler import kairosScheduler
+                from modules.scheduler import KairosV2Scheduler, kairosScheduler
                 kairos_context, parse_warnings = _parse_active_kairos_context(args)
                 _apply_kairos_property_overrides(kairos_context, properties, parse_warnings)
                 manual_modifications = load_manual_modifications(manual_mod_path)
@@ -2744,6 +3092,64 @@ def run(args, properties):
                     # `today reschedule` should prioritize remaining-day repair
                     # instead of rebuilding from midnight.
                     kairos_context["start_from_now"] = True
+                kairos_context.setdefault("show_thinking", True)
+                engine_version = str(kairos_context.pop("engine_version", "v2") or "v2").strip().lower()
+                if engine_version == "v2":
+                    v2_shadow_path = os.path.join(USER_DIR, "schedules", f"schedule_{today_str}_kairos_v2_shadow.yml")
+                    scheduler = KairosV2Scheduler(user_context=kairos_context)
+                    result = scheduler.generate_schedule(today_date) or {}
+                    os.makedirs(os.path.dirname(v2_shadow_path), exist_ok=True)
+                    with open(v2_shadow_path, "w", encoding="utf-8") as fh:
+                        yaml.dump(result, fh, default_flow_style=False, allow_unicode=True)
+
+                    schedule_meta = result.get("schedule", {}) if isinstance(result, dict) else {}
+                    conceptual = schedule_meta.get("conceptual_schedule", {}) if isinstance(schedule_meta, dict) else {}
+                    decision_log_artifact = schedule_meta.get("decision_log_artifact", {}) if isinstance(schedule_meta, dict) else {}
+                    print(f"[Kairos v2] Conceptual schedule generated for {today_str}.")
+                    print(f"Saved to: {v2_shadow_path}")
+                    if kairos_context:
+                        print(f"Kairos context: {kairos_context}")
+                    for warning in parse_warnings[:8]:
+                        print(f"[Kairos Arg] {warning}")
+                    print(f"Week Template: {(schedule_meta.get('week_template') or {}).get('name')}")
+                    print(f"Day Template: {(schedule_meta.get('day_template') or {}).get('name')}")
+                    print(f"Candidates: {(schedule_meta.get('candidate_universe') or {}).get('count')}")
+                    print(f"Conceptual Blocks: {len(conceptual.get('conceptual_blocks', [])) if isinstance(conceptual, dict) else 0}")
+                    if isinstance(decision_log_artifact, dict) and decision_log_artifact.get('path'):
+                        print(f"Decision Log: {decision_log_artifact.get('path')}")
+                    timer_handoff = schedule_meta.get("timer_handoff", {}) if isinstance(schedule_meta, dict) else {}
+                    resolved_schedule = _kairos_v2_conceptual_to_legacy_schedule(
+                        conceptual.get("conceptual_blocks", []) if isinstance(conceptual, dict) else [],
+                        today_date,
+                        timer_handoff.get("execution_units") if isinstance(timer_handoff, dict) else None,
+                    )
+                    if resolved_schedule:
+                        print("Rendered conceptual schedule:")
+                        display_schedule(
+                            resolved_schedule,
+                            [],
+                            indent=0,
+                            display_level=max(2, _resolve_today_display_level(args)),
+                            today_completion_data=today_completion_data,
+                        )
+                    should_apply_v2 = bool(kairos_context.get("apply_v2", True))
+                    if should_apply_v2 and resolved_schedule:
+                        if os.path.exists(schedule_path):
+                            try:
+                                archive_dir = os.path.join(USER_DIR, "archive", "schedules")
+                                os.makedirs(archive_dir, exist_ok=True)
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                archive_path = os.path.join(archive_dir, f"schedule_{today_str}_{timestamp}.yml")
+                                from shutil import copy2
+                                copy2(schedule_path, archive_path)
+                            except Exception as e:
+                                print(f"Warning: Failed to archive previous schedule: {e}")
+                        with open(schedule_path, "w", encoding="utf-8") as f:
+                            yaml.dump(resolved_schedule, f, default_flow_style=False)
+                        print(f"Kairos v2 schedule applied to: {schedule_path}")
+                    else:
+                        print("Main schedule unchanged (Kairos v2 shadow mode).")
+                    return
                 scheduler = kairosScheduler(user_context=kairos_context)
                 result = scheduler.generate_schedule(today_date) or {}
                 notes = scheduler.phase_notes if isinstance(getattr(scheduler, "phase_notes", None), dict) else {}
@@ -3235,6 +3641,8 @@ Description: Build or view today's schedule. Use 'reschedule' to rebuild with cu
 Examples:
   today
   today reschedule
+  today reschedule engine:legacy
+  today kairos
   today routines
   today legacy reschedule
 """

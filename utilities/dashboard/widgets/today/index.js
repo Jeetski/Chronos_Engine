@@ -3,6 +3,9 @@ export function mount(el, context) {
     try { el.dataset.autoheight = 'off'; } catch { }
     try { el.dataset.uiId = 'widget.today'; } catch { }
 
+    const TODAY_DEFAULT_WIDTH = 920;
+    const TODAY_MIN_WIDTH = 760;
+
     // Load CSS
     if (!document.getElementById('scheduler-css')) {
         const link = document.createElement('link');
@@ -12,7 +15,24 @@ export function mount(el, context) {
         document.head.appendChild(link);
     }
 
+    const renderSchedulerKnob = ({ id, label, value, sliderUiId, valueId, valueUiId, extraContent = '', note = '' }) => `
+      <div class="scheduler-knob-card${extraContent ? ' scheduler-knob-card-wide' : ''}">
+        <label class="scheduler-knob-label" for="${id}">${label}${note ? ` <span class="scheduler-knob-note">${note}</span>` : ''}</label>
+        ${extraContent}
+        <div class="scheduler-knob" data-knob-for="${id}">
+          <input type="range" class="scheduler-knob-input" id="${id}" min="1" max="10" value="${value}" data-ui-id="${sliderUiId}" />
+          <div class="knob-container" tabindex="0" role="slider" aria-label="${label}">
+            <div class="knob-ring"></div>
+            <div class="knob-dial"></div>
+          </div>
+        </div>
+        <span class="knob-value-display scheduler-knob-value" id="${valueId}" data-ui-id="${valueUiId}">${value}</span>
+      </div>
+    `;
+
     el.className = 'widget scheduler-widget';
+    if (!el.style.width) el.style.width = `${TODAY_DEFAULT_WIDTH}px`;
+    el.style.minWidth = `${TODAY_MIN_WIDTH}px`;
     el.innerHTML = `
     <div class="header" id="todayHeader" data-ui-id="widget.today.header">
       <div class="title" data-ui-id="widget.today.title">Scheduler</div>
@@ -24,74 +44,42 @@ export function mount(el, context) {
     <div class="content">
       <!-- Quick Actions Bar -->
       <div class="scheduler-actions-bar" data-ui-id="widget.today.actions_bar">
-        <button class="btn-large btn-refresh" id="todayRefresh" data-ui-id="widget.today.refresh_button">↻ Refresh</button>
-        <button class="btn-large btn-reschedule" id="todayReschedule" data-ui-id="widget.today.reschedule_button">📅 Generate / Reschedule</button>
+        <button class="btn-large btn-reschedule btn-reschedule-full" id="todayReschedule" data-ui-id="widget.today.reschedule_button">📅 Generate / Reschedule</button>
       </div>
 
       <!-- Scheduling Controls -->
       <details class="scheduler-section" id="schedControls" data-ui-id="widget.today.scheduling_controls">
         <summary>⚙️ Scheduling Controls</summary>
-        <div class="scheduler-section-content">
+        <div class="scheduler-section-content scheduler-controls-grid">
           <details class="scheduler-subsection" open data-ui-id="widget.today.priority_weights_section">
             <summary>Priority Weights (1-10)</summary>
             <div class="action-group">
-              <div class="priority-sliders-grid">
-                <div class="slider-row">
-                  <label for="sliderEnvironment">Environment</label>
-                  <input type="range" id="sliderEnvironment" min="1" max="10" value="7" data-ui-id="widget.today.environment_slider" />
-                  <span class="slider-value" id="valEnvironment" data-ui-id="widget.today.environment_value">7</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderCategory">Category</label>
-                  <input type="range" id="sliderCategory" min="1" max="10" value="6" data-ui-id="widget.today.category_slider" />
-                  <span class="slider-value" id="valCategory" data-ui-id="widget.today.category_value">6</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderHappiness">Happiness</label>
-                  <input type="range" id="sliderHappiness" min="1" max="10" value="5" data-ui-id="widget.today.happiness_slider" />
-                  <span class="slider-value" id="valHappiness" data-ui-id="widget.today.happiness_value">5</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderDueDate">Due Date</label>
-                  <input type="range" id="sliderDueDate" min="1" max="10" value="4" data-ui-id="widget.today.due_date_slider" />
-                  <span class="slider-value" id="valDueDate" data-ui-id="widget.today.due_date_value">4</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderDeadline">Deadline</label>
-                  <input type="range" id="sliderDeadline" min="1" max="10" value="5" data-ui-id="widget.today.deadline_slider" />
-                  <span class="slider-value" id="valDeadline" data-ui-id="widget.today.deadline_value">5</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderStatus">Status Align</label>
-                  <input type="range" id="sliderStatus" min="1" max="10" value="3" data-ui-id="widget.today.status_slider" />
-                  <span class="slider-value" id="valStatus" data-ui-id="widget.today.status_value">3</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderPriority">Priority Prop</label>
-                  <input type="range" id="sliderPriority" min="1" max="10" value="2" data-ui-id="widget.today.priority_slider" />
-                  <span class="slider-value" id="valPriority" data-ui-id="widget.today.priority_value">2</span>
-                </div>
-                <div class="slider-row">
-                  <label for="sliderTemplate">Template</label>
-                  <input type="range" id="sliderTemplate" min="1" max="10" value="1" data-ui-id="widget.today.template_slider" />
-                  <span class="slider-value" id="valTemplate" data-ui-id="widget.today.template_value">1</span>
-                </div>
+              <div class="priority-knobs-grid">
+                ${renderSchedulerKnob({ id: 'sliderEnvironment', label: 'Environment', value: 7, sliderUiId: 'widget.today.environment_slider', valueId: 'valEnvironment', valueUiId: 'widget.today.environment_value' })}
+                ${renderSchedulerKnob({ id: 'sliderCategory', label: 'Category', value: 6, sliderUiId: 'widget.today.category_slider', valueId: 'valCategory', valueUiId: 'widget.today.category_value' })}
+                ${renderSchedulerKnob({ id: 'sliderHappiness', label: 'Happiness', note: 'Coming soon', value: 5, sliderUiId: 'widget.today.happiness_slider', valueId: 'valHappiness', valueUiId: 'widget.today.happiness_value' })}
+                ${renderSchedulerKnob({ id: 'sliderDueDate', label: 'Due Date', value: 4, sliderUiId: 'widget.today.due_date_slider', valueId: 'valDueDate', valueUiId: 'widget.today.due_date_value' })}
+                ${renderSchedulerKnob({ id: 'sliderDeadline', label: 'Deadline', value: 5, sliderUiId: 'widget.today.deadline_slider', valueId: 'valDeadline', valueUiId: 'widget.today.deadline_value' })}
+                ${renderSchedulerKnob({ id: 'sliderStatus', label: 'Status Align', value: 3, sliderUiId: 'widget.today.status_slider', valueId: 'valStatus', valueUiId: 'widget.today.status_value' })}
+                ${renderSchedulerKnob({ id: 'sliderPriority', label: 'Priority Prop', value: 2, sliderUiId: 'widget.today.priority_slider', valueId: 'valPriority', valueUiId: 'widget.today.priority_value' })}
+                ${renderSchedulerKnob({ id: 'sliderTemplate', label: 'Template', value: 1, sliderUiId: 'widget.today.template_slider', valueId: 'valTemplate', valueUiId: 'widget.today.template_value' })}
               </div>
             </div>
           </details>
           <details class="scheduler-subsection" data-ui-id="widget.today.advanced_weights_section">
             <summary>Advanced Weights</summary>
             <div class="action-group">
-              <div class="slider-row">
-                <label for="sliderCustomProperty">Custom Property</label>
-                <input class="scheduler-input" id="customPropertyKey" placeholder="Property key (e.g. energy, focus_depth)" style="min-width:160px;" data-ui-id="widget.today.custom_property_key_input" />
-                <input type="range" id="sliderCustomProperty" min="1" max="10" value="5" data-ui-id="widget.today.custom_property_slider" />
-                <span class="slider-value" id="valCustomProperty" data-ui-id="widget.today.custom_property_value">5</span>
-              </div>
-              <div class="slider-row">
-                <label for="sliderBalance">Weekly Balance</label>
-                <input type="range" id="sliderBalance" min="1" max="10" value="5" data-ui-id="widget.today.balance_slider" />
-                <span class="slider-value" id="valBalance" data-ui-id="widget.today.balance_value">5</span>
+              <div class="advanced-knobs-grid">
+                ${renderSchedulerKnob({
+      id: 'sliderCustomProperty',
+      label: 'Custom Property',
+      value: 5,
+      sliderUiId: 'widget.today.custom_property_slider',
+      valueId: 'valCustomProperty',
+      valueUiId: 'widget.today.custom_property_value',
+      extraContent: '<input class="scheduler-input scheduler-knob-text" id="customPropertyKey" placeholder="Property key (e.g. energy, focus_depth)" data-ui-id="widget.today.custom_property_key_input" />'
+    })}
+                ${renderSchedulerKnob({ id: 'sliderBalance', label: 'Weekly Balance', value: 5, sliderUiId: 'widget.today.balance_slider', valueId: 'valBalance', valueUiId: 'widget.today.balance_value' })}
               </div>
             </div>
           </details>
@@ -386,18 +374,130 @@ export function mount(el, context) {
   let schedulingPrioritiesRaw = null;
   let schedulingPrioritiesData = null;
   let saveTimer = null;
+  const sliderKnobs = {};
+
+  function sliderStep(slider) {
+    const parsed = Number.parseFloat(String(slider?.step || '1'));
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+  }
+
+  function clampSliderValue(slider, rawValue) {
+    const min = Number.parseFloat(String(slider?.min || '0'));
+    const max = Number.parseFloat(String(slider?.max || '100'));
+    const step = sliderStep(slider);
+    const safeMin = Number.isFinite(min) ? min : 0;
+    const safeMax = Number.isFinite(max) ? max : safeMin;
+    let next = Number.parseFloat(String(rawValue));
+    if (!Number.isFinite(next)) next = safeMin;
+    next = Math.min(safeMax, Math.max(safeMin, next));
+    const stepped = safeMin + (Math.round((next - safeMin) / step) * step);
+    const precision = step >= 1 ? 0 : Math.min(4, (String(step).split('.')[1] || '').length);
+    return Number(stepped.toFixed(precision));
+  }
+
+  function setSliderInputValue(slider, value, { emit = false } = {}) {
+    if (!slider) return;
+    const next = clampSliderValue(slider, value);
+    slider.value = String(next);
+    if (emit) {
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      slider.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
+  function createSchedulerKnob(key, slider) {
+    if (!slider) return null;
+    const knobRoot = slider.closest('.scheduler-knob');
+    const knobContainer = knobRoot?.querySelector('.knob-container');
+    const dial = knobRoot?.querySelector('.knob-dial');
+    if (!knobRoot || !knobContainer || !dial) return null;
+
+    const min = Number.parseFloat(String(slider.min || '0'));
+    const max = Number.parseFloat(String(slider.max || '100'));
+    const step = sliderStep(slider);
+    const labelText = slider.closest('.scheduler-knob-card')?.querySelector('.scheduler-knob-label')?.textContent?.trim() || key;
+    knobContainer.setAttribute('aria-valuemin', String(min));
+    knobContainer.setAttribute('aria-valuemax', String(max));
+    knobContainer.setAttribute('aria-label', labelText);
+
+    const syncFromInput = () => {
+      const current = clampSliderValue(slider, slider.value);
+      const pct = max === min ? 0 : ((current - min) / (max - min));
+      const angle = -135 + (pct * 270);
+      dial.style.transform = `rotate(${angle}deg)`;
+      if (vals[key]) vals[key].textContent = String(current);
+      knobContainer.setAttribute('aria-valuenow', String(current));
+      knobContainer.setAttribute('aria-valuetext', String(current));
+    };
+
+    knobContainer.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      try { knobContainer.setPointerCapture(ev.pointerId); } catch { }
+      const startY = ev.clientY;
+      const startValue = clampSliderValue(slider, slider.value);
+      const sensitivity = 14;
+
+      const onMove = (e) => {
+        const dy = startY - e.clientY;
+        const steps = Math.round(dy / sensitivity);
+        const next = startValue + (steps * step);
+        setSliderInputValue(slider, next, { emit: true });
+      };
+
+      const onUp = (e) => {
+        knobContainer.removeEventListener('pointermove', onMove);
+        knobContainer.removeEventListener('pointerup', onUp);
+        knobContainer.removeEventListener('pointercancel', onUp);
+        try { knobContainer.releasePointerCapture(e.pointerId); } catch { }
+      };
+
+      knobContainer.addEventListener('pointermove', onMove);
+      knobContainer.addEventListener('pointerup', onUp);
+      knobContainer.addEventListener('pointercancel', onUp);
+    });
+
+    knobContainer.addEventListener('wheel', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const direction = ev.deltaY > 0 ? -step : step;
+      const next = clampSliderValue(slider, Number.parseFloat(String(slider.value || min)) + direction);
+      setSliderInputValue(slider, next, { emit: true });
+    }, { passive: false });
+
+    knobContainer.addEventListener('keydown', (ev) => {
+      const current = clampSliderValue(slider, slider.value);
+      let next = null;
+      if (ev.key === 'ArrowUp' || ev.key === 'ArrowRight') next = current + step;
+      else if (ev.key === 'ArrowDown' || ev.key === 'ArrowLeft') next = current - step;
+      else if (ev.key === 'PageUp') next = current + (step * 2);
+      else if (ev.key === 'PageDown') next = current - (step * 2);
+      else if (ev.key === 'Home') next = min;
+      else if (ev.key === 'End') next = max;
+      if (next === null) return;
+      ev.preventDefault();
+      setSliderInputValue(slider, next, { emit: true });
+    });
+
+    slider.addEventListener('input', syncFromInput);
+    slider.addEventListener('change', syncFromInput);
+    syncFromInput();
+    return { syncFromInput };
+  }
 
   function setSliderValue(key, value) {
     const slider = sliders[key];
     if (!slider || value === undefined || value === null) return;
-    slider.value = String(value);
-    if (vals[key]) vals[key].textContent = slider.value;
+    setSliderInputValue(slider, value);
+    if (sliderKnobs[key]?.syncFromInput) sliderKnobs[key].syncFromInput();
+    else if (vals[key]) vals[key].textContent = slider.value;
   }
 
   function syncSliderLabels() {
     for (const [key, slider] of Object.entries(sliders)) {
       if (!slider) continue;
-      if (vals[key]) vals[key].textContent = slider.value;
+      if (sliderKnobs[key]?.syncFromInput) sliderKnobs[key].syncFromInput();
+      else if (vals[key]) vals[key].textContent = slider.value;
     }
   }
 
@@ -678,6 +778,10 @@ export function mount(el, context) {
     }, 500);
   }
 
+  Object.entries(sliders).forEach(([key, slider]) => {
+    sliderKnobs[key] = createSchedulerKnob(key, slider);
+  });
+
   loadLocalControls();
   if (kairosWindowFilterRows && !kairosWindowFilterRows.querySelector('.window-filter-row')) {
     setWindowFilterOverrides([]);
@@ -732,7 +836,6 @@ export function mount(el, context) {
   setKairosPresetActive(detectKairosPreset());
 
   const content = el.querySelector('.content') || el;
-  const btnRefresh = content.querySelector('#todayRefresh');
   const btnResched = content.querySelector('#todayReschedule');
   const statusText = content.querySelector('#todayStatusText');
   const selHint = content.querySelector('#selHint');
@@ -830,11 +933,6 @@ export function mount(el, context) {
   let calendarDayDate = null;
   let lastPreviewKey = null;
 
-  if (btnRefresh) btnRefresh.addEventListener('click', () => {
-    console.log('[Chronos][Today] Refresh clicked');
-    if (statusText) statusText.textContent = 'Refreshing schedule...';
-    refreshScheduleForTarget({ force: true });
-  });
   if (btnResched) btnResched.addEventListener('click', async () => {
     console.log('[Chronos][Today] Reschedule clicked');
     if (statusText) statusText.textContent = 'Generating schedule...';
@@ -1106,9 +1204,9 @@ export function mount(el, context) {
   // Resizers
   function edgeDrag(startRect, cb) { return (ev) => { ev.preventDefault(); function move(e) { cb(e, startRect); } function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); } window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); } }
   const re = el.querySelector('.resizer.e'); const rs = el.querySelector('.resizer.s'); const rse = el.querySelector('.resizer.se');
-  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; })(ev); });
+  if (re) re.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(TODAY_MIN_WIDTH, e.clientX - sr.left) + 'px'; })(ev); });
   if (rs) rs.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
-  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(260, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
+  if (rse) rse.addEventListener('pointerdown', (ev) => { const r = el.getBoundingClientRect(); edgeDrag(r, (e, sr) => { el.style.width = Math.max(TODAY_MIN_WIDTH, e.clientX - sr.left) + 'px'; el.style.height = Math.max(160, e.clientY - sr.top) + 'px'; })(ev); });
 
   refreshScheduleForTarget({ force: true });
   queueAutoFitHeight();

@@ -731,13 +731,20 @@ $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNoti
 $notifier.Show($toast)
 """
         try:
+            run_kwargs = {
+                "stdout": subprocess.PIPE,
+                "stderr": subprocess.PIPE,
+                "text": True,
+                "check": False,
+                "timeout": 10,
+            }
+            if os.name == "nt":
+                no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                if no_window:
+                    run_kwargs["creationflags"] = no_window
             proc = subprocess.run(
                 ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=False,
-                timeout=10,
+                **run_kwargs,
             )
             return proc.returncode == 0
         except Exception:

@@ -52,14 +52,7 @@ export function mount(el, context) {
       background: #0f141d;
       color: var(--text);
     }
-    .jr input[type="date"] {
-      color-scheme: dark;
-    }
-    .jr input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.9) brightness(0.95);
-      opacity: 0.85;
-      cursor: pointer;
-    }
+    .jr input[type="date"] { color-scheme: dark; }
     .journal-widget .icon-btn.danger {
       color: var(--chronos-danger, #ff9aa2);
       border-color: var(--chronos-danger-soft, rgba(255, 154, 162, 0.2));
@@ -492,12 +485,6 @@ export function mount(el, context) {
   typeFilterEl.addEventListener('change', renderList);
   searchEl.addEventListener('input', renderList);
   edType.addEventListener('change', () => { toggleDreamFields(); queueAutosave(); });
-  edDate.addEventListener('focus', () => {
-    try { if (typeof edDate.showPicker === 'function') edDate.showPicker(); } catch { }
-  });
-  edDate.addEventListener('click', () => {
-    try { if (typeof edDate.showPicker === 'function') edDate.showPicker(); } catch { }
-  });
   ;[edDate, edTitle, edTags, edContent, edDreamSigns, edSleepStart, edSleepEnd, edRating].forEach(inp => inp.addEventListener('input', queueAutosave));
   edLucid.addEventListener('change', queueAutosave);
 

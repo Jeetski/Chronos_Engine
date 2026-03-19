@@ -400,10 +400,23 @@ export function Inspector() {
   function renderDeadlineDueSection(startDate, endDate, options = {}) {
     const entries = collectDeadlineDueEntries(startDate, endDate);
     const maxRows = Number(options.maxRows || 16);
+    const showLegend = !!options.showLegend;
     const visible = entries.slice(0, maxRows);
     const deadlineCount = entries.filter(e => e.kind === 'deadline').length;
     const dueCount = entries.filter(e => e.kind === 'due_date').length;
     return `
+      ${showLegend ? `
+        <div class="inspector-marker-legend">
+          <div class="inspector-marker-legend-item">
+            <span class="inspector-marker-pin inspector-marker-pin-deadline" aria-hidden="true"></span>
+            <span>Red pin = Deadline</span>
+          </div>
+          <div class="inspector-marker-legend-item">
+            <span class="inspector-marker-pin inspector-marker-pin-due" aria-hidden="true"></span>
+            <span>Orange pin = Due date</span>
+          </div>
+        </div>
+      ` : ''}
       <div class="inspector-kv">
         <div><span>Deadlines</span><span>${deadlineCount}</span></div>
         <div><span>Due Dates</span><span>${dueCount}</span></div>
@@ -988,6 +1001,9 @@ export function Inspector() {
 
   function renderYearContent() {
     const year = Number(currentData?.year) || (new Date()).getFullYear();
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31);
+    const yearDeadlinesHtml = renderDeadlineDueSection(yearStart, yearEnd, { maxRows: 24, showLegend: true });
     const projectsByName = new Map(
       loadedItems
         .filter(i => String(i?.type || '').toLowerCase() === 'project' && i?.name && i?.resolution)
@@ -1102,6 +1118,9 @@ export function Inspector() {
     });
 
     return `
+      ${renderCollapsibleSection('Deadlines & Due Dates', `
+        ${yearDeadlinesHtml}
+      `)}
       ${renderCollapsibleSection('Resolutions <span class="inspector-soon-badge">Coming soon</span>', `${resolutionSummaries.length ? `
           <div class="inspector-goal-rings">
             ${resolutionSummaries.slice(0, 12).map((summary) => {
@@ -1171,9 +1190,14 @@ export function Inspector() {
   function renderMonthContent() {
     const monthCtx = getSelectedMonthContext();
     const monthDeadlinesHtml = monthCtx
-      ? renderDeadlineDueSection(monthCtx.first, monthCtx.last, { maxRows: 20 })
+      ? renderDeadlineDueSection(monthCtx.first, monthCtx.last, { maxRows: 20, showLegend: true })
       : '<div class="inspector-muted">No month selected.</div>';
     const presets = getOverlayPresets();
+    const defaultPresets = presets.filter((p) => {
+      if ((p.kind || '').toLowerCase() !== 'default') return false;
+      const mode = String(p.mode || '').toLowerCase();
+      return mode !== 'happiness' && mode !== 'happiness_scheduled' && mode !== 'happiness_completed';
+    });
     const monthSnapshotHtml = monthSnapshotState.loading
       ? '<div class="inspector-muted">Calculating month snapshot...</div>'
       : (monthSnapshotState.error
@@ -1211,7 +1235,7 @@ export function Inspector() {
           <button class="inspector-btn" data-action="overlay-reload">Reload Presets</button>
         </div>
         <div class="inspector-list">
-          ${presets.filter(p => (p.kind || '').toLowerCase() === 'default').length ? presets.filter(p => (p.kind || '').toLowerCase() === 'default').map(p => `
+          ${defaultPresets.length ? defaultPresets.map(p => `
             <div class="inspector-row">
               <button class="inspector-btn" data-action="overlay-preset" data-mode="${p.mode || ''}" data-value="${p.value || ''}" data-momentum="${p.use_momentum ? 'true' : 'false'}">${p.name}</button>
             </div>
@@ -2388,6 +2412,38 @@ export function Inspector() {
       .inspector-input { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px; color: var(--chronos-text); font-size: 12px; }
       .inspector-card-list { display: grid; gap: 8px; }
       .inspector-card { padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; }
+      .inspector-marker-legend { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
+      .inspector-marker-legend-item { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; color: var(--chronos-text-muted, #9aa4b7); }
+      .inspector-marker-pin {
+        position: relative;
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        flex: 0 0 auto;
+      }
+      .inspector-marker-pin::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 8px;
+        width: 2px;
+        height: 7px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.9;
+      }
+      .inspector-marker-pin-deadline {
+        color: #ff6b6b;
+        background: #ff6b6b;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset;
+      }
+      .inspector-marker-pin-due {
+        color: #ffd166;
+        background: #ffd166;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset;
+      }
       .inspector-progress { margin-bottom: 10px; }
       .inspector-progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--chronos-text-muted, #9aa4b7); margin-bottom: 6px; }
       .inspector-progress-track { height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }

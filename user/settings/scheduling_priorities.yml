@@ -1,38 +1,29 @@
-# Scheduling Priorities - Determines weight of each factor in importance calculation
-# Higher Rank = More influence on final importance score
-# Order = Display/processing order (1 = first considered)
-# =============================================================================
+# Scheduling Priorities
+# =====================
+# This file should only contain factors that still make sense as weighted
+# priorities in Kairos v2.
+#
+# These are not hard constraints or structural rules.
+# They are the remaining ranked influences among already-valid options.
 
 Scheduling_Priorities:
-  - Name: Environment
-    Order: 1
-    Rank: 7
-    Description: Hard gate - considers current place, tools, and inventory.
   - Name: Category
-    Order: 2
+    Order: 1
     Rank: 6
-    Description: Life priorities from Category_Settings.
+    Description: Life-domain importance from Category_Settings.
   - Name: Happiness
-    Order: 3
-    Rank: 5
-    Description: Map of Happiness alignment - your north star values.
+    Order: 2
+    Rank: 4
+    Description: Alignment with the Map of Happiness.
   - Name: Due Date
-    Order: 4
+    Order: 3
     Rank: 4
-    Description: Prioritizes items with approaching due dates.
+    Description: Rising urgency as a completion boundary approaches.
   - Name: Deadline
-    Order: 5
+    Order: 4
     Rank: 5
-    Description: Prioritizes items with approaching hard deadlines.
-  - Name: Status Alignment
-    Order: 6
-    Rank: 6
-    Description: Matches items to current energy, focus, and emotional states.
+    Description: Rising urgency as a harder completion boundary approaches.
   - Name: Priority Property
-    Order: 7
+    Order: 5
     Rank: 4
-    Description: Uses the item's explicit Priority property.
-  - Name: Template Membership
-    Order: 8
-    Rank: 1
-    Description: Structural bonus for nested routines.
+    Description: The item's explicit authored priority.

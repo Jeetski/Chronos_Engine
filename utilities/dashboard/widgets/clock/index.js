@@ -18,7 +18,21 @@ export function mount(el) {
 
   el.className = 'widget clock-widget';
   const MIN_CLOCK_WIDTH = 260;
-  const MIN_CLOCK_HEIGHT = 270;
+  const MIN_CLOCK_HEIGHT = 300;
+  const DEFAULT_CLOCK_HEIGHT = 340;
+  const DEFAULT_CLOCK_WIDTH = 320;
+  try {
+    el.dataset.uiId = 'widget.clock';
+    el.dataset.autoheight = 'off';
+    el.dataset.minWidth = String(MIN_CLOCK_WIDTH);
+    el.dataset.minHeight = String(MIN_CLOCK_HEIGHT);
+    el.style.minWidth = `${MIN_CLOCK_WIDTH}px`;
+    el.style.minHeight = `${MIN_CLOCK_HEIGHT}px`;
+    if (!el.style.width) el.style.width = `${DEFAULT_CLOCK_WIDTH}px`;
+    if (!el.style.height) el.style.height = `${DEFAULT_CLOCK_HEIGHT}px`;
+    if ((parseFloat(el.style.width) || 0) < MIN_CLOCK_WIDTH) el.style.width = `${MIN_CLOCK_WIDTH}px`;
+    if ((parseFloat(el.style.height) || 0) < MIN_CLOCK_HEIGHT) el.style.height = `${MIN_CLOCK_HEIGHT}px`;
+  } catch { }
 
   const tpl = `
     <style>
@@ -163,14 +177,7 @@ export function mount(el) {
       .clock-section-content {
         padding: 10px;
       }
-      .clock-widget input[type="date"] {
-        color-scheme: dark;
-      }
-      .clock-widget input[type="date"]::-webkit-calendar-picker-indicator {
-        filter: invert(0.9) brightness(0.95);
-        opacity: 0.85;
-        cursor: pointer;
-      }
+      .clock-widget input[type="date"] { color-scheme: dark; }
     </style>
     <div class="header" id="clockHeader">
       <div class="title">Chronos Clock</div>
@@ -325,13 +332,8 @@ export function mount(el) {
 
   function apiBase() { const o = window.location.origin; if (!o || o === 'null' || o.startsWith('file:')) return 'http://127.0.0.1:7357'; return o; }
   function enhanceDateInput(input) {
-    if (!input || input.dataset.datePickerBound === 'true') return input;
-    try { input.dataset.datePickerBound = 'true'; } catch { }
-    const openPicker = () => {
-      try { if (typeof input.showPicker === 'function') input.showPicker(); } catch { }
-    };
-    input.addEventListener('focus', openPicker);
-    input.addEventListener('click', openPicker);
+    if (!input) return input;
+    input.dataset.calendarEnhanced = 'true';
     return input;
   }
   const defaults = ((window.CHRONOS_SETTINGS || {}).defaults) || {};

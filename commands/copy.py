@@ -1,12 +1,57 @@
-import sys
-from modules.item_manager import read_item_data, write_item_data, get_item_path
+"""
+Chronos `copy` command.
+
+Important compatibility note:
+- This file is named `copy.py` because it powers the `copy` CLI command.
+- In some Chronos startup paths, the `commands/` directory can end up on
+  `sys.path`, which means imports like `from copy import deepcopy` may
+  accidentally resolve to this file instead of Python's standard-library
+  `copy` module.
+
+To avoid breaking those imports, this command file proxies the standard-library
+`copy` API (`copy`, `deepcopy`, and related error symbols) before defining the
+Chronos command entrypoints.
+"""
+
+import importlib.util
 import os
+import sysconfig
+
+
+def _load_stdlib_copy_module():
+    """Load the real Python standard-library `copy` module by filesystem path."""
+    stdlib_dir = sysconfig.get_path("stdlib")
+    if not stdlib_dir:
+        raise ImportError("Could not locate Python stdlib path for copy module.")
+
+    copy_path = os.path.join(stdlib_dir, "copy.py")
+    spec = importlib.util.spec_from_file_location("_chronos_stdlib_copy", copy_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load stdlib copy module from: {copy_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_STDLIB_COPY = _load_stdlib_copy_module()
+
+# Re-export the stdlib API so `from copy import deepcopy` still works even if
+# this file is resolved as module `copy`.
+copy = _STDLIB_COPY.copy
+deepcopy = _STDLIB_COPY.deepcopy
+Error = getattr(_STDLIB_COPY, "Error", Exception)
+error = getattr(_STDLIB_COPY, "error", Error)
+
+__all__ = ["copy", "deepcopy", "Error", "error", "run", "get_help_message"]
 
 # --- Command Definition ---
 def run(args, properties):
     """
     Handles the 'copy' command, creating a duplicate of an existing item.
     """
+    from modules.item_manager import read_item_data, write_item_data, get_item_path
+
     # Validate command arguments
     if len(args) < 2:
         print(get_help_message())

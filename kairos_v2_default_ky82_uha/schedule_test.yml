@@ -1,0 +1,563 @@
+- actual_end: null
+  actual_start: null
+  anchored: false
+  block_id: anon:habit:chronos_check_in:na:na:10:0@00:28
+  children: []
+  completed_logged_at: null
+  duration: 10
+  end_time: 2026-03-19 00:38:00
+  importance: 134.0
+  name: Chronos Check in
+  reschedule: auto
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 00:28:00
+  status: pending
+  type: habit
+  window_name: GAP
+- anchored: false
+  block_id: routine::morning routine@hierarchy
+  children:
+  - anchored: false
+    block_id: window::workout_window
+    children:
+    - actual_end: null
+      actual_start: null
+      anchored: false
+      block_id: id:39@00:43
+      children: []
+      completed_logged_at: null
+      duration: 5
+      end_time: 2026-03-19 00:48:00
+      importance: -1.25
+      name: Dumbell Curls
+      reschedule: auto
+      scheduled_end: null
+      scheduled_start: null
+      start_time: &id002 2026-03-19 00:43:00
+      status: active
+      type: habit
+      window_name: GAP
+    - actual_end: null
+      actual_start: null
+      anchored: false
+      block_id: id:40@00:48
+      children: []
+      completed_logged_at: null
+      duration: 5
+      end_time: 2026-03-19 00:53:00
+      importance: -1.25
+      name: Eyesight Exercises
+      reschedule: auto
+      scheduled_end: null
+      scheduled_start: null
+      start_time: 2026-03-19 00:48:00
+      status: active
+      type: habit
+      window_name: GAP
+    - actual_end: null
+      actual_start: null
+      anchored: false
+      block_id: id:48@00:53
+      children: []
+      completed_logged_at: null
+      duration: 5
+      end_time: 2026-03-19 00:58:00
+      importance: -1.25
+      name: Pelvic Floor Training
+      reschedule: auto
+      scheduled_end: null
+      scheduled_start: null
+      start_time: 2026-03-19 00:53:00
+      status: active
+      type: habit
+      window_name: GAP
+    - actual_end: null
+      actual_start: null
+      anchored: false
+      block_id: id:49@00:58
+      children: []
+      completed_logged_at: null
+      duration: 5
+      end_time: 2026-03-19 01:03:00
+      importance: -1.25
+      name: Push Ups
+      reschedule: auto
+      scheduled_end: null
+      scheduled_start: null
+      start_time: 2026-03-19 00:58:00
+      status: active
+      type: habit
+      window_name: GAP
+    - actual_end: null
+      actual_start: null
+      anchored: false
+      block_id: id:50@01:03
+      children: []
+      completed_logged_at: null
+      duration: 5
+      end_time: 2026-03-19 01:08:00
+      importance: -1.25
+      name: Reaction Ball Training
+      reschedule: auto
+      scheduled_end: null
+      scheduled_start: null
+      start_time: 2026-03-19 01:03:00
+      status: active
+      type: habit
+      window_name: GAP
+    - actual_end: null
+      actual_start: null
+      anchored: false
+      block_id: anon:habit:stretch_out:na:na:5:6@06:30
+      children: []
+      completed_logged_at: null
+      duration: 5
+      end_time: &id001 2026-03-19 06:35:00
+      importance: 98.75
+      name: Stretch Out
+      reschedule: auto
+      scheduled_end: null
+      scheduled_start: null
+      start_time: 2026-03-19 06:30:00
+      status: pending
+      type: habit
+      window_name: Workout Window
+    duration: 352
+    end_time: *id001
+    importance: 0
+    name: Workout Window
+    reschedule: auto
+    start_time: *id002
+    status: active
+    type: microroutine
+    window_name: WINDOW
+  duration: 352
+  end_time: *id001
+  importance: 0
+  name: Morning Routine
+  reschedule: auto
+  start_time: *id002
+  status: completed
+  type: routine
+  window_name: HIERARCHY
+- actual_end: null
+  actual_start: null
+  anchored: false
+  block_id: id:59@00:38
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 00:43:00
+  importance: 19.0
+  name: Take Vitamins & Supplements
+  reschedule: auto
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 00:38:00
+  status: active
+  type: habit
+  window_name: GAP
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::01:08
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 01:13:00
+  importance: null
+  name: Dynamic Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 01:08:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::01:13
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 01:18:00
+  importance: null
+  name: Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 01:13:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::06:35
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 06:40:00
+  importance: null
+  name: Dynamic Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 06:35:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::06:40
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 06:45:00
+  importance: null
+  name: Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 06:40:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: false
+  block_id: timeblock::free::07:57
+  children: []
+  completed_logged_at: null
+  duration: 3
+  end_time: 2026-03-19 08:00:00
+  importance: 0
+  name: Morning Free Time 60
+  reschedule: auto
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 07:57:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: id:timeblock::breakfast anchor@08:00
+  children: []
+  completed_logged_at: null
+  duration: 30
+  end_time: 2026-03-19 08:30:00
+  importance: 0
+  name: Breakfast Anchor
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 08:00:00
+  status: active
+  type: timeblock
+  window_name: ANCHOR
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::08:30
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 08:35:00
+  importance: null
+  name: Dynamic Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 08:30:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: id:timeblock::lunch anchor@13:00
+  children: []
+  completed_logged_at: null
+  duration: 45
+  end_time: 2026-03-19 13:45:00
+  importance: 0
+  name: Lunch Anchor
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 13:00:00
+  status: active
+  type: timeblock
+  window_name: ANCHOR
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::13:45
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 13:50:00
+  importance: null
+  name: Dynamic Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 13:45:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: id:timeblock::dinner anchor@19:00
+  children: []
+  completed_logged_at: null
+  duration: 60
+  end_time: 2026-03-19 20:00:00
+  importance: 0
+  name: Dinner Anchor
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 19:00:00
+  status: active
+  type: timeblock
+  window_name: ANCHOR
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: timeblock::buffer::20:00
+  children: []
+  completed_logged_at: null
+  duration: 5
+  end_time: 2026-03-19 20:05:00
+  importance: null
+  name: Dynamic Buffer
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 20:00:00
+  status: pending
+  type: timeblock
+  window_name: TIMEBLOCK
+- actual_end: null
+  actual_start: null
+  anchored: true
+  block_id: id:timeblock::bedtime anchor@22:00
+  children: []
+  completed_logged_at: null
+  duration: 480
+  end_time: 2026-03-19 23:59:00
+  importance: 0
+  name: Bedtime Anchor
+  reschedule: never
+  scheduled_end: null
+  scheduled_start: null
+  start_time: 2026-03-19 22:00:00
+  status: active
+  type: timeblock
+  window_name: ANCHOR
+- anchored: false
+  block_id: window::morning_free_time_60
+  children:
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:dream_defrag:na:na:5:1@07:00
+    children: []
+    completed_logged_at: null
+    duration: 5
+    end_time: 2026-03-19 07:05:00
+    importance: 134.0
+    name: Dream Defrag
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: &id004 2026-03-19 07:00:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:hydrate:na:na:5:4@07:05
+    children: []
+    completed_logged_at: null
+    duration: 5
+    end_time: 2026-03-19 07:10:00
+    importance: 119.0
+    name: Hydrate
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:05:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:stillness_meditation:na:na:5:3@07:10
+    children: []
+    completed_logged_at: null
+    duration: 5
+    end_time: 2026-03-19 07:15:00
+    importance: 134.0
+    name: Stillness Meditation
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:10:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:brush_teeth:na:na:2:7@07:15
+    children: []
+    completed_logged_at: null
+    duration: 2
+    end_time: 2026-03-19 07:17:00
+    importance: 95.0
+    name: Brush Teeth
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:15:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:mouthwash:na:na:1:9@07:17
+    children: []
+    completed_logged_at: null
+    duration: 1
+    end_time: 2026-03-19 07:18:00
+    importance: 95.0
+    name: Mouthwash
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:17:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:interdental_flossing:na:na:2:8@07:18
+    children: []
+    completed_logged_at: null
+    duration: 2
+    end_time: 2026-03-19 07:20:00
+    importance: 95.0
+    name: Interdental Flossing
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:18:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:shower:na:na:15:13@07:20
+    children: []
+    completed_logged_at: null
+    duration: 15
+    end_time: 2026-03-19 07:35:00
+    importance: 95.0
+    name: Shower
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:20:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:shave_&_trim_up:na:na:10:12@07:35
+    children: []
+    completed_logged_at: null
+    duration: 10
+    end_time: 2026-03-19 07:45:00
+    importance: 95.0
+    name: Shave & Trim up
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:35:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:niacinamide:na:na:2:11@07:45
+    children: []
+    completed_logged_at: null
+    duration: 2
+    end_time: 2026-03-19 07:47:00
+    importance: 95.0
+    name: Niacinamide
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:45:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:nails_upkeep:na:na:5:10@07:47
+    children: []
+    completed_logged_at: null
+    duration: 5
+    end_time: 2026-03-19 07:52:00
+    importance: 95.0
+    name: Nails Upkeep
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:47:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  - actual_end: null
+    actual_start: null
+    anchored: false
+    block_id: anon:habit:set_intentions_for_today:na:na:5:2@07:52
+    children: []
+    completed_logged_at: null
+    duration: 5
+    end_time: &id003 2026-03-19 07:57:00
+    importance: 134.0
+    name: Set Intentions for Today
+    reschedule: auto
+    scheduled_end: null
+    scheduled_start: null
+    start_time: 2026-03-19 07:52:00
+    status: pending
+    type: habit
+    window_name: Morning Free Time 60
+  duration: 57
+  end_time: *id003
+  importance: 0
+  name: Morning Free Time 60
+  reschedule: auto
+  start_time: *id004
+  status: active
+  type: microroutine
+  window_name: WINDOW
