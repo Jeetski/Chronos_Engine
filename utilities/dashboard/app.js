@@ -2,18 +2,33 @@
 import { mountWidget, mountView, launchWizard, mountGadget } from './core/runtime.js';
 try { window.__CHRONOS_APP_MANAGED_MOUNTS = true; } catch { }
 const POPUPS_ENABLED_STORAGE_KEY = 'chronos_dashboard_popups_enabled_v1';
-const SHOW_POST_RELEASE_STORAGE_KEY = 'chronos_dashboard_show_post_release_v1';
 const SHOW_BADGES_STORAGE_KEY = 'chronos_dashboard_show_badges_v1';
 const DISABLED_GADGETS_STORAGE_KEY = 'chronos_dashboard_disabled_gadgets_v1';
 const DOCK_DOCKED_STORAGE_KEY = 'chronos_dashboard_dock_docked_v1';
-const POST_RELEASE_WIDGETS = ['InventoryManager', 'Link', 'MP3Player', 'ResolutionTracker'];
-const PRIORITY_WIDGETS = new Set(['Terminal', 'Review', 'Rewards']);
-const URGENT_WIDGETS = new Set([
+const ALPHA_GATE_SETTINGS_FILE = 'alpha_gate_settings.yml';
+const DEFAULT_ALPHA_GATE_PROFILE = 'alpha_v0_3';
+let alphaGateConfig = null;
+let alphaGateState = {
+  releaseProfile: DEFAULT_ALPHA_GATE_PROFILE,
+  showHiddenItems: false,
+};
+let POST_RELEASE_WIDGETS = [
+  'Achievements',
+  'Commitments',
   'GoalTracker',
+  'InventoryManager',
+  'Link',
+  'Milestones',
+  'MP3Player',
+  'NiaAssistant',
+  'Review',
+  'ResolutionTracker',
+  'Rewards',
+];
+const PRIORITY_WIDGETS = new Set(['Terminal']);
+const URGENT_WIDGETS = new Set([
   'HabitTracker',
   'ItemManager',
-  'Milestones',
-  'NiaAssistant',
   'Settings',
   'SleepSettings',
   'Status',
@@ -41,23 +56,46 @@ const DEV_WIDGETS = new Set([
   'Variables',
 ]);
 const GOOD_ENOUGH_WIDGETS = new Set(['Admin', 'Clock', 'DebugConsole', 'Profile', 'StickyNotes']);
-const POST_RELEASE_WIZARDS = new Set(['Big5', 'SelfAuthoring', 'MapOfHappiness', 'FutureSelfDialogue']);
+let POST_RELEASE_WIZARDS = new Set([
+  'Big5',
+  'big5',
+  'future_self_dialogue',
+  'futureselfdialogue',
+  'goal_planning',
+  'goalplanning',
+  'map_of_happiness',
+  'mapofhappiness',
+  'new_year_resolutions',
+  'newyearresolutions',
+  'project_launch',
+  'projectlaunch',
+  'self_authoring',
+  'selfauthoring',
+]);
 const PRIORITY_WIZARDS = new Set(['brain dump', 'braindump', 'chore setup', 'choresetup']);
 const URGENT_WIZARDS = new Set([
   'onboarding',
-  'goal planning',
-  'goalplanning',
   'life setup',
   'lifesetup',
   'sleep hygiene',
   'sleepsettings',
 ]);
-const DEV_VIEWS = new Set(['atlas', 'calendar', 'cockpit', 'project manager', 'template builder', 'weekly']);
-const PRIORITY_VIEWS = new Set([
+let POST_RELEASE_VIEWS = new Set([
+  'aduc',
+  'atlas',
+  'calendar',
+  'canvas',
   'cockpit',
-  'tracker',
+  'editor',
   'goal planner',
   'goalplanner',
+  'project manager',
+  'projectmanager',
+  'tracker',
+  'weekly',
+]);
+const DEV_VIEWS = new Set(['atlas', 'calendar', 'cockpit', 'project manager', 'template builder', 'weekly']);
+const PRIORITY_VIEWS = new Set([
   'day builder',
   'daybuilder',
   'routine builder',
@@ -65,13 +103,21 @@ const PRIORITY_VIEWS = new Set([
   'week builder',
   'weekbuilder',
 ]);
-const URGENT_VIEWS = new Set(['calendar', 'weekly']);
+const URGENT_VIEWS = new Set([]);
 const GOOD_ENOUGH_VIEWS = new Set(['docs', 'editor']);
-const POST_RELEASE_PANELS = new Set(['map of happiness', 'flashcards']);
-const PRIORITY_PANELS = new Set(['commitments', 'commitments snapshot']);
-const URGENT_PANELS = new Set(['status chart', 'status strip', 'schedule panel', 'matrix', 'matrix visuals']);
+let POST_RELEASE_PANELS = new Set([
+  'commitments',
+  'commitments snapshot',
+  'flashcards',
+  'map of happiness',
+  'progress gauge',
+  'status chart',
+]);
+const PRIORITY_PANELS = new Set([]);
+const URGENT_PANELS = new Set(['status strip', 'schedule panel', 'matrix', 'matrix visuals']);
 const URGENT_GADGETS = new Set(['timer', 'reschedule']);
 const DEV_GADGETS = new Set(['progress gauge', 'progress_gauge']);
+let POST_RELEASE_GADGETS = new Set(['progress gauge', 'progress_gauge']);
 
 function arePopupsEnabled() {
   try {
@@ -87,18 +133,66 @@ function setPopupsEnabled(enabled) {
   try { localStorage.setItem(POPUPS_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false'); } catch { }
 }
 
-function arePostReleaseItemsVisible() {
-  try {
-    const raw = localStorage.getItem(SHOW_POST_RELEASE_STORAGE_KEY);
-    if (raw === null) return true;
-    return raw !== 'false';
-  } catch {
-    return true;
-  }
+function normalizeAlphaGateToken(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
-function setPostReleaseItemsVisible(enabled) {
-  try { localStorage.setItem(SHOW_POST_RELEASE_STORAGE_KEY, enabled ? 'true' : 'false'); } catch { }
+function getDefaultAlphaGateProfile() {
+  const configured = String(alphaGateConfig?.default_profile || '').trim();
+  return configured || DEFAULT_ALPHA_GATE_PROFILE;
+}
+
+function getReleaseProfile() {
+  const configured = String(alphaGateState?.releaseProfile || '').trim();
+  return configured || getDefaultAlphaGateProfile();
+}
+
+function isFullDevProfile() {
+  return normalizeAlphaGateToken(getReleaseProfile()) === 'full_dev';
+}
+
+function isAlphaGateActive() {
+  return !isFullDevProfile();
+}
+
+function areHiddenItemsVisible() {
+  return isFullDevProfile() || !!alphaGateState?.showHiddenItems;
+}
+
+function arePostReleaseItemsVisible() {
+  return areHiddenItemsVisible();
+}
+
+function isHiddenWidgetName(name) {
+  return POST_RELEASE_WIDGETS.includes(String(name || '').trim());
+}
+
+function isHiddenViewName(name, label) {
+  const normalizedName = normalizeAlphaGateToken(name);
+  const normalizedLabel = normalizeAlphaGateToken(label || name);
+  return POST_RELEASE_VIEWS.has(normalizedName) || POST_RELEASE_VIEWS.has(normalizedLabel);
+}
+
+function isHiddenWizardToken(value) {
+  return POST_RELEASE_WIZARDS.has(normalizeAlphaGateToken(value));
+}
+
+function isHiddenPanelName(name, label) {
+  const normalizedName = normalizeAlphaGateToken(name);
+  const normalizedLabel = normalizeAlphaGateToken(label || name);
+  return POST_RELEASE_PANELS.has(normalizedName) || POST_RELEASE_PANELS.has(normalizedLabel);
+}
+
+function isHiddenGadgetToken(value) {
+  return POST_RELEASE_GADGETS.has(normalizeAlphaGateToken(value));
+}
+
+function hiddenBadgeText() {
+  return isAlphaGateActive() ? 'hidden' : 'later';
+}
+
+function hiddenBadgeTitle() {
+  return isAlphaGateActive() ? 'Hidden by alpha gate' : 'Post-release feature';
 }
 
 function areBadgesVisible() {
@@ -346,6 +440,76 @@ function apiBase() {
   return o;
 }
 
+function toUniqueNameArray(values, fallback = []) {
+  const source = Array.isArray(values) && values.length ? values : fallback;
+  return Array.from(new Set(source.map((value) => String(value || '').trim()).filter(Boolean)));
+}
+
+function toUniqueNormalizedSet(values, fallback = []) {
+  const source = Array.isArray(values) && values.length ? values : fallback;
+  return new Set(source.map((value) => normalizeAlphaGateToken(value)).filter(Boolean));
+}
+
+function applyAlphaGateConfig(rawConfig) {
+  if (!rawConfig || typeof rawConfig !== 'object') return;
+  alphaGateConfig = rawConfig;
+  const profile = rawConfig?.profiles?.alpha_v0_3;
+  const hidden = profile?.dashboard?.hidden;
+  if (!hidden || typeof hidden !== 'object') return;
+  POST_RELEASE_WIDGETS = toUniqueNameArray(hidden.widgets, POST_RELEASE_WIDGETS);
+  POST_RELEASE_WIZARDS = toUniqueNormalizedSet(Array.from(hidden.wizards || []), Array.from(POST_RELEASE_WIZARDS));
+  POST_RELEASE_VIEWS = toUniqueNormalizedSet(Array.from(hidden.views || []), Array.from(POST_RELEASE_VIEWS));
+  POST_RELEASE_PANELS = toUniqueNormalizedSet(Array.from(hidden.panels || []), Array.from(POST_RELEASE_PANELS));
+  POST_RELEASE_GADGETS = toUniqueNormalizedSet(Array.from(hidden.gadgets || []), Array.from(POST_RELEASE_GADGETS));
+}
+
+async function loadAlphaGateConfig() {
+  try {
+    const url = new URL(`./config/alpha_gate_profiles.json?v=${Date.now()}`, import.meta.url);
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
+}
+
+function parseAlphaGateSettings(data) {
+  if (!data || typeof data !== 'object') return;
+  const profile = String(data.release_profile || '').trim();
+  if (profile) alphaGateState.releaseProfile = profile;
+  alphaGateState.showHiddenItems = !!data.show_hidden_items;
+}
+
+async function loadAlphaGateState() {
+  try {
+    const resp = await fetch(`${apiBase()}/api/settings?file=${encodeURIComponent(ALPHA_GATE_SETTINGS_FILE)}`);
+    if (!resp.ok) return;
+    const payload = await resp.json().catch(() => ({}));
+    parseAlphaGateSettings(payload?.data || {});
+  } catch { }
+}
+
+function serializeAlphaGateState() {
+  const profile = String(getReleaseProfile() || getDefaultAlphaGateProfile()).trim();
+  const showHidden = !!alphaGateState.showHiddenItems;
+  return [
+    `release_profile: ${profile}`,
+    `show_hidden_items: ${showHidden ? 'true' : 'false'}`,
+    '',
+  ].join('\n');
+}
+
+async function saveAlphaGateState() {
+  try {
+    await fetch(`${apiBase()}/api/settings?file=${encodeURIComponent(ALPHA_GATE_SETTINGS_FILE)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/yaml' },
+      body: serializeAlphaGateState(),
+    });
+  } catch { }
+}
+
 function setupDockReveal(gadgets = []) {
   const dock = document.getElementById('chronosDock');
   const hotzone = document.getElementById('dockHotzone');
@@ -459,7 +623,15 @@ function setupDockReveal(gadgets = []) {
   dockShell.innerHTML = '';
   const disabled = getDisabledGadgets();
   const items = Array.isArray(gadgets)
-    ? gadgets.filter((g) => g && g.enabled !== false && !disabled.has(getGadgetKey(g)))
+    ? gadgets.filter((g) => {
+      if (!g || g.enabled === false || disabled.has(getGadgetKey(g))) return false;
+      if (!arePostReleaseItemsVisible()) {
+        const key = getGadgetKey(g);
+        const label = g?.label || g?.module || g?.id || key;
+        if (Boolean(g?.postRelease) || isHiddenGadgetToken(key) || isHiddenGadgetToken(label)) return false;
+      }
+      return true;
+    })
     : [];
   items
     .sort((a, b) => {
@@ -635,6 +807,17 @@ ready(async () => {
       logo.addEventListener('error', () => { logo.src = want; });
     }
   } catch { }
+
+  bootStep('Loading alpha gate profile');
+  try {
+    const config = await loadAlphaGateConfig();
+    if (config) applyAlphaGateConfig(config);
+    await loadAlphaGateState();
+    bootStep(`Alpha gate ready: ${getReleaseProfile()}${alphaGateState.showHiddenItems ? ' + hidden override' : ''}`);
+  } catch (e) {
+    console.warn('[Chronos][app] Alpha gate bootstrap failed', e);
+    bootStep('Alpha gate fallback: defaults');
+  }
 
   const viewRoot = document.getElementById('view');
   // DEV flags and available views will come from registries
@@ -1122,11 +1305,13 @@ ready(async () => {
     };
   } catch { }
 
-  function closePane(name) {
+  function closePane(name, { recordHistory = true } = {}) {
     const idx = openPanes.findIndex(v => v.name === name);
     if (idx === -1) return;
     const pane = openPanes[idx];
-    rememberClosedSurface({ type: 'view', name: pane.name, label: pane.label || pane.name });
+    if (recordHistory) {
+      rememberClosedSurface({ type: 'view', name: pane.name, label: pane.label || pane.name });
+    }
     try {
       const viewApi = pane.viewport?.__view?.api;
       if (viewApi && typeof viewApi.dispose === 'function') {
@@ -1161,6 +1346,7 @@ ready(async () => {
     try { await mountWidget(el, name); } catch (e) { console.error('[Chronos][app] Widget mount error:', name, e); }
   }
   bootStep('Widgets mounted');
+  try { applyAlphaGateVisibility(); } catch (e) { bootFail('Alpha gate visibility apply failed', e); }
 
   function setFocusedSurface(surface) {
     if (!surface || !surface.type || !surface.name) return;
@@ -1219,14 +1405,14 @@ ready(async () => {
     return true;
   }
 
-  function openWidgetByName(name) {
+  function openWidgetByName(name, options = {}) {
     const el = findWidgetElementByName(name);
-    return setWidgetVisibility(el, true);
+    return setWidgetVisibility(el, true, options);
   }
 
-  function closeWidgetByName(name) {
+  function closeWidgetByName(name, options = {}) {
     const el = findWidgetElementByName(name);
-    return setWidgetVisibility(el, false);
+    return setWidgetVisibility(el, false, options);
   }
 
   function getSurfaceElements() {
@@ -1494,6 +1680,144 @@ ready(async () => {
     return availableViews.find((view) => normalizeActionToken(view?.name || view?.label || '') === wanted) || null;
   }
 
+  function shouldSuppressHiddenAlphaItems() {
+    return !arePostReleaseItemsVisible();
+  }
+
+  function isHiddenViewEntry(viewOrName, label) {
+    if (viewOrName && typeof viewOrName === 'object') {
+      return Boolean(viewOrName?.postRelease) || isHiddenViewName(viewOrName?.name, viewOrName?.label || viewOrName?.name);
+    }
+    return isHiddenViewName(viewOrName, label);
+  }
+
+  function isHiddenWizardEntry(wizardOrToken, label) {
+    if (wizardOrToken && typeof wizardOrToken === 'object') {
+      return Boolean(wizardOrToken?.postRelease)
+        || isHiddenWizardToken(wizardOrToken?.module || wizardOrToken?.id || '')
+        || isHiddenWizardToken(wizardOrToken?.label || '');
+    }
+    return isHiddenWizardToken(wizardOrToken) || isHiddenWizardToken(label);
+  }
+
+  function isHiddenPanelEntry(panelOrName, label) {
+    if (panelOrName && typeof panelOrName === 'object') {
+      const key = panelOrName?.menuKey || panelOrName?.key || panelOrName?.id || '';
+      const text = panelOrName?.menuLabel || panelOrName?.label || key;
+      return Boolean(panelOrName?.postRelease) || isHiddenPanelName(key, text);
+    }
+    return isHiddenPanelName(panelOrName, label);
+  }
+
+  function isHiddenGadgetEntry(gadgetOrToken, label) {
+    if (gadgetOrToken && typeof gadgetOrToken === 'object') {
+      const key = getGadgetKey(gadgetOrToken);
+      const text = gadgetOrToken?.label || gadgetOrToken?.module || gadgetOrToken?.id || key;
+      return Boolean(gadgetOrToken?.postRelease) || isHiddenGadgetToken(key) || isHiddenGadgetToken(text);
+    }
+    return isHiddenGadgetToken(gadgetOrToken) || isHiddenGadgetToken(label);
+  }
+
+  function isHiddenSurfaceTarget(target) {
+    const raw = String(target || '').trim();
+    if (!raw || !shouldSuppressHiddenAlphaItems()) return false;
+    const [kind, name] = raw.split('.', 2);
+    if (String(kind || '').toLowerCase() === 'widget') {
+      const widget = findWidgetElementByName(name);
+      return isHiddenWidgetName(widget?.getAttribute('data-widget') || name);
+    }
+    if (String(kind || '').toLowerCase() === 'view') {
+      const view = findViewByName(name);
+      return isHiddenViewEntry(view || name, view?.label || prettifyTargetLabel(name));
+    }
+    return false;
+  }
+
+  function pickDefaultVisibleView() {
+    const alphaCandidates = [
+      { name: 'DayBuilder', label: 'Day Builder' },
+      { name: 'Day', label: 'Day' },
+      { name: 'WeekBuilder', label: 'Week Builder' },
+      { name: 'RoutineBuilder', label: 'Routine Builder' },
+      { name: 'Docs', label: 'Docs' },
+    ];
+    const fullDevCandidates = [
+      { name: 'Calendar', label: 'Calendar' },
+      ...alphaCandidates,
+    ];
+    const candidates = shouldSuppressHiddenAlphaItems() ? alphaCandidates : fullDevCandidates;
+    for (const candidate of candidates) {
+      const existing = findViewByName(candidate.name);
+      if (existing && !isHiddenViewEntry(existing)) {
+        return { name: existing.name, label: existing.label || existing.name };
+      }
+    }
+    const visible = availableViews.filter((view) => !isHiddenViewEntry(view));
+    if (visible.length) {
+      const view = visible[0];
+      return { name: view.name, label: view.label || view.name };
+    }
+    return candidates[0] || null;
+  }
+
+  function refreshAlphaGateUi() {
+    try { buildWidgetsMenu(); } catch { }
+    try { buildViewsMenu(); } catch { }
+    try { buildWizardsMenu(); } catch { }
+    try { buildGadgetsMenu(); } catch { }
+    try { buildPanelsMenu(); } catch { }
+    try { buildDevMenu(); } catch { }
+    try { refreshViewMenuChecks(); } catch { }
+    try { renderEmptyStateContents(); } catch { }
+    try { setupDockReveal(gadgetCatalog); } catch { }
+  }
+
+  function applyAlphaGateVisibility() {
+    if (!shouldSuppressHiddenAlphaItems()) {
+      try { setupDockReveal(gadgetCatalog); } catch { }
+      return;
+    }
+
+    openPanes.slice().forEach((pane) => {
+      if (isHiddenViewEntry(pane.name, pane.label)) {
+        closePane(pane.name, { recordHistory: false });
+      }
+    });
+
+    widgetEls.forEach((el) => {
+      const name = el.getAttribute('data-widget') || el.id || '';
+      if (isHiddenWidgetName(name) && isWidgetVisibleByElement(el)) {
+        setWidgetVisibility(el, false, { recordHistory: false, focus: false });
+      }
+    });
+
+    try {
+      const manager = window.CockpitPanels;
+      const panels = manager?.list?.() || [];
+      panels.forEach((panel) => {
+        if (panel?.visible && isHiddenPanelEntry(panel)) {
+          try { manager.setVisible?.(panel.id, false); } catch { }
+        }
+      });
+    } catch { }
+
+    try { setupDockReveal(gadgetCatalog); } catch { }
+  }
+
+  async function updateAlphaGateMode(nextState = {}) {
+    if (nextState && typeof nextState === 'object') {
+      if (typeof nextState.releaseProfile === 'string' && nextState.releaseProfile.trim()) {
+        alphaGateState.releaseProfile = nextState.releaseProfile.trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(nextState, 'showHiddenItems')) {
+        alphaGateState.showHiddenItems = !!nextState.showHiddenItems;
+      }
+    }
+    applyAlphaGateVisibility();
+    refreshAlphaGateUi();
+    await saveAlphaGateState();
+  }
+
   function getTargetLabel(target) {
     const raw = String(target || '').trim();
     if (!raw) return 'Unknown';
@@ -1513,12 +1837,12 @@ ready(async () => {
   function getShortcutSummaryGroups() {
     const primary = [
       { label: 'Reopen last closed surface', combo: shortcutBindings.reopen_last_closed },
-      { label: 'Open Nia', combo: shortcutBindings.open_nia },
+      { label: 'Open Nia', combo: shortcutBindings.open_nia, hidden: shouldSuppressHiddenAlphaItems() && isHiddenWidgetName('NiaAssistant') },
       { label: 'Show shortcut help', combo: shortcutBindings.shortcut_help },
       { label: 'Close focused surface', combo: shortcutBindings.close_focused_surface },
       { label: 'Focus next surface', combo: shortcutBindings.focus_next_surface },
       { label: 'Focus previous surface', combo: shortcutBindings.focus_previous_surface },
-    ].filter((item) => item.combo);
+    ].filter((item) => item.combo && !item.hidden);
     const quickSlots = Object.keys(shortcutBindings.quick_slots || {})
       .sort((a, b) => Number(a) - Number(b))
       .map((slot) => {
@@ -1526,9 +1850,10 @@ ready(async () => {
         return {
           label: getTargetLabel(target),
           combo: normalizeShortcutCombo(`Ctrl+${slot}`),
+          hidden: isHiddenSurfaceTarget(target),
         };
       })
-      .filter((item) => item.combo && item.label);
+      .filter((item) => item.combo && item.label && !item.hidden);
     return [
       { title: 'Workspace', items: primary },
       { title: 'Quick Slots', items: quickSlots },
@@ -1800,6 +2125,7 @@ ready(async () => {
   async function reopenLastClosedSurface() {
     const surface = closedSurfaceHistory.pop();
     if (!surface) return false;
+    if (isHiddenSurfaceTarget(`${surface.type}.${surface.name}`)) return false;
     return openSurfaceFromTarget(`${surface.type}.${surface.name}`);
   }
 
@@ -1850,6 +2176,7 @@ ready(async () => {
   async function runShortcutAction(action) {
     if (action === 'reopen_last_closed') return reopenLastClosedSurface();
     if (action === 'open_nia') {
+      if (shouldSuppressHiddenAlphaItems() && isHiddenWidgetName('NiaAssistant')) return false;
       openWidgetByName('NiaAssistant');
       try { window.ChronosBus?.emit?.('nia:open-chat'); } catch { }
       try {
@@ -1922,9 +2249,11 @@ ready(async () => {
       const slotMatch = combo.match(/^Ctrl\+([0-9])$/);
       if (slotMatch) {
         clearPendingModifierOnlyAction();
+        const target = shortcutBindings.quick_slots?.[slotMatch[1]];
+        if (isHiddenSurfaceTarget(target)) return;
         ev.preventDefault();
         ev.stopPropagation();
-        void openSurfaceFromTarget(shortcutBindings.quick_slots?.[slotMatch[1]]);
+        void openSurfaceFromTarget(target);
         return;
       }
       const action = SHORTCUT_ACTION_ORDER.find((name) => shortcutBindings[name] === combo);
@@ -2099,7 +2428,7 @@ ready(async () => {
         const fallback = el.id || el.getAttribute('data-widget') || 'widget';
         const label = el.getAttribute('data-label') || el.getAttribute('data-widget') || fallback;
         const name = el.getAttribute('data-widget') || fallback;
-        const postRelease = POST_RELEASE_WIDGETS.includes(name);
+        const postRelease = isHiddenWidgetName(name);
         return { el, label, name, postRelease };
       })
       .filter(entry => showPostRelease || !entry.postRelease)
@@ -2127,11 +2456,11 @@ ready(async () => {
           badge.textContent = 'priority';
           badge.title = 'Priority widget';
           item.appendChild(badge);
-        } else if (POST_RELEASE_WIDGETS.includes(name)) {
+        } else if (isHiddenWidgetName(name)) {
           const badge = document.createElement('span');
           badge.className = 'post-release-badge';
-          badge.textContent = 'later';
-          badge.title = 'Post-release feature';
+          badge.textContent = hiddenBadgeText();
+          badge.title = hiddenBadgeTitle();
           item.appendChild(badge);
         } else if (GOOD_ENOUGH_WIDGETS.has(name)) {
           const badge = document.createElement('span');
@@ -2181,10 +2510,15 @@ ready(async () => {
     if (!gadgetsMenu) return;
     gadgetsMenu.innerHTML = '';
     const dockPinned = isDockPinned();
+    const showPostRelease = arePostReleaseItemsVisible();
 
     const disabled = getDisabledGadgets();
     const entries = [...gadgetCatalog]
       .filter((g) => g && g.enabled !== false && getGadgetKey(g))
+      .filter((g) => {
+        if (showPostRelease) return true;
+        return !isHiddenGadgetEntry(g);
+      })
       .sort((a, b) => {
         const ao = Number(a.order ?? 100);
         const bo = Number(b.order ?? 100);
@@ -2214,6 +2548,12 @@ ready(async () => {
           badge.className = 'urgent-badge';
           badge.textContent = 'urgent';
           badge.title = 'Urgent gadget';
+          item.appendChild(badge);
+        } else if (isHiddenGadgetEntry(gadget, label)) {
+          const badge = document.createElement('span');
+          badge.className = 'post-release-badge';
+          badge.textContent = hiddenBadgeText();
+          badge.title = hiddenBadgeTitle();
           item.appendChild(badge);
         } else if (DEV_GADGETS.has(normalized) || DEV_GADGETS.has(normalizedKey)) {
           const badge = document.createElement('span');
@@ -2660,6 +3000,7 @@ ready(async () => {
       try { buildViewsMenu(); } catch (e) { bootFail('View menu build failed', e); }
       try { buildPopupsMenu(); } catch (e) { bootFail('Popup menu build failed', e); }
       try { buildGadgetsMenu(); } catch (e) { bootFail('Gadget menu build failed', e); }
+      try { applyAlphaGateVisibility(); } catch (e) { bootFail('Alpha gate registry apply failed', e); }
       try { setupDockReveal(gadgetCatalog); } catch (e) { bootFail('Dock setup failed', e); }
       try { renderEmptyStateContents(); } catch (e) { bootFail('Empty state render failed', e); }
 
@@ -2713,6 +3054,7 @@ ready(async () => {
     const menu = document.getElementById('menu-panels');
     if (!menu) return;
     menu.innerHTML = '';
+    const showPostRelease = arePostReleaseItemsVisible();
     const manager = window.CockpitPanels;
     if (!manager || typeof manager.list !== 'function') {
       const empty = document.createElement('div');
@@ -2752,7 +3094,12 @@ ready(async () => {
       entries: group.entries,
       primary: group.primary || group.entries[0],
       visible: group.entries.some(p => p.visible),
-    })).sort((a, b) => String(a.label || a.key).localeCompare(String(b.label || b.key), undefined, { sensitivity: 'base' }));
+    }))
+      .filter((panel) => {
+        if (showPostRelease) return true;
+        return !isHiddenPanelEntry(panel);
+      })
+      .sort((a, b) => String(a.label || a.key).localeCompare(String(b.label || b.key), undefined, { sensitivity: 'base' }));
     const frag = document.createDocumentFragment();
     const createPanelItem = (panel) => {
       const item = document.createElement('div');
@@ -2771,7 +3118,7 @@ ready(async () => {
         const panelKey = normalize(panel.key);
         const isUrgent = URGENT_PANELS.has(panelLabel) || URGENT_PANELS.has(panelKey);
         const isPriority = PRIORITY_PANELS.has(panelLabel) || PRIORITY_PANELS.has(panelKey);
-        const isLater = POST_RELEASE_PANELS.has(panelLabel) || POST_RELEASE_PANELS.has(panelKey);
+        const isLater = isHiddenPanelEntry(panel);
         const badge = document.createElement('span');
         if (isUrgent) {
           badge.className = 'urgent-badge';
@@ -2783,8 +3130,8 @@ ready(async () => {
           badge.title = 'Priority panel';
         } else if (isLater) {
           badge.className = 'post-release-badge';
-          badge.textContent = 'later';
-          badge.title = 'Post-release feature';
+          badge.textContent = hiddenBadgeText();
+          badge.title = hiddenBadgeTitle();
         } else {
           badge.className = 'dev-badge';
           badge.textContent = 'dev';
@@ -2879,7 +3226,7 @@ ready(async () => {
       const wizardRawKey = String(wizard?.module || wizard?.id || '').trim();
       const wizardKey = normalize(wizardRawKey);
       const wizardLabel = normalize(wizard?.label);
-      return Boolean(wizard?.postRelease)
+      return isHiddenWizardEntry(wizard)
         || POST_RELEASE_WIZARDS.has(wizardRawKey)
         || POST_RELEASE_WIZARDS.has(wizardKey)
         || POST_RELEASE_WIZARDS.has(wizardLabel);
@@ -2917,8 +3264,8 @@ ready(async () => {
         } else if (postRelease) {
           const badge = document.createElement('span');
           badge.className = 'post-release-badge';
-          badge.textContent = 'later';
-          badge.title = 'Post-release feature';
+          badge.textContent = hiddenBadgeText();
+          badge.title = hiddenBadgeTitle();
           item.appendChild(badge);
         } else {
           const badge = document.createElement('span');
@@ -3002,11 +3349,11 @@ ready(async () => {
       const textEl = document.createElement('span');
       textEl.textContent = label;
       item.append(checkEl, textEl);
-      if (badge === 'later') {
+      if (badge === 'later' || badge === 'hidden') {
         const el = document.createElement('span');
         el.className = 'post-release-badge';
-        el.textContent = 'later';
-        el.title = 'Post-release feature';
+        el.textContent = badge;
+        el.title = badge === 'hidden' ? hiddenBadgeTitle() : 'Post-release feature';
         item.appendChild(el);
       } else if (badge === 'dev') {
         const el = document.createElement('span');
@@ -3071,11 +3418,18 @@ ready(async () => {
       mkAction('Docs View', () => { void openView('Docs', 'Docs'); }, {
         check: isViewOpen('Docs') ? '✓' : '',
         disabled: !hasView('Docs'),
-      }),
-      mkAction('Editor View', () => { void openView('Editor', 'Editor'); }, {
-        check: isViewOpen('Editor') ? '✓' : '',
-        disabled: !hasView('Editor'),
-      }),
+      })
+    );
+    if (arePostReleaseItemsVisible() || !isHiddenViewEntry('Editor', 'Editor')) {
+      workspaceCol.append(
+        mkAction('Editor View', () => { void openView('Editor', 'Editor'); }, {
+          check: isViewOpen('Editor') ? '✓' : '',
+          disabled: !hasView('Editor'),
+          badge: isHiddenViewEntry('Editor', 'Editor') ? hiddenBadgeText() : '',
+        })
+      );
+    }
+    workspaceCol.append(
       mkAction('Debug Console Widget', () => toggleWidgetByName('DebugConsole'), {
         check: isWidgetVisible('DebugConsole') ? '✓' : '',
       }),
@@ -3103,30 +3457,39 @@ ready(async () => {
       mkAction('Rebuild Registry: Properties', () => { void runDevCommandAction('Rebuild Registry: Properties', 'register properties'); }),
       mkAction('Sequence Status', () => { void runDevCommandAction('Sequence Status', 'sequence status'); }),
       mkAction('Sequence Sync (All)', () => { void runDevCommandAction('Sequence Sync (All)', 'sequence sync'); }),
-      mkAction('Sequence Trends', () => { void runDevCommandAction('Sequence Trends', 'sequence trends'); }),
-      mkAction('Reset Achievements', () => { void runDevCommandAction('Reset Achievements', 'achievements reset'); }),
-      mkAction('Reset XP/Level', () => { void runDevCommandAction('Reset XP/Level', 'achievements reset-progress'); }),
-      mkAction('Reset Points', () => { void runDevCommandAction('Reset Points', 'points reset'); })
+      mkAction('Sequence Trends', () => { void runDevCommandAction('Sequence Trends', 'sequence trends'); })
     );
+    if (areHiddenItemsVisible()) {
+      dataOpsCol.append(
+        mkAction('Reset Achievements', () => { void runDevCommandAction('Reset Achievements', 'achievements reset'); }, { badge: hiddenBadgeText() }),
+        mkAction('Reset XP/Level', () => { void runDevCommandAction('Reset XP/Level', 'achievements reset-progress'); }, { badge: hiddenBadgeText() }),
+        mkAction('Reset Points', () => { void runDevCommandAction('Reset Points', 'points reset'); }, { badge: hiddenBadgeText() })
+      );
+    }
 
-    const showPostRelease = arePostReleaseItemsVisible();
-    const togglesCol = mkColumn('Display');
-    togglesCol.append(
-      mkToggle('Show Later Items', showPostRelease, (enabled) => {
-        setPostReleaseItemsVisible(enabled);
-        buildWidgetsMenu();
-        buildViewsMenu();
-        buildWizardsMenu();
+    const releaseCol = mkColumn('Alpha Gate');
+    releaseCol.append(
+      mkAction('Alpha v0.3 Surface', () => { void updateAlphaGateMode({ releaseProfile: 'alpha_v0_3' }); }, {
+        check: !isFullDevProfile() ? '✓' : '',
       }),
-      mkToggle('Show Badges', areBadgesVisible(), (enabled) => {
-        setBadgesVisible(enabled);
-        buildWidgetsMenu();
-        buildViewsMenu();
-        buildWizardsMenu();
+      mkAction('Full Dev Surface', () => { void updateAlphaGateMode({ releaseProfile: 'full_dev' }); }, {
+        check: isFullDevProfile() ? '✓' : '',
+        badge: 'dev',
       })
     );
 
-    menu.append(workspaceCol, diagnosticsCol, dataOpsCol, togglesCol);
+    const togglesCol = mkColumn('Display');
+    togglesCol.append(
+      mkToggle('Show Hidden Items', !!alphaGateState.showHiddenItems, (enabled) => {
+        void updateAlphaGateMode({ showHiddenItems: enabled });
+      }),
+      mkToggle('Show Badges', areBadgesVisible(), (enabled) => {
+        setBadgesVisible(enabled);
+        refreshAlphaGateUi();
+      })
+    );
+
+    menu.append(workspaceCol, diagnosticsCol, dataOpsCol, releaseCol, togglesCol);
   }
 
   // Keep menu in sync when widgets close themselves
@@ -3366,6 +3729,7 @@ ready(async () => {
     viewMenu.innerHTML = '';
     const showPostRelease = arePostReleaseItemsVisible();
     const normalize = (value) => String(value || '').trim().toLowerCase();
+    const isPostReleaseView = (v) => isHiddenViewEntry(v);
     const createViewItem = (v) => {
       const it = document.createElement('div');
       it.className = 'item';
@@ -3381,6 +3745,7 @@ ready(async () => {
       const viewLabel = normalize(v.label || v.name);
       const isUrgentView = URGENT_VIEWS.has(viewName) || URGENT_VIEWS.has(viewLabel);
       const isPriorityView = PRIORITY_VIEWS.has(viewName) || PRIORITY_VIEWS.has(viewLabel);
+      const postRelease = isPostReleaseView(v);
       const isDevView = DEV_VIEWS.has(viewName) || DEV_VIEWS.has(viewLabel);
       const isGoodEnoughView = GOOD_ENOUGH_VIEWS.has(viewName) || GOOD_ENOUGH_VIEWS.has(viewLabel);
 
@@ -3398,11 +3763,11 @@ ready(async () => {
           badge.textContent = 'priority';
           badge.title = 'Priority view';
           it.appendChild(badge);
-        } else if (v.postRelease) {
+        } else if (postRelease) {
           const badge = document.createElement('span');
           badge.className = 'post-release-badge';
-          badge.textContent = 'later';
-          badge.title = 'Post-release feature';
+          badge.textContent = hiddenBadgeText();
+          badge.title = hiddenBadgeTitle();
           it.appendChild(badge);
         } else if (isGoodEnoughView) {
           const badge = document.createElement('span');
@@ -3431,7 +3796,7 @@ ready(async () => {
     };
     const frag = document.createDocumentFragment();
     const sortedViews = [...availableViews]
-      .filter(v => showPostRelease || !v.postRelease)
+      .filter(v => showPostRelease || !isPostReleaseView(v))
       .sort((a, b) => String(a.label || a.name).localeCompare(String(b.label || b.name), undefined, { sensitivity: 'base' }));
     const chunks = chunkForSearchLayout(sortedViews, 9, 10);
     for (const group of chunks) {
@@ -3446,16 +3811,22 @@ ready(async () => {
     attachDropdownSearch(viewMenu, 'Search views...');
   }
 
-  // Restore last view layout (fallback to default Calendar)
+  // Restore last view layout (fallback to alpha-appropriate default)
   bootStep('Restoring default view');
   const saved = loadViewState();
   if (saved && saved.length) {
-    for (const v of saved.slice(0, MAX_PANES)) {
+    const visibleSaved = saved
+      .filter((v) => arePostReleaseItemsVisible() || !isHiddenViewEntry(v?.name, v?.label))
+      .slice(0, MAX_PANES);
+    for (const v of visibleSaved) {
       try { await openPane(v.name, v.label); } catch (e) { bootFail(`Failed opening saved view '${v?.name || ''}'`, e); }
     }
   }
   if (!openPanes.length) {
-    try { await openPane('Calendar', 'Calendar'); } catch (e) { bootFail('Failed opening default Calendar view', e); }
+    const fallbackView = pickDefaultVisibleView();
+    if (fallbackView?.name) {
+      try { await openPane(fallbackView.name, fallbackView.label); } catch (e) { bootFail(`Failed opening default view '${fallbackView?.name || ''}'`, e); }
+    }
   }
   rebuildPaneResizers();
   setupDockReveal(gadgetCatalog);

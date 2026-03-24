@@ -1,0 +1,114 @@
+{
+  "default_profile": "alpha_v0_3",
+  "profiles": {
+    "full_dev": {
+      "label": "Full Dev",
+      "dashboard": {
+        "hidden": {
+          "views": [],
+          "widgets": [],
+          "wizards": [],
+          "panels": [],
+          "gadgets": [],
+          "popups": []
+        }
+      },
+      "cli": {
+        "hidden": {
+          "commands": [],
+          "item_types": []
+        }
+      }
+    },
+    "alpha_v0_3": {
+      "label": "Alpha v0.3",
+      "dashboard": {
+        "hidden": {
+          "views": [
+            "aduc",
+            "atlas",
+            "calendar",
+            "canvas",
+            "cockpit",
+            "editor",
+            "goal planner",
+            "goalplanner",
+            "project manager",
+            "projectmanager",
+            "tracker",
+            "weekly"
+          ],
+          "widgets": [
+            "Achievements",
+            "Commitments",
+            "GoalTracker",
+            "InventoryManager",
+            "Link",
+            "Milestones",
+            "MP3Player",
+            "NiaAssistant",
+            "Review",
+            "ResolutionTracker",
+            "Rewards"
+          ],
+          "wizards": [
+            "Big5",
+            "big5",
+            "future_self_dialogue",
+            "futureselfdialogue",
+            "goal_planning",
+            "goalplanning",
+            "map_of_happiness",
+            "mapofhappiness",
+            "new_year_resolutions",
+            "newyearresolutions",
+            "project_launch",
+            "projectlaunch",
+            "self_authoring",
+            "selfauthoring"
+          ],
+          "panels": [
+            "commitments",
+            "commitments snapshot",
+            "flashcards",
+            "map of happiness",
+            "progress gauge",
+            "status chart"
+          ],
+          "gadgets": [
+            "progress gauge",
+            "progress_gauge"
+          ],
+          "popups": []
+        }
+      },
+      "cli": {
+        "hidden": {
+          "commands": [
+            "achievements",
+            "aduc",
+            "commitments",
+            "inventory",
+            "macro",
+            "plugins",
+            "points",
+            "redeem",
+            "register",
+            "review",
+            "skills",
+            "topos",
+            "trick"
+          ],
+          "item_types": [
+            "achievement",
+            "commitment",
+            "goal",
+            "inventory",
+            "project",
+            "reward"
+          ]
+        }
+      }
+    }
+  }
+}

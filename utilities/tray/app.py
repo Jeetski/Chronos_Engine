@@ -341,7 +341,7 @@ class ChronosTrayApp:
                 except Exception:
                     pass
 
-    def _refresh_status_controls(self):
+    def _refresh_status_controls(self, force=False):
         current = self._status_current()
         for entry in self.status_schema:
             slug = entry["slug"]
@@ -350,6 +350,9 @@ class ChronosTrayApp:
                 continue
             value = current.get(slug)
             options = entry.get("options") or []
+            current_ui_value = control.get().strip()
+            if (not force) and current_ui_value and current_ui_value != str(value or "").strip():
+                continue
             if value in options:
                 control.set(value)
             elif options:
@@ -367,7 +370,7 @@ class ChronosTrayApp:
                 invoke_command("status", [], {slug: value})
             except Exception:
                 any_fail = True
-        self._refresh_status_controls()
+        self._refresh_status_controls(force=True)
         return not any_fail
 
     def _apply_theme(self):
@@ -2103,7 +2106,7 @@ $notifier.Show($toast)
         ttk.Button(preset_row, text="Low / Recovery", command=lambda: self._apply_status_preset("recovery"), style="Chronos.TButton").pack(side=tk.LEFT)
         status_action_row = ttk.Frame(status_frame, style="Chronos.TFrame")
         status_action_row.pack(fill=tk.X, pady=(0, 2))
-        ttk.Button(status_action_row, text="Refresh Status", command=self._refresh_status_controls, style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
+        ttk.Button(status_action_row, text="Refresh Status", command=lambda: self._refresh_status_controls(force=True), style="Chronos.TButton").pack(side=tk.LEFT, padx=(0, 6))
         ttk.Button(status_action_row, text="Update Status", command=self._update_status_from_controls, style="ChronosAccent.TButton").pack(side=tk.LEFT)
 
         schedule_card = ttk.Frame(right_col, padding=9, style="Chronos.TFrame")

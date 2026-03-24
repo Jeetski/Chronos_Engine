@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'chronos_sleep_checkin_popup_v1';
 const MANUAL_LAUNCH = String(import.meta?.url || '').includes('manual=1');
+const QUALITY_OPTIONS = ['Excellent', 'Good', 'Okay', 'Poor'];
 
 function apiBase() {
   const o = window.location?.origin;
@@ -141,12 +142,39 @@ function injectStyles() {
       border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04);
       color: var(--chronos-text, #d9e4ff); padding: 7px 8px; font-size: 13px;
     }
+    .sleep-checkin-textarea {
+      width: 100%; box-sizing: border-box; min-height: 82px; resize: vertical;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04); color: var(--chronos-text, #d9e4ff);
+      padding: 8px; font-size: 13px; font-family: inherit;
+    }
     .sleep-checkin-label { font-size: 12px; color: var(--chronos-text-muted, #9db0cf); margin-bottom: 4px; }
+    .sleep-checkin-span-2 { grid-column: 1 / -1; }
     .sleep-checkin-panel {
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 10px; padding: 8px;
       background: rgba(255,255,255,0.03);
       display: flex; flex-direction: column; gap: 5px;
+    }
+    .sleep-checkin-toggle {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--chronos-text, #d9e4ff);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-weight: 700;
+      cursor: pointer;
+      width: fit-content;
+    }
+    .sleep-checkin-toggle.active {
+      border-color: rgba(122,162,247,0.55);
+      background: rgba(122,162,247,0.15);
+    }
+    .sleep-checkin-dream[hidden] { display: none; }
+    .sleep-checkin-dream {
+      border: 1px solid rgba(122,162,247,0.18);
+      background: linear-gradient(180deg, rgba(39, 52, 79, 0.24), rgba(14, 19, 31, 0.24));
     }
     .sleep-checkin-line { font-size: 13px; color: var(--chronos-text-muted, #9db0cf); }
     .sleep-checkin-line strong { color: var(--chronos-text, #d9e4ff); }
@@ -214,8 +242,28 @@ function buildPopup(payload, done) {
           <div class="sleep-checkin-label">Wake time</div>
           <input class="sleep-checkin-input" data-field="wake" type="time" value="${defaultWake}" />
         </div>
+        <div>
+          <div class="sleep-checkin-label">Sleep quality</div>
+          <select class="sleep-checkin-select" data-field="quality">
+            <option value="">Choose quality</option>
+            ${QUALITY_OPTIONS.map(q => `<option value="${q}">${q}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div class="sleep-checkin-label">Freeform tags</div>
+          <input class="sleep-checkin-input" data-field="tags" type="text" placeholder="deep-sleep, vivid, restless" />
+        </div>
+        <div class="sleep-checkin-span-2">
+          <div class="sleep-checkin-label">Notes</div>
+          <textarea class="sleep-checkin-textarea" data-field="notes" placeholder="How did sleep feel, what threw it off, what helped?"></textarea>
+        </div>
       </div>
       <div class="sleep-checkin-panel" data-analysis></div>
+      <button class="sleep-checkin-toggle" type="button" data-action="toggle-dream">What did you dream?</button>
+      <div class="sleep-checkin-panel sleep-checkin-dream" data-dream-panel hidden>
+        <div class="sleep-checkin-label">Dream diary entry</div>
+        <textarea class="sleep-checkin-textarea" data-field="dream" placeholder="Write whatever you remember. Fragments count."></textarea>
+      </div>
       <div class="sleep-checkin-status" data-status></div>
       <div class="sleep-checkin-actions">
         <button class="sleep-checkin-btn" data-action="snooze" data-ms="900000">Remind in 15m</button>
@@ -231,8 +279,15 @@ function buildPopup(payload, done) {
   const targetEl = overlay.querySelector('[data-field="target"]');
   const hoursEl = overlay.querySelector('[data-field="hours"]');
   const wakeEl = overlay.querySelector('[data-field="wake"]');
+  const qualityEl = overlay.querySelector('[data-field="quality"]');
+  const tagsEl = overlay.querySelector('[data-field="tags"]');
+  const notesEl = overlay.querySelector('[data-field="notes"]');
+  const dreamEl = overlay.querySelector('[data-field="dream"]');
+  const dreamPanelEl = overlay.querySelector('[data-dream-panel]');
+  const dreamToggleEl = overlay.querySelector('[data-action="toggle-dream"]');
 
   const sourceMap = Object.fromEntries(sleepSources.map(s => [String(s.name), s]));
+  let dreamOpen = false;
 
   function setStatus(msg, tone = '') {
     statusEl.textContent = msg || '';
@@ -254,6 +309,20 @@ function buildPopup(payload, done) {
       <div class="sleep-checkin-line">Recovery plan: <strong>${formatHours(nextTargetM)}</strong> target tonight (gentle catch-up).</div>
       <div class="sleep-checkin-line">Suggestion: earlier wind-down, keep wake time stable, short nap only if needed.</div>
     `;
+  }
+
+  function parseTags(value) {
+    return String(value || '')
+      .split(',')
+      .map(part => part.trim())
+      .filter(Boolean);
+  }
+
+  function setDreamOpen(nextOpen) {
+    dreamOpen = !!nextOpen;
+    if (dreamPanelEl) dreamPanelEl.hidden = !dreamOpen;
+    if (dreamToggleEl) dreamToggleEl.classList.toggle('active', dreamOpen);
+    if (dreamToggleEl) dreamToggleEl.textContent = dreamOpen ? 'Hide dream diary' : 'What did you dream?';
   }
 
   function pickRowFor(name) {
@@ -291,6 +360,13 @@ function buildPopup(payload, done) {
       closePopup(overlay, done);
       return;
     }
+    if (action === 'toggle-dream') {
+      setDreamOpen(!dreamOpen);
+      if (dreamOpen && dreamEl) {
+        window.setTimeout(() => dreamEl.focus(), 0);
+      }
+      return;
+    }
     if (action !== 'apply') return;
 
     try {
@@ -298,6 +374,10 @@ function buildPopup(payload, done) {
       const name = String(itemEl.value || defaultSource.name || 'Sleep').trim();
       const sleptHours = Math.max(0, Number(hoursEl.value || 0));
       const sleptM = Math.round(sleptHours * 60);
+      const quality = String(qualityEl?.value || '').trim();
+      const note = String(notesEl?.value || '').trim();
+      const tags = parseTags(tagsEl?.value || '');
+      const dreamText = String(dreamEl?.value || '').trim();
       if (!name || sleptM <= 0) {
         setStatus('Provide a sleep item and valid hours slept.', 'error');
         return;
@@ -316,8 +396,9 @@ function buildPopup(payload, done) {
           status: 'completed',
           actual_start: startHm,
           actual_end: wake,
-          note: `Sleep check-in: ${sleptHours}h`,
-          quality: '',
+          note: note || `Sleep check-in: ${sleptHours}h`,
+          quality,
+          tags,
         });
       } else {
         additional.push({
@@ -328,24 +409,38 @@ function buildPopup(payload, done) {
           scheduled_end: wake,
           actual_start: startHm,
           actual_end: wake,
-          note: `Sleep check-in: ${sleptHours}h`,
+          note: note || `Sleep check-in: ${sleptHours}h`,
+          quality,
+          tags,
         });
       }
+
+      const dreamEntry = dreamText ? {
+        content: dreamText,
+        date: dateKey,
+        sleep_item: name,
+        sleep_hours: sleptHours,
+        quality,
+        tags: tags.concat(['dream']),
+        note,
+      } : null;
 
       const resp = await fetch(`${apiBase()}/api/yesterday/checkin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: dateKey, updates, additional }),
+        body: JSON.stringify({ date: dateKey, updates, additional, dream_entry: dreamEntry }),
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok || data.ok === false) throw new Error(data?.error || `HTTP ${resp.status}`);
-      setStatus('Sleep log saved.', 'success');
+      setStatus(data?.dream_entry?.created ? 'Sleep log and dream entry saved.' : 'Sleep log saved.', 'success');
       markAcknowledged(dateKey);
       window.setTimeout(() => closePopup(overlay, done), 220);
     } catch (err) {
       setStatus(`Save failed: ${err?.message || err}`, 'error');
     }
   });
+
+  setDreamOpen(false);
 
   document.body.appendChild(overlay);
 }

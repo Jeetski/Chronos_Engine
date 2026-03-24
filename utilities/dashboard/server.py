@@ -10638,6 +10638,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
                 updates = payload.get("updates") if isinstance(payload.get("updates"), list) else []
                 additional = payload.get("additional") if isinstance(payload.get("additional"), list) else []
+                dream_entry = payload.get("dream_entry") if isinstance(payload.get("dream_entry"), dict) else None
                 allowed_statuses = {"completed", "partial", "skipped", "missed", "cancelled"}
 
                 def _hm(value):
@@ -10652,6 +10653,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     hh = max(0, min(23, int(m.group(1))))
                     mm = max(0, min(59, int(m.group(2))))
                     return f"{hh:02d}:{mm:02d}"
+
+                def _tags(value):
+                    if isinstance(value, list):
+                        return [str(part).strip() for part in value if str(part).strip()]
+                    if isinstance(value, str):
+                        return [part.strip() for part in value.split(",") if part.strip()]
+                    return []
 
                 updated_count = 0
                 added_count = 0
@@ -10697,6 +10705,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     quality = row.get("quality")
                     if isinstance(quality, str) and quality.strip():
                         did_props["quality"] = quality.strip()
+                    tags = _tags(row.get("tags"))
+                    if tags:
+                        did_props["tags"] = tags
                     ok, out, err = run_console_command("did", [name], did_props)
                     if ok:
                         updated_count += 1
@@ -10730,11 +10741,50 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     quality = row.get("quality")
                     if isinstance(quality, str) and quality.strip():
                         did_props["quality"] = quality.strip()
+                    tags = _tags(row.get("tags"))
+                    if tags:
+                        did_props["tags"] = tags
                     ok, out, err = run_console_command("did", [name], did_props)
                     if ok:
                         added_count += 1
                     else:
                         errors.append({"name": name, "kind": "additional", "stdout": out, "stderr": err})
+
+                dream_entry_result = {"created": False}
+                if isinstance(dream_entry, dict):
+                    dream_content = str(dream_entry.get("content") or "").strip()
+                    if dream_content:
+                        try:
+                            from modules.item_manager import get_item_path, write_item_data
+
+                            base_name = str(dream_entry.get("name") or "").strip() or f"Dream {target_date} {datetime.now().strftime('%H%M%S')}"
+                            dream_name = base_name
+                            suffix = 2
+                            while os.path.exists(get_item_path("dream_diary_entry", dream_name)):
+                                dream_name = f"{base_name} {suffix}"
+                                suffix += 1
+
+                            dream_tags = _tags(dream_entry.get("tags"))
+                            if "dream" not in [str(tag).lower() for tag in dream_tags]:
+                                dream_tags.append("dream")
+
+                            dream_data = {
+                                "name": dream_name,
+                                "type": "dream_diary_entry",
+                                "date": str(dream_entry.get("date") or target_date),
+                                "content": dream_content,
+                                "tags": dream_tags,
+                                "sleep_item": str(dream_entry.get("sleep_item") or "").strip(),
+                                "quality": str(dream_entry.get("quality") or "").strip(),
+                                "sleep_hours": dream_entry.get("sleep_hours"),
+                                "sleep_note": str(dream_entry.get("note") or "").strip(),
+                                "created_at": datetime.now().isoformat(timespec="seconds"),
+                                "source": "sleep_checkin_popup",
+                            }
+                            write_item_data("dream_diary_entry", dream_name, dream_data)
+                            dream_entry_result = {"created": True, "name": dream_name}
+                        except Exception as e:
+                            errors.append({"kind": "dream_entry", "error": str(e)})
 
                 # Read back current total after CLI writes.
                 total_entries = 0
@@ -10756,6 +10806,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     "updated": int(updated_count),
                     "added_additional": int(added_count),
                     "total_entries": int(total_entries),
+                    "dream_entry": dream_entry_result,
                     "errors": errors,
                 })
             except Exception as e:

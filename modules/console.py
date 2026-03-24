@@ -75,6 +75,7 @@ _PLUGINS_LOADED = False
 from modules import variables as Variables
 from modules import console_style
 from modules.logger import Logger
+from modules import alpha_gate as AlphaGate
 
 # Suppress pygame's support prompt in non-interactive command usage.
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -602,10 +603,10 @@ def _load_registry_bundle():
         defaults_by_type[itype] = sorted(existing)
 
     return {
-        "commands": cmd.get("commands") or {},
-        "aliases": cmd.get("aliases") or {},
-        "item_types": item.get("item_types") or [],
-        "item_names_by_type": item.get("item_names_by_type") or {},
+        "commands": AlphaGate.filter_commands_dict(cmd.get("commands") or {}),
+        "aliases": AlphaGate.filter_aliases_dict(cmd.get("aliases") or {}),
+        "item_types": AlphaGate.filter_item_types(item.get("item_types") or []),
+        "item_names_by_type": AlphaGate.filter_item_names_by_type(item.get("item_names_by_type") or {}),
         "properties": settings.get("properties") or {},
         "status_indicators": settings.get("status_indicators") or [],
         "timer_profiles": settings.get("timer_profiles") or [],

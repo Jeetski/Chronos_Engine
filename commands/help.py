@@ -2,6 +2,7 @@ import os
 import importlib.util
 import re
 from modules import console as Console
+from modules import alpha_gate as AlphaGate
 
 # Determine the root directory of the Chronos Engine project
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -46,7 +47,10 @@ def run(args, properties):
         plugin_snapshot = Console.get_plugins_snapshot(force=False)
         plugin_commands = set((plugin_snapshot.get("command_meta") or {}).keys())
         command_names = sorted(
-            [name for name in set(file_map.keys()) | plugin_commands if name != "help"],
+            [
+                name for name in set(file_map.keys()) | plugin_commands
+                if name != "help" and not AlphaGate.is_command_hidden(name)
+            ],
             key=lambda s: s.lower(),
         )
         for command_name in command_names:
@@ -82,6 +86,9 @@ def run(args, properties):
     else:
         # Display help for a specific command
         command_name = _canonical_command_name(args[0])
+        if AlphaGate.is_command_hidden(command_name):
+            print(f"Command '{command_name}' is hidden by the active alpha gate.")
+            return
         command_file = _command_file_map().get(command_name)
         command_path = os.path.join(COMMANDS_DIR, command_file) if command_file else None
         if command_path:
