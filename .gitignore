@@ -71,6 +71,13 @@ Agents Dress Up Committee/familiars/*/state.json
 Agents Dress Up Committee/familiars/*/milestones.json
 Agents Dress Up Committee/familiars/*/memory.json
 Agents Dress Up Committee/familiars/*/docs/memories.md
+# ADUC local art assets kept out of the Chronos repo
+Agents Dress Up Committee/familiars/*/avatar/*.png
+Agents Dress Up Committee/familiars/*/avatar/**/*.png
+Agents Dress Up Committee/familiars/*/locations/*.png
+Agents Dress Up Committee/familiars/*/locations/**/*.png
+Agents Dress Up Committee/familiars/*/backgrounds/*.png
+Agents Dress Up Committee/familiars/*/backgrounds/**/*.png
 
 # Playwright CLI local artifacts
 .playwright-cli/
