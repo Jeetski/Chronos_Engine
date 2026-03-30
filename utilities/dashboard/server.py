@@ -6431,27 +6431,132 @@ def _vars_all():
         pass
     return dict(_DASH_VARS)
 
-def _vars_set(k, v):
+
+def _vars_entries():
     try:
         from modules import variables as _V
         try:
-            _V.set_var(str(k), v)
+            entries = _V.all_var_entries()
+            if isinstance(entries, list):
+                return entries
         except Exception:
             pass
     except Exception:
         pass
+    return [
+        {
+            "name": str(k),
+            "value": str(v),
+            "has_value": True,
+            "in_memory": True,
+            "persistence": "session",
+            "kind": "runtime",
+            "source_label": "Current Session",
+            "source_path": None,
+            "mode": "readwrite",
+            "can_read": True,
+            "can_write": True,
+            "can_delete": True,
+            "aliases": [],
+        }
+        for k, v in sorted(dict(_DASH_VARS).items())
+    ]
+
+
+def _vars_payload(extra: dict | None = None):
+    entries = _vars_entries()
+    payload = {
+        "ok": True,
+        "vars": _vars_all(),
+        "entries": entries,
+        "summary": {
+            "session_count": len([row for row in entries if str(row.get("persistence") or "") == "session"]),
+            "persistent_count": len([row for row in entries if str(row.get("persistence") or "") == "persistent"]),
+        },
+    }
+    if isinstance(extra, dict) and extra:
+        payload.update(extra)
+    return payload
+
+
+def _vars_set(k, v, expected_persistence=None):
+    expected = str(expected_persistence or "").strip().lower()
+    if expected not in {"session", "persistent"}:
+        expected = None
+    try:
+        from modules import variables as _V
+        try:
+            if expected:
+                meta = _V.describe_var(str(k))
+                actual = str(meta.get("persistence") or "").strip().lower()
+                if actual != expected:
+                    if expected == "persistent":
+                        return {
+                            "ok": False,
+                            "name": str(meta.get("name") or k),
+                            "error": f"Variable '@{meta.get('name') or k}' is not persistent. Add it under Session Variables instead.",
+                        }
+                    return {
+                        "ok": False,
+                        "name": str(meta.get("name") or k),
+                        "error": f"Variable '@{meta.get('name') or k}' is persistent. Add it under Persistent Variables instead.",
+                    }
+            result = _V.apply_var_assignment(str(k), v)
+            if isinstance(result, dict) and result:
+                name = str(result.get("name") or k)
+                value = str(result.get("value") or "")
+                _DASH_VARS[name] = value
+                if str(name) != str(k):
+                    _DASH_VARS.pop(str(k), None)
+                return result
+        except Exception:
+            pass
+    except Exception:
+        pass
+    if expected == "persistent":
+        return {
+            "ok": False,
+            "name": str(k),
+            "error": f"Variable '@{k}' cannot be persisted from the dashboard in fallback mode.",
+        }
     _DASH_VARS[str(k)] = str(v)
+    return {
+        "ok": True,
+        "name": str(k),
+        "value": str(v),
+        "sync_kind": None,
+        "entry": {
+            "name": str(k),
+            "value": str(v),
+            "has_value": True,
+            "in_memory": True,
+            "persistence": "session",
+            "kind": "runtime",
+            "source_label": "Current Session",
+            "source_path": None,
+            "mode": "readwrite",
+            "can_read": True,
+            "can_write": True,
+            "can_delete": True,
+            "aliases": [],
+        },
+    }
 
 def _vars_unset(k):
     try:
         from modules import variables as _V
         try:
-            _V.unset_var(str(k))
+            ok, err = _V.unset_session_var(str(k))
+            if ok:
+                _DASH_VARS.pop(str(k), None)
+                return {"ok": True, "name": str(k)}
+            return {"ok": False, "name": str(k), "error": err}
         except Exception:
             pass
     except Exception:
         pass
     _DASH_VARS.pop(str(k), None)
+    return {"ok": True, "name": str(k)}
 
 def _expand_text(text):
     try:
@@ -9154,7 +9259,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == "/api/vars":
             try:
-                self._write_json(200, {"ok": True, "vars": _vars_all()})
+                self._write_json(200, _vars_payload())
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Failed to get vars: {e}"})
             return
@@ -11359,11 +11464,64 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             try:
                 to_set = payload.get('set') if isinstance(payload.get('set'), dict) else {}
                 to_unset = payload.get('unset') if isinstance(payload.get('unset'), (list, tuple)) else []
+                to_set_session = payload.get('set_session') if isinstance(payload.get('set_session'), dict) else {}
+                to_set_persistent = payload.get('set_persistent') if isinstance(payload.get('set_persistent'), dict) else {}
+                to_unset_session = payload.get('unset_session') if isinstance(payload.get('unset_session'), (list, tuple)) else []
+                set_results = []
+                unset_results = []
+                errors = []
                 for k, v in to_set.items():
-                    _vars_set(k, v)
+                    result = _vars_set(k, v)
+                    if isinstance(result, dict):
+                        set_results.append(result)
+                        if result.get("ok") is False:
+                            errors.append({
+                                "name": str(result.get("name") or k),
+                                "error": str(result.get("error") or "Failed to set variable."),
+                            })
+                for k, v in to_set_session.items():
+                    result = _vars_set(k, v, expected_persistence="session")
+                    if isinstance(result, dict):
+                        set_results.append(result)
+                        if result.get("ok") is False:
+                            errors.append({
+                                "name": str(result.get("name") or k),
+                                "error": str(result.get("error") or "Failed to set session variable."),
+                            })
+                for k, v in to_set_persistent.items():
+                    result = _vars_set(k, v, expected_persistence="persistent")
+                    if isinstance(result, dict):
+                        set_results.append(result)
+                        if result.get("ok") is False:
+                            errors.append({
+                                "name": str(result.get("name") or k),
+                                "error": str(result.get("error") or "Failed to set persistent variable."),
+                            })
                 for k in to_unset:
-                    _vars_unset(k)
-                self._write_json(200, {"ok": True, "vars": _vars_all()})
+                    result = _vars_unset(k)
+                    if isinstance(result, dict):
+                        unset_results.append(result)
+                        if result.get("ok") is False:
+                            errors.append({
+                                "name": str(result.get("name") or k),
+                                "error": str(result.get("error") or "Failed to unset variable."),
+                            })
+                for k in to_unset_session:
+                    result = _vars_unset(k)
+                    if isinstance(result, dict):
+                        unset_results.append(result)
+                        if result.get("ok") is False:
+                            errors.append({
+                                "name": str(result.get("name") or k),
+                                "error": str(result.get("error") or "Failed to unset session variable."),
+                            })
+                response = _vars_payload({
+                    "set_results": set_results,
+                    "unset_results": unset_results,
+                    "errors": errors,
+                })
+                response["ok"] = len(errors) == 0
+                self._write_json(200 if not errors else 207, response)
             except Exception as e:
                 self._write_json(500, {"ok": False, "error": f"Vars update failed: {e}"})
             return

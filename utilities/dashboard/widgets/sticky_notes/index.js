@@ -94,6 +94,7 @@ function injectStyles() {
       overflow-y: hidden;
       width: 100%;
       scrollbar-gutter: stable;
+      min-height: 210px;
     }
     .sticky-notes-grid {
       display: flex;
@@ -265,6 +266,10 @@ function injectStyles() {
     }
     .sticky-empty {
       padding: 20px;
+      min-height: 170px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
       color: #8f9abc;
       border: 1px dashed rgba(255,255,255,0.2);
@@ -288,6 +293,7 @@ function formatUpdated(value) {
 }
 
 export function mount(el, context) {
+  try { el.dataset.autoheight = 'off'; } catch { }
   // Load CSS
   if (!document.getElementById('sticky-notes-css')) {
     const link = document.createElement('link');
@@ -342,6 +348,9 @@ export function mount(el, context) {
   const btnMin = el.querySelector('[data-action="minimize"]');
   const btnClose = el.querySelector('[data-action="close"]');
   const headerRefresh = el.querySelector('[data-action="refresh"]');
+  const headerEl = el.querySelector('.header');
+  const contentEl = el.querySelector('.content');
+  const galleryViewport = el.querySelector('#stickyGalleryViewport');
   const createForm = el.querySelector('.sticky-new-form');
   const titleInput = el.querySelector('#stickyNewTitle');
   const bodyInput = el.querySelector('#stickyNewBody');
@@ -358,8 +367,30 @@ export function mount(el, context) {
   });
   colorSelect.value = DEFAULT_COLOR;
 
-  btnMin?.addEventListener('click', () => el.classList.toggle('minimized'));
+  btnMin?.addEventListener('click', () => {
+    el.classList.toggle('minimized');
+    if (!el.classList.contains('minimized')) pulseAutoFitHeight();
+  });
   btnClose?.addEventListener('click', () => { el.style.display = 'none'; });
+  try {
+    contentEl?.addEventListener('toggle', () => pulseAutoFitHeight(), true);
+    contentEl?.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => pulseAutoFitHeight()));
+    contentEl?.querySelectorAll('summary').forEach((summary) => summary.addEventListener('click', (ev) => {
+      const details = summary?.parentElement;
+      if (!details || String(details.tagName || '').toUpperCase() !== 'DETAILS') {
+        pulseAutoFitHeight();
+        return;
+      }
+      try { ev.preventDefault(); } catch { }
+      try { details.open = !details.open; } catch { }
+      pulseAutoFitHeight();
+    }));
+    const mo = new MutationObserver(() => pulseAutoFitHeight());
+    if (contentEl) {
+      mo.observe(contentEl, { subtree: true, childList: true, attributes: true, attributeFilter: ['open', 'style', 'class', 'hidden'] });
+    }
+  } catch { }
+  try { window.addEventListener('resize', () => queueAutoFitHeight()); } catch { }
 
   const state = {
     notes: [],
@@ -372,7 +403,102 @@ export function mount(el, context) {
   let floatZ = 12;
   let floatSaveTimer = null;
   let floatsRestored = false;
+  let autoFitRaf = null;
+  let lastAutoFitHeight = 0;
+  let isApplyingAutoFit = false;
   loadFloatState();
+  try { el.__queueAutoFitHeight = () => queueAutoFitHeight(); } catch { }
+
+  function measureContentNaturalHeight() {
+    try {
+      if (!contentEl) return 0;
+      const cs = getComputedStyle(contentEl);
+      const pt = Number.parseFloat(cs.paddingTop || '0') || 0;
+      const pb = Number.parseFloat(cs.paddingBottom || '0') || 0;
+      const gap = Number.parseFloat(cs.rowGap || cs.gap || '0') || 0;
+      const children = Array.from(contentEl.children || []).filter((node) => {
+        try { return getComputedStyle(node).display !== 'none'; } catch { return true; }
+      });
+      let total = pt + pb;
+      children.forEach((node, idx) => {
+        const rectHeight = Math.ceil(node.getBoundingClientRect().height || 0);
+        const tagName = String(node?.tagName || '').toUpperCase();
+        const scrollHeight = Math.ceil(node.scrollHeight || 0);
+        const measuredHeight = tagName === 'DETAILS'
+          ? (((node.open ?? node.hasAttribute?.('open')) ? Math.max(rectHeight, scrollHeight) : rectHeight))
+          : Math.max(rectHeight, scrollHeight);
+        total += measuredHeight;
+        if (idx > 0) total += gap;
+      });
+      return Math.max(0, Math.ceil(total));
+    } catch {
+      return Math.ceil(contentEl?.scrollHeight || 0);
+    }
+  }
+
+  function autoFitHeight() {
+    try {
+      if (!contentEl || !headerEl) return;
+      if (isApplyingAutoFit) return;
+      if (el.style.display === 'none') return;
+      if (el.classList.contains('minimized')) return;
+      const headerH = Math.ceil(headerEl.getBoundingClientRect?.().height || 40);
+      const contentH = measureContentNaturalHeight();
+      const openSectionCount = contentEl.querySelectorAll('details[open]').length;
+      const baseMin = Number(el.__minH || parseFloat(el.style.minHeight || '0') || 220);
+      const minHeight = Math.max(baseMin, openSectionCount <= 1 ? 170 : 220);
+      const maxHeight = Math.max(minHeight, Math.floor((window.innerHeight || 900) * 0.9));
+      const desired = headerH + contentH + 8;
+      const clamped = Math.max(minHeight, Math.min(maxHeight, desired));
+      if (Math.abs(clamped - lastAutoFitHeight) < 6) return;
+      isApplyingAutoFit = true;
+      el.style.height = `${clamped}px`;
+      lastAutoFitHeight = clamped;
+      const overflow = Math.ceil((contentEl.scrollHeight || 0) - (contentEl.clientHeight || 0));
+      if (overflow > 2) {
+        const currentH = Math.ceil(el.getBoundingClientRect().height || clamped);
+        const needed = currentH + overflow + 8;
+        const safeHeight = Math.max(currentH, Math.min(maxHeight, needed), minHeight);
+        if (safeHeight > currentH + 1) {
+          el.style.height = `${safeHeight}px`;
+          lastAutoFitHeight = safeHeight;
+        }
+      }
+      isApplyingAutoFit = false;
+    } catch {
+      isApplyingAutoFit = false;
+    }
+  }
+
+  function queueAutoFitHeight() {
+    try {
+      if (autoFitRaf) cancelAnimationFrame(autoFitRaf);
+      autoFitRaf = requestAnimationFrame(() => {
+        autoFitRaf = requestAnimationFrame(() => {
+          autoFitRaf = null;
+          autoFitHeight();
+        });
+      });
+    } catch {
+      autoFitHeight();
+    }
+  }
+
+  function pulseAutoFitHeight() {
+    queueAutoFitHeight();
+    try { window.setTimeout(() => queueAutoFitHeight(), 60); } catch { }
+    try { window.setTimeout(() => queueAutoFitHeight(), 180); } catch { }
+  }
+
+  function syncGalleryViewportFloor() {
+    try {
+      if (!galleryViewport) return;
+      const firstRowCard = grid?.querySelector?.('.sticky-note-card, .sticky-empty');
+      const cardHeight = Math.ceil(firstRowCard?.getBoundingClientRect?.().height || 0);
+      const nextMin = Math.max(210, cardHeight ? cardHeight + 16 : 0);
+      galleryViewport.style.minHeight = `${nextMin}px`;
+    } catch { }
+  }
 
   function loadFloatState() {
     try {
@@ -609,6 +735,7 @@ export function mount(el, context) {
     if (!statusEl) return;
     statusEl.textContent = text || '';
     statusEl.classList.toggle('error', !!isError);
+    queueAutoFitHeight();
   }
 
   function sortNotes(notes) {
@@ -627,6 +754,8 @@ export function mount(el, context) {
       empty.className = 'sticky-empty';
       empty.textContent = 'No sticky notes yet. Capture a thought above.';
       grid.appendChild(empty);
+      syncGalleryViewportFloor();
+      queueAutoFitHeight();
       return;
     }
     const ordered = sortNotes(state.notes);
@@ -696,6 +825,8 @@ export function mount(el, context) {
       grid.appendChild(card);
     });
     syncFloatingNotes();
+    syncGalleryViewportFloor();
+    queueAutoFitHeight();
   }
 
   async function fetchNotes() {
@@ -879,6 +1010,7 @@ export function mount(el, context) {
   } catch { }
 
   fetchNotes();
+  queueAutoFitHeight();
 
   return {
     refresh: fetchNotes,

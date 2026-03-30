@@ -1,146 +1,10 @@
-import sys
-import os
-import yaml
 from modules.item_manager import read_item_data, write_item_data
 from modules import variables as Variables
-from modules import status_utils
-from modules.scheduler import status_current_path
 
 # --- Global Variables for Scripting ---
 # This dictionary stores variables set by the 'set var' command.
 # In a more robust system, this would be managed by the Console or a dedicated scripting engine
 GLOBAL_VARS = {}
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PROFILE_PATH = os.path.join(ROOT_DIR, "user", "profile", "profile.yml")
-TIMER_SETTINGS_PATH = os.path.join(ROOT_DIR, "user", "settings", "timer_settings.yml")
-TIMER_PROFILES_PATH = os.path.join(ROOT_DIR, "user", "settings", "timer_profiles.yml")
-
-def _sync_status_var_to_yaml(var_name: str, var_value: str):
-    """
-    Persist `status_*` variable assignments to current_status.yml and keep
-    runtime mirrored vars in sync.
-    """
-    raw_name = str(var_name or "").strip()
-    if not raw_name.lower().startswith("status_"):
-        return None, None
-
-    indicator = status_utils.status_slug(raw_name[len("status_"):])
-    if not indicator:
-        return "Invalid status variable name.", None
-    normalized_value, err = status_utils.canonicalize_status_value(indicator, var_value)
-    if err:
-        return err, None
-
-    path = status_current_path()
-    try:
-        if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                current = yaml.safe_load(f) or {}
-        else:
-            current = {}
-        if not isinstance(current, dict):
-            current = {}
-    except Exception:
-        current = {}
-
-    current[indicator] = normalized_value
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.dump(current, f, default_flow_style=False)
-    except Exception as e:
-        return f"Failed to write status file: {e}", None
-
-    try:
-        Variables.sync_status_vars(current)
-    except Exception:
-        pass
-    return None, str(normalized_value)
-
-
-def _sync_nickname_var_to_profile(var_name: str, var_value: str):
-    """
-    Persist nickname variable assignment to profile.yml and keep runtime var
-    aligned with profile source-of-truth.
-    """
-    raw_name = str(var_name or "").strip().lower()
-    if raw_name != "nickname":
-        return None, None
-
-    nickname = str(var_value or "").strip()
-    if not nickname:
-        return "Nickname cannot be empty.", None
-
-    profile = {}
-    try:
-        if os.path.exists(PROFILE_PATH):
-            with open(PROFILE_PATH, "r", encoding="utf-8") as f:
-                profile = yaml.safe_load(f) or {}
-        if not isinstance(profile, dict):
-            profile = {}
-    except Exception:
-        profile = {}
-
-    profile["nickname"] = nickname
-    try:
-        os.makedirs(os.path.dirname(PROFILE_PATH), exist_ok=True)
-        with open(PROFILE_PATH, "w", encoding="utf-8") as f:
-            yaml.dump(profile, f, default_flow_style=False, sort_keys=False)
-    except Exception as e:
-        return f"Failed to write profile nickname: {e}", None
-
-    return None, nickname
-
-
-def _sync_timer_profile_var_to_settings(var_name: str, var_value: str):
-    """
-    Persist timer_profile variable assignment to timer_settings.yml.
-    Validates profile exists in timer_profiles.yml when available.
-    """
-    raw_name = str(var_name or "").strip().lower()
-    if raw_name != "timer_profile":
-        return None, None
-
-    profile_name = str(var_value or "").strip()
-    if not profile_name:
-        return "Timer profile cannot be empty.", None
-
-    profiles = {}
-    try:
-        if os.path.exists(TIMER_PROFILES_PATH):
-            with open(TIMER_PROFILES_PATH, "r", encoding="utf-8") as f:
-                profiles = yaml.safe_load(f) or {}
-        if not isinstance(profiles, dict):
-            profiles = {}
-    except Exception:
-        profiles = {}
-
-    if profiles and profile_name not in profiles:
-        # Case-insensitive convenience for profile selection.
-        lower_map = {str(k).lower(): str(k) for k in profiles.keys()}
-        match = lower_map.get(profile_name.lower())
-        if not match:
-            return f"Unknown timer profile '{profile_name}'.", None
-        profile_name = match
-
-    settings = {}
-    try:
-        if os.path.exists(TIMER_SETTINGS_PATH):
-            with open(TIMER_SETTINGS_PATH, "r", encoding="utf-8") as f:
-                settings = yaml.safe_load(f) or {}
-        if not isinstance(settings, dict):
-            settings = {}
-    except Exception:
-        settings = {}
-
-    settings["default_profile"] = profile_name
-    try:
-        os.makedirs(os.path.dirname(TIMER_SETTINGS_PATH), exist_ok=True)
-        with open(TIMER_SETTINGS_PATH, "w", encoding="utf-8") as f:
-            yaml.dump(settings, f, default_flow_style=False, sort_keys=False)
-    except Exception as e:
-        return f"Failed to write timer settings: {e}", None
-
-    return None, profile_name
 
 
 def run(args, properties):
@@ -177,56 +41,29 @@ def run(args, properties):
         var_assignment = args[1]
         if ':' in var_assignment:
             raw_var_name, var_value = var_assignment.split(':', 1)
-            var_name = Variables.canonical_var_name(raw_var_name)
-            err, normalized_status_value = _sync_status_var_to_yaml(var_name, var_value)
-            if err:
-                print(f"❌ {err}")
+            result = Variables.apply_var_assignment(raw_var_name, var_value)
+            if not result.get("ok"):
+                print(f"❌ {result.get('error') or 'Failed to set variable.'}")
                 return
-            normalized_nickname_value = None
-            normalized_timer_profile_value = None
-            normalized_bound_value = None
-            bound_sync_target = None
-            if normalized_status_value is None:
-                nick_err, normalized_nickname_value = _sync_nickname_var_to_profile(var_name, var_value)
-                if nick_err:
-                    print(f"❌ {nick_err}")
-                    return
-            if normalized_status_value is None and normalized_nickname_value is None:
-                timer_err, normalized_timer_profile_value = _sync_timer_profile_var_to_settings(var_name, var_value)
-                if timer_err:
-                    print(f"❌ {timer_err}")
-                    return
-            if normalized_status_value is None and normalized_nickname_value is None and normalized_timer_profile_value is None:
-                handled_bound, normalized_bound_value, bound_err, bound_sync_target = Variables.write_bound_var(var_name, var_value)
-                if bound_err:
-                    print(f"❌ {bound_err}")
-                    return
-                if not handled_bound:
-                    normalized_bound_value = None
-            final_value = (
-                normalized_status_value
-                if normalized_status_value is not None
-                else normalized_nickname_value
-                if normalized_nickname_value is not None
-                else normalized_timer_profile_value
-                if normalized_timer_profile_value is not None
-                else normalized_bound_value
-                if normalized_bound_value is not None
-                else var_value
-            )
-            Variables.set_var(var_name, final_value)
-            if str(raw_var_name).strip() != str(var_name).strip():
+
+            var_name = str(result.get("name") or "").strip()
+            final_value = str(result.get("value") or "")
+            sync_kind = str(result.get("sync_kind") or "").strip().lower()
+            sync_target = str(result.get("sync_target") or "").strip()
+
+            if result.get("alias_used"):
                 print(f"✅. Variable '{raw_var_name}' (alias of '{var_name}') set to '{final_value}'.")
             else:
                 print(f"✅. Variable '{var_name}' set to '{final_value}'.")
-            if str(var_name).strip().lower().startswith("status_"):
+
+            if sync_kind == "status":
                 print("↳ Synced to current_status.yml")
-            elif str(var_name).strip().lower() == "nickname":
+            elif sync_kind == "profile":
                 print("↳ Synced to profile.yml")
-            elif str(var_name).strip().lower() == "timer_profile":
+            elif sync_kind == "timer_profile":
                 print("↳ Synced to timer_settings.yml")
-            elif bound_sync_target:
-                print(f"↳ Synced via variable binding to {bound_sync_target}")
+            elif sync_kind == "binding" and sync_target:
+                print(f"↳ Synced via variable binding to {sync_target}")
         else:
             print(f"❌ Invalid variable assignment: {var_assignment}. Expected format: <variable_name>:<value>")
         return

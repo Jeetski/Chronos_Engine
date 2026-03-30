@@ -14,6 +14,9 @@ _ALIASES = {
 }
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _BINDINGS_PATH = os.path.join(_PROJECT_ROOT, "user", "settings", "variable_bindings.yml")
+_PROFILE_PATH = os.path.join(_PROJECT_ROOT, "user", "profile", "profile.yml")
+_TIMER_SETTINGS_PATH = os.path.join(_PROJECT_ROOT, "user", "settings", "timer_settings.yml")
+_TIMER_PROFILES_PATH = os.path.join(_PROJECT_ROOT, "user", "settings", "timer_profiles.yml")
 _BINDINGS_CACHE = {
     "mtime": None,
     "by_var": {},
@@ -62,6 +65,139 @@ def all_vars():
         if val is not None:
             merged[key] = val
     return merged
+
+
+def _project_relpath(path: str | None) -> str | None:
+    raw = str(path or "").strip()
+    if not raw:
+        return None
+    if not os.path.isabs(raw):
+        return raw.replace("\\", "/")
+    try:
+        return os.path.relpath(raw, _PROJECT_ROOT).replace("\\", "/")
+    except Exception:
+        return raw.replace("\\", "/")
+
+
+def _builtin_aliases(name: str) -> list[str]:
+    key = canonical_var_name(name)
+    low = key.lower()
+    aliases = []
+    if low.startswith("status_") and len(low) > len("status_"):
+        indicator = low[len("status_"):]
+        aliases.append(f"status.{indicator}")
+        if low == "status_place":
+            aliases.insert(0, "location")
+    elif low == "nickname":
+        aliases.append("profile.nickname")
+    elif low == "timer_profile":
+        aliases.append("timer.profile")
+    return aliases
+
+
+def _builtin_var_meta(name: str):
+    key = canonical_var_name(name)
+    low = key.lower()
+    if low.startswith("status_") and len(low) > len("status_"):
+        try:
+            from modules.scheduler import status_current_path
+            source_path = _project_relpath(status_current_path())
+        except Exception:
+            source_path = "user/current_status.yml"
+        return {
+            "persistence": "persistent",
+            "kind": "status",
+            "source_label": "Current Status",
+            "source_path": source_path,
+            "mode": "readwrite",
+            "can_read": True,
+            "can_write": True,
+            "can_delete": False,
+            "aliases": _builtin_aliases(key),
+        }
+    if low == "nickname":
+        return {
+            "persistence": "persistent",
+            "kind": "profile",
+            "source_label": "Profile",
+            "source_path": _project_relpath(_PROFILE_PATH),
+            "mode": "readwrite",
+            "can_read": True,
+            "can_write": True,
+            "can_delete": False,
+            "aliases": _builtin_aliases(key),
+        }
+    if low == "timer_profile":
+        return {
+            "persistence": "persistent",
+            "kind": "timer_profile",
+            "source_label": "Timer Settings",
+            "source_path": _project_relpath(_TIMER_SETTINGS_PATH),
+            "mode": "readwrite",
+            "can_read": True,
+            "can_write": True,
+            "can_delete": False,
+            "aliases": _builtin_aliases(key),
+        }
+    return None
+
+
+def describe_var(name: str) -> dict:
+    key = canonical_var_name(name)
+    meta = _builtin_var_meta(key)
+    if meta is None:
+        binding = _load_bindings_by_var().get(key)
+        if binding:
+            mode = _binding_mode(binding.get("mode"))
+            meta = {
+                "persistence": "persistent",
+                "kind": "binding",
+                "source_label": "Variable Binding",
+                "source_path": _project_relpath(binding.get("file")),
+                "mode": mode,
+                "can_read": _binding_can_read(binding),
+                "can_write": _binding_can_write(binding),
+                "can_delete": False,
+                "aliases": _builtin_aliases(key),
+            }
+        else:
+            meta = {
+                "persistence": "session",
+                "kind": "runtime",
+                "source_label": "Current Session",
+                "source_path": None,
+                "mode": "readwrite",
+                "can_read": True,
+                "can_write": True,
+                "can_delete": True,
+                "aliases": _builtin_aliases(key),
+            }
+    value = get_var(key)
+    return {
+        "name": key,
+        "value": None if value is None else str(value),
+        "has_value": value is not None,
+        "in_memory": key in _VARS,
+        **meta,
+    }
+
+
+def all_var_entries() -> list[dict]:
+    keys = {canonical_var_name(k) for k in _VARS.keys()}
+    keys.update(canonical_var_name(k) for k in all_vars().keys())
+    return [describe_var(k) for k in sorted(keys)]
+
+
+def can_delete_var(name: str) -> bool:
+    return bool(describe_var(name).get("can_delete"))
+
+
+def unset_session_var(name: str):
+    if not can_delete_var(name):
+        meta = describe_var(name)
+        return False, f"Variable '@{meta.get('name')}' is persistent and cannot be deleted from the dashboard."
+    unset_var(name)
+    return True, None
 
 
 def _status_slug(name):
@@ -292,3 +428,170 @@ def write_bound_var(name: str, value):
     except Exception as e:
         return True, None, f"Failed to write bound variable '{var_name}': {e}", None
     return True, raw_value, None, os.path.relpath(binding["file"], _PROJECT_ROOT)
+
+
+def _sync_status_var_to_yaml(var_name: str, var_value):
+    raw_name = str(var_name or "").strip()
+    if not raw_name.lower().startswith("status_"):
+        return False, None, None, None
+
+    from modules import status_utils
+    from modules.scheduler import status_current_path
+
+    indicator = status_utils.status_slug(raw_name[len("status_"):])
+    if not indicator:
+        return True, "Invalid status variable name.", None, None
+    normalized_value, err = status_utils.canonicalize_status_value(indicator, var_value)
+    if err:
+        return True, err, None, None
+
+    path = status_current_path()
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                current = yaml.safe_load(f) or {}
+        else:
+            current = {}
+        if not isinstance(current, dict):
+            current = {}
+    except Exception:
+        current = {}
+
+    current[indicator] = normalized_value
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.dump(current, f, default_flow_style=False)
+    except Exception as e:
+        return True, f"Failed to write status file: {e}", None, None
+
+    try:
+        sync_status_vars(current)
+    except Exception:
+        pass
+    return True, None, str(normalized_value), _project_relpath(path)
+
+
+def _sync_nickname_var_to_profile(var_name: str, var_value):
+    raw_name = str(var_name or "").strip().lower()
+    if raw_name != "nickname":
+        return False, None, None, None
+
+    nickname = str(var_value or "").strip()
+    if not nickname:
+        return True, "Nickname cannot be empty.", None, None
+
+    profile = {}
+    try:
+        if os.path.exists(_PROFILE_PATH):
+            with open(_PROFILE_PATH, "r", encoding="utf-8") as f:
+                profile = yaml.safe_load(f) or {}
+        if not isinstance(profile, dict):
+            profile = {}
+    except Exception:
+        profile = {}
+
+    profile["nickname"] = nickname
+    try:
+        os.makedirs(os.path.dirname(_PROFILE_PATH), exist_ok=True)
+        with open(_PROFILE_PATH, "w", encoding="utf-8") as f:
+            yaml.dump(profile, f, default_flow_style=False, sort_keys=False)
+    except Exception as e:
+        return True, f"Failed to write profile nickname: {e}", None, None
+
+    return True, None, nickname, _project_relpath(_PROFILE_PATH)
+
+
+def _sync_timer_profile_var_to_settings(var_name: str, var_value):
+    raw_name = str(var_name or "").strip().lower()
+    if raw_name != "timer_profile":
+        return False, None, None, None
+
+    profile_name = str(var_value or "").strip()
+    if not profile_name:
+        return True, "Timer profile cannot be empty.", None, None
+
+    profiles = {}
+    try:
+        if os.path.exists(_TIMER_PROFILES_PATH):
+            with open(_TIMER_PROFILES_PATH, "r", encoding="utf-8") as f:
+                profiles = yaml.safe_load(f) or {}
+        if not isinstance(profiles, dict):
+            profiles = {}
+    except Exception:
+        profiles = {}
+
+    if profiles and profile_name not in profiles:
+        lower_map = {str(k).lower(): str(k) for k in profiles.keys()}
+        match = lower_map.get(profile_name.lower())
+        if not match:
+            return True, f"Unknown timer profile '{profile_name}'.", None, None
+        profile_name = match
+
+    settings = {}
+    try:
+        if os.path.exists(_TIMER_SETTINGS_PATH):
+            with open(_TIMER_SETTINGS_PATH, "r", encoding="utf-8") as f:
+                settings = yaml.safe_load(f) or {}
+        if not isinstance(settings, dict):
+            settings = {}
+    except Exception:
+        settings = {}
+
+    settings["default_profile"] = profile_name
+    try:
+        os.makedirs(os.path.dirname(_TIMER_SETTINGS_PATH), exist_ok=True)
+        with open(_TIMER_SETTINGS_PATH, "w", encoding="utf-8") as f:
+            yaml.dump(settings, f, default_flow_style=False, sort_keys=False)
+    except Exception as e:
+        return True, f"Failed to write timer settings: {e}", None, None
+
+    return True, None, profile_name, _project_relpath(_TIMER_SETTINGS_PATH)
+
+
+def apply_var_assignment(name: str, value):
+    requested_name = str(name or "").strip()
+    var_name = canonical_var_name(requested_name)
+
+    handled, err, final_value, sync_target = _sync_status_var_to_yaml(var_name, value)
+    sync_kind = "status" if handled and not err and final_value is not None else None
+    if err:
+        return {"ok": False, "name": var_name, "error": err}
+
+    if not handled:
+        handled, err, final_value, sync_target = _sync_nickname_var_to_profile(var_name, value)
+        if handled and not err and final_value is not None:
+            sync_kind = "profile"
+        if err:
+            return {"ok": False, "name": var_name, "error": err}
+
+    if not handled:
+        handled, err, final_value, sync_target = _sync_timer_profile_var_to_settings(var_name, value)
+        if handled and not err and final_value is not None:
+            sync_kind = "timer_profile"
+        if err:
+            return {"ok": False, "name": var_name, "error": err}
+
+    if not handled:
+        handled_bound, normalized_bound_value, bound_err, bound_sync_target = write_bound_var(var_name, value)
+        if bound_err:
+            return {"ok": False, "name": var_name, "error": bound_err}
+        if handled_bound:
+            handled = True
+            final_value = normalized_bound_value
+            sync_target = _project_relpath(bound_sync_target)
+            sync_kind = "binding"
+
+    if final_value is None:
+        final_value = str(value)
+
+    set_var(var_name, final_value)
+    return {
+        "ok": True,
+        "requested_name": requested_name,
+        "name": var_name,
+        "value": str(final_value),
+        "alias_used": requested_name != var_name,
+        "sync_kind": sync_kind,
+        "sync_target": sync_target,
+        "entry": describe_var(var_name),
+    }

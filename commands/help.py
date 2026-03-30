@@ -49,7 +49,7 @@ def run(args, properties):
         command_names = sorted(
             [
                 name for name in set(file_map.keys()) | plugin_commands
-                if name != "help" and not AlphaGate.is_command_hidden(name)
+                if name != "help" and AlphaGate.is_command_discoverable(name)
             ],
             key=lambda s: s.lower(),
         )
@@ -86,6 +86,9 @@ def run(args, properties):
     else:
         # Display help for a specific command
         command_name = _canonical_command_name(args[0])
+        if AlphaGate.is_internal_command(command_name):
+            print(f"Command '{command_name}' is not listed in public help.")
+            return
         if AlphaGate.is_command_hidden(command_name):
             print(f"Command '{command_name}' is hidden by the active alpha gate.")
             return

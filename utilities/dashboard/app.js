@@ -11,6 +11,8 @@ let alphaGateConfig = null;
 let alphaGateState = {
   releaseProfile: DEFAULT_ALPHA_GATE_PROFILE,
   showHiddenItems: false,
+  disableHiddenFeatures: true,
+  showAlphaGateToggle: false,
 };
 let POST_RELEASE_WIDGETS = [
   'Achievements',
@@ -118,6 +120,7 @@ const URGENT_PANELS = new Set(['status strip', 'schedule panel', 'matrix', 'matr
 const URGENT_GADGETS = new Set(['timer', 'reschedule']);
 const DEV_GADGETS = new Set(['progress gauge', 'progress_gauge']);
 let POST_RELEASE_GADGETS = new Set(['progress gauge', 'progress_gauge']);
+let POST_RELEASE_POPUPS = new Set([]);
 
 function arePopupsEnabled() {
   try {
@@ -147,6 +150,14 @@ function getReleaseProfile() {
   return configured || getDefaultAlphaGateProfile();
 }
 
+function parseAlphaGateBoolean(value, fallback = false) {
+  if (typeof value === 'boolean') return value;
+  const text = String(value || '').trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(text)) return true;
+  if (['0', 'false', 'no', 'off'].includes(text)) return false;
+  return !!fallback;
+}
+
 function isFullDevProfile() {
   return normalizeAlphaGateToken(getReleaseProfile()) === 'full_dev';
 }
@@ -161,6 +172,14 @@ function areHiddenItemsVisible() {
 
 function arePostReleaseItemsVisible() {
   return areHiddenItemsVisible();
+}
+
+function areHiddenFeaturesDisabled() {
+  return !isFullDevProfile() && !!alphaGateState?.disableHiddenFeatures;
+}
+
+function isAlphaGateToggleVisible() {
+  return !!alphaGateState?.showAlphaGateToggle;
 }
 
 function isHiddenWidgetName(name) {
@@ -185,6 +204,10 @@ function isHiddenPanelName(name, label) {
 
 function isHiddenGadgetToken(value) {
   return POST_RELEASE_GADGETS.has(normalizeAlphaGateToken(value));
+}
+
+function isHiddenPopupToken(value) {
+  return POST_RELEASE_POPUPS.has(normalizeAlphaGateToken(value));
 }
 
 function hiddenBadgeText() {
@@ -461,6 +484,7 @@ function applyAlphaGateConfig(rawConfig) {
   POST_RELEASE_VIEWS = toUniqueNormalizedSet(Array.from(hidden.views || []), Array.from(POST_RELEASE_VIEWS));
   POST_RELEASE_PANELS = toUniqueNormalizedSet(Array.from(hidden.panels || []), Array.from(POST_RELEASE_PANELS));
   POST_RELEASE_GADGETS = toUniqueNormalizedSet(Array.from(hidden.gadgets || []), Array.from(POST_RELEASE_GADGETS));
+  POST_RELEASE_POPUPS = toUniqueNormalizedSet(Array.from(hidden.popups || []), Array.from(POST_RELEASE_POPUPS));
 }
 
 async function loadAlphaGateConfig() {
@@ -478,7 +502,9 @@ function parseAlphaGateSettings(data) {
   if (!data || typeof data !== 'object') return;
   const profile = String(data.release_profile || '').trim();
   if (profile) alphaGateState.releaseProfile = profile;
-  alphaGateState.showHiddenItems = !!data.show_hidden_items;
+  alphaGateState.showHiddenItems = parseAlphaGateBoolean(data.show_hidden_items, false);
+  alphaGateState.disableHiddenFeatures = parseAlphaGateBoolean(data.disable_hidden_features, true);
+  alphaGateState.showAlphaGateToggle = parseAlphaGateBoolean(data.show_alpha_gate_toggle, false);
 }
 
 async function loadAlphaGateState() {
@@ -493,9 +519,13 @@ async function loadAlphaGateState() {
 function serializeAlphaGateState() {
   const profile = String(getReleaseProfile() || getDefaultAlphaGateProfile()).trim();
   const showHidden = !!alphaGateState.showHiddenItems;
+  const disableHidden = !!alphaGateState.disableHiddenFeatures;
+  const showToggle = !!alphaGateState.showAlphaGateToggle;
   return [
     `release_profile: ${profile}`,
     `show_hidden_items: ${showHidden ? 'true' : 'false'}`,
+    `disable_hidden_features: ${disableHidden ? 'true' : 'false'}`,
+    `show_alpha_gate_toggle: ${showToggle ? 'true' : 'false'}`,
     '',
   ].join('\n');
 }
@@ -625,7 +655,7 @@ function setupDockReveal(gadgets = []) {
   const items = Array.isArray(gadgets)
     ? gadgets.filter((g) => {
       if (!g || g.enabled === false || disabled.has(getGadgetKey(g))) return false;
-      if (!arePostReleaseItemsVisible()) {
+      if (!arePostReleaseItemsVisible() || areHiddenFeaturesDisabled()) {
         const key = getGadgetKey(g);
         const label = g?.label || g?.module || g?.id || key;
         if (Boolean(g?.postRelease) || isHiddenGadgetToken(key) || isHiddenGadgetToken(label)) return false;
@@ -843,7 +873,7 @@ ready(async () => {
     focus_next_surface: 'Ctrl',
     focus_previous_surface: 'Ctrl+.',
     quick_slots: {
-      '0': 'view.calendar',
+      '0': 'view.schedule',
       '1': 'widget.today',
       '2': 'widget.terminal',
       '3': 'widget.notes',
@@ -1093,15 +1123,19 @@ ready(async () => {
 
   async function openPane(name, label) {
     if (!viewPanes) return;
+    if (isViewBlockedByAlphaGate(name, label)) {
+      console.warn('[Chronos][app] View blocked by alpha gate', { name, label });
+      return false;
+    }
     const existing = openPanes.find(v => v.name === name);
     if (existing) {
       existing.pane.classList.add('active');
       setTimeout(() => existing.pane.classList.remove('active'), 180);
-      return;
+      return true;
     }
     if (openPanes.length >= MAX_PANES) {
       console.warn('[Chronos][app] Max view panes reached');
-      return;
+      return false;
     }
     const pane = document.createElement('div');
     pane.className = 'view-pane';
@@ -1243,16 +1277,18 @@ ready(async () => {
       refreshViewMenuChecks();
       persistViewState();
       rebuildPaneResizers();
+      return true;
     } catch (e) {
       console.error('[Chronos][app] View mount error:', e);
       pane.remove();
+      return false;
     }
   }
 
   try {
     window.ChronosOpenView = async (name, label) => {
       if (!name) return;
-      await openPane(String(name), label || String(name));
+      return openPane(String(name), label || String(name));
     };
     window.ChronosOpenEditorFile = async (path, line) => {
       const req = {
@@ -1261,7 +1297,8 @@ ready(async () => {
       };
       if (!req.path) return;
       try { window.__chronosEditorOpenRequest = req; } catch { }
-      await openPane('Editor', 'Editor');
+      const opened = await openPane('Editor', 'Editor');
+      if (!opened) return false;
       try { window.ChronosBus?.emit?.('editor:open', req); } catch { }
       try {
         setTimeout(() => {
@@ -1276,6 +1313,8 @@ ready(async () => {
       req.file = req.path.split('/').pop();
       if (!req.file) return;
       try { window.__chronosSettingsOpenRequest = req; } catch { }
+      const opened = openWidgetByName('Settings');
+      if (!opened) return false;
       try { window.ChronosBus?.emit?.('widget:show', 'Settings'); } catch { }
       try { window.ChronosBus?.emit?.('settings:open', req); } catch { }
       try {
@@ -1287,7 +1326,8 @@ ready(async () => {
     window.ChronosOpenDoc = async (path, line) => {
       const req = { path: String(path || ''), line: Number.isFinite(Number(line)) ? Number(line) : undefined };
       try { window.__chronosDocsOpenRequest = req; } catch { }
-      await openPane('Docs', 'Docs');
+      const opened = await openPane('Docs', 'Docs');
+      if (!opened) return false;
       try {
         const docsPane = openPanes.find(p => p.name === 'Docs');
         const api = docsPane?.viewport?.__view?.api;
@@ -1371,19 +1411,39 @@ ready(async () => {
     return !!el && el.style.display !== 'none';
   }
 
+  function requestWidgetLayoutRefresh(el) {
+    if (!el) return;
+    try {
+      const refresh = el.__queueAutoFitHeight;
+      if (typeof refresh === 'function') {
+        refresh();
+        return;
+      }
+    } catch { }
+    try {
+      el.dispatchEvent(new CustomEvent('chronos:widget:shown', { bubbles: false }));
+    } catch { }
+  }
+
   function setWidgetVisibility(el, visible, { recordHistory = true, focus = true } = {}) {
     if (!el) return false;
+    const widgetName = el.getAttribute('data-widget') || el.id || '';
+    if (visible && isWidgetBlockedByAlphaGate(widgetName)) {
+      console.warn('[Chronos][app] Widget blocked by alpha gate', { name: widgetName });
+      return false;
+    }
     const wasVisible = isWidgetVisibleByElement(el);
     if (visible) {
       el.style.display = '';
       el.classList.remove('minimized');
+      requestWidgetLayoutRefresh(el);
       if (focus) {
         try { window.ChronosFocusWidget?.(el); } catch { }
-        setFocusedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
+        setFocusedSurface({ type: 'widget', name: widgetName, label: el.getAttribute('data-label') || '' });
       }
     } else {
       if (recordHistory && wasVisible) {
-        rememberClosedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
+        rememberClosedSurface({ type: 'widget', name: widgetName, label: el.getAttribute('data-label') || '' });
       }
       el.style.display = 'none';
     }
@@ -1399,6 +1459,7 @@ ready(async () => {
     if (!el || !isWidgetVisibleByElement(el)) return false;
     el.classList.toggle('minimized');
     if (!el.classList.contains('minimized')) {
+      requestWidgetLayoutRefresh(el);
       try { window.ChronosFocusWidget?.(el); } catch { }
     }
     setFocusedSurface({ type: 'widget', name: el.getAttribute('data-widget') || el.id || '', label: el.getAttribute('data-label') || '' });
@@ -1718,9 +1779,18 @@ ready(async () => {
     return isHiddenGadgetToken(gadgetOrToken) || isHiddenGadgetToken(label);
   }
 
+  function isHiddenPopupEntry(popupOrToken, label) {
+    if (popupOrToken && typeof popupOrToken === 'object') {
+      const key = popupOrToken?.module || popupOrToken?.id || '';
+      const text = popupOrToken?.label || key;
+      return Boolean(popupOrToken?.postRelease) || isHiddenPopupToken(key) || isHiddenPopupToken(text);
+    }
+    return isHiddenPopupToken(popupOrToken) || isHiddenPopupToken(label);
+  }
+
   function isHiddenSurfaceTarget(target) {
     const raw = String(target || '').trim();
-    if (!raw || !shouldSuppressHiddenAlphaItems()) return false;
+    if (!raw || (!shouldSuppressHiddenAlphaItems() && !areHiddenFeaturesDisabled())) return false;
     const [kind, name] = raw.split('.', 2);
     if (String(kind || '').toLowerCase() === 'widget') {
       const widget = findWidgetElementByName(name);
@@ -1735,15 +1805,16 @@ ready(async () => {
 
   function pickDefaultVisibleView() {
     const alphaCandidates = [
+      { name: 'Schedule', label: 'Schedule' },
       { name: 'DayBuilder', label: 'Day Builder' },
-      { name: 'Day', label: 'Day' },
       { name: 'WeekBuilder', label: 'Week Builder' },
       { name: 'RoutineBuilder', label: 'Routine Builder' },
       { name: 'Docs', label: 'Docs' },
     ];
     const fullDevCandidates = [
+      { name: 'Schedule', label: 'Schedule' },
       { name: 'Calendar', label: 'Calendar' },
-      ...alphaCandidates,
+      ...alphaCandidates.filter((candidate) => candidate.name !== 'Schedule'),
     ];
     const candidates = shouldSuppressHiddenAlphaItems() ? alphaCandidates : fullDevCandidates;
     for (const candidate of candidates) {
@@ -1766,14 +1837,40 @@ ready(async () => {
     try { buildWizardsMenu(); } catch { }
     try { buildGadgetsMenu(); } catch { }
     try { buildPanelsMenu(); } catch { }
+    try { buildPopupsMenu(); } catch { }
     try { buildDevMenu(); } catch { }
     try { refreshViewMenuChecks(); } catch { }
     try { renderEmptyStateContents(); } catch { }
     try { setupDockReveal(gadgetCatalog); } catch { }
   }
 
+  function isViewBlockedByAlphaGate(name, label) {
+    return areHiddenFeaturesDisabled() && isHiddenViewEntry(name, label);
+  }
+
+  function isWidgetBlockedByAlphaGate(name) {
+    return areHiddenFeaturesDisabled() && isHiddenWidgetName(name);
+  }
+
+  function isWizardBlockedByAlphaGate(wizard) {
+    return areHiddenFeaturesDisabled() && isHiddenWizardEntry(wizard);
+  }
+
+  function isGadgetBlockedByAlphaGate(gadget, label) {
+    return areHiddenFeaturesDisabled() && isHiddenGadgetEntry(gadget, label);
+  }
+
+  function isPanelBlockedByAlphaGate(panel, label) {
+    return areHiddenFeaturesDisabled() && isHiddenPanelEntry(panel, label);
+  }
+
+  function isPopupBlockedByAlphaGate(popup, label) {
+    return areHiddenFeaturesDisabled() && isHiddenPopupEntry(popup, label);
+  }
+
   function applyAlphaGateVisibility() {
-    if (!shouldSuppressHiddenAlphaItems()) {
+    const shouldForceCloseHidden = shouldSuppressHiddenAlphaItems() || areHiddenFeaturesDisabled();
+    if (!shouldForceCloseHidden) {
       try { setupDockReveal(gadgetCatalog); } catch { }
       return;
     }
@@ -1811,6 +1908,12 @@ ready(async () => {
       }
       if (Object.prototype.hasOwnProperty.call(nextState, 'showHiddenItems')) {
         alphaGateState.showHiddenItems = !!nextState.showHiddenItems;
+      }
+      if (Object.prototype.hasOwnProperty.call(nextState, 'disableHiddenFeatures')) {
+        alphaGateState.disableHiddenFeatures = !!nextState.disableHiddenFeatures;
+      }
+      if (Object.prototype.hasOwnProperty.call(nextState, 'showAlphaGateToggle')) {
+        alphaGateState.showAlphaGateToggle = !!nextState.showAlphaGateToggle;
       }
     }
     applyAlphaGateVisibility();
@@ -2102,6 +2205,7 @@ ready(async () => {
   async function openSurfaceFromTarget(target) {
     const raw = String(target || '').trim();
     if (!raw) return false;
+    if (isHiddenSurfaceTarget(raw)) return false;
     const [kind, name] = raw.split('.', 2);
     const wanted = normalizeActionToken(name);
     if (String(kind || '').toLowerCase() === 'widget') {
@@ -2110,14 +2214,12 @@ ready(async () => {
     if (String(kind || '').toLowerCase() === 'view') {
       const view = findViewByName(wanted);
       if (view?.name) {
-        await openPane(view.name, view.label || view.name);
-        return true;
+        return await openPane(view.name, view.label || view.name);
       }
       const fallbackLabel = prettifyTargetLabel(name);
       const fallbackName = fallbackLabel.replace(/\s+/g, '');
       if (!fallbackName) return false;
-      await openPane(fallbackName, fallbackLabel);
-      return true;
+      return await openPane(fallbackName, fallbackLabel);
     }
     return false;
   }
@@ -2434,8 +2536,9 @@ ready(async () => {
       .filter(entry => showPostRelease || !entry.postRelease)
       .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
     const createItem = ({ el, label, name }) => {
+      const blocked = isWidgetBlockedByAlphaGate(name);
       const item = document.createElement('div');
-      item.className = 'item';
+      item.className = blocked ? 'item disabled' : 'item';
       item.setAttribute('data-search', `${label} ${name}`);
       const check = document.createElement('span');
       check.className = 'check';
@@ -2476,11 +2579,13 @@ ready(async () => {
           item.appendChild(badge);
         }
       }
-      item.addEventListener('click', () => {
-        toggleWidgetVisibility(el);
-        check.textContent = isWidgetVisibleByElement(el) ? '✓' : '';
-        closeMenus();
-      });
+      if (!blocked) {
+        item.addEventListener('click', () => {
+          toggleWidgetVisibility(el);
+          check.textContent = isWidgetVisibleByElement(el) ? '✓' : '';
+          closeMenus();
+        });
+      }
       return item;
     };
 
@@ -2531,8 +2636,9 @@ ready(async () => {
     const createItem = (gadget) => {
       const key = getGadgetKey(gadget);
       const label = String(gadget.label || gadget.module || key || 'Unnamed Gadget');
+      const blocked = isGadgetBlockedByAlphaGate(gadget, label);
       const item = document.createElement('div');
-      item.className = 'item';
+      item.className = blocked ? 'item disabled' : 'item';
       item.setAttribute('data-search', `${label} ${key}`);
       const check = document.createElement('span');
       check.className = 'check';
@@ -2563,13 +2669,15 @@ ready(async () => {
           item.appendChild(badge);
         }
       }
-      item.addEventListener('click', () => {
-        if (disabled.has(key)) disabled.delete(key);
-        else disabled.add(key);
-        setDisabledGadgets(disabled);
-        check.textContent = disabled.has(key) ? '' : '✓';
-        setupDockReveal(gadgetCatalog);
-      });
+      if (!blocked) {
+        item.addEventListener('click', () => {
+          if (disabled.has(key)) disabled.delete(key);
+          else disabled.add(key);
+          setDisabledGadgets(disabled);
+          check.textContent = disabled.has(key) ? '' : '✓';
+          setupDockReveal(gadgetCatalog);
+        });
+      }
       return item;
     };
 
@@ -3011,6 +3119,7 @@ ready(async () => {
 
       const popupLoaders = (arePopupsEnabled() ? (popups || []) : [])
         .filter(p => p.enabled !== false)
+        .filter((p) => !isPopupBlockedByAlphaGate(p))
         .sort((a, b) => {
           const ma = String(a?.module || a?.id || '');
           const mb = String(b?.module || b?.id || '');
@@ -3055,11 +3164,15 @@ ready(async () => {
     if (!menu) return;
     menu.innerHTML = '';
     const showPostRelease = arePostReleaseItemsVisible();
+    const cockpitUnavailable = isViewBlockedByAlphaGate('Cockpit', 'Cockpit')
+      || (!showPostRelease && isHiddenViewEntry('Cockpit', 'Cockpit'));
     const manager = window.CockpitPanels;
     if (!manager || typeof manager.list !== 'function') {
       const empty = document.createElement('div');
       empty.className = 'item disabled';
-      empty.textContent = 'Open the Cockpit view to manage panels.';
+      empty.textContent = cockpitUnavailable
+        ? 'Panels are unavailable in this release profile.'
+        : 'Open the Cockpit view to manage panels.';
       menu.appendChild(empty);
       return;
     }
@@ -3102,8 +3215,9 @@ ready(async () => {
       .sort((a, b) => String(a.label || a.key).localeCompare(String(b.label || b.key), undefined, { sensitivity: 'base' }));
     const frag = document.createDocumentFragment();
     const createPanelItem = (panel) => {
+      const blocked = isPanelBlockedByAlphaGate(panel);
       const item = document.createElement('div');
-      item.className = 'item';
+      item.className = blocked ? 'item disabled' : 'item';
       item.setAttribute('data-search', `${panel.label || panel.key} ${panel.key || ''}`);
       item.setAttribute('data-panel', panel.primary?.id || panel.key);
       const check = document.createElement('span');
@@ -3139,28 +3253,37 @@ ready(async () => {
         }
         item.appendChild(badge);
       }
-      item.addEventListener('click', () => {
-        const entries = panel.entries || [];
-        if (!entries.length) {
-          try { manager.toggle?.(panel.primary?.id || panel.key); } catch { }
-        } else if (entries.length === 1) {
-          try { manager.toggle?.(entries[0].id); } catch { }
-        } else {
-          const anyVisible = entries.some(entry => entry.visible);
-          if (anyVisible) {
-            entries.forEach(entry => {
-              try { manager.setVisible?.(entry.id, false); } catch { }
-            });
+      if (!blocked) {
+        item.addEventListener('click', () => {
+          const entries = panel.entries || [];
+          if (!entries.length) {
+            try { manager.toggle?.(panel.primary?.id || panel.key); } catch { }
+          } else if (entries.length === 1) {
+            try { manager.toggle?.(entries[0].id); } catch { }
           } else {
-            const target = panel.primary || entries[0];
-            try { manager.setVisible?.(target.id, true); } catch { }
+            const anyVisible = entries.some(entry => entry.visible);
+            if (anyVisible) {
+              entries.forEach(entry => {
+                try { manager.setVisible?.(entry.id, false); } catch { }
+              });
+            } else {
+              const target = panel.primary || entries[0];
+              try { manager.setVisible?.(target.id, true); } catch { }
+            }
           }
-        }
-        setTimeout(buildPanelsMenu, 0);
-      });
+          setTimeout(buildPanelsMenu, 0);
+        });
+      }
       return item;
     };
     const chunks = chunkForSearchLayout(panels, 9, 10);
+    if (!panels.length) {
+      const empty = document.createElement('div');
+      empty.className = 'item disabled';
+      empty.textContent = 'No panels available in this release profile.';
+      menu.appendChild(empty);
+      return;
+    }
     for (const group of chunks) {
       const column = document.createElement('div');
       column.className = 'column';
@@ -3180,14 +3303,19 @@ ready(async () => {
 
   async function startWizardFlow(wizard) {
     if (!wizard) return;
+    if (isWizardBlockedByAlphaGate(wizard)) {
+      console.warn('[Chronos][app] Wizard blocked by alpha gate', wizard);
+      return false;
+    }
     const moduleName = wizard.module || wizard.id;
     if (!moduleName) {
       console.warn('[Chronos][app] Wizard missing module name', wizard);
-      return;
+      return false;
     }
     closeMenus();
     try {
       await launchWizard(moduleName, { wizard });
+      return true;
     } catch (err) {
       console.error('[Chronos][app] Wizard launch failed', moduleName, err);
       try {
@@ -3205,6 +3333,7 @@ ready(async () => {
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2200);
       } catch { }
+      return false;
     }
   }
 
@@ -3233,8 +3362,9 @@ ready(async () => {
     };
     const frag = document.createDocumentFragment();
     const createWizardItem = (wizard) => {
+      const blocked = isWizardBlockedByAlphaGate(wizard);
       const item = document.createElement('div');
-      item.className = 'item wizard-item';
+      item.className = blocked ? 'item wizard-item disabled' : 'item wizard-item';
       item.setAttribute('data-search', `${wizard.label || wizard.id || ''} ${wizard.module || ''}`);
       item.setAttribute('data-wizard', wizard.id);
       if (!wizard.enabled) item.classList.add('disabled');
@@ -3275,7 +3405,7 @@ ready(async () => {
           item.appendChild(badge);
         }
       }
-      if (wizard.enabled) {
+      if (wizard.enabled && !blocked) {
         item.addEventListener('click', () => startWizardFlow(wizard));
       }
       return item;
@@ -3299,10 +3429,15 @@ ready(async () => {
   async function launchPopupFromMenu(popup) {
     const moduleName = String(popup?.module || popup?.id || '').trim();
     if (!moduleName) return;
+    if (isPopupBlockedByAlphaGate(popup)) {
+      console.warn('[Chronos][app] Popup blocked by alpha gate', popup);
+      return false;
+    }
     try {
       window.__chronosForcePopupQueue = true;
       await import(new URL(`./popups/${moduleName}/index.js?v=${Date.now()}&manual=1`, import.meta.url));
       closeMenus();
+      return true;
     } catch (err) {
       console.error('[Chronos][app] Popup launch failed', moduleName, err);
       try {
@@ -3320,6 +3455,7 @@ ready(async () => {
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2200);
       } catch { }
+      return false;
     } finally {
       window.__chronosForcePopupQueue = false;
     }
@@ -3424,7 +3560,7 @@ ready(async () => {
       workspaceCol.append(
         mkAction('Editor View', () => { void openView('Editor', 'Editor'); }, {
           check: isViewOpen('Editor') ? '✓' : '',
-          disabled: !hasView('Editor'),
+          disabled: !hasView('Editor') || isViewBlockedByAlphaGate('Editor', 'Editor'),
           badge: isHiddenViewEntry('Editor', 'Editor') ? hiddenBadgeText() : '',
         })
       );
@@ -3450,46 +3586,82 @@ ready(async () => {
     );
 
     const dataOpsCol = mkColumn('Data Ops');
+    if (areHiddenItemsVisible()) {
+      dataOpsCol.append(
+        mkAction('Rebuild Registries (All)', () => { void runDevCommandAction('Rebuild Registries (All)', 'register all'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        }),
+        mkAction('Rebuild Registry: Commands', () => { void runDevCommandAction('Rebuild Registry: Commands', 'register commands'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        }),
+        mkAction('Rebuild Registry: Items', () => { void runDevCommandAction('Rebuild Registry: Items', 'register items'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        }),
+        mkAction('Rebuild Registry: Properties', () => { void runDevCommandAction('Rebuild Registry: Properties', 'register properties'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        }),
+      );
+    }
     dataOpsCol.append(
-      mkAction('Rebuild Registries (All)', () => { void runDevCommandAction('Rebuild Registries (All)', 'register all'); }),
-      mkAction('Rebuild Registry: Commands', () => { void runDevCommandAction('Rebuild Registry: Commands', 'register commands'); }),
-      mkAction('Rebuild Registry: Items', () => { void runDevCommandAction('Rebuild Registry: Items', 'register items'); }),
-      mkAction('Rebuild Registry: Properties', () => { void runDevCommandAction('Rebuild Registry: Properties', 'register properties'); }),
       mkAction('Sequence Status', () => { void runDevCommandAction('Sequence Status', 'sequence status'); }),
       mkAction('Sequence Sync (All)', () => { void runDevCommandAction('Sequence Sync (All)', 'sequence sync'); }),
       mkAction('Sequence Trends', () => { void runDevCommandAction('Sequence Trends', 'sequence trends'); })
     );
     if (areHiddenItemsVisible()) {
       dataOpsCol.append(
-        mkAction('Reset Achievements', () => { void runDevCommandAction('Reset Achievements', 'achievements reset'); }, { badge: hiddenBadgeText() }),
-        mkAction('Reset XP/Level', () => { void runDevCommandAction('Reset XP/Level', 'achievements reset-progress'); }, { badge: hiddenBadgeText() }),
-        mkAction('Reset Points', () => { void runDevCommandAction('Reset Points', 'points reset'); }, { badge: hiddenBadgeText() })
+        mkAction('Reset Achievements', () => { void runDevCommandAction('Reset Achievements', 'achievements reset'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        }),
+        mkAction('Reset XP/Level', () => { void runDevCommandAction('Reset XP/Level', 'achievements reset-progress'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        }),
+        mkAction('Reset Points', () => { void runDevCommandAction('Reset Points', 'points reset'); }, {
+          badge: hiddenBadgeText(),
+          disabled: areHiddenFeaturesDisabled(),
+        })
       );
     }
 
-    const releaseCol = mkColumn('Alpha Gate');
-    releaseCol.append(
-      mkAction('Alpha v0.3 Surface', () => { void updateAlphaGateMode({ releaseProfile: 'alpha_v0_3' }); }, {
-        check: !isFullDevProfile() ? '✓' : '',
-      }),
-      mkAction('Full Dev Surface', () => { void updateAlphaGateMode({ releaseProfile: 'full_dev' }); }, {
-        check: isFullDevProfile() ? '✓' : '',
-        badge: 'dev',
-      })
-    );
-
     const togglesCol = mkColumn('Display');
+    if (isAlphaGateToggleVisible()) {
+      togglesCol.append(
+        mkToggle('Show Hidden Items', !!alphaGateState.showHiddenItems, (enabled) => {
+          void updateAlphaGateMode({ showHiddenItems: enabled });
+        })
+      );
+    }
     togglesCol.append(
-      mkToggle('Show Hidden Items', !!alphaGateState.showHiddenItems, (enabled) => {
-        void updateAlphaGateMode({ showHiddenItems: enabled });
-      }),
       mkToggle('Show Badges', areBadgesVisible(), (enabled) => {
         setBadgesVisible(enabled);
         refreshAlphaGateUi();
       })
     );
 
-    menu.append(workspaceCol, diagnosticsCol, dataOpsCol, releaseCol, togglesCol);
+    const columns = [workspaceCol, diagnosticsCol, dataOpsCol];
+    if (isAlphaGateToggleVisible()) {
+      const releaseCol = mkColumn('Alpha Gate');
+      releaseCol.append(
+        mkAction('Alpha v0.3 Surface', () => { void updateAlphaGateMode({ releaseProfile: 'alpha_v0_3' }); }, {
+          check: !isFullDevProfile() ? '✓' : '',
+        }),
+        mkAction('Full Dev Surface', () => { void updateAlphaGateMode({ releaseProfile: 'full_dev' }); }, {
+          check: isFullDevProfile() ? '✓' : '',
+          badge: 'dev',
+        }),
+        mkAction('Disable Hidden Features', () => { void updateAlphaGateMode({ disableHiddenFeatures: !alphaGateState.disableHiddenFeatures }); }, {
+          check: alphaGateState.disableHiddenFeatures ? '✓' : '',
+        })
+      );
+      columns.push(releaseCol);
+    }
+    columns.push(togglesCol);
+    menu.append(...columns);
   }
 
   // Keep menu in sync when widgets close themselves
@@ -3655,6 +3827,7 @@ ready(async () => {
     const normalize = (value) => String(value || '').trim().toLowerCase();
 
     const items = [...popupCatalog]
+      .filter((popup) => arePostReleaseItemsVisible() || !isHiddenPopupEntry(popup))
       .sort((a, b) => String(a?.module || a?.id || '').localeCompare(String(b?.module || b?.id || ''), undefined, { sensitivity: 'base' }));
     if (!items.length) {
       const empty = document.createElement('div');
@@ -3663,9 +3836,10 @@ ready(async () => {
       col.appendChild(empty);
     } else {
       items.forEach((popup) => {
+        const blocked = isPopupBlockedByAlphaGate(popup);
         const item = document.createElement('div');
-        item.className = 'item';
-        item.style.cursor = 'pointer';
+        item.className = blocked ? 'item disabled' : 'item';
+        item.style.cursor = blocked ? 'default' : 'pointer';
         const label = document.createElement('span');
         label.textContent = formatLabel(popup);
         item.setAttribute('data-search', `${label.textContent} ${popup?.module || popup?.id || ''}`);
@@ -3679,6 +3853,12 @@ ready(async () => {
             badge.textContent = 'urgent';
             badge.title = 'Urgent popup';
             item.appendChild(badge);
+          } else if (isHiddenPopupEntry(popup)) {
+            const badge = document.createElement('span');
+            badge.className = 'post-release-badge';
+            badge.textContent = hiddenBadgeText();
+            badge.title = hiddenBadgeTitle();
+            item.appendChild(badge);
           } else {
             const badge = document.createElement('span');
             badge.className = 'good-enough-badge';
@@ -3687,9 +3867,11 @@ ready(async () => {
             item.appendChild(badge);
           }
         }
-        item.addEventListener('click', () => {
-          void launchPopupFromMenu(popup);
-        });
+        if (!blocked) {
+          item.addEventListener('click', () => {
+            void launchPopupFromMenu(popup);
+          });
+        }
         col.appendChild(item);
       });
     }
@@ -3731,8 +3913,9 @@ ready(async () => {
     const normalize = (value) => String(value || '').trim().toLowerCase();
     const isPostReleaseView = (v) => isHiddenViewEntry(v);
     const createViewItem = (v) => {
+      const blocked = isViewBlockedByAlphaGate(v.name, v.label);
       const it = document.createElement('div');
-      it.className = 'item';
+      it.className = blocked ? 'item disabled' : 'item';
       it.setAttribute('data-search', `${v.label || v.name} ${v.name || ''}`);
       it.setAttribute('data-name', v.name);
       const check = document.createElement('span');
@@ -3783,15 +3966,17 @@ ready(async () => {
           it.appendChild(badge);
         }
       }
-      it.addEventListener('click', async () => {
-        closeMenus();
-        const isOpen = openPanes.some(p => p.name === v.name);
-        if (isOpen) {
-          closePane(v.name);
-        } else {
-          await openPane(v.name, v.label);
-        }
-      });
+      if (!blocked) {
+        it.addEventListener('click', async () => {
+          closeMenus();
+          const isOpen = openPanes.some(p => p.name === v.name);
+          if (isOpen) {
+            closePane(v.name);
+          } else {
+            await openPane(v.name, v.label);
+          }
+        });
+      }
       return it;
     };
     const frag = document.createDocumentFragment();

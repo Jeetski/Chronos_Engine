@@ -294,7 +294,17 @@ function injectDayListStyles() {
 
 import { Inspector } from './inspector.js';
 
-export function mount(el, context) {
+export function mount(el, context, options = {}) {
+  const lockToDay = !!options?.lockToDay;
+  const dayListBaseTitle = String(options?.dayListTitle || 'Day').trim() || 'Day';
+  const resolveInitialDay = () => {
+    try {
+      const source = options?.initialDay ?? new Date();
+      return dateAtMidnight(new Date(source));
+    } catch {
+      return dateAtMidnight(new Date());
+    }
+  };
   try { el.style.position = 'relative'; } catch { }
   injectDayListStyles();
   const INSPECTOR_WIDTH_KEY = 'calendar_inspector_width_v1';
@@ -457,7 +467,7 @@ export function mount(el, context) {
   dayList.className = 'calendar-daylist';
   dayList.innerHTML = `
     <div class="calendar-daylist-header">
-      <div class="calendar-daylist-title">Day</div>
+      <div class="calendar-daylist-title">${dayListBaseTitle}</div>
       <div class="calendar-daylist-actions">
         <span class="calendar-daylist-selection" id="calendarSelectionCount"></span>
       </div>
@@ -921,7 +931,12 @@ export function mount(el, context) {
     return 'future';
   }
   function updateDayListTitle(dayDate) {
-    if (dayListTitleEl) dayListTitleEl.textContent = formatDayTitle(dayDate);
+    if (!dayListTitleEl) return;
+    if (lockToDay) {
+      dayListTitleEl.textContent = dayListBaseTitle;
+      return;
+    }
+    dayListTitleEl.textContent = formatDayTitle(dayDate);
   }
   function typeIcon(typeRaw) {
     const t = String(typeRaw || '').trim().toLowerCase();
@@ -1676,6 +1691,10 @@ export function mount(el, context) {
     try { hierarchyLevel = (window.__calendarLevel ?? hierarchyLevel); } catch { }
     // Recompute canvas height for current zoom
     resizeCanvas();
+    if (lockToDay) {
+      drawDayGrid(selectedDayDate || resolveInitialDay());
+      return;
+    }
     if (viewMode === 'year') drawYearGrid(); else if (viewMode === 'month') drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear); else if (viewMode === 'week') drawWeekGrid(selectedWeekStart); else if (viewMode === 'day') drawDayGrid(selectedDayDate);
   }
   try { window.redraw = redrawCurrentView; } catch { }
@@ -1689,14 +1708,35 @@ export function mount(el, context) {
     };
   }
 
-  function goToYear() { selectedMonth = null; selectedWeekStart = null; selectedDayDate = null; drawYearGrid(); navStack.length = 0; updateBackBtn(); }
+  function goToYear() {
+    if (lockToDay) {
+      selectedDayDate = resolveInitialDay();
+      drawDayGrid(selectedDayDate);
+      navStack.length = 0;
+      updateBackBtn();
+      return;
+    }
+    selectedMonth = null; selectedWeekStart = null; selectedDayDate = null; drawYearGrid(); navStack.length = 0; updateBackBtn();
+  }
   function goToMonth(month, year) {
+    if (lockToDay) {
+      selectedDayDate = resolveInitialDay();
+      drawDayGrid(selectedDayDate);
+      updateBackBtn();
+      return;
+    }
     pushState();
     selectedMonth = month; selectedYear = year;
     drawMonthGrid(month, year);
     updateBackBtn();
   }
   function goToWeek(weekStart) {
+    if (lockToDay) {
+      selectedDayDate = resolveInitialDay();
+      drawDayGrid(selectedDayDate);
+      updateBackBtn();
+      return;
+    }
     pushState();
     selectedWeekStart = weekStart ? new Date(weekStart) : weekMonday(new Date());
     drawWeekGrid(selectedWeekStart);
@@ -1709,6 +1749,10 @@ export function mount(el, context) {
     updateBackBtn();
   }
   function goBack() {
+    if (lockToDay) {
+      updateBackBtn();
+      return;
+    }
     const prev = popState();
     if (!prev) return;
     // Restore prior snapshot state and redraw
@@ -1725,7 +1769,7 @@ export function mount(el, context) {
   }
   try {
     window.__calendarGoBack = goBack;
-    window.__calendarCanGoBack = () => navStack.length > 0;
+    window.__calendarCanGoBack = () => !lockToDay && navStack.length > 0;
     window.__calendarGoToDay = (day, opts = {}) => {
       const pushHistory = opts?.pushHistory !== false;
       const nextDay = day ? new Date(day) : new Date();
@@ -1744,12 +1788,16 @@ export function mount(el, context) {
 
   dayListRefreshBtn = null;
   function updateBackBtn() {
-    const hasHistory = navStack.length > 0;
+    const hasHistory = !lockToDay && navStack.length > 0;
     try { window.__calendarSetBackState?.(hasHistory); } catch { }
     try { window.__calendarHasHistory = hasHistory; } catch { }
   }
 
   function handleViewClick(x, y, ev) {
+    if (lockToDay) {
+      if (viewMode !== 'day') drawDayGrid(selectedDayDate || resolveInitialDay());
+      return;
+    }
     if (viewMode === 'year') {
       const hit = monthRects.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h); if (hit) { goToMonth(hit.i, selectedYear); }
       return;
@@ -1938,6 +1986,7 @@ export function mount(el, context) {
         clearDayListSelection();
         return;
       }
+      if (lockToDay) return;
       if (navStack.length) { goBack(); return; }
       if (viewMode === 'day') { viewMode = 'week'; drawWeekGrid(selectedWeekStart || weekMonday(selectedDayDate || new Date())); }
       else if (viewMode === 'week') { viewMode = 'month'; drawMonthGrid(selectedMonth ?? (new Date()).getMonth(), selectedYear); }
@@ -1960,7 +2009,12 @@ export function mount(el, context) {
 
   // Init
   resizeCanvas();
-  drawYearGrid();
+  if (lockToDay) {
+    selectedDayDate = resolveInitialDay();
+    drawDayGrid(selectedDayDate);
+  } else {
+    drawYearGrid();
+  }
   updateBackBtn();
   dayListTreeEl?.addEventListener('click', onDayListClick);
   dayListTreeEl?.addEventListener('dragover', handleDayListDragOver);

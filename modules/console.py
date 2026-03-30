@@ -811,6 +811,20 @@ COMMANDS_WITH_ITEM_TYPE = {
     "tree",
 }
 
+
+def _disabled_item_type_for_command(command_name, args):
+    canonical = _canonical_command_name(command_name)
+    if canonical not in COMMANDS_WITH_ITEM_TYPE:
+        return None
+    if not isinstance(args, (list, tuple)) or not args:
+        return None
+    item_type = _canonical_command_name(args[0])
+    if not item_type:
+        return None
+    if AlphaGate.is_item_type_disabled(item_type):
+        return item_type
+    return None
+
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 MONTHS = [
     "january",
@@ -1236,6 +1250,15 @@ def run_command(command_name, args, properties):
     from the 'commands' directory and calling its 'run' function.
     """
     command_name = resolve_command_alias(command_name)
+    if AlphaGate.is_command_disabled(command_name):
+        print(f"Command '{command_name}' is disabled by the active alpha gate.")
+        _play_cli_sound("error")
+        return
+    disabled_item_type = _disabled_item_type_for_command(command_name, args)
+    if disabled_item_type:
+        print(f"Item type '{disabled_item_type}' is disabled by the active alpha gate.")
+        _play_cli_sound("error")
+        return
     stem = _get_command_file_stem(command_name)
     command_file_path = os.path.join(COMMANDS_DIR, f"{stem}.py") if stem else ""
     if os.path.isfile(command_file_path):
@@ -1432,6 +1455,21 @@ except NameError:
 
 def run_command(command_name, args, properties):
     command_name = resolve_command_alias(command_name)
+    if AlphaGate.is_command_disabled(command_name):
+        print(f"Command '{command_name}' is disabled by the active alpha gate.")
+        try:
+            _play_cli_sound("error")
+        except Exception:
+            pass
+        return
+    disabled_item_type = _disabled_item_type_for_command(command_name, args)
+    if disabled_item_type:
+        print(f"Item type '{disabled_item_type}' is disabled by the active alpha gate.")
+        try:
+            _play_cli_sound("error")
+        except Exception:
+            pass
+        return
     try:
         props_local = dict(properties or {})
         redir_op = props_local.pop("__redir_op", None)
