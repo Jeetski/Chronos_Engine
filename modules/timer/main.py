@@ -22,7 +22,7 @@ except Exception:
     tk = None  # type: ignore
 
 from modules.item_manager import get_user_dir, read_item_data, write_item_data
-from modules.scheduler import get_flattened_schedule, schedule_path_for_date, stretch_item_in_file
+from modules.scheduler import load_schedule_plan_for_date, schedule_path_for_date, stretch_item_in_file
 from utilities.duration_parser import parse_duration_string
 from utilities import points as Points
 
@@ -1234,64 +1234,14 @@ def _should_include_schedule_block(block):
 
 
 def _build_schedule_plan_for_date(date_key: str):
-    path = schedule_path_for_date(date_key)
-    if not os.path.exists(path):
-        return []
-    try:
-        with open(path, "r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or []
-    except Exception:
-        return []
-    if not isinstance(data, list):
-        return []
-
-    flat = get_flattened_schedule(data or [])
     settings = _load_settings()
     try:
         min_minutes = int(settings.get("start_day_min_minutes") or settings.get("start_day_min_block_minutes") or 5)
     except Exception:
         min_minutes = 5
-    blocks = []
-    for block in flat:
-        if not isinstance(block, dict):
-            continue
-        if block.get("is_parallel_item"):
-            continue
-        if not _should_include_schedule_block(block):
-            continue
-        is_buffer = _is_break_or_buffer_block(block)
-        minutes = _extract_minutes(block)
-        if minutes <= 0:
-            continue
-        if (not is_buffer) and int(minutes) < max(1, int(min_minutes)):
-            continue
-        name = str(block.get("name") or "Unnamed block")
-        plan_block = {
-            "name": name,
-            "minutes": max(1, int(minutes)),
-            "is_buffer": is_buffer,
-            "schedule_type": block.get("type"),
-            "window_name": block.get("window_name"),
-            "reschedule": block.get("reschedule"),
-            "anchored": bool(block.get("anchored")),
-            "subtype": block.get("subtype") or block.get("timeblock_subtype"),
-            "start": _normalize_time_label(block.get("start_time") or block.get("ideal_start_time")),
-            "end": _normalize_time_label(block.get("end_time") or block.get("ideal_end_time")),
-            "buffer_type": block.get("buffer_type"),
-            "block_id": block.get("block_id"),
-            "date": date_key,
-        }
-        blocks.append(plan_block)
-
-    def _sort_key(b):
-        s = str(b.get("start") or "")
-        try:
-            return datetime.strptime(s, "%H:%M")
-        except Exception:
-            return datetime.min
-
-    blocks.sort(key=_sort_key)
-    return blocks
+    plan = load_schedule_plan_for_date(date_key, min_minutes=min_minutes, now_dt=datetime.now())
+    blocks = plan.get("blocks") if isinstance(plan, dict) else []
+    return blocks if isinstance(blocks, list) else []
 
 
 @_with_state_lock

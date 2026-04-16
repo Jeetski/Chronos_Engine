@@ -1,8 +1,0 @@
-name: Timer Shortcuts
-type: tool
-commands:
-  - timer start classic_pomodoro
-  - timer start deep_work bind_type:task bind_name:"Deep Work Foundation"
-notes: >
-  Handy timer commands stored as a tool reference.
-

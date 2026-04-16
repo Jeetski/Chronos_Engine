@@ -19,6 +19,11 @@ export async function mount(el, context) {
   };
   const emit = (k, m) => { try { context?.bus?.emit(`toast:${k}`, m); } catch {} };
   const jget = async (p) => (await fetch(apiBase() + p)).json();
+  const fetchText = async (p) => {
+    const r = await fetch(apiBase() + p);
+    if (!r.ok) throw new Error(`Request failed: ${r.status}`);
+    return r.text();
+  };
   const jpost = async (p, body) => {
     const r = await fetch(apiBase() + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
     const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}

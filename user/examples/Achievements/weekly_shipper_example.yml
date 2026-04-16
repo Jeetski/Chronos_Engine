@@ -1,9 +1,0 @@
-name: Weekly Shipper
-type: achievement
-points: 20
-awarded: false
-criteria: >
-  Complete at least one task tagged release or docs every week for 4 weeks.
-notes: >
-  Encourages steady, incremental shipping toward launch goals.
-

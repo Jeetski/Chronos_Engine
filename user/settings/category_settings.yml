@@ -1,16 +1,22 @@
 Category_Settings:
-  Friends and Family:
-    Description: Categories related to social connections and relationships.
-    value: 2
-  Health:
-    Description: Categories related to physical and mental well-being.
+  Health and Wellbeing:
+    Description: Categories related to physical health, mental wellbeing, recovery, and overall wellness.
     value: 1
-  Hobbies:
-    Description: Categories related to leisure activities and personal interests.
-    value: 5
-  Personal Development:
-    Description: Categories related to learning, growth, and self-improvement.
-    value: 4
+  Relationships:
+    Description: Categories related to family, friends, and close personal connections.
+    value: 2
   Work:
     Description: Categories related to professional tasks and responsibilities.
     value: 3
+  Admin & Upkeep:
+    Description: Categories related to life maintenance, errands, paperwork, and recurring admin.
+    value: 4
+  Finance:
+    Description: Categories related to money management, budgeting, bills, and financial planning.
+    value: 5
+  Personal Development:
+    Description: Categories related to learning, growth, and self-improvement.
+    value: 6
+  Hobbies:
+    Description: Categories related to leisure activities and personal interests.
+    value: 7

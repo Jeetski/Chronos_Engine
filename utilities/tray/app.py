@@ -43,7 +43,7 @@ NOTIFICATION_HISTORY_PATH = ROOT_DIR / "user" / "data" / "notification_history.j
 NOTIFICATION_HISTORY_LIMIT = 200
 
 from modules.timer import main as Timer
-from modules.scheduler import get_flattened_schedule, schedule_path_for_date, status_current_path
+from modules.scheduler import get_flattened_schedule, load_schedule_payload_for_date, schedule_path_for_date, status_current_path
 from modules.scheduler.sleep_gate import SLEEP_POLICY_OPTIONS, build_sleep_interrupt
 from modules.console import invoke_command
 from modules.item_manager import list_all_items
@@ -961,13 +961,7 @@ $notifier.Show($toast)
         path = schedule_path_for_date(datetime.now())
         if not os.path.exists(path):
             return []
-        try:
-            with open(path, "r", encoding="utf-8") as fh:
-                data = yaml.safe_load(fh) or []
-        except Exception:
-            return []
-        if not isinstance(data, list):
-            return []
+        data = load_schedule_payload_for_date(datetime.now(), path=str(path))
         flat = get_flattened_schedule(data)
         blocks = []
         for blk in flat:
@@ -1030,15 +1024,10 @@ $notifier.Show($toast)
         sched_path = schedule_path_for_date(target_date)
         schedule_data = []
         if os.path.exists(sched_path):
-            try:
-                with open(sched_path, "r", encoding="utf-8") as fh:
-                    schedule_data = yaml.safe_load(fh) or []
-            except Exception:
-                schedule_data = []
+            schedule_data = load_schedule_payload_for_date(target_date, path=sched_path)
         flat = []
         try:
-            if isinstance(schedule_data, list):
-                flat = get_flattened_schedule(schedule_data) or []
+            flat = get_flattened_schedule(schedule_data) or []
         except Exception:
             flat = []
         scheduled_blocks = []

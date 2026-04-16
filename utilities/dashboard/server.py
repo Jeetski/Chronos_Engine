@@ -40,7 +40,13 @@ from utilities.dashboard_matrix import (
     save_matrix_preset,
     delete_matrix_preset,
 )
-from modules.scheduler import schedule_path_for_date, status_current_path, build_block_key, get_flattened_schedule
+from modules.scheduler import (
+    schedule_path_for_date,
+    status_current_path,
+    build_block_key,
+    get_flattened_schedule,
+    load_schedule_payload_for_date,
+)
 from modules.scheduler.sleep_gate import (
     build_sleep_interrupt,
 )
@@ -7442,6 +7448,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         self._safe_stderr(f"DEBUG: GET request path: {parsed.path}\n")
 
+        if parsed.path.startswith("/api/thoughtforms"):
+            try:
+                from thoughtforms import server as ThoughtformsServer
+
+                if ThoughtformsServer.handle_get(self, parsed):
+                    return
+                self._write_json(404, {"ok": False, "error": "Unknown Thoughtforms endpoint"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Thoughtforms GET error: {e}"})
+            return
+
         if parsed.path == "/api/trick/registry":
             try:
                 self._write_json(200, {"ok": True, "registry": _trick_registry()})
@@ -9475,11 +9492,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                     sched_path = schedule_path_for_date(date_str)
                     if not os.path.exists(sched_path):
                         return []
-                    try:
-                        with open(sched_path, "r", encoding="utf-8") as fh:
-                            schedule_data = yaml.safe_load(fh) or []
-                    except Exception:
-                        return []
+                    schedule_data = load_schedule_payload_for_date(date_str, path=sched_path)
                     return [b for b in get_flattened_schedule(schedule_data) if isinstance(b, dict) and not b.get("is_buffer")]
 
                 def count_scheduled(date_obj):
@@ -9584,13 +9597,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 target_date = target_dt.strftime("%Y-%m-%d")
 
                 sched_path = schedule_path_for_date(target_date)
-                schedule_data = []
-                if os.path.exists(sched_path):
-                    try:
-                        with open(sched_path, "r", encoding="utf-8") as fh:
-                            schedule_data = yaml.safe_load(fh) or []
-                    except Exception:
-                        schedule_data = []
+                schedule_data = load_schedule_payload_for_date(target_date, path=sched_path) if os.path.exists(sched_path) else []
 
                 def _hm(value):
                     if value is None:
@@ -9623,30 +9630,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         return False
                     return False
 
-                flat = []
-                # Local cycle-safe walker (avoids relying on upstream flatteners).
-                def _walk(items, out, seen):
-                    if not isinstance(items, list):
-                        return
-                    for it in items:
-                        if not isinstance(it, dict):
-                            continue
-                        obj_id = id(it)
-                        if obj_id in seen:
-                            continue
-                        seen.add(obj_id)
-                        out.append(it)
-                        children = it.get("children") or it.get("items") or []
-                        if isinstance(children, list) and children:
-                            _walk(children, out, seen)
-
                 try:
-                    if isinstance(schedule_data, list):
-                        _walk(schedule_data, flat, set())
-                    elif isinstance(schedule_data, dict):
-                        root_items = (schedule_data.get("items") or schedule_data.get("children") or [])
-                        if isinstance(root_items, list):
-                            _walk(root_items, flat, set())
+                    flat = get_flattened_schedule(schedule_data) or []
                 except Exception:
                     flat = []
 
@@ -9939,8 +9924,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._write_yaml(404, {"ok": False, "error": "schedule file not found"})
                 return
             try:
-                with open(sched_path, 'r', encoding='utf-8') as f:
-                    schedule_data = yaml.safe_load(f) or []
+                schedule_data = load_schedule_payload_for_date(date_str, path=sched_path)
 
                 # Flatten into simple blocks with HH:MM strings
                 import re
@@ -10114,30 +10098,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                         walk((schedule_data.get('items') or schedule_data.get('children') or []), depth=0)
                     return blocks
 
-                from modules.planner import build_preview_for_date
-
                 days_payload = []
                 for offset in range(days):
                     date_obj = start_date + timedelta(days=offset)
                     label = date_obj.strftime('%A')
-                    if offset == 0:
-                        sched_path = schedule_path_for_date(date_obj)
-                        sched_data = []
-                        if os.path.exists(sched_path):
-                            try:
-                                with open(sched_path, 'r', encoding='utf-8') as f:
-                                    sched_data = yaml.safe_load(f) or []
-                            except Exception:
-                                sched_data = []
-                        blocks = flatten(sched_data)
-                        # Keep today's column populated even when today's schedule file
-                        # has not been generated yet (or is temporarily empty).
-                        if not blocks:
-                            preview, _conflicts = build_preview_for_date(date_obj, show_warnings=False)
-                            blocks = flatten(preview or [])
-                    else:
-                        preview, _conflicts = build_preview_for_date(date_obj, show_warnings=False)
-                        blocks = flatten(preview or [])
+                    sched_path = schedule_path_for_date(date_obj)
+                    sched_data = load_schedule_payload_for_date(date_obj, path=sched_path) if os.path.exists(sched_path) else []
+                    blocks = flatten(sched_data)
                     days_payload.append({
                         "date": date_obj.strftime('%Y-%m-%d'),
                         "label": label,
@@ -10375,6 +10342,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             payload = yaml.safe_load(text) or {}
         except Exception as e:
             self._write_yaml(400, {"ok": False, "error": f"Invalid YAML: {e}"})
+            return
+
+        if parsed.path.startswith("/api/thoughtforms"):
+            try:
+                from thoughtforms import server as ThoughtformsServer
+
+                if ThoughtformsServer.handle_post(self, parsed, payload):
+                    return
+                self._write_json(404, {"ok": False, "error": "Unknown Thoughtforms endpoint"})
+            except Exception as e:
+                self._write_json(500, {"ok": False, "error": f"Thoughtforms POST error: {e}"})
             return
 
         if parsed.path == "/api/trick":

@@ -1,8 +1,0 @@
-name: Stand Up Break
-type: reminder
-time: "15:00"
-recurrence: [daily]
-enabled: true
-notes: >
-  Daily stand-up break to reset posture and eyes.
-

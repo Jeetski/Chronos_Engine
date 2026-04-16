@@ -141,7 +141,19 @@ def format_time(time_obj):
     """
     Formats a datetime object into a string.
     """
-    return time_obj.strftime("%H:%M")
+    if isinstance(time_obj, datetime):
+        return time_obj.strftime("%H:%M")
+    if time_obj is None:
+        return ""
+    text = str(time_obj).strip()
+    if not text:
+        return ""
+    match = re.search(r"(\d{1,2}):(\d{2})", text)
+    if not match:
+        return text
+    hh = max(0, min(23, int(match.group(1))))
+    mm = max(0, min(59, int(match.group(2))))
+    return f"{hh:02d}:{mm:02d}"
 
 def build_block_key(item_name, start_time_obj_or_str):
     """
@@ -181,6 +193,10 @@ def get_flattened_schedule(schedule):
     Returns a flattened list of all items (including sub_items and microroutines) in the schedule.
     """
     flat_schedule = []
+    if isinstance(schedule, dict):
+        schedule = schedule.get("items") or schedule.get("children") or []
+    if not isinstance(schedule, list):
+        return flat_schedule
     def flatten(items):
         for item in items:
             flat_schedule.append(item)

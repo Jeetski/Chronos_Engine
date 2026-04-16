@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 import os
 import re
-import yaml
 
-from modules.scheduler import schedule_path_for_date, change_item_time_in_file
+from modules.scheduler import schedule_path_for_date, change_item_time_in_file, load_schedule_payload_for_date, extract_schedule_items
 
 
 def _parse_minutes(raw):
@@ -108,14 +107,12 @@ def run(args, properties):
         return
 
     desired_start = _to_hm((properties or {}).get("start_time") or (properties or {}).get("scheduled_start"))
-    try:
-        with open(schedule_path, "r", encoding="utf-8") as fh:
-            schedule = yaml.safe_load(fh) or []
-    except Exception as e:
-        print(f"❌ Failed to read schedule: {e}")
+    schedule = load_schedule_payload_for_date(target_date, path=schedule_path)
+    if not isinstance(schedule, (list, dict)):
+        print("❌ Failed to read schedule.")
         return
 
-    current_start = _find_start(schedule if isinstance(schedule, list) else (schedule.get("items") or schedule.get("children") or []), item_name, desired_start)
+    current_start = _find_start(extract_schedule_items(schedule), item_name, desired_start)
     if not current_start:
         print(f"❌ Could not find '{item_name}' in {target_date} schedule.")
         return

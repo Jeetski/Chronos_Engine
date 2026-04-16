@@ -1,8 +1,0 @@
-name: Focus Buffer 15 (Example)
-type: timeblock
-subtype: buffer
-duration: 15
-absorbable: true
-flexible: true
-notes: Overflow buffer between high-focus blocks.
-

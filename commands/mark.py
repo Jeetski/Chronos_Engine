@@ -3,7 +3,7 @@ import os
 import yaml
 from datetime import datetime
 from modules.item_manager import get_item_path, read_item_data, write_item_data
-from modules.scheduler import schedule_path_for_date, build_block_key
+from modules.scheduler import schedule_path_for_date, build_block_key, extract_schedule_items, load_schedule_payload_for_date
 from commands.today import load_completion_payload
 from modules import quality_utils
 from utilities.completion_effects import run_completion_effects
@@ -108,12 +108,12 @@ def run(args, properties):
         print("❌ schedule file not found. Generate a schedule with 'today'.")
         return
 
-    with open(schedule_path, 'r') as f:
-        schedule = yaml.safe_load(f)
+    schedule = load_schedule_payload_for_date(target_date, path=schedule_path)
+    schedule_items = extract_schedule_items(schedule)
 
     desired_start = _normalize_time_str(properties.get("start_time") or properties.get("scheduled_start"))
     desired_end = _normalize_time_str(properties.get("end_time") or properties.get("scheduled_end"))
-    item_in_schedule = find_item_in_nested_schedule(schedule, item_name, desired_start)
+    item_in_schedule = find_item_in_nested_schedule(schedule_items, item_name, desired_start)
 
     has_item_file = True
 
@@ -155,10 +155,8 @@ def run(args, properties):
     scheduled_start = desired_start
     scheduled_end = desired_end
     if item_in_schedule:
-        if item_in_schedule.get("start_time"):
-            scheduled_start = item_in_schedule["start_time"].strftime("%H:%M")
-        if item_in_schedule.get("end_time"):
-            scheduled_end = item_in_schedule["end_time"].strftime("%H:%M")
+        scheduled_start = _normalize_time_str(item_in_schedule.get("start_time") or item_in_schedule.get("ideal_start_time")) or scheduled_start
+        scheduled_end = _normalize_time_str(item_in_schedule.get("end_time") or item_in_schedule.get("ideal_end_time")) or scheduled_end
 
     def _log_completion_entry():
         if not (item_in_schedule or scheduled_start):

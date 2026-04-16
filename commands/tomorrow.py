@@ -1,41 +1,16 @@
-import os
-from datetime import datetime, timedelta
-
-from modules.scheduler import display_schedule, schedule_path_for_date
-from modules.planner import build_preview_for_date
+ARCHIVE_PATH = r"C:\Users\david\Desktop\Hivemind Studio\Chronos Engine\META\LEGACY_SCHEDULING\commands\tomorrow.py"
 
 
 def run(args, properties):
-    """
-    Preview the schedule for tomorrow (or a specified offset via days:<n>).
-    """
-    days_ahead = int(properties.get("days", 1))
-    if days_ahead < 1:
-        days_ahead = 1
-    target_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
-
-    schedule_path = schedule_path_for_date(target_date)
-    schedule, conflicts = build_preview_for_date(target_date, save_path=schedule_path)
-    if schedule is None:
-        return
-
-    completions = {}  # Tomorrow has no completion data yet
-    display_schedule(
-        schedule,
-        conflicts,
-        indent=0,
-        display_level=float("inf"),
-        today_completion_data=completions,
-        color_override="future",
-        title="--- Tomorrow's Schedule ---",
+    print(
+        "Legacy preview scheduling has been archived.\n"
+        f"Archived implementation: {ARCHIVE_PATH}\n"
+        "A Kairos v2-native tomorrow preview has not been implemented yet."
     )
 
 
 def get_help_message():
-    return """
-Usage: tomorrow [days:<n>]
-Description: Preview a future daily schedule using the planner pipeline.
-Examples:
-  tomorrow
-  tomorrow days:3
-"""
+    return (
+        "Usage: tomorrow\n"
+        "Description: Legacy preview scheduling has been archived until a v2-native preview path exists."
+    )

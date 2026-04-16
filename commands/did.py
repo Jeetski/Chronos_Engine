@@ -2,7 +2,7 @@ import os
 import yaml
 from datetime import datetime
 
-from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
+from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date, load_schedule_payload_for_date
 from commands.today import load_completion_payload
 from modules import quality_utils
 try:
@@ -14,8 +14,11 @@ except Exception:
 def _normalize_time_str(value):
     if not value:
         return None
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    text = str(value).strip()
     try:
-        parsed = datetime.strptime(value, "%H:%M")
+        parsed = datetime.strptime(text, "%H:%M")
     except ValueError:
         print(f"Invalid time '{value}'. Use HH:MM (24h).")
         return None
@@ -40,8 +43,8 @@ def _load_schedule(date_str):
     schedule_path = schedule_path_for_date(date_str)
     if not os.path.exists(schedule_path):
         return []
-    with open(schedule_path, "r") as fh:
-        return yaml.safe_load(fh) or []
+    payload = load_schedule_payload_for_date(date_str, path=schedule_path)
+    return payload if isinstance(payload, (list, dict)) else []
 
 
 def _find_block(schedule, name, desired_start):
@@ -56,10 +59,20 @@ def _find_block(schedule, name, desired_start):
         return None
     if desired_start:
         for item in candidates:
-            if item.get("start_time") and item["start_time"].strftime("%H:%M") == desired_start:
+            if _normalize_time_str(item.get("start_time") or item.get("ideal_start_time")) == desired_start:
                 return item
     now = datetime.now()
-    upcoming = [item for item in candidates if item.get("start_time") and item["start_time"] >= now]
+    upcoming = []
+    for item in candidates:
+        start_label = _normalize_time_str(item.get("start_time") or item.get("ideal_start_time"))
+        if not start_label:
+            continue
+        try:
+            start_dt = datetime.strptime(start_label, "%H:%M").replace(year=now.year, month=now.month, day=now.day)
+        except Exception:
+            continue
+        if start_dt >= now:
+            upcoming.append(item)
     return upcoming[0] if upcoming else candidates[-1]
 
 
@@ -109,10 +122,8 @@ def run(args, properties):
     scheduled_end = None
     item_type = None
     if scheduled_block:
-        if scheduled_block.get("start_time"):
-            scheduled_start = scheduled_block["start_time"].strftime("%H:%M")
-        if scheduled_block.get("end_time"):
-            scheduled_end = scheduled_block["end_time"].strftime("%H:%M")
+        scheduled_start = _normalize_time_str(scheduled_block.get("start_time") or scheduled_block.get("ideal_start_time"))
+        scheduled_end = _normalize_time_str(scheduled_block.get("end_time") or scheduled_block.get("ideal_end_time"))
         item_type = scheduled_block.get("type")
 
     if not scheduled_start:
@@ -132,7 +143,7 @@ def run(args, properties):
     if err:
         print(err)
         return
-    key = build_block_key(block_name, scheduled_start)
+    block_key = build_block_key(block_name, scheduled_start)
     entry = {
         "name": block_name,
         "status": status,
@@ -156,12 +167,12 @@ def run(args, properties):
         "quality",
         "note",
     }
-    for key, value in properties.items():
-        if key in extra_keys or key in entry:
+    for prop_key, value in properties.items():
+        if prop_key in extra_keys or prop_key in entry:
             continue
-        entry[key] = value
+        entry[prop_key] = value
 
-    entries[key] = entry
+    entries[block_key] = entry
 
     with open(completion_path, "w") as fh:
         yaml.dump(completion_data, fh, default_flow_style=False)

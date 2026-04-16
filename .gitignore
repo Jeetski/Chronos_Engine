@@ -17,6 +17,7 @@ htmlcov/
 venv/
 env/
 .env
+node_modules/
 
 # Editors/OS
 .DS_Store
@@ -84,3 +85,6 @@ Agents Dress Up Committee/familiars/*/backgrounds/**/*.png
 
 # Pytest cache
 .pytest_cache/
+
+# Thoughtforms sidecar frontend artifacts
+thoughtforms/app/dist/

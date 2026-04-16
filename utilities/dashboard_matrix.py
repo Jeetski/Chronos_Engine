@@ -25,6 +25,7 @@ COMPLETIONS_DIR = os.path.join(SCHEDULES_DIR, "completions")
 NAME_SEPARATOR = "\x1f"
 
 from modules.item_manager import list_all_items  # type: ignore
+from modules.scheduler import load_schedule_payload_for_date  # type: ignore
 from utilities.duration_parser import parse_duration_string  # type: ignore
 
 DEFAULT_ITEM_TYPES = [
@@ -527,10 +528,11 @@ def load_schedule_dataset(past_only: bool = True, include_parents: bool = False)
     dataset: List[Dict[str, Any]] = []
     for date_obj, date_str, path in _list_schedule_files(past_only=past_only):
         try:
-            with open(path, "r", encoding="utf-8") as fh:
-                schedule = yaml.safe_load(fh) or []
+            schedule = load_schedule_payload_for_date(date_str, path=path)
         except Exception:
             continue
+        if isinstance(schedule, dict):
+            schedule = schedule.get("items") or schedule.get("children") or []
         if not isinstance(schedule, list):
             continue
         completions = _load_completions_for_date(date_str)

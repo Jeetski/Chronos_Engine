@@ -2,7 +2,7 @@ import os
 import yaml
 from datetime import datetime, timedelta, date
 from modules.item_manager import get_user_dir, get_item_dir, list_all_items
-from modules.scheduler import schedule_path_for_date
+from modules.scheduler import get_flattened_schedule, load_schedule_payload_for_date, schedule_path_for_date
 
 
 def run(args, properties):
@@ -374,23 +374,16 @@ def _summary_schedule_today():
     if not os.path.exists(path):
         return {'planned_minutes_total': 0, 'by_type': {}}
     try:
-        with open(path, 'r') as f:
-            sched = yaml.safe_load(f) or []
+        sched = load_schedule_payload_for_date(datetime.now(), path=path)
         total = 0
         by_type = {}
-        def visit(items):
-            nonlocal total, by_type
-            for it in items:
-                if it.get('is_buffer'):
-                    continue
-                dur = int(it.get('duration') or 0)
-                tp = it.get('type') or 'unknown'
-                total += dur
-                by_type[tp] = by_type.get(tp, 0) + dur
-                if it.get('children'):
-                    visit(it.get('children'))
-        if isinstance(sched, list):
-            visit(sched)
+        for it in get_flattened_schedule(sched):
+            if not isinstance(it, dict) or it.get('is_buffer'):
+                continue
+            dur = int(it.get('duration') or 0)
+            tp = it.get('type') or 'unknown'
+            total += dur
+            by_type[tp] = by_type.get(tp, 0) + dur
         return {'planned_minutes_total': total, 'by_type': by_type}
     except Exception:
         return {'planned_minutes_total': 0, 'by_type': {}}

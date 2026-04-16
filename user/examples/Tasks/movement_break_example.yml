@@ -1,9 +1,0 @@
-name: Movement Break
-type: task
-priority: low
-status: pending
-duration: 15
-tags: [health, break]
-notes: >
-  Quick mobility routine between long sessions; pairs well with the timer cooldown.
-

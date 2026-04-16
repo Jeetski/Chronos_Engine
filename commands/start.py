@@ -3,7 +3,7 @@ import math
 from datetime import datetime, timedelta
 
 from modules.console import invoke_command
-from modules.scheduler import USER_DIR, get_flattened_schedule, schedule_path_for_date
+from modules.scheduler import USER_DIR, extract_schedule_items, load_schedule_payload_for_date, load_schedule_plan_for_date, schedule_path_for_date
 from modules.scheduler.sleep_gate import (
     SLEEP_POLICY_OPTIONS,
     build_sleep_interrupt,
@@ -50,19 +50,13 @@ def _start_day(properties):
         print(f"Error running 'today reschedule': {exc}")
         return
 
-    schedule = _load_today_schedule()
-    if not schedule:
-        print("No schedule available after reschedule. Aborting.")
-        return
-
     settings = _load_timer_settings()
     min_minutes = int(settings.get("start_day_min_minutes") or settings.get("start_day_min_block_minutes") or 5)
     profile_name = settings.get("start_day_profile") or settings.get("default_profile") or "classic_pomodoro"
     confirm_completion = settings.get("confirm_completion")
     if confirm_completion is None:
         confirm_completion = True
-    flat_schedule = get_flattened_schedule(schedule or [])
-    queue = _build_plan(flat_schedule, min_minutes=min_minutes, now_dt=datetime.now())
+    queue = load_schedule_plan_for_date(datetime.now(), min_minutes=min_minutes, now_dt=datetime.now())
     if not queue.get("blocks"):
         print(f"No runnable blocks found (min duration {min_minutes} minutes).")
         return
@@ -101,9 +95,8 @@ def _load_today_schedule():
         yaml = None  # type: ignore
     if yaml is None:
         return []
-    with open(schedule_path, "r", encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or []
-    return data if isinstance(data, list) else []
+    data = load_schedule_payload_for_date(datetime.now(), path=schedule_path)
+    return extract_schedule_items(data)
 
 
 def _load_timer_settings():

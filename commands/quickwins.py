@@ -5,9 +5,9 @@ import json
 
 from modules.item_manager import list_all_items_any
 from modules.scheduler import (
-    schedule_path_for_date,
     get_flattened_schedule,
     build_block_key,
+    load_schedule_payload_for_date,
     normalize_completion_entries,
 )
 from commands.today import load_completion_payload
@@ -111,14 +111,10 @@ def _duration_flags(item):
 
 
 def _load_schedule_for_date(target_date):
-    schedule_path = schedule_path_for_date(target_date)
-    if not os.path.exists(schedule_path):
-        return []
-    try:
-        with open(schedule_path, "r", encoding="utf-8") as fh:
-            return yaml.safe_load(fh) or []
-    except Exception:
-        return []
+    payload = load_schedule_payload_for_date(target_date)
+    if isinstance(payload, (list, dict)):
+        return payload
+    return []
 
 
 def _explicit_duration_minutes(item):

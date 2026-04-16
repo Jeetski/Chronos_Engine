@@ -11,10 +11,25 @@ except Exception:
 import os
 import yaml
 from datetime import datetime
-from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date
+from modules.scheduler import get_flattened_schedule, build_block_key, schedule_path_for_date, load_schedule_payload_for_date
 from commands.today import load_completion_payload
 from modules import quality_utils
 from utilities.completion_effects import run_completion_effects
+
+
+def _normalize_time_str(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, "%H:%M").strftime("%H:%M")
+    except ValueError:
+        return None
+
 
 def run(args, properties):
     """
@@ -105,17 +120,14 @@ def run(args, properties):
         scheduled_start = None
         scheduled_end = None
         if os.path.exists(schedule_path):
-            with open(schedule_path, "r", encoding="utf-8") as fh:
-                schedule = yaml.safe_load(fh) or []
+            schedule = load_schedule_payload_for_date(today_str, path=schedule_path)
             for item in get_flattened_schedule(schedule):
                 if item.get("name", "").strip().lower() != item_name.strip().lower():
                     continue
                 if item.get("is_buffer"):
                     continue
-                if item.get("start_time"):
-                    scheduled_start = item["start_time"].strftime("%H:%M")
-                if item.get("end_time"):
-                    scheduled_end = item["end_time"].strftime("%H:%M")
+                scheduled_start = _normalize_time_str(item.get("start_time") or item.get("ideal_start_time")) or scheduled_start
+                scheduled_end = _normalize_time_str(item.get("end_time") or item.get("ideal_end_time")) or scheduled_end
                 break
         if scheduled_start:
             block_key = build_block_key(item_name, scheduled_start)

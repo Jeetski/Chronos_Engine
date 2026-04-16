@@ -1,8 +1,0 @@
-name: Admin Free Block 45 (Example)
-type: timeblock
-subtype: free
-duration: 45
-absorbable: true
-flexible: true
-notes: Flexible block that can absorb admin spillover.
-

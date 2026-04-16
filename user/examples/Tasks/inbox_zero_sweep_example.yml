@@ -1,9 +1,0 @@
-name: Inbox Zero Sweep
-type: task
-priority: medium
-status: pending
-duration: 30
-tags: [admin, email]
-notes: >
-  Clear inbox, triage into tasks, archive, and schedule replies.
-

@@ -13,7 +13,7 @@ from modules.sequence.registry import (
     update_database_entry,
     load_registry,
 )
-from modules.scheduler import build_block_key, schedule_path_for_date  # type: ignore
+from modules.scheduler import build_block_key, load_schedule_payload_for_date, schedule_path_for_date  # type: ignore
 from utilities.duration_parser import parse_duration_string  # type: ignore
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -338,11 +338,9 @@ def _collect_schedule_entries(name_index: Dict[str, List[str]], type_lookup: Dic
     schedule_path = schedule_path_for_date(datetime.now())
     if not os.path.exists(schedule_path):
         return []
-    try:
-        with open(schedule_path, "r", encoding="utf-8") as fh:
-            schedule = yaml.safe_load(fh) or []
-    except Exception:
-        return []
+    schedule = load_schedule_payload_for_date(datetime.now(), path=schedule_path)
+    if isinstance(schedule, dict):
+        schedule = schedule.get("items") or schedule.get("children") or []
     if not isinstance(schedule, list):
         return []
     entries: List[Dict[str, Any]] = []

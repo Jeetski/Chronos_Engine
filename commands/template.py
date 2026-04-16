@@ -1,17 +1,25 @@
 import os
 import yaml
 from datetime import datetime
-from modules.scheduler import schedule_path_for_date
+from modules.scheduler import extract_schedule_items, load_schedule_payload_for_date, schedule_path_for_date
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 USER_DIR = os.path.join(ROOT_DIR, "user")
 
 
 def _format_time(dt):
-    try:
+    if isinstance(dt, datetime):
         return dt.strftime("%H:%M")
-    except Exception:
-        return None
+    if isinstance(dt, str):
+        txt = dt.strip()
+        if not txt:
+            return None
+        for fmt in ("%H:%M", "%H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(txt, fmt).strftime("%H:%M")
+            except ValueError:
+                continue
+    return None
 
 
 def _duration_to_str(minutes):
@@ -79,17 +87,17 @@ def run(args, properties):
         print("❌ No schedule found for today. Run 'today' first.")
         return
 
-    with open(schedule_path, 'r') as f:
-        schedule = yaml.safe_load(f) or []
+    schedule = load_schedule_payload_for_date(datetime.now(), path=schedule_path)
+    schedule_items = extract_schedule_items(schedule)
 
     # Sort by start time when possible
     try:
-        schedule = sorted(schedule, key=lambda i: i.get("start_time") or datetime.now())
+        schedule_items = sorted(schedule_items, key=lambda i: _format_time(i.get("start_time") or i.get("ideal_start_time")) or "99:99")
     except Exception:
         pass
 
     children = []
-    for item in schedule:
+    for item in schedule_items:
         converted = _convert_item(item)
         if converted:
             children.append(converted)

@@ -1303,6 +1303,34 @@ class KairosV2Scheduler:
         helper_windows: List[Dict[str, Any]] = []
         adjusted_gaps: List[Dict[str, Any]] = []
 
+        # Optional status-aware ASAP injection mode.
+        #
+        # Syntax source (today parser):
+        # - inject:next
+        # - inject-mode:next
+        # - inject-window:<minutes>
+        if self._inject_next_enabled():
+            asap_payload = self._build_asap_inject_next_window(
+                state=state,
+                original_gaps=original_gaps,
+                viable_candidates=viable_candidates,
+                selected_identities=selected_identities,
+                category_weights=category_weights,
+                priority_weights=priority_weights,
+                happiness_weights=happiness_weights,
+                factor_weights=factor_weights,
+            )
+            if isinstance(asap_payload, dict):
+                helper_window = asap_payload.get("window")
+                remaining_gaps = asap_payload.get("remaining_gaps")
+                selected_identity = str(asap_payload.get("selected_identity") or "").strip()
+                if isinstance(helper_window, dict):
+                    helper_windows.append(helper_window)
+                if isinstance(remaining_gaps, list):
+                    original_gaps = [dict(g) for g in remaining_gaps if isinstance(g, dict)]
+                if selected_identity:
+                    selected_identities.add(selected_identity)
+
         for gap in original_gaps:
             gap_minutes = int(gap.get("duration_minutes") or 0)
             if len(helper_windows) >= settings["max_windows_per_day"]:
@@ -2924,29 +2952,60 @@ class KairosV2Scheduler:
         follows the v2 design choice already captured in the spec and notes.
         """
         requirements = template.get("status_requirements") or {}
-        ordered_dimensions = self._normalize_status_dimensions(status_settings)
         value_maps = self._load_status_value_maps()
+        return self._score_status_requirements_alignment(
+            requirements=requirements,
+            current_status=current_status,
+            status_settings=status_settings,
+            value_maps=value_maps,
+            include_place=False,
+        )
+
+    def _score_status_requirements_alignment(
+        self,
+        *,
+        requirements: Any,
+        current_status: Dict[str, Any],
+        status_settings: Dict[str, Any],
+        value_maps: Optional[Dict[str, Dict[str, int]]] = None,
+        include_place: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Shared weighted-gradient status matching algorithm.
+
+        This is the canonical status fit calculation used across v2:
+        - template selection alignment
+        - per-candidate local status fit
+
+        Returns a uniform payload:
+        - weighted_distance (lower is better)
+        - matched_dimensions
+        - considered_dimensions (diagnostic rows)
+        """
+        normalized_requirements = requirements if isinstance(requirements, dict) else {}
+        ordered_dimensions = self._normalize_status_dimensions(status_settings)
+        maps = value_maps if isinstance(value_maps, dict) else self._load_status_value_maps()
         total_distance = 0
         matched_dimensions = 0
         considered_dimensions: List[Dict[str, Any]] = []
 
         for dimension in ordered_dimensions:
             key = dimension["key"]
-            if key == "place":
+            if not include_place and key == "place":
                 # Place/environment semantics are intentionally deferred.
                 continue
 
-            allowed = requirements.get(key)
+            allowed = normalized_requirements.get(key)
             if not allowed:
                 continue
 
             allowed_values = allowed if isinstance(allowed, list) else [allowed]
             current_value = current_status.get(key)
-            current_score = value_maps.get(key, {}).get(self._normalize_token(current_value))
+            current_score = maps.get(key, {}).get(self._normalize_token(current_value))
             allowed_scores = [
-                value_maps.get(key, {}).get(self._normalize_token(value))
+                maps.get(key, {}).get(self._normalize_token(value))
                 for value in allowed_values
-                if value_maps.get(key, {}).get(self._normalize_token(value)) is not None
+                if maps.get(key, {}).get(self._normalize_token(value)) is not None
             ]
 
             # If the status dimension is configured but the values are unknown,
@@ -3031,10 +3090,12 @@ class KairosV2Scheduler:
             }
             return enriched
 
-        fit = self._score_template_status_alignment(
-            {"status_requirements": requirements},
-            state.reality.get("current_status", {}) or {},
-            state.gathered.get("settings", {}).get("status_settings", {}) or {},
+        fit = self._score_status_requirements_alignment(
+            requirements=requirements,
+            current_status=state.reality.get("current_status", {}) or {},
+            status_settings=state.gathered.get("settings", {}).get("status_settings", {}) or {},
+            value_maps=self._load_status_value_maps(),
+            include_place=False,
         )
         enriched["local_status_fit"] = {
             "has_explicit_requirements": True,
@@ -3818,6 +3879,8 @@ class KairosV2Scheduler:
         """
         Convert a helper kind into a readable title.
         """
+        if helper_kind == "status_asap":
+            return "Best Next Window"
         if helper_kind == "manual_opportunity":
             return "Manual Opportunity Window"
         if helper_kind == "deadline_pressure":
@@ -3825,6 +3888,232 @@ class KairosV2Scheduler:
         if helper_kind == "due_pressure":
             return "Due Window"
         return "Opportunity Window"
+
+    def _inject_next_enabled(self) -> bool:
+        """
+        Return whether status-aware ASAP injection mode is enabled.
+
+        Accepted values map to current CLI/property key:value syntax:
+        - inject:next
+        - inject-mode:next
+        """
+        raw = str(self.user_context.get("inject_mode") or "").strip().lower().replace("-", "_")
+        return raw in {"next", "best_next", "status_next", "asap"}
+
+    def _inject_next_window_minutes(self) -> Optional[int]:
+        """
+        Resolve optional max minutes cap for inject:next.
+        """
+        raw = self.user_context.get("inject_window")
+        try:
+            if raw is None:
+                return None
+            value = int(raw)
+            return max(1, value)
+        except Exception:
+            return None
+
+    def _build_asap_inject_next_window(
+        self,
+        *,
+        state: KairosV2RunState,
+        original_gaps: List[Dict[str, Any]],
+        viable_candidates: List[Dict[str, Any]],
+        selected_identities: set[str],
+        category_weights: Dict[str, Dict[str, int]],
+        priority_weights: Dict[str, Dict[str, int]],
+        happiness_weights: Dict[str, Dict[str, int]],
+        factor_weights: Dict[str, float],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Build one status-aware ASAP helper window in the earliest legal gap.
+
+        Placement rule:
+        - after current runtime floor in remaining-day mode
+        - first emergent non-anchor gap
+        - pick best status-gradient candidate that fits
+        """
+        if not original_gaps:
+            return None
+
+        floor = self._runtime_floor_minutes(state)
+        gap_index = -1
+        gap_record: Optional[Dict[str, Any]] = None
+        for idx, gap in enumerate(original_gaps):
+            if not isinstance(gap, dict):
+                continue
+            start_minutes = int(gap.get("start_minutes") or 0)
+            end_minutes = int(gap.get("end_minutes") or 0)
+            if end_minutes <= start_minutes:
+                continue
+            if end_minutes <= floor:
+                continue
+            slot_start = max(start_minutes, floor)
+            if slot_start >= end_minutes:
+                continue
+            gap_index = idx
+            gap_record = dict(gap)
+            gap_record["slot_start_minutes"] = slot_start
+            gap_record["slot_end_minutes"] = end_minutes
+            break
+
+        if gap_index < 0 or not isinstance(gap_record, dict):
+            return None
+
+        slot_start = int(gap_record.get("slot_start_minutes") or 0)
+        slot_end = int(gap_record.get("slot_end_minutes") or 0)
+        slot_minutes = max(0, slot_end - slot_start)
+        if slot_minutes <= 0:
+            return None
+
+        inject_window_cap = self._inject_next_window_minutes()
+        if inject_window_cap is not None:
+            slot_minutes = min(slot_minutes, int(inject_window_cap))
+            slot_end = slot_start + slot_minutes
+        if slot_minutes <= 0:
+            return None
+
+        candidate_rows: List[Dict[str, Any]] = []
+        for candidate in viable_candidates:
+            identity = str(candidate.get("identity") or "").strip()
+            if not identity or identity in selected_identities:
+                continue
+            if self._is_hard_anchor(candidate):
+                continue
+            duration_minutes = self._coerce_minutes(candidate.get("duration"))
+            if duration_minutes is None or duration_minutes <= 0:
+                continue
+            if duration_minutes > slot_minutes:
+                continue
+
+            score = self._score_asap_next_candidate(
+                candidate=candidate,
+                category_weights=category_weights,
+                priority_weights=priority_weights,
+                happiness_weights=happiness_weights,
+                priority_factor_weights=factor_weights,
+                target_date=state.target_date,
+            )
+            candidate_rows.append(
+                {
+                    "candidate": candidate,
+                    "score": score,
+                    "duration_minutes": int(duration_minutes),
+                }
+            )
+
+        if not candidate_rows:
+            return None
+
+        candidate_rows.sort(
+            key=lambda row: (
+                -float(row.get("score") or 0.0),
+                int(row.get("duration_minutes") or 0),
+                str((row.get("candidate") or {}).get("name") or ""),
+            )
+        )
+        best = candidate_rows[0]
+        candidate = best["candidate"]
+        duration_minutes = int(best.get("duration_minutes") or 0)
+        end_minutes = slot_start + duration_minutes
+        selected = [
+            {
+                "name": candidate.get("name"),
+                "identity": candidate.get("identity"),
+                "type": candidate.get("type"),
+                "duration_minutes": duration_minutes,
+                "score": best.get("score"),
+                "category": candidate.get("category"),
+                "priority": candidate.get("priority"),
+                "due_date": candidate.get("due_date"),
+                "deadline": candidate.get("deadline"),
+                "local_status_fit": candidate.get("local_status_fit"),
+                "trim": candidate.get("trim"),
+                "cut": candidate.get("cut"),
+                "shift": candidate.get("shift"),
+                "max_trim_percent": candidate.get("max_trim_percent"),
+                "mini_of": candidate.get("mini_of"),
+                "mini_variant": candidate.get("mini_variant"),
+                "manual_injected": True,
+                "injection_reason": "status_best_next_asap",
+                "start_time": self._minutes_to_hm(slot_start),
+                "end_time": self._minutes_to_hm(end_minutes),
+            }
+        ]
+
+        helper_window = {
+            "window_name": self._runtime_helper_name("status_asap"),
+            "runtime_helper": True,
+            "helper_kind": "status_asap",
+            "source_gap_start_time": gap_record.get("start_time"),
+            "source_gap_end_time": gap_record.get("end_time"),
+            "start_time": self._minutes_to_hm(slot_start),
+            "end_time": self._minutes_to_hm(end_minutes),
+            "start_minutes": slot_start,
+            "end_minutes": end_minutes,
+            "window_duration_minutes": duration_minutes,
+            "selected_count": 1,
+            "selected_minutes": duration_minutes,
+            "remaining_window_minutes": 0,
+            "selected": selected,
+        }
+
+        remaining_gaps: List[Dict[str, Any]] = []
+        for idx, gap in enumerate(original_gaps):
+            if idx != gap_index:
+                remaining_gaps.append(dict(gap))
+                continue
+            gap_start = int(gap.get("start_minutes") or 0)
+            gap_end = int(gap.get("end_minutes") or 0)
+            if slot_start > gap_start:
+                remaining_gaps.append(self._build_gap_record(gap_start, slot_start))
+            if end_minutes < gap_end:
+                remaining_gaps.append(self._build_gap_record(end_minutes, gap_end))
+
+        return {
+            "window": helper_window,
+            "remaining_gaps": remaining_gaps,
+            "selected_identity": str(candidate.get("identity") or "").strip(),
+        }
+
+    def _score_asap_next_candidate(
+        self,
+        *,
+        candidate: Dict[str, Any],
+        category_weights: Dict[str, Dict[str, int]],
+        priority_weights: Dict[str, Dict[str, int]],
+        happiness_weights: Dict[str, Dict[str, int]],
+        priority_factor_weights: Dict[str, float],
+        target_date: date,
+    ) -> float:
+        """
+        Score one candidate for inject:next status-aware ASAP placement.
+
+        Uses the existing weighted-gradient status fit metadata:
+        - lower local_status_fit.weighted_distance => stronger score
+        - explicit status requirements are preferred in this mode
+        """
+        base = self._score_preservation_value(
+            candidate=candidate,
+            category_weights=category_weights,
+            priority_weights=priority_weights,
+            happiness_weights=happiness_weights,
+            priority_factor_weights=priority_factor_weights,
+            target_date=target_date,
+        )
+
+        local_fit = candidate.get("local_status_fit") if isinstance(candidate.get("local_status_fit"), dict) else {}
+        has_explicit = bool(local_fit.get("has_explicit_requirements")) if isinstance(local_fit, dict) else False
+        weighted_distance = float(local_fit.get("weighted_distance") or 0.0) if isinstance(local_fit, dict) else 0.0
+
+        # Strongly favor explicit status-aware candidates for inject:next.
+        explicit_bonus = 120.0 if has_explicit else -80.0
+        distance_bonus = max(0.0, 80.0 - min(80.0, weighted_distance * 8.0))
+
+        duration = self._coerce_minutes(candidate.get("duration")) or 0
+        duration_bonus = max(0.0, 20.0 - min(20.0, float(duration) / 3.0))
+
+        return float(base) + explicit_bonus + distance_bonus + duration_bonus
 
     def _build_ordered_structural_sequence(
         self,

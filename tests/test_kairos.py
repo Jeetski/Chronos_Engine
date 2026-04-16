@@ -938,6 +938,71 @@ class TestKairosCommandParsing(unittest.TestCase):
         self.assertEqual(adjustments[0].get("amount"), 10)
         self.assertEqual(adjustments[2].get("new_start_time"), "08:30")
 
+    def test_today_reschedule_inject_next_cli_tokens_map_into_v2_context(self):
+        captured = {}
+
+        class FakeKairosV2:
+            def __init__(self, user_context=None):
+                captured["ctx"] = user_context or {}
+
+            def generate_schedule(self, _):
+                return {
+                    "schedule": {
+                        "conceptual_schedule": {"conceptual_blocks": []},
+                        "timer_handoff": {},
+                    }
+                }
+
+        with _today_user_dir() as td:
+            with patch("modules.scheduler.KairosV2Scheduler", FakeKairosV2):
+                with redirect_stdout(io.StringIO()):
+                    Today.run(
+                        [
+                            "reschedule",
+                            "engine:v2",
+                            "inject:next",
+                            "inject-window:20",
+                            "status:energy=low,focus=scattered",
+                        ],
+                        {},
+                    )
+
+        ctx = captured.get("ctx", {})
+        self.assertEqual(ctx.get("inject_mode"), "next")
+        self.assertEqual(ctx.get("inject_window"), 20)
+        self.assertEqual((ctx.get("status_overrides") or {}).get("energy"), "low")
+        self.assertEqual((ctx.get("status_overrides") or {}).get("focus"), "scattered")
+
+    def test_today_reschedule_inject_next_properties_map_into_v2_context(self):
+        captured = {}
+
+        class FakeKairosV2:
+            def __init__(self, user_context=None):
+                captured["ctx"] = user_context or {}
+
+            def generate_schedule(self, _):
+                return {
+                    "schedule": {
+                        "conceptual_schedule": {"conceptual_blocks": []},
+                        "timer_handoff": {},
+                    }
+                }
+
+        with _today_user_dir() as td:
+            with patch("modules.scheduler.KairosV2Scheduler", FakeKairosV2):
+                with redirect_stdout(io.StringIO()):
+                    Today.run(
+                        ["reschedule", "engine:v2"],
+                        {
+                            "inject": "next",
+                            "inject_window": 15,
+                        },
+                    )
+
+        ctx = captured.get("ctx", {})
+        self.assertEqual(ctx.get("inject_mode"), "next")
+        self.assertEqual(ctx.get("inject_window"), 15)
+
 
 class TestWeeklyGenerator(unittest.TestCase):
     def test_weekly_skeleton_days_and_commitment_plan(self):
